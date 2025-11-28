@@ -61,7 +61,7 @@ GLOBAL_RULES = {
        - Evalúa la sección 'Dominio y manejo de la información - Salida'.
        - ANULA la sección 'Dominio y manejo de la información - Entrada': Para TODOS los items de esta sección de entrada, DEBES responder: 'aplicable': false Y 'peso': 0.
     IMPORTANTE: Es obligatorio poner 'peso': 0 en la sección que no aplica para que no sume puntos al score final.""",
-    
+
     "ENCUESTA_MAXI": """REGLA 'Encuesta Maxi': Cualquier item con la key 'encuesta_maxi' o similar solo aplica cuando el objetivo de la llamada es aplicar la encuesta Maxi al cliente. Si la llamada es de otro tipo (soporte, reclamo, seguimiento, etc.), o si la encuesta Maxi no se menciona ni se intenta aplicar, entonces el ítem de 'Encuesta Maxi' se marca 'aplicable:false'. También se considera 'aplicable:false' si la llamada no es con el cliente final al que corresponde la encuesta o si el cliente que llama no es el mismo cliente que aparece como titular de la encuesta.""",
 
     "DERECHOS_DE_CANCELACION": """REGLA 'Derechos de Cancelación' (Crítico Condicional): Este ítem es CRÍTICO solo si el producto o contexto de la llamada requiere que el asesor explique explícitamente los derechos de cancelación. Si el producto o servicio que se ofrece o contrata en la llamada tiene obligación de informar derechos de cancelación y el asesor NO lo hace, o lo hace de forma errónea, se marca 'ok: false' y el score total de la cédula se anula (0%). Si el producto NO requiere informar derechos de cancelación (por regulación o por el tipo de producto), se marca 'aplicable:false' y NO afecta el score.""",
@@ -93,7 +93,7 @@ GLOBAL_RULES = {
 
     "CAMBIO_DE_EQUIPO": """REGLA 'Cambio de Equipo' (Administrativo NA=5): Este item se marca 'aplicable:true' únicamente cuando en la llamada se gestiona explícitamente un cambio de equipo del cliente. Si no se habla de cambio de equipo, se marca 'aplicable:false' (NA) y el sistema otorga los puntos automáticos.""",
 
-    "INFO_CORRECTA_AGENTE": """REGLA 'Info Correcta Agente' (Administrativo NA=5, Desactivado): Este item no se utiliza actualmente para afectar el score. Siempre se considera 'aplicable:false' y no se evalúa audio. Al estar desactivado, no afecta el score final.""",
+    "INFO_CORRECTA_AGENTE": """REGLA BLINDADA 'Info Correcta Agente': Este ítem está DESACTIVADO administrativamente. TU RESPUESTA OBLIGATORIA ES: 'ok': true, 'aplicable': false. (IMPORTANTE: Debes marcar 'ok': true para evitar que el sistema anule la calificación por error). No evalúes el audio para este punto.""",
 
     "CUMPLE_REGULACIONES_KYC": """REGLA 'Cumple Regulaciones KYC' (Administrativo NA=5): Este item SIEMPRE se marca 'aplicable:false' cuando el cumplimiento de regulaciones KYC se realiza mediante procesos internos o sistemas automáticos fuera de la llamada. No se evalúa audio. El sistema otorga automáticamente los 5 puntos.""",
 
