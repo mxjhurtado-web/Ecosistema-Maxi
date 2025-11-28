@@ -552,6 +552,28 @@ def rubric_json_to_prompt(dept: str, rubric: dict) -> str:
         "- Si la llamada no encaja en un caso especial, IGNORA la regla especial.\n"
         "- En caso de duda, evalúa únicamente con los criterios generales del JSON."
     )
+    out.append(
+        "- Si la llamada coincide parcialmente con el caso especial, pero el cumplimiento es razonable, "
+        "prefiere marcar 'ok: true' o 'aplicable: false' en lugar de 'ok: false'."
+    )
+
+    out.append("\nCriterio de TOLERANCIA (muy importante):")
+    out.append(
+        "- SOLO marca 'ok: false' cuando la falla sea CLARA, IMPORTANTE y tenga impacto real "
+        "en la experiencia del cliente, en la operación o en el cumplimiento."
+    )
+    out.append(
+        "- Si la evidencia es dudosa, incompleta o ambigua, prefiere marcar 'ok: true' o "
+        "'aplicable: false' en lugar de castigar al asesor."
+    )
+    out.append(
+        "- Errores pequeños de forma (muletillas, frases no perfectas, ligeros cambios en el guion) "
+        "NO deben marcarse como 'ok: false' si el objetivo principal del criterio se cumple."
+    )
+    out.append(
+        "- Nunca inventes errores: si no encuentras evidencia clara en el audio, asume que el criterio "
+        "se cumplió o que 'no aplica'."
+    )
 
     # ----- FIN-----
 
