@@ -62,7 +62,10 @@ GLOBAL_RULES = {
 
     "NOTAS_CORPORATE": """REGLA 'Notas Corporate' (Administrativo NA=5): Este item SIEMPRE se marca 'aplicable:false' cuando las notas corporate se generan en sistemas internos ajenos a la llamada o por procesos posteriores. No se evalúa audio. El sistema otorga automáticamente los 5 puntos.""",
 
-    "TRANSFERENCIA_WARM": """REGLA 'Transferencia Warm': Este item se marca 'aplicable:true' ÚNICAMENTE cuando el asesor enlaza la llamada con otro asesor o área, permaneciendo en línea hasta que el siguiente asesor toma la llamada y saluda al cliente. Si la transferencia es en frío (el asesor cuelga sin presentar al siguiente asesor), se marca 'ok:false'. Si no hay transferencia, se marca 'aplicable:false'.""",
+    "TRANSFERENCIA_WARM": """REGLA BLINDADA 'Transferencia Warm':
+    - CONDICIÓN DE ACTIVACIÓN: Evalúa ÚNICAMENTE si el asesor evaluado (la voz principal) realiza una transferencia SALIENTE hacia otro departamento.
+    - INMUNIDAD (CASO DE BLOQUEO): Si la llamada INICIA con una transferencia (el asesor recibe la llamada), y el cliente se queja de que lo transfirieron mal o tiene que repetir datos, ESTO NO ES CULPA DEL ASESOR ACTUAL. En este caso, marca 'aplicable: false'.
+    - SOLO aplica si el asesor actual intenta conectar al cliente con un tercero. Si el asesor resuelve la llamada él mismo y cuelga, marca 'aplicable: false'.""",
 
     "SEGUIMIENTO_FRESH": """REGLA 'Seguimiento Fresh' (Administrativo NA=4): Este item SIEMPRE se marca como 'aplicable:false' cuando el seguimiento de tickets o casos en Freshdesk/Freshservice no depende de la llamada en cuestión (por ejemplo, si el ticket se gestiona completamente fuera del canal telefónico). En estos casos, no se evalúa audio. El sistema otorga automáticamente los 4 puntos.""",
 
