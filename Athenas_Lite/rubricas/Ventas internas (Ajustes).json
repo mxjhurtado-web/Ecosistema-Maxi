@@ -2,7 +2,7 @@
   "department": "Ventas Internas (Ajustes)",
   "sections": [
     {
-      "name": "Saludo y Etiqueta",
+      "name": "Saludo",
       "items": [
         {
           "key": "tiempo_respuesta",
@@ -11,7 +11,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "La llamada debe ser respondida en los primeros 5 segundos para asegurar una atención rápida y eficiente. El asesor no debe atender después de 5 segundos, mantener silencio prolongado ni usar tono de espera al inicio de la conversación (\"marcando...\", \"llamada en curso\").",
-          "sinonimos_validos": ["rapidez", "tiempo de contestación", "respuesta inmediata", "velocidad de atención"]
+          "sinonimos_validos": [
+            "rapidez",
+            "tiempo de contestación",
+            "respuesta inmediata",
+            "velocidad de atención"
+          ]
         },
         {
           "key": "guion_saludo_inicial",
@@ -20,8 +25,21 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "El asesor debe iniciar con cortesía, mencionando su nombre y la entidad (empresa 'Maxi' o departamento). El orden no importa.  El saludo explícito (\"Buenos días\", \"Hola\") es deseable pero no obligatorio si la apertura es amable. EXCEPCIÓN POR TRANSFERENCIA: Si el asesor recibe la llamada transferida de otro agente, es suficiente con un saludo cordial y confirmar su nombre para considerarlo CUMPLIDO (no es obligatorio repetir la entidad/empresa en este caso). Lo indispensable es la identificación personal y la amabilidad. No debe: no saludar, contestar en silencio o no decir su nombre.",
-          "sinonimos_validos": ["presentación", "saludo inicial", "introducción", "bienvenida", "apertura", "identificación de entidad", "recepción de llamada"]
-        },
+          "sinonimos_validos": [
+            "presentación",
+            "saludo inicial",
+            "introducción",
+            "bienvenida",
+            "apertura",
+            "identificación de entidad",
+            "recepción de llamada"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Etiqueta telefónica",
+      "items": [
         {
           "key": "tono_voz",
           "peso": 5,
@@ -29,7 +47,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Utilizar un tono amigable, claro y adecuado al contexto, transmitiendo amabilidad y disposición para ayudar. Voz pausada, firme y segura, con entonación cordial y buena modulación. No debe: voz muy baja, demasiado rápido, tono molesto/cortante, monótono, sonar cansado o subir demasiado la voz.",
-          "sinonimos_validos": ["entonación", "claridad", "modulación", "cordialidad"]
+          "sinonimos_validos": [
+            "entonación",
+            "claridad",
+            "modulación",
+            "cordialidad"
+          ]
         },
         {
           "key": "diccion",
@@ -38,7 +61,11 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Hablar con claridad y precisión, asegurándose de que el mensaje sea comprendido sin dificultad (\"¿Me escucha bien?\", \"Se lo repito\", \"Permítame aclarar\"), el fraseo puede variar. No debe: comerse palabras, balbucear/tartamudear, hablar entre dientes, pronunciar de forma confusa.",
-          "sinonimos_validos": ["pronunciación", "articulación", "claridad verbal"]
+          "sinonimos_validos": [
+            "pronunciación",
+            "articulación",
+            "claridad verbal"
+          ]
         },
         {
           "key": "personalizacion",
@@ -46,8 +73,15 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion":"Adaptar el trato utilizando CUALQUIERA de estos elementos: Nombre, Apellido o Título de cortesía (ej. \"Agente\", \"Joven\", \"Señorita\" seguido del nombre/apellido). LLamar al cliente DOS VECES por su nombre, lo ideal es al inicio y al final, pero si la llamada es breve o el interlocutor tiene prisa, basta con hacerlo UNA VEZ para cumplir.",
-          "sinonimos_validos": ["trato personalizado", "nombre del cliente", "apellido del cliente", "referencia directa", "título de cortesía", "agente"]
+          "descripcion": "Adaptar el trato utilizando CUALQUIERA de estos elementos: Nombre, Apellido o Título de cortesía (ej. \"Agente\", \"Joven\", \"Señorita\" seguido del nombre/apellido). LLamar al cliente DOS VECES por su nombre, lo ideal es al inicio y al final, pero si la llamada es breve o el interlocutor tiene prisa, basta con hacerlo UNA VEZ para cumplir.",
+          "sinonimos_validos": [
+            "trato personalizado",
+            "nombre del cliente",
+            "apellido del cliente",
+            "referencia directa",
+            "título de cortesía",
+            "agente"
+          ]
         },
         {
           "key": "lenguaje_adecuado",
@@ -56,7 +90,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Utilizar un lenguaje formal, respetuoso y adaptado al público, evitando expresiones coloquiales o inadecuadas. Frases como \"Claro que sí\", \"Con gusto le apoyo\", \"Es correcto\". El fraseo puede variar. No debe: usar palabras vulgares, expresiones irrespetuosas, sarcasmo, burlas, frases de falta de disposición.",
-          "sinonimos_validos": ["formalidad", "respeto", "profesionalismo", "trato cordial"]
+          "sinonimos_validos": [
+            "formalidad",
+            "respeto",
+            "profesionalismo",
+            "trato cordial"
+          ]
         },
         {
           "key": "evitar_muletillas",
@@ -65,7 +104,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Evitar el uso repetitivo (más de 3 veces) de frases o sonidos que interrumpan la fluidez de la conversación, manteniendo el diálogo claro y profesional. Evitar: \"Este...\", \"Mmm...\", \"Ajá...\", \"Okey...\", \"¿Verdad?\", \"Pues...\", \"Eh...\". Si palabras como \"vale\" u \"okay\" se usan para confirmar instrucciones, tienen valor en el contexto de la llamada o dar continuidad, no se consideran muletillas.",
-          "sinonimos_validos": ["relleno verbal", "frases repetitivas", "muletillas", "expresiones sin valor"]
+          "sinonimos_validos": [
+            "relleno verbal",
+            "frases repetitivas",
+            "muletillas",
+            "expresiones sin valor"
+          ]
         }
       ]
     },
@@ -79,7 +123,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Mostrar atención a la solicitud. Responder de forma puntual, sin desvíos ni distracciones. No debe: Interrumpir, ignorar la explicación o no registrar datos importantes.",
-          "sinonimos_validos": ["atención", "validación", "acompañamiento", "comprensión"]
+          "sinonimos_validos": [
+            "atención",
+            "validación",
+            "acompañamiento",
+            "comprensión"
+          ]
         },
         {
           "key": "sondeo",
@@ -88,7 +137,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Validar la información con preguntas que confirmen o parafraseen lo compartido por el cliente. No debe: Suponer el origen de la alerta, o no preguntar información relevante.",
-          "sinonimos_validos": ["indagación", "validación de datos", "preguntas clave", "confirmación"]
+          "sinonimos_validos": [
+            "indagación",
+            "validación de datos",
+            "preguntas clave",
+            "confirmación"
+          ]
         },
         {
           "key": "asertividad",
@@ -97,7 +151,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Mantener control y seguridad en la interacción. Compartir información clara, precisa y alineada con lo que se reflejará en el sistema. No debe: Mostrar duda sobre el procedimiento o liberar información sin estar seguro.",
-          "sinonimos_validos": ["seguridad", "claridad", "determinación", "dirección"]
+          "sinonimos_validos": [
+            "seguridad",
+            "claridad",
+            "determinación",
+            "dirección"
+          ]
         }
       ]
     },
@@ -111,7 +170,14 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Mostrar comprensión y disposición ante las necesidades o preocupaciones del cliente, generando confianza y un trato empático (ej. \"Entiendo\", \"Claro que sí\", \"Lamento lo ocurrido\" si aplica), el fraseo puede variar, no hay guion exacto. No debe: mostrar desinterés, sarcasmo, minimizar el problema.",
-          "sinonimos_validos": ["comprensión", "sensibilidad", "apoyo", "trato humano", "amabilidad", "validación"]
+          "sinonimos_validos": [
+            "comprensión",
+            "sensibilidad",
+            "apoyo",
+            "trato humano",
+            "amabilidad",
+            "validación"
+          ]
         },
         {
           "key": "control_llamada",
@@ -120,7 +186,14 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Gestionar el flujo de la conversación con frases como 'Permítame guiarlo en el proceso', 'Necesito validar esta información para su seguridad', el fraseo puede variar. Responder amablemente a preguntas secundarias, pero regresar al foco principal para asegurar la solución correcta. FOCO DE EVALUACIÓN: Evalúa ÚNICAMENTE el desempeño del asesor actual. IGNORA tiempos de espera o errores ocurridos con agentes previos.",
-          "sinonimos_validos": ["conducción", "manejo", "guía", "dirección", "liderazgo de llamada", "enfoque resolutivo"]
+          "sinonimos_validos": [
+            "conducción",
+            "manejo",
+            "guía",
+            "dirección",
+            "liderazgo de llamada",
+            "enfoque resolutivo"
+          ]
         },
         {
           "key": "proactividad",
@@ -129,7 +202,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Anticiparse a posibles dudas o necesidades adicionales. Hacer preguntas que aseguren la comprensión total de la solicitud.",
-          "sinonimos_validos": ["iniciativa", "anticipación", "acción", "prevención"]
+          "sinonimos_validos": [
+            "iniciativa",
+            "anticipación",
+            "acción",
+            "prevención"
+          ]
         },
         {
           "key": "uso_herramientas_trabajo",
@@ -138,7 +216,14 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Gestión de Tiempos de Espera (Hold/Mute). Si el asesor necesita poner al cliente en espera, debe avisar o pedir permiso previamente (ej. \"¿Me permites un momento?\"), el asesor puede usar diferentes frases, no hay un guion exacto. Lo esencial es mantener informado al cliente y no abandonarlo en la línea, más allá del tiempo exacto. Si el mute ya se prolongó y se requiere más tiempo, debe regresar a avisar. No debe: usar mal el mute o no respetar pausas. Enfocate al asesor evaluado, ignora totalmente al asesor o asesores que interactuaron previamente en la llamada",
-          "sinonimos_validos": ["tiempos de espera", "hold", "pausas", "gestión de tiempo", "aviso de espera", "retomar llamada"]
+          "sinonimos_validos": [
+            "tiempos de espera",
+            "hold",
+            "pausas",
+            "gestión de tiempo",
+            "aviso de espera",
+            "retomar llamada"
+          ]
         },
         {
           "key": "despedida_cordial",
@@ -147,7 +232,13 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Finalizar la llamada con actitud de servicio. Es INDISPENSABLE que el asesor mencione su nombre y OFREZCA ayuda adicional usando frases como '¿Hay algo más en lo que le pueda apoyar/ayudar?', el fraseo puede variar. NOTA DE CONTEXTO: Si el cliente tiene prisa o CORTA la llamada abruptamente, la omisión se considera CUMPLIDA.",
-          "sinonimos_validos": ["cierre", "cordialidad", "oferta de ayuda", "agradecimiento", "despedida"]
+          "sinonimos_validos": [
+            "cierre",
+            "cordialidad",
+            "oferta de ayuda",
+            "agradecimiento",
+            "despedida"
+          ]
         }
       ]
     },
@@ -203,7 +294,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Mantiene buena atención en todo momento. Evitar reflejar emociones personales sobre la llamada. Lograr dar un servicio positivo, educado y profesional durante toda la interacción.",
-          "sinonimos_validos": ["servicio", "disposición", "trato cordial", "orientación al cliente"]
+          "sinonimos_validos": [
+            "servicio",
+            "disposición",
+            "trato cordial",
+            "orientación al cliente"
+          ]
         },
         {
           "key": "correcto_seguimiento_acuerdo",
@@ -213,15 +309,25 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Revisar que la solicitud se haya aplicado adecuadamente (ej. tipo de cambio, agencias hermanas o cercanas, envío de prospecto). Si se llenó un prospecto, validar que este haya sido enviado en tiempo y forma.",
-          "sinonimos_validos": ["seguimiento", "solicitud aplicada", "acuerdo"]
+          "sinonimos_validos": [
+            "seguimiento",
+            "solicitud aplicada",
+            "acuerdo"
+          ]
         }
       ]
     }
   ],
   "section_VI": {
     "criticos": [
-      { "key": "actitud_servicio", "ok": true },
-      { "key": "correcto_seguimiento_acuerdo", "ok": true }
+      {
+        "key": "actitud_servicio",
+        "ok": true
+      },
+      {
+        "key": "correcto_seguimiento_acuerdo",
+        "ok": true
+      }
     ]
   },
   "fortalezas": [],
