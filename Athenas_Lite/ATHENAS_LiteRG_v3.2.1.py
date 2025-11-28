@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-ATHENAS Lite v3.1 — Dept JSON Rubrics LOCAL + Email Auth + GSM + Exports
+ATHENAS Lite v3.2.1 — Dept JSON Rubrics LOCAL + Email Auth + GSM + Exports
 - Autorización por correo (GS_AUTH_SHEET_ID: A=correo, B=nombre).
 - Selección de Departamento (lista fija). Evalúa SOLO con JSON local en ./rubricas/<Departamento>.json
 - Prompt dinámico a partir del JSON (rúbrica).
@@ -1182,7 +1182,7 @@ def _resource_path(filename):
 
 # ================= MAIN UI =================
 root = tk.Tk()
-root.title("ATHENAS Lite v3.1")
+root.title("ATHENAS Lite v3.2.1")
 root.geometry("700x620")
 root.configure(bg=PALETTE["bg"])
 
