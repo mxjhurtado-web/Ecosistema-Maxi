@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-ATHENAS Lite v3.2.1 — Dept JSON Rubrics LOCAL + Email Auth + GSM + Exports
+ATHENAS Lite v3.2.1 MIRI :) — Dept JSON Rubrics LOCAL + Email Auth + GSM + Exports
 - Autorización por correo (GS_AUTH_SHEET_ID: A=correo, B=nombre).
 - Selección de Departamento (lista fija). Evalúa SOLO con JSON local en ./rubricas/<Departamento>.json
 - Prompt dinámico a partir del JSON (rúbrica).
