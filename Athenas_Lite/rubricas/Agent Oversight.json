@@ -146,8 +146,13 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Se menciona documentación necesaria para la revisión (ej. 'Solicitar prueba de documentos necesarios', 'Avisos de privacidad', 'prueba de recibos firmados'), el fraseo puede variar. No debe: no solicitar documentación o solicitar documentos incorrectos.",
-          "sinonimos_validos": ["documentos", "solicitar prueba", "documentación", "avisos de privacidad"]
+          "descripcion": "El asesor solicita o menciona la documentación necesaria para la revisión (ej. 'Solicitar prueba de documentos necesarios', 'Avisos de privacidad', 'prueba de recibos firmados'), el fraseo puede variar. CRITERIO DE EVALUACIÓN: Se considera CUMPLIDO (ok: true) si el asesor realiza la solicitud, independientemente de si el cliente tiene los documentos vigentes, si le faltan o si se acuerda enviarlos después. Lo que se evalúa es la gestión de pedirlo/validarlo, no el cumplimiento de la agencia. No debe: no solicitar documentación o solicitar documentos incorrectos.",
+          "sinonimos_validos": [
+            "documentos",
+            "solicitar prueba",
+            "documentación",
+            "avisos de privacidad"
+          ]
         },
         {
           "key": "revision_agencia",
