@@ -280,8 +280,7 @@
           "ok": true,
           "aplicable": false,
           "evidencia": "Puntos por default (NA=6)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=6). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 6 puntos automáticos).",
-          "sinonimos_validos": []
+          "descripcion": "ITEM BLINDADO ADMINISTRATIVO. TU RESPUESTA OBLIGATORIA ES: 'ok': true y 'aplicable': false. (Este es un punto automático, NO evalúes el audio, simplemente marca ok=true)."
         },
         {
           "key": "gestion_ticket_fresh",
@@ -289,8 +288,7 @@
           "ok": true,
           "aplicable": false,
           "evidencia": "Puntos por default (NA=5)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
-          "sinonimos_validos": []
+          "descripcion": "ITEM BLINDADO ADMINISTRATIVO. TU RESPUESTA OBLIGATORIA ES: 'ok': true y 'aplicable': false. (Este es un punto automático, NO evalúes el audio, simplemente marca ok=true)."
         },
         {
           "key": "liberacion_cheque_correcta",
@@ -298,8 +296,7 @@
           "ok": true,
           "aplicable": false,
           "evidencia": "Puntos por default (NA=5)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
-          "sinonimos_validos": []
+          "descripcion": "ITEM BLINDADO ADMINISTRATIVO. TU RESPUESTA OBLIGATORIA ES: 'ok': true y 'aplicable': false. (Este es un punto automático, NO evalúes el audio, simplemente marca ok=true)."
         },
         {
           "key": "envio_carta_rechazo",
@@ -307,8 +304,7 @@
           "ok": true,
           "aplicable": false,
           "evidencia": "Puntos por default (NA=5)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
-          "sinonimos_validos": []
+          "descripcion": "ITEM BLINDADO ADMINISTRATIVO. TU RESPUESTA OBLIGATORIA ES: 'ok': true y 'aplicable': false. (Este es un punto automático, NO evalúes el audio, simplemente marca ok=true)."
         },
         {
           "key": "notas_correctas_corporate",
@@ -316,8 +312,7 @@
           "ok": true,
           "aplicable": false,
           "evidencia": "Puntos por default (NA=5)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
-          "sinonimos_validos": []
+          "descripcion": "ITEM BLINDADO ADMINISTRATIVO. TU RESPUESTA OBLIGATORIA ES: 'ok': true y 'aplicable': false. (Este es un punto automático, NO evalúes el audio, simplemente marca ok=true)."
         },
         {
           "key": "etiqueta_qm",
