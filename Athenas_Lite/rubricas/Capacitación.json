@@ -247,7 +247,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Se confirma el correo electrónico para enviar los links del entrenamiento AML. El asesor permanece en la línea para asegurarse de que han llegado los links.",
+          "descripcion": "EXCLUSIVO LLAMADA ENTRADA. Si es SALIDA: Marca 'aplicable':false y 'peso':0. Si aplica:Se confirma el correo electrónico para enviar los links del entrenamiento AML. El asesor permanece en la línea para asegurarse de que han llegado los links.",
           "sinonimos_validos": [
             "links de entrenamiento",
             "envío de correo",
@@ -260,7 +260,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si el propósito de la llamada es coordinar o agendar un entrenamiento AML. Si la llamada es para confirmar un entrenamiento ya finalizado o enviar diplomas, marcar 'aplicable': false (No Aplica). Si aplica: Se agenda el entrenamiento para el día jueves (horario basado en el estado de la agencia) y se confirma el número telefónico para la transferencia a la audioconferencia.",
+          "descripcion": "EXCLUSIVO LLAMADA ENTRADA. Si es SALIDA: Marca 'aplicable':false y 'peso':0. Si aplica: CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si el propósito de la llamada es coordinar o agendar un entrenamiento AML. Si la llamada es para confirmar un entrenamiento ya finalizado o enviar diplomas, marcar 'aplicable': false (No Aplica). Si aplica: Se agenda el entrenamiento para el día jueves (horario basado en el estado de la agencia) y se confirma el número telefónico para la transferencia a la audioconferencia.",
           "sinonimos_validos": [
             "agenda",
             "entrenamiento aml",
@@ -275,7 +275,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si la llamada es para verificar el estatus o aprobación de un entrenamiento AML. Si no aplica (ej. llamada para agendar), marcar 'aplicable': false (No Aplica). Si aplica: Se pregunta por los datos de la persona (correo, agencia) y se confirma la aprobación del entrenamiento.",
+          "descripcion": "EXCLUSIVO LLAMADA ENTRADA. Si es SALIDA: Marca 'aplicable':false y 'peso':0. Si aplica:CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si la llamada es para verificar el estatus o aprobación de un entrenamiento AML. Si no aplica (ej. llamada para agendar), marcar 'aplicable': false (No Aplica). Si aplica: Se pregunta por los datos de la persona (correo, agencia) y se confirma la aprobación del entrenamiento.",
           "sinonimos_validos": [
             "aprobación",
             "entrenamiento aprobado",
@@ -288,7 +288,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si la persona que llama solicita el envío o reenvío de un diploma/certificado. Si no aplica, marcar 'aplicable': false (No Aplica). Si aplica: Se confirman los entrenamientos AML realizados y se confirma el correo electrónico para el envío de los certificados.",
+          "descripcion": "EXCLUSIVO LLAMADA ENTRADA. Si es SALIDA: Marca 'aplicable':false y 'peso':0. Si aplica: CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si la persona que llama solicita el envío o reenvío de un diploma/certificado. Si no aplica, marcar 'aplicable': false (No Aplica). Si aplica: Se confirman los entrenamientos AML realizados y se confirma el correo electrónico para el envío de los certificados.",
           "sinonimos_validos": [
             "diploma",
             "certificado",
@@ -301,8 +301,8 @@
           "peso": 5,
           "ok": true,
           "aplicable": false,
-          "evidencia": "Puntos por default (NA=5)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "evidencia": "Puntos por default (NA=5) si es llamada Entrada",
+          "descripcion": "EXCLUSIVO LLAMADA ENTRADA. Si es SALIDA: Marca 'aplicable':false y 'peso':0. Si aplica: ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
           "sinonimos_validos": [
             "etiquetado",
             "qm",
@@ -320,7 +320,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Se confirma nombre (junto con la ortografía), número telefónico y correo electrónico de la persona a actualizar (dueño / oficial / empleado).",
+          "descripcion": "EXCLUSIVO LLAMADA SALIDA. Si es ENTRADA: Marca 'aplicable':false y 'peso':0. Si aplica: Se confirma nombre (junto con la ortografía), número telefónico y correo electrónico de la persona a actualizar (dueño / oficial / empleado).",
           "sinonimos_validos": [
             "dueño",
             "oficial",
@@ -335,7 +335,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Se pueden enviar los links por correo, agendar audioconferencia o se da seguimiento a casos estructurados.",
+          "descripcion": "EXCLUSIVO LLAMADA SALIDA. Si es ENTRADA: Marca 'aplicable':false y 'peso':0. Si aplica: Se pueden enviar los links por correo, agendar audioconferencia o se da seguimiento a casos estructurados.",
           "sinonimos_validos": [
             "coordinación",
             "seguimiento",
@@ -348,7 +348,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": ". Principalmente para entrenamientos AML por medio de audioconferencia o casos de reestructuración.",
+          "descripcion": "EXCLUSIVO LLAMADA SALIDA. Si es ENTRADA: Marca 'aplicable':false y 'peso':0. Si aplica: Principalmente para entrenamientos AML por medio de audioconferencia o casos de reestructuración.",
           "sinonimos_validos": [
             "reentrenamiento",
             "aml",
@@ -361,7 +361,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Se proporciona el nombre, número de teléfono y correo electrónico de la persona que será el oficial de cumplimiento de la agencia.",
+          "descripcion": "EXCLUSIVO LLAMADA SALIDA. Si es ENTRADA: Marca 'aplicable':false y 'peso':0. Si aplica: Se proporciona el nombre, número de teléfono y correo electrónico de la persona que será el oficial de cumplimiento de la agencia.",
           "sinonimos_validos": [
             "oficial de cumplimiento",
             "actualización de datos",
@@ -373,8 +373,8 @@
           "peso": 5,
           "ok": true,
           "aplicable": false,
-          "evidencia": "Puntos por default (NA=5)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "evidencia": "Puntos por default (NA=5)si es llamada SALIDA",
+          "descripcion": "EXCLUSIVO LLAMADA SALIDA. Si es ENTRADA: Marca 'aplicable':false y 'peso':0. Si aplica: ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
           "sinonimos_validos": [
             "etiquetado",
             "qm",
