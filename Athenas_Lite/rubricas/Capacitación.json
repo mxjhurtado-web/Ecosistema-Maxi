@@ -1,8 +1,8 @@
 {
-  "department": "Capacitación",
+  "department": "Cobranza",
   "sections": [
     {
-      "name": "Saludo y Etiqueta",
+      "name": "Saludo",
       "items": [
         {
           "key": "tiempo_respuesta",
@@ -11,7 +11,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "La llamada debe ser respondida en los primeros 5 segundos para asegurar una atención rápida y eficiente. El asesor no debe atender después de 5 segundos, mantener silencio prolongado ni usar tono de espera al inicio de la conversación (\"marcando...\", \"llamada en curso\").",
-          "sinonimos_validos": ["rapidez", "tiempo de contestación", "respuesta inmediata", "velocidad de atención"]
+          "sinonimos_validos": [
+            "rapidez",
+            "tiempo de contestación",
+            "respuesta inmediata",
+            "velocidad de atención"
+          ]
         },
         {
           "key": "guion_saludo_inicial",
@@ -20,8 +25,20 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "El asesor debe iniciar con cortesía, mencionando su nombre y la entidad (empresa 'Maxi' o departamento). El orden no importa. Debe preguntar '¿Con quién tengo el gusto?' o '¿En qué le puedo ayudar?', el fraseo puede variar. El saludo explícito (\"Buenos días\", \"Hola\") es deseable pero no obligatorio.",
-          "sinonimos_validos": ["presentación", "saludo inicial", "introducción", "bienvenida", "apertura", "identificación de entidad"]
-        },
+          "sinonimos_validos": [
+            "presentación",
+            "saludo inicial",
+            "introducción",
+            "bienvenida",
+            "apertura",
+            "identificación de entidad"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Etiqueta telefónica",
+      "items": [
         {
           "key": "tono_voz",
           "peso": 5,
@@ -29,7 +46,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Utilizar un tono amigable, claro y adecuado al contexto, transmitiendo amabilidad y disposición para ayudar. Voz pausada, firme y segura, con entonación cordial y buena modulación. No debe: voz muy baja, demasiado rápido, tono molesto/cortante, monótono, sonar cansado o subir demasiado la voz.",
-          "sinonimos_validos": ["entonación", "claridad", "modulación", "cordialidad"]
+          "sinonimos_validos": [
+            "entonación",
+            "claridad",
+            "modulación",
+            "cordialidad"
+          ]
         },
         {
           "key": "diccion",
@@ -38,7 +60,11 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Hablar con claridad y precisión, asegurándose de que el mensaje sea comprendido sin dificultad (\"¿Me escucha bien?\", \"Se lo repito\", \"Permítame aclarar\"), el fraseo puede variar. No debe: comerse palabras, balbucear/tartamudear, hablar entre dientes, pronunciar de forma confusa.",
-          "sinonimos_validos": ["pronunciación", "articulación", "claridad verbal"]
+          "sinonimos_validos": [
+            "pronunciación",
+            "articulación",
+            "claridad verbal"
+          ]
         },
         {
           "key": "personalizacion",
@@ -47,7 +73,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Adaptar el trato utilizando CUALQUIERA de estos elementos: Nombre, Apellido o Título de cortesía (ej. \"Agente\", \"Joven\", \"Señorita\" seguido del nombre/apellido).Mencionar (de preferencia) el nombre de la persona que llama al inicio y al final de la llamada, pero si la llamda es muy breve basta con hacerlo UNA VEZ",
-          "sinonimos_validos": ["trato personalizado", "nombre del cliente", "apellido del cliente", "referencia directa"]
+          "sinonimos_validos": [
+            "trato personalizado",
+            "nombre del cliente",
+            "apellido del cliente",
+            "referencia directa"
+          ]
         },
         {
           "key": "lenguaje_adecuado",
@@ -56,7 +87,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Utilizar un lenguaje formal, respetuoso y adaptado al público, evitando expresiones coloquiales o inadecuadas. Frases como \"Claro que sí\", \"Con gusto le apoyo\", \"Es correcto\". El fraseo puede variar. No debe: usar palabras vulgares, expresiones irrespetuosas, sarcasmo, burlas, frases de falta de disposición.",
-          "sinonimos_validos": ["formalidad", "respeto", "profesionalismo", "trato cordial"]
+          "sinonimos_validos": [
+            "formalidad",
+            "respeto",
+            "profesionalismo",
+            "trato cordial"
+          ]
         },
         {
           "key": "evitar_muletillas",
@@ -65,7 +101,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Evitar el uso repetitivo (más de 3 veces) de frases o sonidos que interrumpan la fluidez de la conversación, manteniendo el diálogo claro y profesional. Evitar: \"Este...\", \"Mmm...\", \"Ajá...\", \"Okey...\", \"¿Verdad?\", \"Pues...\", \"Eh...\". Si palabras como \"vale\" u \"okay\" se usan para confirmar instrucciones, tienen valor en el contexto de la llamada o dar continuidad, no se consideran muletillas.",
-          "sinonimos_validos": ["relleno verbal", "frases repetitivas", "muletillas", "expresiones sin valor"]
+          "sinonimos_validos": [
+            "relleno verbal",
+            "frases repetitivas",
+            "muletillas",
+            "expresiones sin valor"
+          ]
         }
       ]
     },
@@ -79,7 +120,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Prestar total atención a lo que el cliente dice, demostrando interés y comprensión a la persona que llama. Repetir el número de agencia para asegurarse, o parafrasear lo que se escuchó.",
-          "sinonimos_validos": ["atención", "validación", "acompañamiento", "comprensión"]
+          "sinonimos_validos": [
+            "atención",
+            "validación",
+            "acompañamiento",
+            "comprensión"
+          ]
         },
         {
           "key": "sondeo",
@@ -88,7 +134,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Se deben hacer las preguntas adecuadas para asegurarse de que se está comprendiendo la información, y que se aplicará el proceso correcto para dar solución a la solicitud de la llamada.",
-          "sinonimos_validos": ["indagación", "validación de datos", "preguntas clave", "confirmación"]
+          "sinonimos_validos": [
+            "indagación",
+            "validación de datos",
+            "preguntas clave",
+            "confirmación"
+          ]
         },
         {
           "key": "asertividad",
@@ -97,7 +148,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Usar frases adecuadas en todo momento para poder avanzar con la llamada y para mantener el control de la misma.",
-          "sinonimos_validos": ["seguridad", "claridad", "determinación", "dirección"]
+          "sinonimos_validos": [
+            "seguridad",
+            "claridad",
+            "determinación",
+            "dirección"
+          ]
         }
       ]
     },
@@ -111,7 +167,14 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Mostrar comprensión y disposición ante las necesidades o preocupaciones del cliente, generando confianza y un trato empático (ej. \"Entiendo\", \"Comprendo\", \"No te preocupes, lo revisamos\"), el fraseo puede variar.",
-          "sinonimos_validos": ["comprensión", "sensibilidad", "apoyo", "trato humano", "amabilidad", "validación"]
+          "sinonimos_validos": [
+            "comprensión",
+            "sensibilidad",
+            "apoyo",
+            "trato humano",
+            "amabilidad",
+            "validación"
+          ]
         },
         {
           "key": "control_llamada",
@@ -120,7 +183,14 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "El asesor telefónico siempre debe llevar el rumbo de la conversación, sin permitir que la llamada se desvíe a temas distintos, o permitiendo que la persona que llama pueda caer en frustración o enojo.",
-          "sinonimos_validos": ["conducción", "manejo", "guía", "dirección", "liderazgo de llamada", "enfoque resolutivo"]
+          "sinonimos_validos": [
+            "conducción",
+            "manejo",
+            "guía",
+            "dirección",
+            "liderazgo de llamada",
+            "enfoque resolutivo"
+          ]
         },
         {
           "key": "proactividad",
@@ -129,7 +199,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "En caso de que haya algún paso dentro del proceso en el que se pueda aprovechar la llamada para adelantar o avanzar, se deberá mostrar proactividad y hacer las preguntas pertinentes.",
-          "sinonimos_validos": ["iniciativa", "anticipación", "acción", "prevención"]
+          "sinonimos_validos": [
+            "iniciativa",
+            "anticipación",
+            "acción",
+            "prevención"
+          ]
         },
         {
           "key": "uso_herramientas_trabajo",
@@ -138,7 +213,13 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Gestión de Tiempos de Espera (Hold/Mute). Si el asesor necesita poner al cliente en espera, debe avisar o pedir permiso previamente (ej. \"¿Me permite un minuto?\"), el fraseo puede variar. Debe regresar aproximadamente al minuto (máximo 1:15 min) para dar estatus. Agradecer la espera al regresar.",
-          "sinonimos_validos": ["tiempos de espera", "hold", "pausas", "gestión de tiempo", "aviso de espera"]
+          "sinonimos_validos": [
+            "tiempos de espera",
+            "hold",
+            "pausas",
+            "gestión de tiempo",
+            "aviso de espera"
+          ]
         },
         {
           "key": "despedida_cordial",
@@ -147,7 +228,13 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Finalizar la llamada con actitud de servicio. Es INDISPENSABLE que el asesor mencione su nombre y OFREZCA ayuda adicional (\"¿Hay algo más en lo que le pueda apoyar?\"), el fraseo puede variar. Si el cliente tiene prisa o mostró frustración, un cierre corto es aceptable.",
-          "sinonimos_validos": ["cierre", "cordialidad", "amabilidad", "formalidad de despedida", "oferta de ayuda"]
+          "sinonimos_validos": [
+            "cierre",
+            "cordialidad",
+            "amabilidad",
+            "formalidad de despedida",
+            "oferta de ayuda"
+          ]
         }
       ]
     },
@@ -161,7 +248,11 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Se confirma el correo electrónico para enviar los links del entrenamiento AML. El asesor permanece en la línea para asegurarse de que han llegado los links.",
-          "sinonimos_validos": ["links de entrenamiento", "envío de correo", "confirmación de recepción"]
+          "sinonimos_validos": [
+            "links de entrenamiento",
+            "envío de correo",
+            "confirmación de recepción"
+          ]
         },
         {
           "key": "se_agenda_audioconferencia",
@@ -170,7 +261,13 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si el propósito de la llamada es coordinar o agendar un entrenamiento AML. Si la llamada es para confirmar un entrenamiento ya finalizado o enviar diplomas, marcar 'aplicable': false (No Aplica). Si aplica: Se agenda el entrenamiento para el día jueves (horario basado en el estado de la agencia) y se confirma el número telefónico para la transferencia a la audioconferencia.",
-          "sinonimos_validos": ["agenda", "entrenamiento aml", "horario", "número de transferencia", "programar cita"]
+          "sinonimos_validos": [
+            "agenda",
+            "entrenamiento aml",
+            "horario",
+            "número de transferencia",
+            "programar cita"
+          ]
         },
         {
           "key": "se_confirma_entrenamiento_finalizado",
@@ -179,16 +276,25 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si la llamada es para verificar el estatus o aprobación de un entrenamiento AML. Si no aplica (ej. llamada para agendar), marcar 'aplicable': false (No Aplica). Si aplica: Se pregunta por los datos de la persona (correo, agencia) y se confirma la aprobación del entrenamiento.",
-          "sinonimos_validos": ["aprobación", "entrenamiento aprobado", "verificación de datos"]
+          "sinonimos_validos": [
+            "aprobación",
+            "entrenamiento aprobado",
+            "verificación de datos"
+          ]
         },
-       {
+        {
           "key": "se_envia_o_reenvia_diploma",
           "peso": 5,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
           "descripcion": "CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si la persona que llama solicita el envío o reenvío de un diploma/certificado. Si no aplica, marcar 'aplicable': false (No Aplica). Si aplica: Se confirman los entrenamientos AML realizados y se confirma el correo electrónico para el envío de los certificados.",
-          "sinonimos_validos": ["diploma", "certificado", "reenvío", "confirmación de correo"]
+          "sinonimos_validos": [
+            "diploma",
+            "certificado",
+            "reenvío",
+            "confirmación de correo"
+          ]
         },
         {
           "key": "etiqueta_qm",
@@ -197,21 +303,31 @@
           "aplicable": false,
           "evidencia": "Puntos por default (NA=5)",
           "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
-          "sinonimos_validos": ["etiquetado", "qm", "clasificación"]
+          "sinonimos_validos": [
+            "etiquetado",
+            "qm",
+            "clasificación"
+          ]
         }
       ]
     },
     {
       "name": "Dominio y manejo de la información - Salida",
       "items": [
-         {
+        {
           "key": "se_confirma_info_usuario",
           "peso": 5,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Se confirma nombre (junto con la ortografía), número telefónico y correo electrónico de la persona a actualizar (dueño / oficial / empleado).",
-          "sinonimos_validos": ["dueño", "oficial", "empleado", "actualización de datos", "ortografía"]
+          "sinonimos_validos": [
+            "dueño",
+            "oficial",
+            "empleado",
+            "actualización de datos",
+            "ortografía"
+          ]
         },
         {
           "key": "se_coordina_entrenamiento",
@@ -220,7 +336,11 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Se pueden enviar los links por correo, agendar audioconferencia o se da seguimiento a casos estructurados.",
-          "sinonimos_validos": ["coordinación", "seguimiento", "casos estructurados"]
+          "sinonimos_validos": [
+            "coordinación",
+            "seguimiento",
+            "casos estructurados"
+          ]
         },
         {
           "key": "se_proporciona_reentrenamiento",
@@ -229,7 +349,11 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": ". Principalmente para entrenamientos AML por medio de audioconferencia o casos de reestructuración.",
-          "sinonimos_validos": ["reentrenamiento", "aml", "reestructuración"]
+          "sinonimos_validos": [
+            "reentrenamiento",
+            "aml",
+            "reestructuración"
+          ]
         },
         {
           "key": "se_actualizan_datos_oficial",
@@ -238,7 +362,11 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Se proporciona el nombre, número de teléfono y correo electrónico de la persona que será el oficial de cumplimiento de la agencia.",
-          "sinonimos_validos": ["oficial de cumplimiento", "actualización de datos", "contacto oficial"]
+          "sinonimos_validos": [
+            "oficial de cumplimiento",
+            "actualización de datos",
+            "contacto oficial"
+          ]
         },
         {
           "key": "etiqueta_qm",
@@ -247,7 +375,11 @@
           "aplicable": false,
           "evidencia": "Puntos por default (NA=5)",
           "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
-          "sinonimos_validos": ["etiquetado", "qm", "clasificación"]
+          "sinonimos_validos": [
+            "etiquetado",
+            "qm",
+            "clasificación"
+          ]
         }
       ]
     },
@@ -262,7 +394,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Mantiene actitud positiva y educada. No debe: reflejar emociones personales, ser grosero, impaciente o usar sarcasmo.",
-          "sinonimos_validos": ["servicio", "disposición", "trato cordial", "orientación al cliente"]
+          "sinonimos_validos": [
+            "servicio",
+            "disposición",
+            "trato cordial",
+            "orientación al cliente"
+          ]
         },
         {
           "key": "solucion_agente",
@@ -272,15 +409,26 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Se proporciona una respuesta precisa, eficiente y conforme a los procedimientos establecidos para atender la solicitud o inquietud del cliente.",
-          "sinonimos_validos": ["resolución", "cierre efectivo", "gestión completa", "resultado correcto"]
+          "sinonimos_validos": [
+            "resolución",
+            "cierre efectivo",
+            "gestión completa",
+            "resultado correcto"
+          ]
         }
       ]
     }
   ],
   "section_VI": {
     "criticos": [
-      { "key": "actitud_servicio", "ok": true },
-      { "key": "solucion_agente", "ok": true }
+      {
+        "key": "actitud_servicio",
+        "ok": true
+      },
+      {
+        "key": "solucion_agente",
+        "ok": true
+      }
     ]
   },
   "fortalezas": [],
