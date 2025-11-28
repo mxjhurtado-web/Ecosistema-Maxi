@@ -50,8 +50,18 @@ GLOBAL_RULES = {
 
     "etiqueta_qm": """REGLA 'QM': Cualquier item con una 'key' que contenga 'etiqueta_qm' (por ejemplo 'etiqueta_qm_entrada') DEBE SER MARCADO SIEMPRE como 'aplicable: false' cuando la llamada no es una llamada de Calidad/Quality Monitoring (QM).""",
 
-    "CAPACITACION": """REGLA 'Capacitación': Si el departamento es 'Capacitación', debes evaluar la llamada como un role play o sesión de entrenamiento interna. Si se está usando una cédula con secciones de producción y capacitación, cuando estés evaluando la parte de capacitación, cualquier item que pertenezca a la parte de producción (o viceversa) se marca 'aplicable:false' (NA). Nunca mezcles criterios productivos con criterios de capacitación en la misma sección: si la sección está configurada para capacitación, marca TODOS los items de la OTRA sección como 'aplicable: false'.""",
-
+    "CAPACITACION": """REGLA BLINDADA 'Capacitación - Entrada vs Salida':
+    1. DETERMINA EL TIPO DE LLAMADA:
+       - Si el CLIENTE llama al asesor -> Es ENTRADA (Inbound).
+       - Si el ASESOR llama al cliente -> Es SALIDA (Outbound).
+    2. SI ES LLAMADA DE ENTRADA:
+       - Evalúa la sección 'Dominio y manejo de la información - Entrada'.
+       - ANULA la sección 'Dominio y manejo de la información - Salida': Para TODOS los items de esta sección de salida, DEBES responder: 'aplicable': false Y 'peso': 0.
+    3. SI ES LLAMADA DE SALIDA:
+       - Evalúa la sección 'Dominio y manejo de la información - Salida'.
+       - ANULA la sección 'Dominio y manejo de la información - Entrada': Para TODOS los items de esta sección de entrada, DEBES responder: 'aplicable': false Y 'peso': 0.
+    IMPORTANTE: Es obligatorio poner 'peso': 0 en la sección que no aplica para que no sume puntos al score final.""",
+    
     "ENCUESTA_MAXI": """REGLA 'Encuesta Maxi': Cualquier item con la key 'encuesta_maxi' o similar solo aplica cuando el objetivo de la llamada es aplicar la encuesta Maxi al cliente. Si la llamada es de otro tipo (soporte, reclamo, seguimiento, etc.), o si la encuesta Maxi no se menciona ni se intenta aplicar, entonces el ítem de 'Encuesta Maxi' se marca 'aplicable:false'. También se considera 'aplicable:false' si la llamada no es con el cliente final al que corresponde la encuesta o si el cliente que llama no es el mismo cliente que aparece como titular de la encuesta.""",
 
     "DERECHOS_DE_CANCELACION": """REGLA 'Derechos de Cancelación' (Crítico Condicional): Este ítem es CRÍTICO solo si el producto o contexto de la llamada requiere que el asesor explique explícitamente los derechos de cancelación. Si el producto o servicio que se ofrece o contrata en la llamada tiene obligación de informar derechos de cancelación y el asesor NO lo hace, o lo hace de forma errónea, se marca 'ok: false' y el score total de la cédula se anula (0%). Si el producto NO requiere informar derechos de cancelación (por regulación o por el tipo de producto), se marca 'aplicable:false' y NO afecta el score.""",
