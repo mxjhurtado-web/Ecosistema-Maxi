@@ -1,0 +1,243 @@
+{
+  "department": "Agent Oversight",
+  "sections": [
+    {
+      "name": "Saludo y Etiqueta",
+      "items": [
+        {
+          "key": "tiempo_respuesta",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "La llamada debe ser respondida en los primeros 5 segundos para asegurar una atención rápida y eficiente. El asesor no debe atender después de 5 segundos, mantener silencio prolongado ni usar tono de espera al inicio de la conversación (\"marcando...\", \"llamada en curso\").",
+          "sinonimos_validos": ["rapidez", "tiempo de contestación", "respuesta inmediata", "velocidad de atención"]
+        },
+        {
+          "key": "guion_saludo_inicial",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "El asesor debe iniciar con cortesía, mencionando su nombre y la entidad (empresa 'Maxi' o departamento). El saludo explícito (\"Buenos días\", \"Hola\") es deseable pero no obligatorio si la apertura es amable. EXCEPCIÓN POR TRANSFERENCIA: Si el asesor recibe la llamada transferida, es suficiente con un saludo cordial y confirmar su nombre.",
+          "sinonimos_validos": ["presentación", "saludo inicial", "introducción", "bienvenida", "apertura", "identificación de entidad"]
+        },
+        {
+          "key": "tono_voz",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Utilizar un tono amigable, claro y adecuado al contexto, transmitiendo amabilidad y disposición para ayudar. Voz pausada, firme y segura, con entonación cordial y buena modulación. No debe: voz muy baja, demasiado rápido, tono molesto/cortante, monótono, sonar cansado o subir demasiado la voz.",
+          "sinonimos_validos": ["entonación", "claridad", "modulación", "cordialidad"]
+        },
+        {
+          "key": "diccion",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Hablar con claridad y precisión, asegurándose de que el mensaje sea comprendido sin dificultad (\"¿Me escucha bien?\", \"Se lo repito\", \"Permítame aclarar\"), el fraseo puede variar. No debe: comerse palabras, balbucear/tartamudear, hablar entre dientes, pronunciar de forma confusa.",
+          "sinonimos_validos": ["pronunciación", "articulación", "claridad verbal"]
+        },
+        {
+          "key": "personalizacion",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion":"Adaptar el trato utilizando CUALQUIERA de estos elementos: Nombre, Apellido o Título de cortesía (ej. \"Agente\", \"Joven\", \"Señorita\" seguido del nombre/apellido). Lo ideal es al inicio y al final, pero si la llamada es breve o el interlocutor tiene prisa, basta con hacerlo UNA VEZ para cumplir. NOTA DE CONTEXTO: Si se escucha que el interlocutor está ocupado, atendiendo clientes, manejando o tiene prisa, la personalización puede omitirse sin penalización (marcar 'ok': true).",
+          "sinonimos_validos": ["trato personalizado", "nombre del cliente", "apellido del cliente", "referencia directa", "título de cortesía", "agente"]
+        },
+        {
+          "key": "lenguaje_adecuado",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Utilizar un lenguaje formal, respetuoso y adaptado al público, evitando expresiones coloquiales o inadecuadas. Frases como \"Claro que sí\", \"Con gusto le apoyo\", \"Es correcto\". El fraseo puede variar. No debe: usar palabras vulgares, expresiones irrespetuosas, sarcasmo, burlas, frases de falta de disposición.",
+          "sinonimos_validos": ["formalidad", "respeto", "profesionalismo", "trato cordial"]
+        },
+        {
+          "key": "evitar_muletillas",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Evitar el uso repetitivo (más de 3 veces) de frases o sonidos que interrumpan la fluidez de la conversación, manteniendo el diálogo claro y profesional. Evitar: \"Este...\", \"Mmm...\", \"Ajá...\", \"Okey...\", \"¿Verdad?\", \"Pues...\", \"Eh...\". Si palabras como \"vale\" u \"okay\" se usan para confirmar instrucciones, tienen valor en el contexto de la llamada o dar continuidad, no se consideran muletillas.",
+          "sinonimos_validos": ["relleno verbal", "frases repetitivas", "muletillas", "expresiones sin valor"]
+        }
+      ]
+    },
+    {
+      "name": "Detección y Profesionalismo",
+      "items": [
+        {
+          "key": "escucha_activa",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Prestar total atención a lo que el cliente dice, demostrando interés y comprensión para ofrecer soluciones adecuadas (ej. \"Correcto\", \"Lo entiendo\", \"Tomo nota\"), el fraseo puede variar, no hay un guion exacto. No debe: ignorar al cliente, interrumpir constantemente.",
+          "sinonimos_validos": ["atención", "validación", "acompañamiento", "comprensión"]
+        },
+        {
+          "key": "sondeo",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Hacer las preguntas adecuadas para el hallazgo (ej. '¿Me indica la agencia y el nombre del agente?', '¿Me comparte evidencia, solicitud o carta?'). El fraseo puede variar, no es necesario un guion exacto; lo importante es indagar la información necesaria. No debe: asumir detalles, omitir datos importantes como nombre del agente, fecha o folio, o no solicitar evidencia cuando sea necesaria.",
+          "sinonimos_validos": ["indagación", "validación de datos", "preguntas clave", "diagnóstico"]
+        },
+        {
+          "key": "asertividad",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Usar frases firmes y claras (ej. 'La mejor práctica en este caso es...', 'El procedimiento correcto que debe seguir el agente es...'). El fraseo puede variar, no hay guion exacto. No debe: dar información insegura, titubear al explicar el hallazgo, o dejar dudas en el receptor.",
+          "sinonimos_validos": ["seguridad", "claridad", "determinación", "dirección", "instrucciones precisas"]
+        },
+        {
+          "key": "empatia",
+          "peso": 5,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Mostrar comprensión y disposición (ej. 'Entiendo que esta retroalimentación puede ser sensible', 'Gracias por su apertura para revisar el hallazgo'). El fraseo puede variar, no hay guion exacto. No debe: ser indiferente ante la retroalimentación, minimizar el hallazgo, o adoptar un tono acusatorio o confrontativo.",
+          "sinonimos_validos": ["comprensión", "sensibilidad", "apoyo", "trato humano", "amabilidad", "validación"]
+        },
+        {
+          "key": "control_llamada",
+          "peso": 5,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Gestionar el flujo y el rumbo de la conversación (ej. 'Permítame guiarlo en el análisis', 'Concentrémonos en la auditoría'), el fraseo puede variar, no hay guion exacto. Si recibe una llamada transferida (incluso con un cliente frustrado por espera previa), el asesor demuestra control al retomar el hilo y guiarlo. FOCO DE EVALUACIÓN: Evalúa ÚNICAMENTE el desempeño del asesor actual (el evaluado) desde que conecta. IGNORA tiempos de espera, desvíos o errores ocurridos con agentes previos. No debe: perder el hilo, permitir desvíos de tema, evadir el análisis del proceso a seguir, o no dar claridad sobre el siguiente paso.",
+          "sinonimos_validos": ["conducción", "manejo", "guía", "dirección", "liderazgo de llamada", "enfoque resolutivo"]
+        },
+        {
+          "key": "proactividad",
+          "peso": 5,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Anticiparse a las necesidades técnicas u oportunidades de mejora (ej. 'He preparado el reporte de hallazgos', 'Le doy retroalimentación en el momento'). El fraseo puede variar, no hay guion exacto. No debe: esperar que el agente pregunte por sus errores o no anticipar oportunidades de mejora.",
+          "sinonimos_validos": ["iniciativa", "anticipación", "acción", "prevención", "agilización"]
+        }
+      ]
+    },
+    {
+      "name": "Dominio y Manejo de la Información",
+      "items": [
+        {
+          "key": "confirmacion_oficial",
+          "peso": 6,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Se busca hablar con el dueño u oficial de cumplimiento. El asesor debe confirmar que está hablando con el responsable de la agencia cuando el caso lo requiere.",
+          "sinonimos_validos": ["dueño", "oficial de cumplimiento", "responsable", "contacto clave"]
+        },
+        {
+          "key": "documentacion_necesaria",
+          "peso": 6,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Se menciona documentación necesaria para la revisión (ej. 'Solicitar prueba de documentos necesarios', 'Avisos de privacidad', 'prueba de recibos firmados'), el fraseo puede variar. No debe: no solicitar documentación o solicitar documentos incorrectos.",
+          "sinonimos_validos": ["documentos", "solicitar prueba", "documentación", "avisos de privacidad"]
+        },
+        {
+          "key": "revision_agencia",
+          "peso": 6,
+          "ok": true,
+          "aplicable": false,
+          "evidencia": "Puntos por default (NA=6)",
+          "descripcion": "ITEM ADMINISTRATIVO (NA=6). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 6 puntos automáticos).",
+          "sinonimos_validos": []
+        },
+        {
+          "key": "entrenamiento_verbal",
+          "peso": 6,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Se da entrenamiento verbal al agente (ej. 'El procedimiento correcto es el siguiente...', 'Se recomienda hacer esta validación adicional'), el fraseo puede variar. No debe: no brindar retroalimentación o limitarse a señalar el error sin explicar la solución.",
+          "sinonimos_validos": ["retroalimentación", "explicar solución", "procedimiento correcto"]
+        },
+        {
+          "key": "confirmacion_email_envio",
+          "peso": 6,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Confirmar el correo electrónico del receptor y enviar la revisión (ej. '¿Me confirma su correo electrónico?', 'Le envié la revisión a este email'). El fraseo puede variar",
+          "sinonimos_validos": ["confirmar correo", "envío de revisión", "validación de email"]
+        },
+        {
+          "key": "uso_herramientas_trabajo",
+          "peso": 5,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Uso correcto de mute y tiempos de espera, así como agradecer al regresar a la llamada. El asesor no debe de: no documentar hallazgos, dejar información incompleta, o usar el sistema de forma incorrecta.",
+          "sinonimos_validos": ["herramientas", "documentar", "notas", "tiempos de espera"]
+        },
+        {
+          "key": "despedida_cordial",
+          "peso": 5,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Cerrar con cortesía y nombre (ej. 'Gracias por su colaboración', 'Que tenga buen día'), el fraseo puede variar. No debe: cerrar abruptamente, despedirse sin cortesía, u omitir el cierre de la retroalimentación. Si el cliente tiene prisa, está ocupado con clientes, manejando o CORTA la llamada abruptamente, una despedida corta (o la omisión total de la misma por el corte) se considera CUMPLIDA.",
+          "sinonimos_validos": ["cierre", "cordialidad", "oferta de ayuda", "agradecimiento", "despedida"]
+        },
+        {
+          "key": "etiqueta_qm",
+          "peso": 5,
+          "ok": true,
+          "aplicable": false,
+          "evidencia": "Puntos por default (NA=5)",
+          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "sinonimos_validos": []
+        }
+      ]
+    },
+    {
+      "name": "Apego a procedimientos e información",
+      "items": [
+        {
+          "key": "actitud_servicio",
+          "peso": 0,
+          "critico": true,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Mantiene una línea de cordialidad y respeto con el interlocutor en todo momento. No debe: ser grosero, impaciente, sarcástico, mostrar desinterés o falta de disposición.",
+          "sinonimos_validos": ["servicio", "disposición", "trato cordial", "orientación al cliente"]
+        },
+        {
+          "key": "solucion_agente",
+          "peso": 0,
+          "critico": true,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Se da solución al agente: Se proporciona una respuesta precisa, eficiente y conforme a los procedimientos establecidos para atender la solicitud o inquietud. No debe: dejar el caso incompleto o no dar respuesta.",
+          "sinonimos_validos": ["resolución", "cierre efectivo", "gestión completa", "resultado correcto"]
+        }
+      ]
+    }
+  ],
+  "section_VI": {
+    "criticos": [
+      { "key": "actitud_servicio", "ok": true },
+      { "key": "solucion_agente", "ok": true }
+    ]
+  },
+  "fortalezas": [],
+  "compromisos": [],
+  "contenido_evaluador": ""
+}

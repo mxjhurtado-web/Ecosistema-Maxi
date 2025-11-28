@@ -1,0 +1,271 @@
+{
+  "department": "Soporte técnico",
+  "sections": [
+    {
+      "name": "Saludo",
+      "items": [
+        {
+          "key": "tiempo_respuesta",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "La llamada debe ser respondida antes de los 5 segundos. Si hay un silencio inicial breve propio de la conexión del sistema, no se debe penalizar al asesor. Solo marcar 'No cumplido' si se detecta que el asesor descuelga y deja al cliente esperando deliberadamente.",
+          "sinonimos_validos": ["rapidez", "tiempo de contestación", "respuesta inmediata", "velocidad de atención"]
+        },
+        {
+          "key": "guion_saludo_inicial",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "El asesor debe iniciar con cortesía, mencionando su nombre su nombre y la entidad (empresa 'Maxi' o departamento). El orden no importa y el fraseo puede variar (ej. 'Gracias por comunicarse a Maxi', 'Soporte Técnico le atiende'). El saludo explícito (\"Buenos días\", \"Hola\") es deseable pero no obligatorio si la apertura es amable. EXCEPCIÓN POR TRANSFERENCIA: Si el asesor recibe la llamada transferida, es suficiente con un saludo cordial y confirmar su nombre. Lo indispensable es la identificación personal y la amabilidad. No debe: no saludar, contestar en silencio o no decir su nombre.",
+          "sinonimos_validos": ["presentación", "saludo inicial", "introducción", "bienvenida", "apertura", "identificación de entidad"]
+        }
+      ]
+    },
+    {
+      "name": "Etiqueta telefónica",
+      "items": [
+        {
+          "key": "tono_voz",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Utilizar un tono amigable, claro y adecuado al contexto, transmitiendo amabilidad y disposición para ayudar. Voz pausada, firme y segura, con entonación cordial y buena modulación. No debe: voz muy baja, demasiado rápido, tono molesto/cortante, monótono, sonar cansado o subir demasiado la voz.",
+          "sinonimos_validos": ["entonación", "claridad", "modulación", "cordialidad"]
+        },
+        {
+          "key": "diccion",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Hablar con claridad y precisión, asegurándose de que el mensaje sea comprendido sin dificultad (\"¿Me escucha bien?\", \"Se lo repito\", \"Permítame aclarar\"), el fraseo puede variar. No debe: comerse palabras, balbucear/tartamudear, hablar entre dientes, pronunciar de forma confusa.",
+          "sinonimos_validos": ["pronunciación", "articulación", "claridad verbal"]
+        },
+        {
+          "key": "personalizacion",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Adaptar el trato utilizando CUALQUIERA de estos elementos: Nombre, Apellido o Título de cortesía (ej. \"Agente\", \"Joven\", \"Señorita\" seguido del nombre/apellido). Lo ideal es al inicio y al final, pero si la llamada es breve o el interlocutor tiene prisa, basta con hacerlo UNA VEZ para cumplir. NOTA DE CONTEXTO: Si se escucha que el interlocutor está ocupado, atendiendo clientes, manejando o tiene prisa, la personalización puede omitirse sin penalización (marcar 'ok': true).",
+          "sinonimos_validos": ["trato personalizado", "nombre del cliente", "apellido del cliente", "referencia directa", "título de cortesía", "agente"]
+        },
+        {
+          "key": "lenguaje_adecuado",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Utilizar un lenguaje formal, respetuoso y adaptado al público, evitando expresiones coloquiales o inadecuadas. Frases como \"Claro que sí\", \"Con gusto le apoyo\", \"Es correcto\". El fraseo puede variar. No debe: usar palabras vulgares, expresiones irrespetuosas, sarcasmo, burlas, frases de falta de disposición.",
+          "sinonimos_validos": ["formalidad", "respeto", "profesionalismo", "trato cordial"]
+        },
+        {
+          "key": "evitar_muletillas",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Evitar el uso repetitivo (más de 3 veces) de frases o sonidos que interrumpan la fluidez de la conversación, manteniendo el diálogo claro y profesional. Evitar: \"Este...\", \"Mmm...\", \"Ajá...\", \"Okey...\", \"¿Verdad?\", \"Pues...\", \"Eh...\". Si palabras como \"vale\" u \"okay\" se usan para confirmar instrucciones, tienen valor en el contexto de la llamada o dar continuidad, no se consideran muletillas.",
+          "sinonimos_validos": ["relleno verbal", "frases repetitivas", "muletillas", "expresiones sin valor"]
+        }
+      ]
+    },
+    {
+      "name": "Detección de necesidades",
+      "items": [
+        {
+          "key": "escucha_activa",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Prestar total atención a lo que el cliente dice, demostrando interés y comprensión para ofrecer soluciones adecuadas (ej. \"Correcto\", \"Lo entiendo\", \"Tomo nota\"), el fraseo puede variar. No debe: ignorar al cliente, interrumpir constantemente.",
+          "sinonimos_validos": ["atención", "validación", "acompañamiento", "comprensión"]
+        },
+        {
+          "key": "sondeo",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Realizar preguntas claras y dirigidas para diagnosticar la situación técnica (ej. '¿Me corrobora el número de folio?', '¿El sistema refleja algún error?', '¿La impresora está encendida?', el fraseo puede variar, no hay guion exacto). No debe: asumir información sin validar.",
+          "sinonimos_validos": ["indagación", "validación de datos", "preguntas clave", "diagnóstico"]
+        },
+        {
+          "key": "asertividad",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Brindar respuestas claras, firmes y seguras, tomando el liderazgo para dirigir la solución técnica. Esto incluye dar instrucciones precisas (ej. 'Le recomiendo cerrar sesión', 'Permítame validar'). El fraseo es libre, no hay guion exacto. No debe: dar información insegura o titubear, Evitando frases dudosas como \"creo\", \"tal vez\".",
+          "sinonimos_validos": ["seguridad", "claridad", "determinación", "dirección", "instrucciones precisas", "liderazgo técnico"]
+        }
+      ]
+    },
+    {
+      "name": "Profesionalismo",
+      "items": [
+        {
+          "key": "empatia",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Mostrar comprensión y disposición ante las dificultades técnicas del usuario, generando confianza (ej. \"Entiendo la situación\", \"Una disculpa por el inconveniente\", \"Vamos a resolverlo\"), el fraseo puede variar, no hay un gion exacto. No debe: mostrar desinterés, culpar al sistema ('pues así funciona el sistema') o minimizar el problema.",
+          "sinonimos_validos": ["comprensión", "sensibilidad", "apoyo", "trato humano", "amabilidad", "validación", "disposición"]
+        },
+        {
+          "key": "control_llamada",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Gestionar el flujo de la conversación enfocándose en la resolución técnica eficiente. Guiar al usuario paso a paso (ej. 'lo que vamos a hacer es...', 'Permítame guiarlo'), el fraseo puede variar no hay un guion exacto. FOCO DE EVALUACIÓN: Evalúa ÚNICAMENTE el desempeño del asesor actual. IGNORA tiempos de espera o errores ocurridos con agentes previos.",
+          "sinonimos_validos": ["conducción", "manejo", "guía", "dirección", "liderazgo de llamada"]
+        },
+        {
+          "key": "proactividad",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Anticiparse a las necesidades técnicas. Ofrecer soluciones antes de que se soliciten o usar herramientas avanzadas para agilizar (ej. \"Le envío una invitación para conectarme a su equipo\", \"Yo le apoyo con el proceso\"), el fraseo puede variar, no hay guion exacto.",
+          "sinonimos_validos": ["iniciativa", "anticipación", "acción", "prevención", "soporte remoto"]
+        },
+        {
+          "key": "uso_herramientas_trabajo",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Gestión de Tiempos de Espera (Hold/Mute). Si necesita poner al usuario en espera, debe avisar (ej.\"Permítame un momento\"), el fraseo puede variar, no hay guion exacto. Mantener presencia activa (no dejar silencios prolongados sin actualizar al usuario). Agradecer la espera al regresar.",
+          "sinonimos_validos": ["tiempos de espera", "hold", "pausas", "gestión de tiempo", "aviso de espera"]
+        },
+        {
+          "key": "despedida_cordial",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+           "descripcion": "Finalizar la llamada con actitud de servicio y nombre. Confirmar que no hay dudas adicionales (ej. \"¿Hay algo más en lo que le pueda apoyar?\"), el fraseo puede variar, no hay guion exacto NOTA: NO es necesario mencionar el nombre de la empresa/depto obligatoriamente. Si se corta la llamada abruptamente la omision de la misma por el corte se considera CUMPLIDO ",
+          "sinonimos_validos": ["cierre", "cordialidad", "oferta de ayuda", "agradecimiento", "despedida"]
+        }
+      ]
+    },
+    {
+      "name": "Dominio y manejo de la información",
+      "items": [
+        {
+          "key": "conexion_remota",
+          "peso": 5,
+          "ok": true,
+          "aplicable": false,
+          "evidencia": "Puntos por default (NA=5)",
+          "descripcion": "ITEM ADMINISTRATIVO (NA=5). Evaluar SI se realiza soporte técnico remoto. Explicar al usuario la acción y solicitar autorización. Si el problema se resuelve sin conexión remota, marcar 'aplicable': false (No Aplica/Puntos por default).",
+          "sinonimos_validos": ["conexión remota", "anydesk", "teamviewer", "acceso al equipo", "control remoto"]
+        },
+        {
+          "key": "creacion_ticket_fresh",
+          "peso": 5,
+          "ok": true,
+          "aplicable": false,
+          "evidencia": "Puntos por default (NA=5)",
+          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "sinonimos_validos": []
+        },
+        {
+          "key": "activacion_usuarios",
+          "peso": 5,
+          "ok": true,
+          "aplicable": false,
+          "evidencia": "Puntos por default (NA=5)",
+          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "sinonimos_validos": []
+        },
+        {
+          "key": "adjuntar_evidencia_fresh",
+          "peso": 5,
+          "ok": true,
+          "aplicable": false,
+          "evidencia": "Puntos por default (NA=5)",
+          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "sinonimos_validos": []
+        },
+        {
+          "key": "activacion_permisos",
+          "peso": 5,
+          "ok": true,
+          "aplicable": false,
+          "evidencia": "Puntos por default (NA=5)",
+          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "sinonimos_validos": []
+        },
+        {
+          "key": "interaccion_via_pc",
+          "peso": 5,
+          "ok": true,
+          "aplicable": false,
+          "evidencia": "Puntos por default (NA=5)",
+          "descripcion": "ITEM ADMINISTRATIVO (NA=5). Evaluar ÚNICAMENTE si hay conexión remota. Confirmar envío de invitación (\"Le voy a enviar una invitación\") y verificar aceptación (\"¿Ya le aparece la ventana?\"). Si no hay conexión remota, marcar 'aplicable': false.",
+          "sinonimos_validos": ["invitación", "ventana de conexión", "aceptar conexión", "cursor", "pantalla"]
+        },
+        {
+          "key": "cambio_equipo",
+          "peso": 5,
+          "ok": true,
+          "aplicable": false,
+          "evidencia": "Puntos por default (NA=5)",
+          "descripcion": "ITEM ADMINISTRATIVO (NA=5). Evaluar ÚNICAMENTE si se solicita o diagnostica un CAMBIO DE EQUIPO. El asesor debe realizar descartes previos (reiniciar, revisar cables/internet) antes de escalar. Si no es un caso de cambio de equipo, marcar 'aplicable': false.",
+          "sinonimos_validos": ["cambio de equipo", "reemplazo", "validación previa", "descarte", "pruebas básicas"]
+        },
+        {
+          "key": "etiqueta_qm",
+          "peso": 5,
+          "ok": true,
+          "aplicable": false,
+          "evidencia": "Puntos por default (NA=5)",
+          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "sinonimos_validos": []
+        }
+      ]
+    },
+    {
+      "name": "Apego a procedimientos e información",
+      "items": [
+        {
+          "key": "actitud_servicio",
+          "peso": 0,
+          "critico": true,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Mantiene una actitud positiva, educada y profesional. Atiende con disposición, respeto y proyecta seguridad técnica. No debe: reflejar emociones negativas, ser grosero o impaciente.",
+          "sinonimos_validos": ["servicio", "disposición", "trato cordial", "profesionalismo", "respeto"]
+        },
+        {
+          "key": "solucion_agente",
+          "peso": 0,
+          "critico": true,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Se deja funcional el equipo / Se da solución al agente. El objetivo principal es que el equipo quede operativo. El asesor debe realizar todas las validaciones necesarias hasta confirmar la resolución (\"¿Podría validar si ya puede acceder?\").",
+          "sinonimos_validos": ["resolución técnica", "equipo funcional", "problema resuelto", "acceso correcto"]
+        }
+      ]
+    }
+  ],
+  "section_VI": {
+    "criticos": [
+      { "key": "actitud_servicio", "ok": true },
+      { "key": "solucion_agente", "ok": true }
+    ]
+  },
+  "fortalezas": [],
+  "compromisos": [],
+  "contenido_evaluador": ""
+}
