@@ -46,8 +46,22 @@ except Exception:
     genai = None
 
 GLOBAL_RULES = {
-    "UNIVERSAL_DE_ENFOQUE": """REGLA UNIVERSAL DE ENFOQUE: Toda la evaluación de 'ok' y 'aplicable' se enfoca EXCLUSIVAMENTE en el desempeño del asesor evaluado, ignorando completamente cualquier error, comportamiento o acción de otros asesores o agentes que interactuaron previamente en la llamada.""",
-
+   "UNIVERSAL_DE_ENFOQUE": """REGLA DE FOCO 'LASER': IDENTIFICACIÓN POR ROL
+    1. TU OBJETIVO (EL EVALUADO):
+       - Es la persona que SE HACE CARGO de resolver la solicitud principal del departamento: {department}.
+       - Es la voz que interactúa por más tiempo con el cliente buscando una solución.
+    2. FILTRO DE VOCES (IGNORAR A OTROS):
+       - Si escuchas a un primer agente que contesta y luego transfiere: IGNÓRALO COMPLETAMENTE. Ese es el "Agente Anterior".
+       - Si escuchas a un tercer agente al final (porque tu asesor transfirió la llamada): IGNÓRALO COMPLETAMENTE. Ese es el "Agente Siguiente".
+       - TU OBJETIVO es el agente intermedio (o final) que gestiona la solicitud específica de este departamento.
+    3. REGLA DE TRANSFERENCIAS MÚLTIPLES:
+       - No importa si hubo 1, 2 o 3 transferencias antes. Tu evaluación comienza EXACTAMENTE en el momento en que la voz del 'Departamento {department}' toma la llamada.
+    4. PROHIBIDO 'N/A' EN HABILIDADES BLANDAS:
+       - Aunque la llamada venga transferida, el Asesor Evaluado TIENE LA OBLIGACIÓN de saludar, tener buen tono y buena dicción.
+       - Si el cliente llega enojado por culpa del agente anterior, NO penalices la 'Empatía' o 'Control' de tu asesor, a menos que él/ella también pierda el control.
+       - Si el agente anterior no saludó bien, eso NO afecta la calificación de tu asesor EVALUADO. Evalúa solo el saludo de tu asesor cuando toma la llamada.
+       - SIGUE EL ORDEN DE EVALUACION QUE MARCA EL JSON
+       - Evalúa SU desempeño (aunque sea breve) y marca 'Cumplido' o 'No Cumplido'. NUNCA uses 'aplicable: false' (N/A) para excusar un mal saludo o tono.""",
     "etiqueta_qm": """REGLA 'QM': Cualquier item con una 'key' que contenga 'etiqueta_qm' (por ejemplo 'etiqueta_qm_entrada') DEBE SER MARCADO SIEMPRE como 'aplicable: false' cuando la llamada no es una llamada de Calidad/Quality Monitoring (QM).""",
 
     "CAPACITACION": """REGLA BLINDADA 'Capacitación - Entrada vs Salida':
