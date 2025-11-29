@@ -109,7 +109,7 @@ GLOBAL_RULES = {
 
     "INFO_CORRECTA_AGENTE": """REGLA BLINDADA 'Info Correcta Agente': Este ítem está DESACTIVADO administrativamente. TU RESPUESTA OBLIGATORIA ES: 'ok': true, 'aplicable': false. (IMPORTANTE: Debes marcar 'ok': true para evitar que el sistema anule la calificación por error). No evalúes el audio para este punto.""",
 
-    "CUMPLE_REGULACIONES_KYC": """REGLA 'Cumple Regulaciones KYC' (Administrativo NA=5): Este item SIEMPRE se marca 'aplicable:false' cuando el cumplimiento de regulaciones KYC se realiza mediante procesos internos o sistemas automáticos fuera de la llamada. No se evalúa audio. El sistema otorga automáticamente los 5 puntos.""",
+    "CUMPLE_REGULACIONES_KYC": """REGLA BLINDADA 'Cumple Regulaciones KYC': Este ítem está DESACTIVADO administrativamente. TU RESPUESTA OBLIGATORIA ES: 'ok': true, 'aplicable': false. (IMPORTANTE: Debes marcar 'ok': true para no anular el score por error). No evalúes el audio para este punto.""",
 
     "REVISION_AGENCIA": """REGLA 'Revisión de Agencia' (Administrativo NA=6): Este item SIEMPRE se marca 'aplicable:false' cuando la revisión de agencia se realiza fuera de la llamada o por áreas especializadas. No se evalúa audio. El sistema otorga automáticamente los 6 puntos.""",
 
