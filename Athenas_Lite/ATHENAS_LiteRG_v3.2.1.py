@@ -46,8 +46,22 @@ except Exception:
     genai = None
 
 GLOBAL_RULES = {
-    "UNIVERSAL_DE_ENFOQUE": """REGLA UNIVERSAL DE ENFOQUE: Toda la evaluación de 'ok' y 'aplicable' se enfoca EXCLUSIVAMENTE en el desempeño del asesor evaluado, ignorando completamente cualquier error, comportamiento o acción de otros asesores o agentes que interactuaron previamente en la llamada.""",
-
+   "UNIVERSAL_DE_ENFOQUE": """REGLA DE FOCO 'LASER': IDENTIFICACIÓN POR ROL
+    1. TU OBJETIVO (EL EVALUADO):
+       - Es la persona que SE HACE CARGO de resolver la solicitud principal del departamento: {department}.
+       - Es la voz que interactúa por más tiempo con el cliente buscando una solución.
+    2. FILTRO DE VOCES (IGNORAR A OTROS):
+       - Si escuchas a un primer agente que contesta y luego transfiere: IGNÓRALO COMPLETAMENTE. Ese es el "Agente Anterior".
+       - Si escuchas a un tercer agente al final (porque tu asesor transfirió la llamada): IGNÓRALO COMPLETAMENTE. Ese es el "Agente Siguiente".
+       - TU OBJETIVO es el agente intermedio (o final) que gestiona la solicitud específica de este departamento.
+    3. REGLA DE TRANSFERENCIAS MÚLTIPLES:
+       - No importa si hubo 1, 2 o 3 transferencias antes. Tu evaluación comienza EXACTAMENTE en el momento en que la voz del 'Departamento {department}' toma la llamada.
+    4. PROHIBIDO 'N/A' EN HABILIDADES BLANDAS:
+       - Aunque la llamada venga transferida, el Asesor Evaluado TIENE LA OBLIGACIÓN de saludar, tener buen tono y buena dicción.
+       - Si el cliente llega enojado por culpa del agente anterior, NO penalices la 'Empatía' o 'Control' de tu asesor, a menos que él/ella también pierda el control.
+       - Si el agente anterior no saludó bien, eso NO afecta la calificación de tu asesor EVALUADO. Evalúa solo el saludo de tu asesor cuando toma la llamada.
+       - SIGUE EL ORDEN DE EVALUACION QUE MARCA EL JSON
+       - Evalúa SU desempeño (aunque sea breve) y marca 'Cumplido' o 'No Cumplido'. NUNCA uses 'aplicable: false' (N/A) para excusar un mal saludo o tono.""",
     "etiqueta_qm": """REGLA 'QM': Cualquier item con una 'key' que contenga 'etiqueta_qm' (por ejemplo 'etiqueta_qm_entrada') DEBE SER MARCADO SIEMPRE como 'aplicable: false' cuando la llamada no es una llamada de Calidad/Quality Monitoring (QM).""",
 
     "CAPACITACION": """REGLA BLINDADA 'Capacitación - Entrada vs Salida':
@@ -61,7 +75,7 @@ GLOBAL_RULES = {
        - Evalúa la sección 'Dominio y manejo de la información - Salida'.
        - ANULA la sección 'Dominio y manejo de la información - Entrada': Para TODOS los items de esta sección de entrada, DEBES responder: 'aplicable': false Y 'peso': 0.
     IMPORTANTE: Es obligatorio poner 'peso': 0 en la sección que no aplica para que no sume puntos al score final.""",
-    
+
     "ENCUESTA_MAXI": """REGLA 'Encuesta Maxi': Cualquier item con la key 'encuesta_maxi' o similar solo aplica cuando el objetivo de la llamada es aplicar la encuesta Maxi al cliente. Si la llamada es de otro tipo (soporte, reclamo, seguimiento, etc.), o si la encuesta Maxi no se menciona ni se intenta aplicar, entonces el ítem de 'Encuesta Maxi' se marca 'aplicable:false'. También se considera 'aplicable:false' si la llamada no es con el cliente final al que corresponde la encuesta o si el cliente que llama no es el mismo cliente que aparece como titular de la encuesta.""",
 
     "DERECHOS_DE_CANCELACION": """REGLA 'Derechos de Cancelación' (Crítico Condicional): Este ítem es CRÍTICO solo si el producto o contexto de la llamada requiere que el asesor explique explícitamente los derechos de cancelación. Si el producto o servicio que se ofrece o contrata en la llamada tiene obligación de informar derechos de cancelación y el asesor NO lo hace, o lo hace de forma errónea, se marca 'ok: false' y el score total de la cédula se anula (0%). Si el producto NO requiere informar derechos de cancelación (por regulación o por el tipo de producto), se marca 'aplicable:false' y NO afecta el score.""",
@@ -93,9 +107,9 @@ GLOBAL_RULES = {
 
     "CAMBIO_DE_EQUIPO": """REGLA 'Cambio de Equipo' (Administrativo NA=5): Este item se marca 'aplicable:true' únicamente cuando en la llamada se gestiona explícitamente un cambio de equipo del cliente. Si no se habla de cambio de equipo, se marca 'aplicable:false' (NA) y el sistema otorga los puntos automáticos.""",
 
-    "INFO_CORRECTA_AGENTE": """REGLA 'Info Correcta Agente' (Administrativo NA=5, Desactivado): Este item no se utiliza actualmente para afectar el score. Siempre se considera 'aplicable:false' y no se evalúa audio. Al estar desactivado, no afecta el score final.""",
+    "INFO_CORRECTA_AGENTE": """REGLA BLINDADA 'Info Correcta Agente': Este ítem está DESACTIVADO administrativamente. TU RESPUESTA OBLIGATORIA ES: 'ok': true, 'aplicable': false. (IMPORTANTE: Debes marcar 'ok': true para evitar que el sistema anule la calificación por error). No evalúes el audio para este punto.""",
 
-    "CUMPLE_REGULACIONES_KYC": """REGLA 'Cumple Regulaciones KYC' (Administrativo NA=5): Este item SIEMPRE se marca 'aplicable:false' cuando el cumplimiento de regulaciones KYC se realiza mediante procesos internos o sistemas automáticos fuera de la llamada. No se evalúa audio. El sistema otorga automáticamente los 5 puntos.""",
+    "CUMPLE_REGULACIONES_KYC": """REGLA BLINDADA 'Cumple Regulaciones KYC': Este ítem está DESACTIVADO administrativamente. TU RESPUESTA OBLIGATORIA ES: 'ok': true, 'aplicable': false. (IMPORTANTE: Debes marcar 'ok': true para no anular el score por error). No evalúes el audio para este punto.""",
 
     "REVISION_AGENCIA": """REGLA 'Revisión de Agencia' (Administrativo NA=6): Este item SIEMPRE se marca 'aplicable:false' cuando la revisión de agencia se realiza fuera de la llamada o por áreas especializadas. No se evalúa audio. El sistema otorga automáticamente los 6 puntos.""",
 
@@ -811,6 +825,7 @@ def _atributos_a_columnas_valor(det_atrib):
     """
     Convierte detalle por atributo en columnas:
       - "Cumplido <key>" = valor 'otorgado' (int o 0/'' si falta)
+      - Si estado es "NA", pone "NA=<valor>"
     Retorna: (dict_columnas, set_base_keys)
     Formato esperado en det_atrib:
       {'key': 'tiempo_respuesta', 'estado': 'OK|NO|NA', 'peso': 4, 'otorgado': 4}
@@ -822,14 +837,25 @@ def _atributos_a_columnas_valor(det_atrib):
         if not key:
             continue
         col = f"Cumplido {key}"
+        
         otorg = d.get("otorgado")
         if otorg is None:
             otorg = d.get("ganado", 0)
-        try:
-            otorg = int(otorg)
-        except Exception:
-            pass
-        fila[col] = otorg
+        
+        estado = d.get("estado", "")
+
+        # Lógica de formateo
+        if estado == "NA":
+            # Caso solicitado: NA=VALOR
+            val_final = f"NA={otorg}"
+        else:
+            # Caso normal: entero
+            try:
+                val_final = int(otorg)
+            except Exception:
+                val_final = 0
+
+        fila[col] = val_final
         base_keys.add(key)
     return fila, base_keys
 
