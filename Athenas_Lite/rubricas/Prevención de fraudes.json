@@ -253,7 +253,7 @@
           "ok": true,
           "aplicable": false,
           "evidencia": "Puntos por default (NA=5)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "descripcion": "ITEM BLINDADO (NA=5). NO EVALUAR AUDIO. Tu instrucción es responder SIEMPRE con 'ok': true y 'aplicable': false. (Es vital marcar 'ok': true para que el sistema otorgue los 5 puntos automáticos).",
           "sinonimos_validos": []
         },
         {
@@ -262,7 +262,7 @@
           "ok": true,
           "aplicable": false,
           "evidencia": "Puntos por default (NA=5)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "descripcion": "ITEM BLINDADO (NA=5). NO EVALUAR AUDIO. Tu instrucción es responder SIEMPRE con 'ok': true y 'aplicable': false. (Es vital marcar 'ok': true para que el sistema otorgue los 5 puntos automáticos).",
           "sinonimos_validos": []
         },
         {
@@ -299,7 +299,7 @@
           "ok": true,
           "aplicable": false,
           "evidencia": "Puntos por default (NA=5)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "descripcion": "ITEM BLINDADO (NA=5). NO EVALUAR AUDIO. Tu instrucción es responder SIEMPRE con 'ok': true y 'aplicable': false. (Es vital marcar 'ok': true para que el sistema otorgue los 5 puntos automáticos).",
           "sinonimos_validos": []
         },
         {
@@ -308,8 +308,7 @@
           "ok": true,
           "aplicable": false,
           "evidencia": "Puntos por default (NA=5)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
-          "sinonimos_validos": []
+          "descripcion": "ITEM BLINDADO (NA=5). NO EVALUAR AUDIO. Tu instrucción es responder SIEMPRE con 'ok': true y 'aplicable': false. (Es vital marcar 'ok': true para que el sistema otorgue los 5 puntos automáticos)."
         },
         {
           "key": "etiqueta_qm",
@@ -317,7 +316,7 @@
           "ok": true,
           "aplicable": false,
           "evidencia": "Puntos por default (NA=5)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "descripcion": "ITEM BLINDADO (NA=5). NO EVALUAR AUDIO. Tu instrucción es responder SIEMPRE con 'ok': true y 'aplicable': false. (Es vital marcar 'ok': true para que el sistema otorgue los 5 puntos automáticos).",
           "sinonimos_validos": []
         }
       ]
