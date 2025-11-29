@@ -825,6 +825,7 @@ def _atributos_a_columnas_valor(det_atrib):
     """
     Convierte detalle por atributo en columnas:
       - "Cumplido <key>" = valor 'otorgado' (int o 0/'' si falta)
+      - Si estado es "NA", pone "NA=<valor>"
     Retorna: (dict_columnas, set_base_keys)
     Formato esperado en det_atrib:
       {'key': 'tiempo_respuesta', 'estado': 'OK|NO|NA', 'peso': 4, 'otorgado': 4}
@@ -836,14 +837,25 @@ def _atributos_a_columnas_valor(det_atrib):
         if not key:
             continue
         col = f"Cumplido {key}"
+        
         otorg = d.get("otorgado")
         if otorg is None:
             otorg = d.get("ganado", 0)
-        try:
-            otorg = int(otorg)
-        except Exception:
-            pass
-        fila[col] = otorg
+        
+        estado = d.get("estado", "")
+
+        # Lógica de formateo
+        if estado == "NA":
+            # Caso solicitado: NA=VALOR
+            val_final = f"NA={otorg}"
+        else:
+            # Caso normal: entero
+            try:
+                val_final = int(otorg)
+            except Exception:
+                val_final = 0
+
+        fila[col] = val_final
         base_keys.add(key)
     return fila, base_keys
 
