@@ -64,17 +64,17 @@ GLOBAL_RULES = {
        - Evalúa SU desempeño (aunque sea breve) y marca 'Cumplido' o 'No Cumplido'. NUNCA uses 'aplicable: false' (N/A) para excusar un mal saludo o tono.""",
     "etiqueta_qm": """REGLA 'QM': Cualquier item con una 'key' que contenga 'etiqueta_qm' (por ejemplo 'etiqueta_qm_entrada') DEBE SER MARCADO SIEMPRE como 'aplicable: false' cuando la llamada no es una llamada de Calidad/Quality Monitoring (QM).""",
 
-    "CAPACITACION": """REGLA BLINDADA 'Capacitación - Entrada vs Salida':
+     "CAPACITACION": """REGLA BLINDADA 'Capacitación - Entrada vs Salida':
     1. DETERMINA EL TIPO DE LLAMADA:
        - Si el CLIENTE llama al asesor -> Es ENTRADA (Inbound).
        - Si el ASESOR llama al cliente -> Es SALIDA (Outbound).
     2. SI ES LLAMADA DE ENTRADA:
-       - Evalúa la sección 'Dominio y manejo de la información - Entrada'.
+       - Evalúa la sección 'Dominio y manejo de la información - Entrada'. MANTÉN los pesos originales (incluyendo etiqueta_qm = 5)
        - ANULA la sección 'Dominio y manejo de la información - Salida': Para TODOS los items de esta sección de salida, DEBES responder: 'aplicable': false Y 'peso': 0.
     3. SI ES LLAMADA DE SALIDA:
-       - Evalúa la sección 'Dominio y manejo de la información - Salida'.
+       - Evalúa la sección 'Dominio y manejo de la información - Salida'. MANTÉN los pesos originales (incluyendo etiqueta_qm = 5)
        - ANULA la sección 'Dominio y manejo de la información - Entrada': Para TODOS los items de esta sección de entrada, DEBES responder: 'aplicable': false Y 'peso': 0.
-    IMPORTANTE: Es obligatorio poner 'peso': 0 en la sección que no aplica para que no sume puntos al score final.""",
+    IMPORTANTE: Es obligatorio poner 'peso': 0 en la sección ANULADA para que no sume puntos al score final. La sección activa SÍ debe sumar puntos (mantener pesos).""",
 
     "ENCUESTA_MAXI": """REGLA 'Encuesta Maxi': Cualquier item con la key 'encuesta_maxi' o similar solo aplica cuando el objetivo de la llamada es aplicar la encuesta Maxi al cliente. Si la llamada es de otro tipo (soporte, reclamo, seguimiento, etc.), o si la encuesta Maxi no se menciona ni se intenta aplicar, entonces el ítem de 'Encuesta Maxi' se marca 'aplicable:false'. También se considera 'aplicable:false' si la llamada no es con el cliente final al que corresponde la encuesta o si el cliente que llama no es el mismo cliente que aparece como titular de la encuesta.""",
 
