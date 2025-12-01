@@ -9,7 +9,25 @@ const connectDB = require('./config/db');
 dotenv.config();
 
 // Connect to Database
-connectDB();
+// Connect to Database and Auto-Seed
+connectDB().then(async () => {
+    const Scenario = require('./models/scenario.model');
+    const count = await Scenario.countDocuments();
+    if (count === 0) {
+        console.log("Database empty. Seeding default scenarios...");
+        await Scenario.create([
+            {
+                title: "Cliente Molesto por Cargo Desconocido",
+                description: "El cliente ve un cargo de $500 MXN que no reconoce en su estado de cuenta.",
+                customerType: "angry",
+                objective: "Calmar al cliente, validar su identidad y explicar que el cargo es una pre-autorización que desaparecerá en 24 horas.",
+                baseScript: "El cliente iniciará reclamando. Debes pedirle los últimos 4 dígitos de la tarjeta. Si valida, explícale lo de la pre-autorización.",
+                difficulty: "medium"
+            }
+        ]);
+        console.log("Default scenarios seeded!");
+    }
+});
 
 const app = express();
 const server = http.createServer(app);
