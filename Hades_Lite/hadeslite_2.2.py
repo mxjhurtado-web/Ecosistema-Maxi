@@ -80,6 +80,172 @@ _COUNTRY_CUES = {
            "social insurance book", "republic of vietnam", "vietnam"],
 }
 
+ID_TYPES_BY_COUNTRY = {
+
+    "MX": [
+        "Credencial para votar (INE)",
+        "Credencial para votar emitida por el INE",
+        "Pasaporte mexicano",
+        "Tarjeta de identificación consular de México",
+        "Identificación consular mexicana",
+    ],
+
+    "US": [
+        "Pasaporte estadounidense",
+        "United States passport",
+        "State ID",
+        "Driver license",
+        "Licencia de conducir",
+        "Permanent Resident Card",
+        "Green Card",
+        "Employment Authorization Document",
+        "EAD card",
+        "Identificación Militar",
+        "VISA",
+    ],
+
+    "GT": [
+        "Documento Personal de Identificación",
+        "DPI",
+        "Pasaporte guatemalteco",
+        "Identificación consular guatemalteca",
+    ],
+
+    "HN": [
+        "Tarjeta de identidad",
+        "Documento Nacional de Identificación",
+        "Pasaporte hondureño",
+        "Identificación consular hondureña",
+    ],
+
+    "SV": [
+        "Documento Único de Identidad",
+        "DUI",
+        "Pasaporte salvadoreño",
+        "Identificación consular salvadoreña",
+    ],
+
+    "NI": [
+        "Cédula de identidad de Nicaragua",
+        "Consejo Supremo Electoral",
+        "Pasaporte nicaragüense",
+        "Identificación consular nicaragüense",
+    ],
+
+    "CR": [
+        "Cédula de identidad de Costa Rica",
+        "Tribunal Supremo de Elecciones",
+        "Pasaporte costarricense",
+    ],
+
+    "PA": [
+        "Cédula de identidad personal panameña",
+        "Documento de identidad panameño",
+        "Pasaporte panameño",
+    ],
+
+    "CO": [
+        "Cédula de ciudadanía",
+        "Cédula de ciudadanía de Colombia",
+        "Pasaporte colombiano",
+    ],
+
+    "PE": [
+        "Documento Nacional de Identidad de Perú",
+        "DNI de Perú",
+        "Pasaporte peruano",
+    ],
+
+    "EC": [
+        "Cédula de identidad de Ecuador",
+        "Pasaporte ecuatoriano",
+    ],
+
+    "VE": [
+        "Cédula de identidad venezolana",
+        "Pasaporte venezolano",
+    ],
+
+    "DO": [
+        "Cédula de identidad y electoral",
+        "Cédula de República Dominicana",
+        "Pasaporte dominicano",
+    ],
+
+    "CU": [
+        "Pasaporte cubano",
+    ],
+
+    "AR": [
+        "Documento Nacional de Identidad de Argentina",
+        "DNI de Argentina",
+        "Pasaporte argentino",
+    ],
+
+    "CL": [
+        "Cédula de identidad de Chile",
+        "Cédula de identidad chilena",
+        "Servicio de registro civil e identificación",
+        "Pasaporte chileno",
+    ],
+
+    "BR": [
+        "Identificación consular brasileña",
+        "Passaporte brasileiro",
+    ],
+
+    "UY": [
+        "Documento de identidad de Uruguay",
+        "Pasaporte uruguayo",
+    ],
+
+    "PY": [
+        "Cédula de identidad civil",
+        "Pasaporte paraguayo",
+    ],
+
+    "BO": [
+        "Cédula de identidad boliviana",
+        "Pasaporte boliviano",
+        "Identificación consular boliviana",
+    ],
+
+    "ES": [
+        "Documento Nacional de Identidad de España",
+        "DNI de España",
+        "Pasaporte español",
+    ],
+
+    "PH": [
+        "Pasaporte filipino",
+        "Philippines passport",
+    ],
+
+    "JM": [
+        "Passport of Jamaica",
+        "Jamaican passport",
+    ],
+
+    "HT": [
+        "Passport of Haiti",
+        "Haitian passport",
+    ],
+
+    "TT": [
+        "Passport of Trinidad and Tobago",
+    ],
+
+    "PK": [
+        "CNIC (Computerized National Identity Card)",
+        "Pasaporte pakistaní",
+    ],
+
+    "IN": [
+        "Indian passport",
+        "Pasaporte de India",
+    ],
+}
+
 _DATE_RE_TXT_ES = re.compile(r'\b(\d{1,2})\s*(?:de\s*)?([A-Za-záéíóúÁÉÍÓÚñÑ]+)\s*(?:de\s*)?(\d{2,4})\b', re.IGNORECASE)
 
 # -- Patrones textuales y numéricos
@@ -121,6 +287,22 @@ def _infer_doc_country(texto: str):
         if any(c in t for c in cues):
             return cc
     return None
+
+def _normalize_for_match(s: str) -> str:
+    """Minúsculas, sin acentos ni signos, espacios normalizados: ideal para buscar en el glosario."""
+    if not s:
+        return ""
+    s = s.lower()
+    try:
+        s = ''.join(
+            c for c in unicodedata.normalize("NFD", s)
+            if unicodedata.category(c) != "Mn"
+        )
+    except Exception:
+        pass
+    s = re.sub(r"[^a-z0-9\s]", " ", s)  # quita signos raros
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
 
 def _detect_language_bias(texto: str):
     t = (texto or "").lower()
@@ -482,27 +664,59 @@ def _extract_id_number(texto: str, doc_pais: str | None) -> str | None:
     return None
 
 def _extract_id_type(texto: str, doc_pais: str | None) -> str | None:
-    if not doc_pais: return None
-    t = texto.lower()
-    
-    # 1. Por País y tipo específico (prioridad alta)
+    """
+    Determina el tipo de identificación:
+    1) Primero intenta por reglas específicas (INE, DPI, etc.).
+    2) Después usa el glosario ID_TYPES_BY_COUNTRY.
+    3) Por último, cae a tipos genéricos (Pasaporte / Licencia de conducir).
+    """
+    if not texto:
+        return None
+
+    if not doc_pais:
+        doc_pais = _infer_doc_country(texto)
+
+    t_raw = texto.lower()
+    t_norm = _normalize_for_match(texto)
+
+    # -------- 1) Reglas específicas que ya tenías (prioridad alta) --------
     if doc_pais == "MX":
-        if any(kw in t for kw in ["credencial para votar", "ine"]): return "Credencial INE (MX)"
-        if "matrícula consular" in t: return "Matrícula Consular (MX)"
-        if "pasaporte" in t and "mex" in t: return "Pasaporte (MX)"
+        if any(kw in t_raw for kw in ["credencial para votar", "ine"]):
+            return "Credencial INE (MX)"
+        if "matrícula consular" in t_raw or "matricula consular" in t_raw:
+            return "Matrícula Consular (MX)"
+        if "pasaporte" in t_raw and "mex" in t_raw:
+            return "Pasaporte (MX)"
+
     if doc_pais == "GT":
-        if "documento personal de identificación" in t or "dpi" in t: return "DPI (GT)"
-        if "identificacion consular" in t: return "Identificación Consular (GT)"
-        if "pasaporte" in t: return "Pasaporte (GT)"
+        if "documento personal de identificacion" in t_norm or "dpi" in t_norm:
+            return "DPI (GT)"
+        if "identificacion consular" in t_norm:
+            return "Identificación Consular (GT)"
+        if "pasaporte" in t_raw:
+            return "Pasaporte (GT)"
+
     if doc_pais == "PH":
-        return "Pasaporte (PH)"
+        if "pasaporte" in t_raw or "passport" in t_raw:
+            return "Pasaporte (PH)"
+
     if doc_pais == "US":
-        if any(kw in t for kw in ["driver license", "licencia de conducir"]): return "Licencia de Conducir (US)"
-    
-    # 2. Por palabras clave genéricas (si no se resolvió antes)
-    if "pasaporte" in t or "passport" in t: return "Pasaporte"
-    if "licencia de conducir" in t or "driver license" in t: return "Licencia de Conducir"
-    
+        if any(kw in t_norm for kw in ["driver license", "dl class", "licencia de conducir"]):
+            return "Licencia de Conducir (US)"
+
+    # -------- 2) Glosario por país (ID_TYPES_BY_COUNTRY) --------
+    if doc_pais and doc_pais in ID_TYPES_BY_COUNTRY:
+        tipos_pais = ID_TYPES_BY_COUNTRY[doc_pais]
+        for kw in tipos_pais:
+            if _normalize_for_match(kw) in t_norm:
+                return f"{kw} ({doc_pais})"
+
+    # -------- 3) Fallback genérico --------
+    if "pasaporte" in t_raw or "passport" in t_raw:
+        return "Pasaporte"
+    if "licencia de conducir" in t_raw or "driver license" in t_raw:
+        return "Licencia de Conducir"
+
     return None
 # --- Fin funciones de extracción de ID ---
 
@@ -988,7 +1202,8 @@ def registrar_changelog(evento: str):
         log.write(f"[{ts}] {evento}\n")
 
 def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
-                         datos_esenciales: dict = None, riesgo: str = "", detalles: list = None):
+                         datos_esenciales: dict = None, riesgo: str = "", detalles: list = None,
+                         tipo_id: str = None, num_id: str = None):
     """Guarda resultados y métricas de forma consolidada."""
     # Inicialización
     r = next((res for res in resultados if res['archivo'] == nombre), None)
@@ -1008,6 +1223,8 @@ def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
         
         # Asignación de fechas procesadas
         r['doc_pais'] = doc or ''
+        if tipo_id: r['tipo_id'] = tipo_id
+        if num_id: r['num_id'] = num_id
         r['formato_fecha_detectado'] = fmt or ''
         
         # Nuevos campos de fechas (usados para el exportador)
@@ -1026,10 +1243,28 @@ def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
         # Autenticidad
         r['autenticidad_riesgo'] = riesgo
         r['autenticidad_detalles'] = ' | '.join(detalles or [])
+        
+        # Clasificación tipo "verdadero / falso (estimación)"
+        if riesgo == "bajo":
+            r["documento_flag_sospechoso"] = "no"
+            r["documento_veredicto"] = "Probable documento auténtico (riesgo bajo)."
+        elif riesgo == "medio":
+            r["documento_flag_sospechoso"] = "si"
+            r["documento_veredicto"] = "Documento con posibles inconsistencias (riesgo medio, revisar)."
+        else:  # riesgo == "alto"
+            r["documento_flag_sospechoso"] = "si"
+            r["documento_veredicto"] = "Alto riesgo de documento no auténtico (revisión obligatoria)."
+        
         r['todas_las_fechas_sugeridas_mdy'] = fechas_mdy
         
     except Exception as e:
         print(f"[HADES] Error al calcular metadata de resultado: {e}")
+
+    # Copiar datos esenciales (nombre, tipo, número de ID, etc.) al resultado
+    if datos_esenciales:
+        for k, v in datos_esenciales.items():
+            if v is not None:
+                r[k] = v
 
     # métricas (usuario = correo)
     m = next((met for met in metricas if met['archivo'] == nombre), None)
@@ -1824,6 +2059,8 @@ def analizar_actual():
     
     datos_esenciales = {
         "nombre": nombre_completo,
+        "tipo_identificacion": tipo_id,
+        "numero_identificacion": num_id,
         "fecha_nacimiento_original": _extract_dob(texto)[0],
         "fecha_nacimiento_sugerida_mdy": date_results.get("fecha_nacimiento_final"),
         "vigencia_original": texto,
@@ -1835,7 +2072,7 @@ def analizar_actual():
 
     # 3. Guardar resultados
     # Usamos el texto original para que el exportador trabaje con el output de Gemini
-    _guardar_resultado(Path(p).name, texto, "actual", dt, datos_esenciales, riesgo, detalles)
+    _guardar_resultado(Path(p).name, texto, "actual", dt, datos_esenciales, riesgo, detalles, tipo_id, num_id)
     
     # 4. Mostrar en el panel
     ocr_text.delete("1.0", "end") # Limpiamos antes de mostrar
@@ -1850,6 +2087,33 @@ def analizar_actual():
     ocr_text.tag_config("body_header", font=("Segoe UI", 10, "bold"), foreground=COLOR_TEXT)
     
     # (Punto 3 - Arreglo [DOCUMENTO])
+    if tipo_id:
+        ocr_text.insert("end", f"Tipo de identificación detectado: {tipo_id}\n", "essential_value")
+    if num_id:
+        ocr_text.insert("end", f"Número de identificación: {num_id}\n", "essential_value")
+    
+    # === Semáforo de autenticidad en la UI ===
+    ocr_text.tag_config("risk_low",  foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold"))
+    ocr_text.tag_config("risk_mid",  foreground="gold",       font=("Segoe UI", 10, "bold"))
+    ocr_text.tag_config("risk_high", foreground=COLOR_RED,    font=("Segoe UI", 10, "bold"))
+
+    if riesgo == "bajo":
+        tag = "risk_low"
+        msg = "✅ Probable documento auténtico (riesgo bajo).\n"
+    elif riesgo == "medio":
+        tag = "risk_mid"
+        msg = "⚠ Documento con posibles inconsistencias (riesgo medio, revisar).\n"
+    else:
+        tag = "risk_high"
+        msg = "🚨 Alto riesgo de documento no auténtico (revisión obligatoria).\n"
+
+    ocr_text.insert("end", msg, tag)
+
+    # Lista de motivos detectados
+    for d in (detalles or []):
+        ocr_text.insert("end", f" • {d}\n", tag)
+
+    ocr_text.insert("end", "\n")  # línea en blanco antes del texto OCR
     #if doc_pais:
         #ocr_text.insert("end", f"país: {doc_pais}\n", "essential_value")
     
@@ -1897,6 +2161,8 @@ def analizar_carrusel():
             
             datos_esenciales = {
                 "nombre": nombre_completo,
+                "tipo_identificacion": tipo_id,
+                "numero_identificacion": num_id,
                 "fecha_nacimiento_original": _extract_dob(texto)[0],
                 "fecha_nacimiento_sugerida_mdy": nacimiento_final,
                 "vigencia_original": texto,
@@ -1907,7 +2173,7 @@ def analizar_carrusel():
             dt = round(time.time() - t0, 2)
 
             # 3. Guardar resultados
-            _guardar_resultado(Path(p).name, texto, "carrusel", dt, datos_esenciales, riesgo, detalles)
+            _guardar_resultado(Path(p).name, texto, "carrusel", dt, datos_esenciales, riesgo, detalles, tipo_id, num_id)
 
             # 4. Mostrar en el panel (SOLO OCR y autenticidad)
             nombre_archivo = Path(p).name
@@ -1917,6 +2183,33 @@ def analizar_carrusel():
             ocr_text.insert("end", f"\n\nRESULTADO {i}/{total} — {nombre_archivo}\n", "header")
 
             # (Punto 3 - Arreglo [DOCUMENTO])
+            if tipo_id:
+                ocr_text.insert("end", f"Tipo de identificación detectado: {tipo_id}\n", "essential_value")
+            if num_id:
+                ocr_text.insert("end", f"Número de identificación: {num_id}\n", "essential_value")
+            
+            # === Semáforo de autenticidad en la UI ===
+            ocr_text.tag_config("risk_low",  foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold"))
+            ocr_text.tag_config("risk_mid",  foreground="gold",       font=("Segoe UI", 10, "bold"))
+            ocr_text.tag_config("risk_high", foreground=COLOR_RED,    font=("Segoe UI", 10, "bold"))
+
+            if riesgo == "bajo":
+                tag = "risk_low"
+                msg = "✅ Probable documento auténtico (riesgo bajo).\n"
+            elif riesgo == "medio":
+                tag = "risk_mid"
+                msg = "⚠ Documento con posibles inconsistencias (riesgo medio, revisar).\n"
+            else:
+                tag = "risk_high"
+                msg = "🚨 Alto riesgo de documento no auténtico (revisión obligatoria).\n"
+
+            ocr_text.insert("end", msg, tag)
+
+            # Lista de motivos detectados
+            for d in (detalles or []):
+                ocr_text.insert("end", f" • {d}\n", tag)
+
+            ocr_text.insert("end", "\n")  # línea en blanco antes del texto OCR
             #if doc_pais_actual:
                 #ocr_text.insert("end", f"país: {doc_pais_actual}\n", "essential_value")
 
@@ -1993,6 +2286,8 @@ def analizar_identificacion():
 
             datos_esenciales = {
                 "nombre": nombre_completo,
+                "tipo_identificacion": tipo_id,
+                "numero_identificacion": num_id,
                 "fecha_nacimiento_original": _extract_dob(texto_total)[0],
                 "fecha_nacimiento_sugerida_mdy": nacimiento_final,
                 "vigencia_original": texto_total,
@@ -2012,6 +2307,8 @@ def analizar_identificacion():
                 datos_esenciales,
                 riesgo,
                 detalles,
+                tipo_id,
+                num_id
             )
 
             # ===== 3) MOSTRAR EN PANEL =====
@@ -2024,6 +2321,33 @@ def analizar_identificacion():
             ocr_text.insert("end", header_line, "header")
 
             # País (una sola vez por ID)
+            if tipo_id:
+                ocr_text.insert("end", f"Tipo de identificación detectado: {tipo_id}\n", "essential_value")
+            if num_id:
+                ocr_text.insert("end", f"Número de identificación: {num_id}\n", "essential_value")
+            
+            # === Semáforo de autenticidad en la UI ===
+            ocr_text.tag_config("risk_low",  foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold"))
+            ocr_text.tag_config("risk_mid",  foreground="gold",       font=("Segoe UI", 10, "bold"))
+            ocr_text.tag_config("risk_high", foreground=COLOR_RED,    font=("Segoe UI", 10, "bold"))
+
+            if riesgo == "bajo":
+                tag = "risk_low"
+                msg = "✅ Probable documento auténtico (riesgo bajo).\n"
+            elif riesgo == "medio":
+                tag = "risk_mid"
+                msg = "⚠ Documento con posibles inconsistencias (riesgo medio, revisar).\n"
+            else:
+                tag = "risk_high"
+                msg = "🚨 Alto riesgo de documento no auténtico (revisión obligatoria).\n"
+
+            ocr_text.insert("end", msg, tag)
+
+            # Lista de motivos detectados
+            for d in (detalles or []):
+                ocr_text.insert("end", f" • {d}\n", tag)
+
+            ocr_text.insert("end", "\n")  # línea en blanco antes del texto OCR
             #if doc_pais:
                 #ocr_text.insert("end", f"país: {doc_pais}\n", "essential_value")
 
@@ -2093,38 +2417,6 @@ def _popup_feedback_then_export_drive():
         pass
     root.wait_window(win)
 
-def _export_drive_only():
-    # Modal morado con 👍/👎 que BLOQUEA hasta seleccionar
-    win = Toplevel(root)
-    win.title("Califica el análisis")
-    win.configure(bg=COLOR_CARD)
-    win.transient(root)
-    win.grab_set()
-    Label(win, text="¿Te gustó el análisis?", bg=COLOR_CARD, fg=COLOR_TEXT).pack(pady=(14, 4))
-
-    btns = Frame(win, bg=COLOR_CARD)
-    btns.pack(pady=10)
-
-    def choose(v):
-        global FEEDBACK_RATING, metricas
-        FEEDBACK_RATING = v
-        for m in metricas:
-            m['feedback'] = FEEDBACK_RATING or ""
-        win.destroy()
-        _export_drive_only()
-
-    Button(btns, text="👍 Me gustó", command=lambda: choose('up'), bg=COLOR_PURPLE, fg="white", relief="flat", padx=16, pady=10).pack(side="left", padx=8)
-    Button(btns, text="👎 No me gustó", command=lambda: choose('down'), bg=COLOR_BTN, fg="white", relief="flat", padx=16, pady=10).pack(side="left", padx=8)
-
-    # Centrar y bloquear
-    root.update_idletasks()
-    x = root.winfo_rootx() + (root.winfo_width()//2 - win.winfo_width()//2)
-    y = root.winfo_rooty() + (root.winfo_height()//2 - win.winfo_height()//2)
-    try:
-        win.geometry(f"+{x}+{y}")
-    except Exception:
-        pass
-    root.wait_window(win)
 
 def _export_drive_only():
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -2138,7 +2430,7 @@ def _export_drive_only():
         metricas_df = pd.DataFrame(columns=['archivo','api','tipo','duracion_s','usuario','feedback'])
 
     combinado_df = resumen_df.merge(metricas_df, on='archivo', how='left', suffixes=('', '_m'))
-    preferred_order = ['archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final','fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy','autenticidad_riesgo','autenticidad_detalles','api','usuario','feedback']
+    preferred_order = ['archivo','texto','duracion_s','tipo','doc_pais','tipo_id','num_id','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final','fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy','autenticidad_riesgo','autenticidad_detalles','api','usuario','feedback']
     final_cols = [c for c in preferred_order if c in combinado_df.columns] + [c for c in combinado_df.columns if c not in preferred_order]
     combinado_df = combinado_df[final_cols]
 
@@ -2168,7 +2460,7 @@ def _do_export(destino_carpeta_local: str):
         messagebox.showinfo("Exportación", "No hay resultados para exportar localmente."); return
 
     # Usar las nuevas columnas finales para exportar los datos procesados
-    cols = [c for c in ['archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final'] if c in resumen_df.columns]
+    cols = [c for c in ['archivo','texto','duracion_s','tipo','doc_pais','tipo_id','num_id','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final'] if c in resumen_df.columns]
     out_df = resumen_df[cols].copy() if cols else resumen_df.copy()
     out_df.to_csv(csv_path, index=False, encoding="utf-8-sig")
 
@@ -2178,6 +2470,8 @@ def _do_export(destino_carpeta_local: str):
             f.write(f"Duración (s): {row.get('duracion_s','')}\n")
             f.write(f"Tipo: {row.get('tipo','')}\n")
             f.write(f"País: {row.get('doc_pais','')}\n")
+            f.write(f"Tipo ID: {row.get('tipo_id','')}\n")
+            f.write(f"Num ID: {row.get('num_id','')}\n")
             f.write(f"Formato fecha detectado: {row.get('formato_fecha_detectado','')}\n")
             f.write(f"Fecha Expedición: {row.get('fecha_expedicion_final','')}\n")
             f.write(f"Vigencia: {row.get('vigencia_final','')}\n")
@@ -2204,21 +2498,6 @@ def borrar_todo():
     ocr_text.delete("1.0", "end")
     _show_logo_bg() # Vuelve a mostrar el logo
     status.config(text="Se limpió el estado.")
-
-# ===== Helpers de extracción de DATOS ESENCIALES (Movidos al final para mejor estructura) =====
-## PULIDO: Se ajusta el regex para intentar no capturar 'DOMICILIO' ni 'DIRECCIÓN'
-_NAME_HINTS = [
-    # Captura el valor después de NOMBRE/NAME/TITULAR/NOMBRES/APELLIDOS
-    r"(?:nombre|names|nombres)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s'.-]+?)(?:\s+(APELLIDOS|SURNAME|DIRECCION|CALLE))?$",
-    r"(?:apellidos|surname)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s'.-]+?)(?:\s+(NOMBRES|NAMES|FECHA))?$",
-    r"(?:nombre|name|titular)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s'.-]+)", # Fallback más simple
-]
-_DOB_HINTS = [
-    r"(?:fecha\s*de\s*nacimiento|f\.\s*de\s*nac\.?|dob|date\s*of\s*birth|nacimient[oa])"
-]
-_CURP_RE = re.compile(r'\b([A-Z][AEIOUX][A-Z]{2})(\d{2})(\d{2})(\d{2})[HM][A-Z]{5}[0-9A-Z]\d\b', re.IGNORECASE)
-_RFC_PER_RE = re.compile(r'\b([A-ZÑ&]{4})(\d{2})(\d{2})(\d{2})[A-Z0-9]{3}\b', re.IGNORECASE)
-_SAMPLE_WORDS = ("muestra","sample","specimen","ejemplo","void")
 
 # --- Funciones de extracción de ID ---
 def _extract_id_number(texto: str, doc_pais: str | None) -> str | None:
@@ -2272,29 +2551,7 @@ def _extract_id_number(texto: str, doc_pais: str | None) -> str | None:
 
     return None
 
-def _extract_id_type(texto: str, doc_pais: str | None) -> str | None:
-    if not doc_pais: return None
-    t = texto.lower()
-    
-    # 1. Por País y tipo específico (prioridad alta)
-    if doc_pais == "MX":
-        if any(kw in t for kw in ["credencial para votar", "ine"]): return "Credencial INE (MX)"
-        if "matrícula consular" in t: return "Matrícula Consular (MX)"
-        if "pasaporte" in t and "mex" in t: return "Pasaporte (MX)"
-    if doc_pais == "GT":
-        if "documento personal de identificación" in t or "dpi" in t: return "DPI (GT)"
-        if "identificacion consular" in t: return "Identificación Consular (GT)"
-        if "pasaporte" in t: return "Pasaporte (GT)"
-    if doc_pais == "PH":
-        return "Pasaporte (PH)"
-    if doc_pais == "US":
-        if any(kw in t for kw in ["driver license", "licencia de conducir"]): return "Licencia de Conducir (US)"
-    
-    # 2. Por palabras clave genéricas (si no se resolvió antes)
-    if "pasaporte" in t or "passport" in t: return "Pasaporte"
-    if "licencia de conducir" in t or "driver license" in t: return "Licencia de Conducir"
-    
-    return None
+
 # --- Fin funciones de extracción de ID ---
 
 def _extract_name(texto: str) -> str | None:
