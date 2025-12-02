@@ -2710,11 +2710,16 @@ def _age_from_mdy(mdy: str):
     try:
         import datetime as _dt
         m,d,y = map(int, mdy.split("/"))
-    
-    # PULIDO: Mover los atajos de teclado aquí dentro.
-    # ========= ATAJOS =========
-    root.bind_all("<Control-v>", lambda e: pegar_imagen_clipboard())
-    
-    # Continuar con el inicio de la aplicación
-    _set_mode_ocr()
-    root.mainloop()
+        dob = _dt.date(y, m, d)
+        today = _dt.date.today()
+        return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+    except Exception:
+        return None
+
+# PULIDO: Mover los atajos de teclado aquí dentro.
+# ========= ATAJOS =========
+root.bind_all("<Control-v>", lambda e: pegar_imagen_clipboard())
+
+# Continuar con el inicio de la aplicación
+_set_mode_ocr()
+root.mainloop()
