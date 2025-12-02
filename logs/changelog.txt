@@ -5,3 +5,21 @@
 [2025-12-02 12:28:09] Resultado guardado: Agencia 4694-TX Folio 126754.jpg (559 chars, 4.97s, riesgo=bajo)
 [2025-12-02 12:28:22] Resultado guardado: image (1).png (484 chars, 12.67s, riesgo=bajo)
 [2025-12-02 12:28:30] Drive: subido HADES_OCR_20251202_122824.csv (1RItsvl9QSTp9f-kr7Q-QB3SlLrEoyZPx) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 12:39:25] Resultado guardado: image (3).png (375 chars, 10.01s, riesgo=bajo)
+[2025-12-02 12:39:35] Drive: subido HADES_OCR_20251202_123929.csv (1l8EO35uk5f-UaxZbEHNLF5KIRNRSjZBo) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 12:39:41] Resultado guardado: image (3).png (367 chars, 5.55s, riesgo=bajo)
+[2025-12-02 12:39:49] Drive: subido HADES_OCR_20251202_123944.csv (1f9xExFKlvNz7L9UKYetcVs5K5MFgZjUi) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 12:40:10] Resultado guardado: 18oct.Pasaporte.png (475 chars, 4.73s, riesgo=bajo)
+[2025-12-02 12:40:14] Resultado guardado: Agencia 5317-ID Folio 133663.jpg (545 chars, 4.01s, riesgo=bajo)
+[2025-12-02 12:40:27] Resultado guardado: Agencia 4694-TX Folio 126754.jpg (607 chars, 13.09s, riesgo=bajo)
+[2025-12-02 12:40:33] Resultado guardado: image (1).png (530 chars, 5.17s, riesgo=bajo)
+[2025-12-02 12:40:41] Drive: subido HADES_OCR_20251202_124035.csv (1fJs4bIJhn8b6wmw358rBl6IaUe06EoJJ) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 12:48:48] Resultado guardado: 4343dd82c0c3d126bad98d3f8d7d3f02File-596968443473609.jpg (377 chars, 5.53s, riesgo=bajo)
+[2025-12-02 12:49:06] Drive: subido HADES_OCR_20251202_124901.csv (1fJLaJF090ZVTLq70lsxXadEBRPhBJBc1) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 12:49:55] Resultado guardado: 18oct.Pasaporte.png (521 chars, 4.83s, riesgo=bajo)
+[2025-12-02 12:49:59] Resultado guardado: Agencia 5317-ID Folio 133663.jpg (550 chars, 4.21s, riesgo=bajo)
+[2025-12-02 12:50:11] Resultado guardado: Agencia 4694-TX Folio 126754.jpg (625 chars, 11.49s, riesgo=bajo)
+[2025-12-02 12:50:19] Resultado guardado: image (1).png (497 chars, 8.10s, riesgo=bajo)
+[2025-12-02 12:50:26] Drive: subido HADES_OCR_20251202_125021.csv (1S1M1P0UdwSTJvInIFGzk0cQ6BNlsrJ7r) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 12:52:12] Resultado guardado: INE delantera.jpeg + INE Trasera.jpeg (1043 chars, 26.89s, riesgo=bajo)
+[2025-12-02 12:52:26] Drive: subido HADES_OCR_20251202_125220.csv (1SyHiyiCwEquOb1PN3ez0GBOyYgW7FBs8) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt

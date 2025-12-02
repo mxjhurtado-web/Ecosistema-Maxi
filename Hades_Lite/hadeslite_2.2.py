@@ -2086,12 +2086,6 @@ def analizar_actual():
     ocr_text.insert("end", f"\nTexto Completo (OCR original):\n", "body_header")
     ocr_text.tag_config("body_header", font=("Segoe UI", 10, "bold"), foreground=COLOR_TEXT)
     
-    # (Punto 3 - Arreglo [DOCUMENTO])
-    if tipo_id:
-        ocr_text.insert("end", f"Tipo de identificación detectado: {tipo_id}\n", "essential_value")
-    if num_id:
-        ocr_text.insert("end", f"Número de identificación: {num_id}\n", "essential_value")
-    
     # === Semáforo de autenticidad en la UI ===
     ocr_text.tag_config("risk_low",  foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold"))
     ocr_text.tag_config("risk_mid",  foreground="gold",       font=("Segoe UI", 10, "bold"))
@@ -2182,12 +2176,6 @@ def analizar_carrusel():
             # Mostrar encabezado de resultado
             ocr_text.insert("end", f"\n\nRESULTADO {i}/{total} — {nombre_archivo}\n", "header")
 
-            # (Punto 3 - Arreglo [DOCUMENTO])
-            if tipo_id:
-                ocr_text.insert("end", f"Tipo de identificación detectado: {tipo_id}\n", "essential_value")
-            if num_id:
-                ocr_text.insert("end", f"Número de identificación: {num_id}\n", "essential_value")
-            
             # === Semáforo de autenticidad en la UI ===
             ocr_text.tag_config("risk_low",  foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold"))
             ocr_text.tag_config("risk_mid",  foreground="gold",       font=("Segoe UI", 10, "bold"))
@@ -2320,12 +2308,6 @@ def analizar_identificacion():
             )
             ocr_text.insert("end", header_line, "header")
 
-            # País (una sola vez por ID)
-            if tipo_id:
-                ocr_text.insert("end", f"Tipo de identificación detectado: {tipo_id}\n", "essential_value")
-            if num_id:
-                ocr_text.insert("end", f"Número de identificación: {num_id}\n", "essential_value")
-            
             # === Semáforo de autenticidad en la UI ===
             ocr_text.tag_config("risk_low",  foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold"))
             ocr_text.tag_config("risk_mid",  foreground="gold",       font=("Segoe UI", 10, "bold"))
