@@ -62,9 +62,10 @@ GLOBAL_RULES = {
        - Si el agente anterior no saludó bien, eso NO afecta la calificación de tu asesor EVALUADO. Evalúa solo el saludo de tu asesor cuando toma la llamada.
        - SIGUE EL ORDEN DE EVALUACION QUE MARCA EL JSON
        - Evalúa SU desempeño (aunque sea breve) y marca 'Cumplido' o 'No Cumplido'. NUNCA uses 'aplicable: false' (N/A) para excusar un mal saludo o tono.""",
+   
     "etiqueta_qm": """REGLA 'QM': Cualquier item con una 'key' que contenga 'etiqueta_qm' (por ejemplo 'etiqueta_qm_entrada') DEBE SER MARCADO SIEMPRE como 'aplicable: false' cuando la llamada no es una llamada de Calidad/Quality Monitoring (QM).""",
 
-     "CAPACITACION": """REGLA BLINDADA 'Capacitación - Entrada vs Salida':
+    "CAPACITACION": """REGLA BLINDADA 'Capacitación - Entrada vs Salida':
     1. DETERMINA EL TIPO DE LLAMADA:
        - Si el CLIENTE llama al asesor -> Es ENTRADA (Inbound).
        - Si el ASESOR llama al cliente -> Es SALIDA (Outbound).
@@ -75,6 +76,12 @@ GLOBAL_RULES = {
        - Evalúa la sección 'Dominio y manejo de la información - Salida'. MANTÉN los pesos originales (incluyendo etiqueta_qm = 5)
        - ANULA la sección 'Dominio y manejo de la información - Entrada': Para TODOS los items de esta sección de entrada, DEBES responder: 'aplicable': false Y 'peso': 0.
     IMPORTANTE: Es obligatorio poner 'peso': 0 en la sección ANULADA para que no sume puntos al score final. La sección activa SÍ debe sumar puntos (mantener pesos).""",
+
+   "SE_CONFIRMA_SEGUIMIENTO_CHAT": """REGLA BLINDADA 'Seguimiento Chat' (Administrativo NA=4):
+    Este item es EXCLUSIVAMENTE ADMINISTRATIVO.
+    1. NO busques evidencia en el audio.
+    2. TU RESPUESTA OBLIGATORIA ES: 'aplicable': false.
+    3. MANTÉN el peso original (ej. 'peso': 4).""",
 
     "ENCUESTA_MAXI": """REGLA 'Encuesta Maxi': Cualquier item con la key 'encuesta_maxi' o similar solo aplica cuando el objetivo de la llamada es aplicar la encuesta Maxi al cliente. Si la llamada es de otro tipo (soporte, reclamo, seguimiento, etc.), o si la encuesta Maxi no se menciona ni se intenta aplicar, entonces el ítem de 'Encuesta Maxi' se marca 'aplicable:false'. También se considera 'aplicable:false' si la llamada no es con el cliente final al que corresponde la encuesta o si el cliente que llama no es el mismo cliente que aparece como titular de la encuesta.""",
 
@@ -260,6 +267,7 @@ RULES_BY_DEPT = {
     ],
 
     "Ventas Internas (Bienvenida)": [
+        "SE_CONFIRMA_SEGUIMIENTO_CHAT"
         "etiqueta_qm",
     ],
 
@@ -761,9 +769,80 @@ def analizar_sentimiento_por_roles(audio_path: str):
     return _norm(data.get("cliente", {})), _norm(data.get("asesor", {}))
 
 # ================= Scoring con N/A y Críticos =================
+
+# LISTA MAESTRA DE KEYS ADMINISTRATIVAS (Blindaje total v3.2)
+# Estas keys siempre se marcarán como: "aplicable": False, "ok": True (NA con puntos)
+KEYS_ADMINISTRATIVAS = [
+    # --- Comunes / Transversales ---
+    "etiqueta_qm",
+    "notas_correctas_corporate",
+    "notas_corporate",
+    "info_correcta_agente",      # Cheques, Cobranza
+    "cumple_regulaciones_kyc",   # Cumplimiento
+    "info_correcta",             # Cumplimiento, Servicio al cliente
+
+    # --- Administración de agencias ---
+    "actualizacion_formas_pago",
+    "actualizacion_direccion",
+    "envio_copia_contratos",
+    "revision_contrato_cheques",
+    "aumento_limite_escaner",
+    "validacion_fincen",
+    "actualizacion_w9",
+    "activacion_tdd",
+    "status_subcuentas",
+    "seguimiento_fresh",
+
+    # --- Cobranza ---
+    "documenta_compromiso_pago",
+
+    # --- Cheques ---
+    "ajuste_cheque_exitoso",
+    "gestion_ticket_fresh",
+    "liberacion_cheque_correcta",
+    "envio_carta_rechazo",
+
+    # --- Cumplimiento ---
+    "documentacion_corporate",
+
+    # --- BSA Monitoring ---
+    "se_da_seguimiento_consumidor",
+
+    # --- Agent Oversight ---
+    "revision_agencia",
+    
+    # --- Ventas Internas (Bienvenida) ---
+    "se_carga_info_corporate",
+    "se_confirma_seguimiento_chat",
+
+    # --- Ventas Internas (Ajustes) ---
+    "se_realiza_ajuste_agencias_adicionales",
+    "se_comparte_info_chat_busqueda",
+    "se_llena_formato_prospecto_completo",
+
+    # --- Soporte técnico ---
+    "creacion_ticket_fresh",
+    "activacion_usuarios",
+    "adjuntar_evidencia_fresh",
+    "activacion_permisos",
+
+    # --- Prevención de fraudes ---
+    "se_llena_reporte_fraude",
+    "se_adjunta_evidencia",
+    "se_agrega_a_lista_restrictiva",
+
+    # --- Servicio al cliente ---
+    "genera_ticket_fresh",
+    "seguimiento_ticket",
+    "escala_entidad_correcta",
+    "llamadas_seguimiento",
+    "nota_ticket_fresh"
+]
+
 def aplicar_defaults_items(eval_data: dict) -> dict:
     for sec in (eval_data.get("sections") or []):
         for it in (sec.get("items") or []):
+            # 1. Defaults básicos ante vacíos
             if "ok" not in it:
                 it["ok"] = False
             if "peso" not in it:
@@ -772,6 +851,16 @@ def aplicar_defaults_items(eval_data: dict) -> dict:
                 it["aplicable"] = True
             if it.get("evidencia") is None:
                 it["evidencia"] = ""
+
+            # 2. BLINDAJE ADMINISTRATIVO (Fuerza Bruta)
+            # Si la key está en nuestra lista maestra, ignoramos a la IA
+            # y forzamos el estado "NA Positivo" (Amarillo con puntos).
+            if it.get("key") in KEYS_ADMINISTRATIVAS:
+                it["aplicable"] = False  # Esto hace que se vea como N/A
+                it["ok"] = True          # Esto asegura que sume los puntos (NA=Valor)
+                # Limpiamos evidencia para evitar textos confusos de la IA
+                it["evidencia"] = "Puntos por default (Item Administrativo)"
+
     return eval_data
 
 def atributos_con_calificacion(sections):
