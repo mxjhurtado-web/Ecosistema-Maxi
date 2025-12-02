@@ -1173,6 +1173,113 @@ def gemini_vision_extract_text(image_path: str) -> Tuple[str, str]:
         return f"❌ Error en Visión: {e}", ""
 
 
+
+def gemini_vision_auth_check(image_path: str, texto_ocr: str = "", doc_pais: str | None = None):
+    """
+    Análisis VISUAL de autenticidad con Gemini.
+    No reemplaza validación legal, solo da un semáforo de riesgo basado en señales visuales.
+    """
+    if not GEMINI_API_KEY:
+        return None
+
+    try:
+        from PIL import Image, ImageOps
+        im = Image.open(image_path)
+        im = ImageOps.exif_transpose(im)
+        bio = io.BytesIO()
+        im.save(bio, format="PNG")
+        bio.seek(0)
+        mime = "image/png"
+
+        pais_txt = doc_pais or _infer_doc_country(texto_ocr) or "desconocido"
+
+        prompt = f"""
+Actúa como un analista forense de documentos de identidad experto en detección de fraude.
+
+Tarea:
+1) Observa SOLO la IMAGEN del documento (no inventes texto).
+2) Considera también este contexto OCR (puede contener errores): 
+   \"\"\"{texto_ocr[:2000]}\"\"\"  (trátalo solo como referencia).
+3) Evalúa si el documento PARECE auténtico o sospechoso.
+
+Puntos a revisar (no exhaustivo):
+- ¿Se aprecian elementos de seguridad típicos para documentos del país: {pais_txt}?
+  Ejemplos: hologramas, escudos/emblemas, microtexto, patrones de fondo, relieves, zona MRZ, códigos de barras.
+- ¿Parece un recorte o fotomontaje? (bordes raros, marcos extraños, diferencias de resolución entre foto y fondo)
+- ¿Hay textos borrosos o inconsistentes con el diseño (logo mal hecho, tipografía rara, alineación extraña)?
+- ¿Se ve como una captura de pantalla o una edición digital (overlay, filtros raros)?
+- ¿La foto del titular se ve pegada/insertada torpemente?
+
+Devuelve SOLO un JSON EXACTO con este esquema:
+{{
+  "visual_score": 0-100,           // 0 = muy sospechoso, 100 = se ve muy auténtico
+  "visual_risk": "bajo|medio|alto",
+  "flags": [                       // lista corta de banderas detectadas
+    "sin_hologramas_visibles",
+    "posible_montaje_foto",
+    "falta_escudo_nacional",
+    "zonas_borrosas_sospechosas"
+  ],
+  "comentario": "explicación breve y útil para un analista humano"
+}}
+
+No agregues texto fuera del JSON.
+"""
+
+        temp = 0.2  # baja temperatura para que sea más consistente
+
+        # Si tienes SDK:
+        if genai is not None:
+            try:
+                genai.configure(api_key=GEMINI_API_KEY)
+                model = genai.GenerativeModel("gemini-2.5-flash")
+                resp = model.generate_content(
+                    [{"mime_type": mime, "data": bio.getvalue()}, {"text": prompt}],
+                    generation_config={"temperature": temp, "max_output_tokens": 512}
+                )
+                raw = getattr(resp, "text", "") or ""
+            except Exception:
+                raw = ""
+        else:
+            raw = ""
+
+        # Fallback REST si hace falta
+        if not raw:
+            b64 = base64.b64encode(bio.getvalue()).decode("utf-8")
+            model_name = "gemini-2.5-flash"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
+            payload = {
+                "contents": [{
+                    "parts": [
+                        {"inline_data": {"mime_type": mime, "data": b64}},
+                        {"text": prompt}
+                    ]
+                }],
+                "generationConfig": {"temperature": temp, "maxOutputTokens": 512}
+            }
+            headers = {"Content-Type": "application/json"}
+            r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=90)
+            data = r.json()
+            raw = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
+
+        raw = raw.strip()
+        try:
+            parsed = json.loads(raw)
+            return parsed
+        except Exception:
+            # Si viene con basura extra, intento recortar el JSON
+            m = re.search(r'\{.*\}', raw, re.DOTALL)
+            if m:
+                try:
+                    return json.loads(m.group(0))
+                except Exception:
+                    return None
+            return None
+    except Exception as e:
+        print(f"[HADES] Error gemini_vision_auth_check: {e}")
+        return None
+
+
 # ====== Modales con tema (oscuro morado) ======
 def themed_askstring(title: str, prompt: str, initialvalue: str = "", parent=None, **kwargs):
     import tkinter as tk
@@ -1383,288 +1490,7 @@ def _subir_a_drive(ruta_archivo: str, nombre_remoto: str, mimetype: str):
         f"Detalle último intento: {last_err}"
     )
 
-_NAME_HINTS = [
-    # Captura el valor después de NOMBRE/NAME/TITULAR/NOMBRES/APELLIDOS
-    r"(?:nombre|names|nombres)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s'.-]+?)(?:\s+(APELLIDOS|SURNAME|DIRECCION|CALLE))?$",
-    r"(?:apellidos|surname)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s'.-]+?)(?:\s+(NOMBRES|NAMES|FECHA))?$",
-    r"(?:nombre|name|titular)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s'.-]+)", # Fallback más simple
-]
-_DOB_HINTS = [
-    r"(?:fecha\s*de\s*nacimiento|f\.\s*de\s*nac\.?|dob|date\s*of\s*birth|nacimient[oa])"
-]
-_CURP_RE = re.compile(r'\b([A-Z][AEIOUX][A-Z]{2})(\d{2})(\d{2})(\d{2})[HM][A-Z]{5}[0-9A-Z]\d\b', re.IGNORECASE)
-_RFC_PER_RE = re.compile(r'\b([A-ZÑ&]{4})(\d{2})(\d{2})(\d{2})[A-Z0-9]{3}\b', re.IGNORECASE)
-_SAMPLE_WORDS = ("muestra","sample","specimen","ejemplo","void")
 
-# --- Funciones de extracción de ID ---
-def _extract_id_number(texto: str, doc_pais: str | None) -> str | None:
-    if not texto: return None
-    
-    # Normalizamos el texto (espacios internos y saltos de línea para búsqueda de claves)
-    t_searchable = texto.upper().replace('\n', ' ')
-    t_clean = t_searchable.replace(' ', '').replace('-', '')
-    
-    # Prioridad 1: Claves específicas de identificación
-    keywords_num = [
-        "PASAPORTE N.", "NÚMERO DE PASAPORTE", "PASSPORT NO", "NÚMERO DE PASAPORTE", 
-        "NÚMERO DE LICENCIA", "NO. LICENCIA", "NÚMERO DE SERIE",
-        "NÚMERO DE MATRÍCULA", "MATRÍCULA CONSULAR",
-        "CÓDIGO ÚNICO DE IDENTIFICACIÓN", "CUI", # DPI Guatemala
-        "DNI", "DPI", "ID NUMBER", "CLAVE DE ELECTOR", 
-        "NÚMERO DE IDENTIFICACIÓN", "NÚMERO"
-    ]
-    
-    for kw in keywords_num:
-        # Buscamos la clave, permitiendo ":", "-" o un espacio como separador, seguido de [A-Z0-9\-]
-        # Nota: El regex ahora busca el valor y lo trata como RAW STRING.
-        line_match = re.search(f"{kw.replace(' ', ' ?')}\\s*[:\\-]?\\s*([A-Z0-9\\-]+)", t_searchable)
-        
-        if line_match:
-            val = line_match.group(1).strip()
-            clean_val = val.replace(' ', '').replace('-', '')
-
-            # Caso específico DPI/CUI (Guatemala): Buscamos 13 dígitos
-            if kw in ["CÓDIGO ÚNICO DE IDENTIFICACIÓN", "CUI"] and re.match(r'^\d{13}$', clean_val):
-                return clean_val
-
-            # Caso General: Validamos longitud y limpiamos sufijos de texto indeseados (como 'NOMBRE')
-            if clean_val and len(clean_val) >= 8:
-                # Intento de limpieza de texto colado (ej. 'NOMBRE', 'APELLIDO')
-                clean_val_final = re.sub(r'[A-ZÑ]+$', '', clean_val) 
-                if len(clean_val_final) >= 8:
-                    return clean_val_final
-
-    # Prioridad 2: Claves reguladas (CURP, RFC)
-    if doc_pais == "MX":
-        curp_match = _CURP_RE.search(t_clean)
-        if curp_match: return curp_match.group(0)
-        rfc_match = _RFC_PER_RE.search(t_clean)
-        if rfc_match: return rfc_match.group(0)
-
-    # Fallback: Capturar el Número de Control del documento (Licencia de Conducir, etc.)
-    match_long_num = re.search(r'\b([A-Z0-9]{8,25})\b', t_clean)
-    if match_long_num:
-        return match_long_num.group(1) if not match_long_num.group(1).isdigit() or len(match_long_num.group(1)) > 8 else None
-
-    return None
-
-def _extract_id_type(texto: str, doc_pais: str | None) -> str | None:
-    if not doc_pais: return None
-    t = texto.lower()
-    
-    # 1. Por País y tipo específico (prioridad alta)
-    if doc_pais == "MX":
-        if any(kw in t for kw in ["credencial para votar", "ine"]): return "Credencial INE (MX)"
-        if "matrícula consular" in t: return "Matrícula Consular (MX)"
-        if "pasaporte" in t and "mex" in t: return "Pasaporte (MX)"
-    if doc_pais == "GT":
-        if "documento personal de identificación" in t or "dpi" in t: return "DPI (GT)"
-        if "identificacion consular" in t: return "Identificación Consular (GT)"
-        if "pasaporte" in t: return "Pasaporte (GT)"
-    if doc_pais == "PH":
-        return "Pasaporte (PH)"
-    if doc_pais == "US":
-        if any(kw in t for kw in ["driver license", "licencia de conducir"]): return "Licencia de Conducir (US)"
-    
-    # 2. Por palabras clave genéricas (si no se resolvió antes)
-    if "pasaporte" in t or "passport" in t: return "Pasaporte"
-    if "licencia de conducir" in t or "driver license" in t: return "Licencia de Conducir"
-    
-    return None
-# --- Fin funciones de extracción de ID ---
-
-def _extract_name(texto: str) -> str | None:
-    if not texto: return None
-    t = texto.upper()
-    
-    # Diccionario para almacenar los nombres y apellidos encontrados
-    name_parts = {"apellidos": None, "nombres": None, "segundo_apellido": None}
-    
-    # 1. Intento: Capturar Nombres y Apellidos en pares CLAVE: VALOR
-    for line in t.splitlines():
-        # Captura Apellidos/Surname
-        match_apellido = re.search(r'(?:APELLIDOS|SURNAME|APELLIDO)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)', line)
-        if match_apellido:
-            name_parts["apellidos"] = match_apellido.group(1).strip()
-            
-        # Captura Nombres/Given Names/Nombre Completo
-        match_nombre = re.search(r'(?:NOMBRES|NAME|GIVEN NAME|NOMBRE|NOMBRE COMPLETO)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)', line)
-        if match_nombre:
-            # Si se encuentra 'Nombre Completo', lo priorizamos, pero si ya tenemos apellidos, solo usamos el nombre
-            val = match_nombre.group(1).strip()
-            
-            # Si el valor capturado de 'NOMBRE' contiene espacios y parece ser el nombre completo
-            if "COMPLETO" in line and len(val.split()) > 2:
-                return " ".join(val.split()).title() # Retorna inmediatamente el nombre completo
-
-            # Lógica estándar de nombres/apellidos
-            if val not in ["DELA CRUZ", "DE", "LA", "DEL"]: # Exclusión por caso 9
-                name_parts["nombres"] = val
-        
-        # Captura Segundo Apellido (caso 9)
-        match_segundo = re.search(r'(?:SEGUNDO APELLIDO|SEGUNDOAPELLIDO)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)', line)
-        if match_segundo:
-            name_parts["segundo_apellido"] = match_segundo.group(1).strip()
-
-
-    # 2. Combinación de los resultados capturados
-    apellidos = name_parts["apellidos"]
-    nombres = name_parts["nombres"]
-    segundo = name_parts["segundo_apellido"]
-
-    full_name = []
-    
-    # Orden Preferente: Apellidos (1 o 2) + Nombres
-    # Juntar todos los apellidos
-    apellidos_full = [apellidos] if apellidos else []
-    if segundo and segundo != apellidos: # No repetir si el OCR lo confunde
-        apellidos_full.append(segundo)
-    
-    # Unir apellidos y nombres
-    final_name_parts = [" ".join(apellidos_full).strip()] if apellidos_full else []
-    if nombres:
-        final_name_parts.append(nombres)
-    
-    final_name = " ".join(final_name_parts).strip()
-
-    if final_name:
-        # Post-limpieza y validación (debe tener al menos dos palabras)
-        clean_name = re.sub(r'\s+', ' ', final_name).strip()
-        if len(clean_name.split()) >= 2 and not any(ch.isdigit() for ch in clean_name):
-            # Corregir la mayúsculas/minúsculas de los prefijos como DE, LA, Y
-            title_cased = clean_name.title()
-            for p in ["De ", "La ", "Los ", "Las ", "Y "]:
-                title_cased = title_cased.replace(p, p.lower())
-            return title_cased
-
-    
-    # Fallback a la lógica genérica si no se pudo construir el nombre a partir de partes
-    # Intento 3: Usar regex genérico (mantenido del código anterior)
-    for rx in _NAME_HINTS:
-        for line in t.splitlines():
-            m = re.search(rx, line, flags=re.IGNORECASE)
-            if m:
-                cand = m.group(1).strip()
-                if len(m.groups()) > 1 and m.group(2) is not None:
-                    cand = cand.replace(m.group(2), '').strip()
-                if len(cand.split()) >= 2 and not any(ch.isdigit() for ch in cand):
-                    keywords_to_remove = ["DOMICILIO", "DIRECCION", "ADDRESS", "CALLE", "CASA"]
-                    for kw in keywords_to_remove:
-                        if cand.endswith(kw):
-                            cand = cand[:-len(kw)].strip()
-                    # Corregir la mayúsculas/minúsculas de los prefijos como DE, LA, Y
-                    title_cased = " ".join(cand.split()).title()
-                    for p in ["De ", "La ", "Los ", "Las ", "Y "]:
-                        title_cased = title_cased.replace(p, p.lower())
-                    return title_cased
-
-    return None
-
-def _find_first_date_after_keyword(texto: str, hints: list[str]) -> tuple[str|None, str|None]:
-    """Devuelve (original_encontrada, sugerida_MDY) cerca de palabras clave."""
-    if not texto: return None, None
-    span = 120
-    for kw in hints:
-        for m in re.finditer(kw, texto, flags=re.IGNORECASE):
-            window = texto[m.end(): m.end()+span]
-            for rx in (_DATE_RE_NUM_A,_DATE_RE_ISO,_DATE_RE_DMY_H,_DATE_RE_TXT_ES,
-                       _DATE_RE_TXT_EN,_DATE_RE_TXT_EN_DMY,_DATE_RE_TXT_EN_MDY,
-                       _DATE_RE_EN_MON_DD_YYYY_H,_DATE_RE_EN_DD_MON_YYYY_H, _DATE_RE_TXT_PASSPORT, _DATE_RE_DMMMYYYY):
-                mm = rx.search(window)
-                if mm:
-                    original = mm.group(0).strip()
-                    sugerida = _normalize_date_to_mdy_ctx(original, _infer_doc_country(texto), _detect_language_bias(texto))
-                    if sugerida:
-                        return original, sugerida
-    return None, None
-    
-def _extract_dob(texto: str) -> tuple[str|None, str|None]:
-    return _find_first_date_after_keyword(texto, _DOB_HINTS)
-
-def _parse_dob_from_curp(curp: str):
-    m = _CURP_RE.search(curp or "")
-    if not m: return None
-    yy, mm, dd = map(int, m.groups()[1:4])
-    y = 2000 + yy if yy < 50 else 1900 + yy
-    try:
-        import datetime as _dt
-        _dt.date(y, mm, dd)
-        return f"{int(mm):02d}/{int(dd):02d}/{y:04d}"
-    except Exception:
-        return None
-
-def _age_from_mdy(mdy: str):
-    try:
-        import datetime as _dt
-        m,d,y = map(int, mdy.split("/"))
-        dob = _dt.date(y,m,d); today = _dt.date.today()
-        return (today - dob).days // 365
-    except Exception:
-        return None
-
-def _authenticity_score(texto: str, image_path: str|None, forensic_summary: str = ""):
-    details = []
-    score = 0
-    low = (texto or "").lower()
-
-    # Usamos la lógica del nuevo procesador para obtener la fecha normalizada
-    date_results = _process_all_dates_by_type(texto)
-    dob_use = date_results.get("fecha_nacimiento_final")
-    
-    # 1. Chequeo de Muestra
-    if any(w in low for w in _SAMPLE_WORDS if w):
-        score += 50; details.append("Contiene 'sample/muestra/void'.")
-
-    # 2. Chequeo de Nombre
-    nombre = _extract_name(texto)
-    if not nombre:
-        score += 10; details.append("No se detectó nombre.")
-
-    # 3. Chequeo de Fecha de Nacimiento e Inconsistencias
-    if dob_use and "Sugerida" not in dob_use:
-        age = _age_from_mdy(dob_use)
-        if age is not None and (age < 15 or age > 120):
-            score += 30; details.append(f"Edad implausible ({age} años).")
-        
-        curp_m = _CURP_RE.search(texto or "")
-        if curp_m and _infer_doc_country(texto) == "MX":
-            curp = curp_m.group(0)
-            curp_dob = _parse_dob_from_curp(curp)
-            if curp_dob and curp_dob != dob_use:
-                score += 40; details.append("CURP no coincide con la fecha de nacimiento.")
-        
-        rfc_m = _RFC_PER_RE.search(texto or "")
-        if rfc_m and _infer_doc_country(texto) == "MX":
-            yy,mm,dd = map(int, rfc_m.groups()[1:4])
-            y = 2000 + yy if yy < 50 else 1900 + yy
-            rfc_dob = f"{mm:02d}/{dd:02d}/{y:04d}"
-            if rfc_dob != dob_use:
-                score += 20; details.append("RFC no coincide con la fecha de nacimiento.")
-    else:
-        score += 10; details.append("No se identificó fecha de nacimiento.")
-
-    # 4. Chequeo de Vigencia
-    vig_final = date_results.get("fecha_vigencia_final")
-    if not vig_final or "Sugerida" in vig_final:
-        score += 10; details.append("No se detectó vigencia (usamos sugerida).")
-
-    # 5. ANÁLISIS FORENSE (LLAMADA A GEMINI)
-    if forensic_summary:
-        if "VEREDICTO: ALTO" in forensic_summary:
-            score += 100 # Forzar riesgo alto
-            details.append("⚠️ ANALISTA FORENSE: ALTO RIESGO DETECTADO.")
-        elif "VEREDICTO: MEDIO" in forensic_summary:
-            score += 40
-            details.append("⚠️ ANALISTA FORENSE: Riesgo Medio detectado.")
-        
-        # Extraer detalles del forense (líneas que empiezan con -)
-        forensic_lines = [line.strip() for line in forensic_summary.splitlines() if line.strip().startswith("-")]
-        if forensic_lines:
-            details.append("--- Hallazgos Forenses ---")
-            details.extend(forensic_lines[:3]) # Agregar top 3 hallazgos
-
-    riesgo = "bajo" if score < 25 else ("medio" if score <= 60 else "alto")
-    return riesgo, details
 
 
 # ==========================================================
@@ -2856,6 +2682,36 @@ def _authenticity_score(texto: str, image_path: str|None):
                     details.append(f"INCONSISTENCIA GEOGRÁFICA: Zip {zip_val} no corresponde a {state_found}.")
     except Exception:
         pass
+
+    # 7. Análisis VISUAL con Gemini (sellos, hologramas, montajes, etc.)
+    visual_info = None
+    try:
+        if image_path:
+            visual_info = gemini_vision_auth_check(image_path, texto, _infer_doc_country(texto))
+    except Exception as e:
+        print(f"[HADES] Error en análisis visual Gemini: {e}")
+        visual_info = None
+
+    if visual_info:
+        v_score = visual_info.get("visual_score", 50)
+        v_risk = visual_info.get("visual_risk", "medio")
+        v_flags = visual_info.get("flags", [])
+        v_comment = visual_info.get("comentario", "")
+
+        # Ajustamos el score global según el riesgo visual
+        if v_risk == "bajo":
+            score += 0
+        elif v_risk == "medio":
+            score += 15
+        else:  # alto
+            score += 35
+
+        # Guardamos detalles explicativos
+        details.append(f"[Visual Gemini] Riesgo: {v_risk}, score={v_score}")
+        if v_comment:
+            details.append(f"[Visual Gemini] {v_comment}")
+        for fl in v_flags:
+            details.append(f"[Visual Gemini] flag: {fl}")
 
     riesgo = "bajo" if score < 25 else ("medio" if score <= 60 else "alto")
     return riesgo, details
