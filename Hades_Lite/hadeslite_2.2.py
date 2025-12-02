@@ -1,6 +1,6 @@
-# hades_1.6_integrado_full_v4_patched_limpio_final_corregido_v3.py
+# hades_2.2_integrado_full_v4_patched_limpio_final_corregido_v3.py
 # ------------------------------------------------------------------
-# HADES 1.6 — Integrado (FULL v4, Drive patched, Normalización Estricta Final o ya no se que version va jajajaja :) ups)
+# HADES 2.2 — Integrado (FULL v4, Drive patched, Normalización Estricta Final o ya no se que version va jajajaja :) ups)
 # • VERIFICACIÓN: Corregida normalización de fechas DD MM YYYY (Pasaporte MX).
 # • OCR con Gemini Visión (REST): Analizar actual / Analizar carrusel.
 # • EXPORTACIÓN: Salida de OCR forzada a usar fechas normalizadas en la UI.
@@ -900,7 +900,7 @@ def _authenticity_score(texto: str, image_path: str|None):
 # (Las importaciones ya se hicieron al inicio)
 
 # ===== ESTILO =====
-APP_TITLE = "HADES 1.8 — Integrado"
+APP_TITLE = "HADES 2.2 — Integrado"
 COLOR_BG = "#0f0b1a"; COLOR_PANEL = "#1a1330"; COLOR_CARD = "#221b3f"
 COLOR_TEXT = "#EAE6FF"; COLOR_MUTED = "#C7B8FF"
 ACCENT = "#7C3AED"; ACCENT_2 = "#A78BFA"; COLOR_BTN = "#2E2357"; COLOR_PRIMARY = ACCENT
@@ -1247,13 +1247,13 @@ def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
         # Clasificación tipo "verdadero / falso (estimación)"
         if riesgo == "bajo":
             r["documento_flag_sospechoso"] = "no"
-            r["documento_veredicto"] = "Probable documento auténtico (riesgo bajo)."
+            r["documento_veredicto"] = "Riesgo de Autenticidad (riesgo bajo)."
         elif riesgo == "medio":
             r["documento_flag_sospechoso"] = "si"
-            r["documento_veredicto"] = "Documento con posibles inconsistencias (riesgo medio, revisar)."
+            r["documento_veredicto"] = "Documento con Posibles Inconsistencias (riesgo medio, revisar)."
         else:  # riesgo == "alto"
             r["documento_flag_sospechoso"] = "si"
-            r["documento_veredicto"] = "Alto riesgo de documento no auténtico (revisión obligatoria)."
+            r["documento_veredicto"] = "Alto Riesgo de Autenticidad (revisión obligatoria)."
         
         r['todas_las_fechas_sugeridas_mdy'] = fechas_mdy
         
@@ -2093,13 +2093,13 @@ def analizar_actual():
 
     if riesgo == "bajo":
         tag = "risk_low"
-        msg = "✅ Probable documento auténtico (riesgo bajo).\n"
+        msg = "✅ Riesgo de Autenticidad (riesgo bajo).\n"
     elif riesgo == "medio":
         tag = "risk_mid"
-        msg = "⚠ Documento con posibles inconsistencias (riesgo medio, revisar).\n"
+        msg = "⚠ Documento con Posibles Inconsistencias (riesgo medio, revisar).\n"
     else:
         tag = "risk_high"
-        msg = "🚨 Alto riesgo de documento no auténtico (revisión obligatoria).\n"
+        msg = "🚨 Alto Riesgo de Autenticidad (revisión obligatoria).\n"
 
     ocr_text.insert("end", msg, tag)
 
@@ -2183,13 +2183,13 @@ def analizar_carrusel():
 
             if riesgo == "bajo":
                 tag = "risk_low"
-                msg = "✅ Probable documento auténtico (riesgo bajo).\n"
+                msg = "✅ Riesgo de Autenticidad (riesgo bajo).\n"
             elif riesgo == "medio":
                 tag = "risk_mid"
-                msg = "⚠ Documento con posibles inconsistencias (riesgo medio, revisar).\n"
+                msg = "⚠ Documento con Posibles Inconsistencias (riesgo medio, revisar).\n"
             else:
                 tag = "risk_high"
-                msg = "🚨 Alto riesgo de documento no auténtico (revisión obligatoria).\n"
+                msg = "🚨 Alto Riesgo de Autenticidad (revisión obligatoria).\n"
 
             ocr_text.insert("end", msg, tag)
 
@@ -2315,13 +2315,13 @@ def analizar_identificacion():
 
             if riesgo == "bajo":
                 tag = "risk_low"
-                msg = "✅ Probable documento auténtico (riesgo bajo).\n"
+                msg = "✅ Riesgo de Autenticidad (riesgo bajo).\n"
             elif riesgo == "medio":
                 tag = "risk_mid"
-                msg = "⚠ Documento con posibles inconsistencias (riesgo medio, revisar).\n"
+                msg = "⚠ Documento con Posibles Inconsistencias (riesgo medio, revisar).\n"
             else:
                 tag = "risk_high"
-                msg = "🚨 Alto riesgo de documento no auténtico (revisión obligatoria).\n"
+                msg = "🚨 Alto Riesgo de Autenticidad (revisión obligatoria).\n"
 
             ocr_text.insert("end", msg, tag)
 
