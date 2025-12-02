@@ -23,3 +23,30 @@
 [2025-12-02 12:50:26] Drive: subido HADES_OCR_20251202_125021.csv (1S1M1P0UdwSTJvInIFGzk0cQ6BNlsrJ7r) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
 [2025-12-02 12:52:12] Resultado guardado: INE delantera.jpeg + INE Trasera.jpeg (1043 chars, 26.89s, riesgo=bajo)
 [2025-12-02 12:52:26] Drive: subido HADES_OCR_20251202_125220.csv (1SyHiyiCwEquOb1PN3ez0GBOyYgW7FBs8) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 15:31:06] Resultado guardado: 4343dd82c0c3d126bad98d3f8d7d3f02File-596968443473609.jpg (413 chars, 4.31s, riesgo=bajo)
+[2025-12-02 15:31:20] Drive: subido HADES_OCR_20251202_153114.csv (1YzvXDVbkbLL6QkWPYTGo1-KeB8MANWmI) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 15:32:22] Resultado guardado: INE delantera.jpeg + INE Trasera.jpeg (919 chars, 28.14s, riesgo=bajo)
+[2025-12-02 15:32:33] Drive: subido HADES_OCR_20251202_153227.csv (1SCDKFSrUrKWrW7MncT1tMFpzrfXMeIt4) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 15:39:27] Resultado guardado: 4343dd82c0c3d126bad98d3f8d7d3f02File-596968443473609.jpg (355 chars, 3.83s, riesgo=bajo)
+[2025-12-02 15:39:41] Drive: subido HADES_OCR_20251202_153935.csv (10zRaTT-E6xUMu6G1E2MG5-695GBpBSYp) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 15:41:14] Resultado guardado: clipboard_1764711659.png (371 chars, 5.34s, riesgo=bajo)
+[2025-12-02 15:41:23] Drive: subido HADES_OCR_20251202_154117.csv (1LBEEKOK3_siCa05Z_v_BceFYwQBvt30i) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 15:41:57] Resultado guardado: clipboard_1764711701.png (408 chars, 6.22s, riesgo=bajo)
+[2025-12-02 15:42:07] Drive: subido HADES_OCR_20251202_154201.csv (1Se3m9TWmhJ_a_Aj-txXjsjE1zNBaWWhm) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 15:42:33] Resultado guardado: clipboard_1764711741.png (289 chars, 6.63s, riesgo=bajo)
+[2025-12-02 15:42:46] Drive: subido HADES_OCR_20251202_154240.csv (1o5oZgoQp4OkArs-pg7TQ5lqk5oEK4_np) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 15:43:04] Resultado guardado: clipboard_1764711777.png (563 chars, 5.27s, riesgo=bajo)
+[2025-12-02 15:43:15] Drive: subido HADES_OCR_20251202_154309.csv (19I4ISKDGZMuEfZRWU1jRUij8UtWY7zeJ) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 15:48:27] Resultado guardado: clipboard_1764712100.png (341 chars, 5.65s, riesgo=medio)
+[2025-12-02 15:48:38] Drive: subido HADES_OCR_20251202_154829.csv (1Ja9sDaMx6VbwlguuiRLIKI_nnJb0w6xE) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 15:49:42] Resultado guardado: clipboard_1764712173.png (318 chars, 6.59s, riesgo=bajo)
+[2025-12-02 15:49:51] Drive: subido HADES_OCR_20251202_154944.csv (150BsxHztlVoudxlALbVU-U7bxVgxPAzA) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 15:50:13] Resultado guardado: clipboard_1764712202.png (390 chars, 5.21s, riesgo=bajo)
+[2025-12-02 15:50:22] Drive: subido HADES_OCR_20251202_155015.csv (12IqIcg-rA95iE86JvLTPBtJ8U96qBw1L) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 16:02:45] Resultado guardado: clipboard_1764712914.png (379 chars, 6.05s, riesgo=alto)
+[2025-12-02 16:02:51] Resultado guardado: clipboard_1764712920.png (325 chars, 5.78s, riesgo=bajo)
+[2025-12-02 16:02:57] Resultado guardado: clipboard_1764712926.png (366 chars, 5.48s, riesgo=bajo)
+[2025-12-02 16:03:02] Resultado guardado: clipboard_1764712931.png (603 chars, 4.74s, riesgo=bajo)
+[2025-12-02 16:03:05] Resultado guardado: clipboard_1764712936.png (287 chars, 3.26s, riesgo=bajo)
+[2025-12-02 16:03:11] Resultado guardado: clipboard_1764712943.png (380 chars, 5.84s, riesgo=medio)
+[2025-12-02 16:03:19] Drive: subido HADES_OCR_20251202_160313.csv (1PAAZxD-7BzPNiIyCocFNTTiymS1OMRS2) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt

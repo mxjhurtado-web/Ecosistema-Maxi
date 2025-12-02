@@ -2706,10 +2706,106 @@ def _authenticity_score(texto: str, image_path: str|None):
     else:
         score += 10; details.append("No se identificó fecha de nacimiento.")
 
-    # 4. Chequeo de Vigencia
+    # 4. Chequeo de Vigencia y Expiración
     vig_final = date_results.get("fecha_vigencia_final")
     if not vig_final or "Sugerida" in vig_final:
         score += 10; details.append("No se detectó vigencia (usamos sugerida).")
+    else:
+        # Verificar si está vencido
+        try:
+            import datetime as _dt
+            mm, dd, yyyy = map(int, vig_final.split('/'))
+            exp_date = _dt.date(yyyy, mm, dd)
+            if exp_date < _dt.date.today():
+                score += 50; details.append(f"DOCUMENTO VENCIDO (Expiró: {vig_final}).")
+            
+            # Verificar correlación Cumpleaños vs Vencimiento (Común en USA/MX)
+            # Si tenemos DOB y Vigencia, el día y mes suelen coincidir en licencias
+            if dob_use and "Sugerida" not in dob_use:
+                d_mm, d_dd, _ = map(int, dob_use.split('/'))
+                # Tolerancia de +/- 1 día por zonas horarias o errores OCR leves
+                if (d_mm != mm or d_dd != dd) and _infer_doc_country(texto) == "US":
+                     # No penalizamos fuerte, pero avisamos. En TX/CA suele coincidir.
+                     # score += 10; details.append("Día/Mes de vigencia no coincide con nacimiento.")
+                     pass
+        except Exception:
+            pass
+
+    # 5. Palabras clave de Falsificación (Novelty, etc)
+    fake_keywords = [
+        "novelty", "replica", "authentic", "card creator", "no government", "valid for 20",
+        "non-government", "non government", "private id", "1st amendment", "first amendment",
+        "constitutional id", "not a government", "office use only", "sample", "specimen",
+        "gold member", "platinum member", "vip", "identificación de fantasía"
+    ]
+    # 6. Chequeo de Consistencia Geográfica (Zip Code vs Estado)
+    # Detecta errores comunes en fakes (ej. Zip de NC en dirección de ND)
+    try:
+        # Diccionario simplificado de rangos ZIP por Estado (Primeros 2-3 dígitos o rangos completos)
+        # Formato: STATE_CODE: (min, max)
+        _US_ZIPS = {
+            "AL": (35000, 36999), "AK": (99500, 99999), "AZ": (85000, 86999), "AR": (71600, 72999),
+            "CA": (90000, 96199), "CO": (80000, 81699), "CT": (6000, 6999),   "DE": (19700, 19999),
+            "FL": (32000, 34999), "GA": (30000, 31999), "HI": (96700, 96899), "ID": (83200, 83999),
+            "IL": (60000, 62999), "IN": (46000, 47999), "IA": (50000, 52999), "KS": (66000, 67999),
+            "KY": (40000, 42799), "LA": (70000, 71599), "ME": (3900, 4999),   "MD": (20600, 21999),
+            "MA": (1000, 2799),   "MI": (48000, 49999), "MN": (55000, 56799), "MS": (38600, 39999),
+            "MO": (63000, 65999), "MT": (59000, 59999), "NE": (68000, 69399), "NV": (88900, 89899),
+            "NH": (3000, 3899),   "NJ": (7000, 8999),   "NM": (87000, 88499), "NY": (10000, 14999),
+            "NC": (27000, 28999), "ND": (58000, 58899), "OH": (43000, 45999), "OK": (73000, 74999),
+            "OR": (97000, 97999), "PA": (15000, 19699), "RI": (2800, 2999),   "SC": (29000, 29999),
+            "SD": (57000, 57799), "TN": (37000, 38599), "TX": (75000, 79999), "UT": (84000, 84799),
+            "VT": (5000, 5999),   "VA": (22000, 24699), "WA": (98000, 99499), "WV": (24700, 26999),
+            "WI": (53000, 54999), "WY": (82000, 83199), "DC": (20000, 20599)
+        }
+        
+        # Mapeo de Nombres de Estados a Códigos
+        _STATE_NAMES = {
+            "ALABAMA": "AL", "ALASKA": "AK", "ARIZONA": "AZ", "ARKANSAS": "AR", "CALIFORNIA": "CA",
+            "COLORADO": "CO", "CONNECTICUT": "CT", "DELAWARE": "DE", "FLORIDA": "FL", "GEORGIA": "GA",
+            "HAWAII": "HI", "IDAHO": "ID", "ILLINOIS": "IL", "INDIANA": "IN", "IOWA": "IA",
+            "KANSAS": "KS", "KENTUCKY": "KY", "LOUISIANA": "LA", "MAINE": "ME", "MARYLAND": "MD",
+            "MASSACHUSETTS": "MA", "MICHIGAN": "MI", "MINNESOTA": "MN", "MISSISSIPPI": "MS",
+            "MISSOURI": "MO", "MONTANA": "MT", "NEBRASKA": "NE", "NEVADA": "NV", "NEW HAMPSHIRE": "NH",
+            "NEW JERSEY": "NJ", "NEW MEXICO": "NM", "NEW YORK": "NY", "NORTH CAROLINA": "NC",
+            "NORTH DAKOTA": "ND", "OHIO": "OH", "OKLAHOMA": "OK", "OREGON": "OR", "PENNSYLVANIA": "PA",
+            "RHODE ISLAND": "RI", "SOUTH CAROLINA": "SC", "SOUTH DAKOTA": "SD", "TENNESSEE": "TN",
+            "TEXAS": "TX", "UTAH": "UT", "VERMONT": "VT", "VIRGINIA": "VA", "WASHINGTON": "WA",
+            "WEST VIRGINIA": "WV", "WISCONSIN": "WI", "WYOMING": "WY", "DISTRICT OF COLUMBIA": "DC"
+        }
+
+        # Buscar Zip Code (5 dígitos)
+        zip_match = re.search(r'\b(\d{5})\b', texto)
+        if zip_match:
+            zip_val = int(zip_match.group(1))
+            
+            # Buscar Estado (Nombre completo o Abreviatura de 2 letras en mayúsculas rodeada de espacios)
+            state_found = None
+            t_upper = texto.upper()
+            
+            # 1. Buscar por nombre completo
+            for s_name, s_code in _STATE_NAMES.items():
+                if s_name in t_upper:
+                    state_found = s_code
+                    break
+            
+            # 2. Si no, buscar por código (ej. " TX ")
+            if not state_found:
+                for s_code in _US_ZIPS.keys():
+                    if re.search(r'\b' + s_code + r'\b', t_upper):
+                        state_found = s_code
+                        break
+            
+            # Validar
+            if state_found and state_found in _US_ZIPS:
+                z_min, z_max = _US_ZIPS[state_found]
+                if not (z_min <= zip_val <= z_max):
+                    # Excepción: Algunos zips cruzan fronteras, pero una desviación grande es sospechosa.
+                    # En el caso del usuario: ND (58xxx) vs 28216 (NC) -> Desviación enorme.
+                    score += 60
+                    details.append(f"INCONSISTENCIA GEOGRÁFICA: Zip {zip_val} no corresponde a {state_found}.")
+    except Exception:
+        pass
 
     riesgo = "bajo" if score < 25 else ("medio" if score <= 60 else "alto")
     return riesgo, details
