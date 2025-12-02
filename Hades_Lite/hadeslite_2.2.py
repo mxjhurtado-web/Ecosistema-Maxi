@@ -2417,38 +2417,6 @@ def _popup_feedback_then_export_drive():
         pass
     root.wait_window(win)
 
-def _export_drive_only():
-    # Modal morado con 👍/👎 que BLOQUEA hasta seleccionar
-    win = Toplevel(root)
-    win.title("Califica el análisis")
-    win.configure(bg=COLOR_CARD)
-    win.transient(root)
-    win.grab_set()
-    Label(win, text="¿Te gustó el análisis?", bg=COLOR_CARD, fg=COLOR_TEXT).pack(pady=(14, 4))
-
-    btns = Frame(win, bg=COLOR_CARD)
-    btns.pack(pady=10)
-
-    def choose(v):
-        global FEEDBACK_RATING, metricas
-        FEEDBACK_RATING = v
-        for m in metricas:
-            m['feedback'] = FEEDBACK_RATING or ""
-        win.destroy()
-        _export_drive_only()
-
-    Button(btns, text="👍 Me gustó", command=lambda: choose('up'), bg=COLOR_PURPLE, fg="white", relief="flat", padx=16, pady=10).pack(side="left", padx=8)
-    Button(btns, text="👎 No me gustó", command=lambda: choose('down'), bg=COLOR_BTN, fg="white", relief="flat", padx=16, pady=10).pack(side="left", padx=8)
-
-    # Centrar y bloquear
-    root.update_idletasks()
-    x = root.winfo_rootx() + (root.winfo_width()//2 - win.winfo_width()//2)
-    y = root.winfo_rooty() + (root.winfo_height()//2 - win.winfo_height()//2)
-    try:
-        win.geometry(f"+{x}+{y}")
-    except Exception:
-        pass
-    root.wait_window(win)
 
 def _export_drive_only():
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -2530,21 +2498,6 @@ def borrar_todo():
     ocr_text.delete("1.0", "end")
     _show_logo_bg() # Vuelve a mostrar el logo
     status.config(text="Se limpió el estado.")
-
-# ===== Helpers de extracción de DATOS ESENCIALES (Movidos al final para mejor estructura) =====
-## PULIDO: Se ajusta el regex para intentar no capturar 'DOMICILIO' ni 'DIRECCIÓN'
-_NAME_HINTS = [
-    # Captura el valor después de NOMBRE/NAME/TITULAR/NOMBRES/APELLIDOS
-    r"(?:nombre|names|nombres)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s'.-]+?)(?:\s+(APELLIDOS|SURNAME|DIRECCION|CALLE))?$",
-    r"(?:apellidos|surname)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s'.-]+?)(?:\s+(NOMBRES|NAMES|FECHA))?$",
-    r"(?:nombre|name|titular)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s'.-]+)", # Fallback más simple
-]
-_DOB_HINTS = [
-    r"(?:fecha\s*de\s*nacimiento|f\.\s*de\s*nac\.?|dob|date\s*of\s*birth|nacimient[oa])"
-]
-_CURP_RE = re.compile(r'\b([A-Z][AEIOUX][A-Z]{2})(\d{2})(\d{2})(\d{2})[HM][A-Z]{5}[0-9A-Z]\d\b', re.IGNORECASE)
-_RFC_PER_RE = re.compile(r'\b([A-ZÑ&]{4})(\d{2})(\d{2})(\d{2})[A-Z0-9]{3}\b', re.IGNORECASE)
-_SAMPLE_WORDS = ("muestra","sample","specimen","ejemplo","void")
 
 # --- Funciones de extracción de ID ---
 def _extract_id_number(texto: str, doc_pais: str | None) -> str | None:
