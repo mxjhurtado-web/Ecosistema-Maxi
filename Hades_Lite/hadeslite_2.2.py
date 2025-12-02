@@ -1077,13 +1077,13 @@ def verificar_correo_online(correo: str):
 
 # ====== OCR con Gemini Visión (REST) ======
 
-def gemini_vision_extract_text(image_path: str) -> str:
+def gemini_vision_extract_text(image_path: str) -> Tuple[str, str]:
     """
-    Extrae texto con Gemini Visión.
-    ## PULIDO: Se modifica el prompt para exigir formato de clave-valor.
+    Extrae texto con Gemini Visión y realiza un ANALISIS FORENSE.
+    Retorna: (texto_ocr, resumen_forense)
     """
     if not GEMINI_API_KEY:
-        return "⚠️ Configura GEMINI_API_KEY para usar Visión."
+        return "⚠️ Configura GEMINI_API_KEY para usar Visión.", ""
     try:
         from PIL import Image, ImageOps
         # --- Pre-proceso de imagen ---
@@ -1094,18 +1094,29 @@ def gemini_vision_extract_text(image_path: str) -> str:
         bio.seek(0)
         mime = "image/png"
 
-        # --- Prompt estilo 'clave-valor' ---
-        ## PULIDO: NUEVO PROMPT CLAVE-VALOR
-        prompt = ("Extrae todo el texto visible. Luego, RECONSTRUYE la información "
-                  "como una lista de pares CLAVE: VALOR. "
-                  "Ejemplo: Nombre: RAMIREZ MARTINEZ MIRIAN. Fecha de Nacimiento: 05/06/1993. "
-                  "Incluye todos los números, series, claves y fechas. "
-                  "Mantén la puntuación y omite cualquier introducción o comentario. "
-                  "Responde solo el texto formateado en clave-valor en español. "
-                  "Si no hay texto legible, responde exactamente: (sin texto).")
+        # --- Prompt estilo 'clave-valor' + FORENSE ---
+        prompt = ("Actúa como un analista forense de documentos de identidad experto en detección de fraude. "
+                  "Tu tarea es doble:\n"
+                  "1. EXTRAER TEXTO (OCR): Extrae todo el texto visible y reconstruye la información como pares CLAVE: VALOR (ej. Nombre: JUAN PEREZ). "
+                  "Incluye todos los números, fechas y claves.\n"
+                  "2. ANÁLISIS FORENSE: Analiza la imagen buscando señales de manipulación:\n"
+                  "   - ARTEFACTOS DIGITALES (bordes pixelados, fuentes inconsistentes).\n"
+                  "   - SCREEN REPLAY (patrones de Moiré, reflejos de pantalla).\n"
+                  "   - MANIPULACIÓN FÍSICA (fotos superpuestas, recortes manuales).\n"
+                  "   - ELEMENTOS DE SEGURIDAD (hologramas planos vs reales).\n\n"
+                  "FORMATO DE RESPUESTA OBLIGATORIO (Usa estos separadores exactos):\n"
+                  "---OCR---\n"
+                  "(Aquí pon SOLO los pares clave: valor del texto extraído)\n"
+                  "---FORENSIC---\n"
+                  "VEREDICTO: [BAJO / MEDIO / ALTO]\n"
+                  "DETALLES:\n"
+                  "- [Detalle 1]\n"
+                  "- [Detalle 2]\n"
+                  "(Si no hay texto legible, en OCR pon: (sin texto))")
         temp = 0.3
 
         # --- SDK preferente ---
+        txt_full = ""
         if genai is not None:
             try:
                 genai.configure(api_key=GEMINI_API_KEY)
@@ -1114,34 +1125,52 @@ def gemini_vision_extract_text(image_path: str) -> str:
                     [{"mime_type": mime, "data": bio.getvalue()}, {"text": prompt}],
                     generation_config={"temperature": temp, "top_p": 0.95, "max_output_tokens": 8192}
                 )
-                txt = getattr(resp, "text", "") or ""
-                return _clean_ocr_output(txt.strip() if txt.strip() else "(sin texto)")
+                txt_full = getattr(resp, "text", "") or ""
             except Exception:
                 pass # Si el SDK falla, seguimos con REST
 
         # --- Fallback REST (mismo prompt/config) ---
-        try:
-            b64 = base64.b64encode(bio.getvalue()).decode("utf-8")
-            model_name = "gemini-2.5-flash"
-            url = "https://generativelanguage.googleapis.com/v1beta/models/" + model_name + ":generateContent"
-            payload = {
-                "contents": [{
-                    "parts": [
-                        {"inline_data": {"mime_type": mime, "data": b64}},
-                        {"text": prompt}
-                    ]
-                }],
-                "generationConfig": {"temperature": temp, "topP": 0.95, "maxOutputTokens": 8192}
-            }
-            headers = {"Content-Type": "application/json"}
-            r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=90)
-            data = r.json()
-            txt = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
-            return _clean_ocr_output(txt.strip() if txt.strip() else "(sin texto)")
-        except Exception as e2:
-            return f"❌ Error en Visión (fallback): {e2}"
+        if not txt_full:
+            try:
+                b64 = base64.b64encode(bio.getvalue()).decode("utf-8")
+                model_name = "gemini-2.5-flash"
+                url = "https://generativelanguage.googleapis.com/v1beta/models/" + model_name + ":generateContent"
+                payload = {
+                    "contents": [{
+                        "parts": [
+                            {"inline_data": {"mime_type": mime, "data": b64}},
+                            {"text": prompt}
+                        ]
+                    }],
+                    "generationConfig": {"temperature": temp, "topP": 0.95, "maxOutputTokens": 8192}
+                }
+                headers = {"Content-Type": "application/json"}
+                r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=90)
+                data = r.json()
+                txt_full = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
+            except Exception as e2:
+                return f"❌ Error en Visión (fallback): {e2}", ""
+
+        # --- PARSEO DE RESPUESTA DUAL ---
+        ocr_part = ""
+        forensic_part = ""
+        
+        if "---OCR---" in txt_full:
+            parts = txt_full.split("---FORENSIC---")
+            ocr_raw = parts[0].replace("---OCR---", "").strip()
+            ocr_part = _clean_ocr_output(ocr_raw if ocr_raw else "(sin texto)")
+            
+            if len(parts) > 1:
+                forensic_part = parts[1].strip()
+        else:
+            # Fallback si el modelo no respetó el formato (asumimos que todo es OCR por compatibilidad)
+            ocr_part = _clean_ocr_output(txt_full.strip())
+            forensic_part = "No se pudo generar análisis forense estructurado."
+
+        return ocr_part, forensic_part
+
     except Exception as e:
-        return f"❌ Error en Visión: {e}"
+        return f"❌ Error en Visión: {e}", ""
 
 
 # ====== Modales con tema (oscuro morado) ======
@@ -1573,7 +1602,7 @@ def _age_from_mdy(mdy: str):
     except Exception:
         return None
 
-def _authenticity_score(texto: str, image_path: str|None):
+def _authenticity_score(texto: str, image_path: str|None, forensic_summary: str = ""):
     details = []
     score = 0
     low = (texto or "").lower()
@@ -1618,6 +1647,21 @@ def _authenticity_score(texto: str, image_path: str|None):
     vig_final = date_results.get("fecha_vigencia_final")
     if not vig_final or "Sugerida" in vig_final:
         score += 10; details.append("No se detectó vigencia (usamos sugerida).")
+
+    # 5. ANÁLISIS FORENSE (LLAMADA A GEMINI)
+    if forensic_summary:
+        if "VEREDICTO: ALTO" in forensic_summary:
+            score += 100 # Forzar riesgo alto
+            details.append("⚠️ ANALISTA FORENSE: ALTO RIESGO DETECTADO.")
+        elif "VEREDICTO: MEDIO" in forensic_summary:
+            score += 40
+            details.append("⚠️ ANALISTA FORENSE: Riesgo Medio detectado.")
+        
+        # Extraer detalles del forense (líneas que empiezan con -)
+        forensic_lines = [line.strip() for line in forensic_summary.splitlines() if line.strip().startswith("-")]
+        if forensic_lines:
+            details.append("--- Hallazgos Forenses ---")
+            details.extend(forensic_lines[:3]) # Agregar top 3 hallazgos
 
     riesgo = "bajo" if score < 25 else ("medio" if score <= 60 else "alto")
     return riesgo, details
@@ -2046,7 +2090,7 @@ def analizar_actual():
     _hide_logo_bg()
     
     # 1. OCR y Normalización
-    texto = gemini_vision_extract_text(p)
+    texto, forensic_summary = gemini_vision_extract_text(p)
     # Se mantiene la normalización para extraer metadatos de riesgo y exportación
     texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
     
@@ -2067,7 +2111,7 @@ def analizar_actual():
         "vigencia_sugerida_mdy": vigencia_final,
     }
     # NOTA: Se pasa el texto original a _authenticity_score para que use la detección de país
-    riesgo, detalles = _authenticity_score(texto, p)
+    riesgo, detalles = _authenticity_score(texto, p, forensic_summary)
     dt = round(time.time() - t0, 2)
 
     # 3. Guardar resultados
@@ -2140,7 +2184,7 @@ def analizar_carrusel():
         t0 = time.time()
         try:
             # 1. OCR y Normalización (solo para registro/diagnóstico)
-            texto = gemini_vision_extract_text(p)
+            texto, forensic_summary = gemini_vision_extract_text(p)
             texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
             
             # 2. Extracción de datos esenciales y autenticidad (solo para registro)
@@ -2163,7 +2207,7 @@ def analizar_carrusel():
                 "vigencia_sugerida_mdy": vigencia_final,
             }
 
-            riesgo, detalles = _authenticity_score(texto, p)
+            riesgo, detalles = _authenticity_score(texto, p, forensic_summary)
             dt = round(time.time() - t0, 2)
 
             # 3. Guardar resultados
@@ -2257,11 +2301,17 @@ def analizar_identificacion():
 
         try:
             # === 1) OCR de frente y reverso (por separado) ===
-            texto_frente = gemini_vision_extract_text(frente) or ""
-            texto_reverso = gemini_vision_extract_text(reverso) or ""
+            texto_frente, forensic_frente = gemini_vision_extract_text(frente)
+            texto_reverso, forensic_reverso = gemini_vision_extract_text(reverso)
+            
+            texto_frente = texto_frente or ""
+            texto_reverso = texto_reverso or ""
 
             # Texto combinado (lo que se guarda / exporta)
             texto_total = texto_frente + "\n" + texto_reverso
+            
+            # Forense combinado
+            forensic_total = f"--- FRENTE ---\n{forensic_frente}\n--- REVERSO ---\n{forensic_reverso}"
 
             # === 2) Normalización / metadata usando el texto combinado ===
             _, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto_total)
@@ -2282,7 +2332,7 @@ def analizar_identificacion():
                 "vigencia_sugerida_mdy": vigencia_final,
             }
 
-            riesgo, detalles = _authenticity_score(texto_total, frente)
+            riesgo, detalles = _authenticity_score(texto_total, frente, forensic_total)
             dt = round(time.time() - t0, 2)
 
             # Nombre lógico para exportar (frente + reverso)
