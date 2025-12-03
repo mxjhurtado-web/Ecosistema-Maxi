@@ -50,3 +50,7 @@
 [2025-12-02 16:03:05] Resultado guardado: clipboard_1764712936.png (287 chars, 3.26s, riesgo=bajo)
 [2025-12-02 16:03:11] Resultado guardado: clipboard_1764712943.png (380 chars, 5.84s, riesgo=medio)
 [2025-12-02 16:03:19] Drive: subido HADES_OCR_20251202_160313.csv (1PAAZxD-7BzPNiIyCocFNTTiymS1OMRS2) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 18:18:10] Resultado guardado: clipboard_1764721070.png (343 chars, 18.54s, riesgo=alto)
+[2025-12-02 18:18:36] Drive: subido HADES_OCR_20251202_181824.csv (1BqYYHRgY7IZbDWWMGD6z1gYFM49GRc5F) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-02 18:20:29] Resultado guardado: clipboard_1764721206.png (327 chars, 20.92s, riesgo=medio)
+[2025-12-02 18:20:40] Drive: subido HADES_OCR_20251202_182034.csv (1buhX2tfDsKtL2-rOXOa46eOaEfsPDVDw) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
