@@ -2536,16 +2536,17 @@ def _age_from_mdy(mdy: str):
     try:
         import datetime as _dt
         m,d,y = map(int, mdy.split("/"))
-        dob = _dt.date(y,m,d); today = _dt.date.today()
-        return (today - dob).days // 365
+        dob = _dt.date(y, m, d)
+        today = _dt.date.today()
+        return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
     except Exception:
         return None
 
-def _authenticity_score(texto: str, image_path: str|None):
-    details = []
-    score = 0
-    low = (texto or "").lower()
+# PULIDO: Mover los atajos de teclado aquí dentro.
+# ========= ATAJOS =========
+root.bind_all("<Control-v>", lambda e: pegar_imagen_clipboard())
 
+<<<<<<< HEAD
     # Usamos la lógica del nuevo procesador para obtener la fecha normalizada
     date_results = _process_all_dates_by_type(texto)
     dob_use = date_results.get("fecha_nacimiento_final")
@@ -2727,3 +2728,8 @@ if _verificar_inicio():
     # Continuar con el inicio de la aplicación
     _set_mode_ocr()
     root.mainloop()
+=======
+# Continuar con el inicio de la aplicación
+_set_mode_ocr()
+root.mainloop()
+>>>>>>> ae0d9ea2c36c7501ba3837869637bdfe37f4bfa2
