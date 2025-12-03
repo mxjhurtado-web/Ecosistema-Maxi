@@ -1735,6 +1735,10 @@ def _verificar_inicio():
             messagebox.showerror("Acceso denegado", "Este correo no está autorizado.")
     root.destroy(); return False
 
+# Validar inicio
+if not _verificar_inicio():
+    sys.exit()
+
 
 # Header con imagen flama
 header = tk.Frame(root, bg=COLOR_BG)
