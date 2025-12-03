@@ -2546,11 +2546,13 @@ def _age_from_mdy(mdy: str):
     except Exception:
         return None
 
-# PULIDO: Mover los atajos de teclado aquí dentro.
-# ========= ATAJOS =========
-root.bind_all("<Control-v>", lambda e: pegar_imagen_clipboard())
 
-<<<<<<< HEAD
+
+def _authenticity_score(texto: str, image_path: str|None, forensic_summary: str = ""):
+    details = []
+    score = 0
+    low = (texto or "").lower()
+
     # Usamos la lógica del nuevo procesador para obtener la fecha normalizada
     date_results = _process_all_dates_by_type(texto)
     dob_use = date_results.get("fecha_nacimiento_final")
@@ -2732,8 +2734,3 @@ if _verificar_inicio():
     # Continuar con el inicio de la aplicación
     _set_mode_ocr()
     root.mainloop()
-=======
-# Continuar con el inicio de la aplicación
-_set_mode_ocr()
-root.mainloop()
->>>>>>> ae0d9ea2c36c7501ba3837869637bdfe37f4bfa2
