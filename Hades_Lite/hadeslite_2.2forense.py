@@ -934,7 +934,7 @@ def _authenticity_score(texto: str, image_path: str | None, forensic_summary: st
             score += 100
             details.append("⚠️ ANALISTA FORENSE (Gemini): VEREDICTO ALTO.")
         elif "VEREDICTO: MEDIO" in fs_upper:
-            score += 50
+            score += 65
             details.append("⚠️ ANALISTA FORENSE (Gemini): VEREDICTO MEDIO.")
 
         # Palabras clave fuertes del análisis visual
@@ -943,7 +943,10 @@ def _authenticity_score(texto: str, image_path: str | None, forensic_summary: st
             "no se observan hologramas", "sin hologramas", "holograma plano",
             "bordes recortados", "recortada", "cropped id",
             "patrones de moiré", "moire pattern", "screen replay",
-            "posible manipulación digital", "signos de edición", "pixelación extraña"
+            "posible manipulación digital", "signos de edición", "pixelación extraña",
+            "inconsistent fonts", "fuentes inconsistentes", "digital insertion", "inserción digital",
+            "wrong perspective", "perspectiva incorrecta", "flat lighting", "iluminación plana",
+            "perfect alignment", "alineación perfecta", "digital mockup", "plantilla digital"
         ]
         if any(clue in forensic_summary.lower() for clue in fraud_clues):
             score += 40
@@ -1175,11 +1178,13 @@ def gemini_vision_extract_text(image_path: str) -> Tuple[str, str]:
             "   - Presencia y aspecto de hologramas, sellos, microtexto, escudos y patrones de fondo de seguridad.\n"
             "   - Si la foto del titular parece recortada o pegada encima.\n"
             "   - Artefactos digitales (pixelación extraña, fuentes inconsistentes, bordes recortados).\n"
-            "   - Screen replay (patrones de Moiré, reflejos de pantalla) que indiquen foto tomada a otra pantalla.\n\n"
+            "   - Screen replay (patrones de Moiré, reflejos de pantalla) que indiquen foto tomada a otra pantalla.\n"
+            "   - Inconsistencias en iluminación y sombras (sugiere inserción digital).\n"
+            "   - Alineación perfecta artificial (sugiere plantilla digital).\n\n"
             "Al final, da un VEREDICTO global de autenticidad:\n"
             "   - BAJO: No ves señales claras de fraude.\n"
-            "   - MEDIO: Hay dudas o 1 señal fuerte.\n"
-            "   - ALTO: Hay 2 o más señales fuertes de posible fraude.\n\n"
+            "   - MEDIO: Hay dudas o 1 señal fuerte (ej. posible screen replay o falta de hologramas).\n"
+            "   - ALTO: Hay 2 o más señales fuertes de posible fraude (ej. edición digital evidente, foto pegada).\n\n"
             "FORMATO DE RESPUESTA OBLIGATORIO (usa estos separadores exactos):\n"
             "---OCR---\n"
             "(Aquí pon SOLO los pares clave: valor del texto extraído)\n"
