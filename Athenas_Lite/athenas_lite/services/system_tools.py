@@ -9,10 +9,29 @@ import logging
 logger = logging.getLogger("athenas_lite")
 
 def _bin_path(name: str) -> str:
+    """
+    Busca el ejecutable en este orden:
+    1. Si está empaquetado (PyInstaller): directorio del ejecutable
+    2. Raíz del proyecto (junto a la carpeta athenas_lite/)
+    3. PATH del sistema (solo devuelve el nombre)
+    """
     exe = f"{name}.exe" if os.name == "nt" else name
+    
+    # Si está empaquetado con PyInstaller
     if getattr(sys, "frozen", False):
         base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
         return os.path.join(base, exe)
+    
+    # Buscar en la raíz del proyecto (parent de athenas_lite/)
+    # __file__ está en athenas_lite/services/system_tools.py
+    # Subimos 2 niveles: services -> athenas_lite -> raíz del proyecto
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    project_exe_path = os.path.join(project_root, exe)
+    
+    if os.path.exists(project_exe_path):
+        return project_exe_path
+    
+    # Fallback: confiar en el PATH del sistema
     return exe
 
 def verificar_ffmpeg():

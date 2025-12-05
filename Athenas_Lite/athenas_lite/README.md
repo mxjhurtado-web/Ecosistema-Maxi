@@ -36,4 +36,4 @@ python athenas_lite/main.py
 
 ## Dependencias Externas
 
-- **FFmpeg**: Se requiere `ffmpeg.exe` y `ffprobe.exe` en la raíz o en el PATH del sistema para procesar audios que no sean WAV/MP3 nativos.
+- **FFmpeg**: Se requiere `ffmpeg.exe` y `ffprobe.exe` en la raíz del proyecto (junto a la carpeta `athenas_lite/`) o en el PATH del sistema para procesar audios que no sean WAV/MP3 nativos.
