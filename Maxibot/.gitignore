@@ -1,0 +1,16 @@
+__pycache__/
+venv/
+.python-version
+.env
+.DS_Store
+.idea/
+.vscode/
+.pytest_cache/
+.coverage
+.coverage.*
+.coverage.*.*
+.coverage.*.*.*
+.coverage.*.*.*.*
+.claude/
+Conversaciones_Maxibot/
+*.db

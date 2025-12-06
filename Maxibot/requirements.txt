@@ -1,0 +1,26 @@
+# Dependencias de MaxiBot V4.6.1 con SSO Keycloak
+
+# Core
+requests==2.32.5
+pandas==2.3.3
+
+# Google APIs
+google-api-python-client==2.187.0
+google-auth==2.41.1
+google-auth-httplib2==0.2.1
+google-auth-oauthlib==1.2.3
+
+# Keycloak SSO
+PyJWT==2.10.1
+
+# Document Processing
+PyPDF2==3.0.1
+python-docx==1.2.0
+openpyxl==3.1.5
+
+# UI (Tkinter está incluido en Python)
+pillow>=10.0.0
+
+# Compatibilidad
+importlib-metadata==6.11.0
+urllib3==1.26.20
