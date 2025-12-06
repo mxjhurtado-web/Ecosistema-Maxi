@@ -681,6 +681,28 @@ class DocsTool:
 docs_tool = DocsTool()
 
 # ==========================
+# 🌤️ Weather Tool (API directa, sin servidor local)
+# ==========================
+try:
+    from weather_direct import weather_tool
+    _WEATHER_OK = True
+except Exception as e:
+    print("Weather tool no disponible:", e)
+    weather_tool = None
+    _WEATHER_OK = False
+
+# ==========================
+# 📰 News Tool (RSS directo, sin API Key)
+# ==========================
+try:
+    from news_direct import news_tool
+    _NEWS_OK = True
+except Exception as e:
+    print("News tool no disponible:", e)
+    news_tool = None
+    _NEWS_OK = False
+
+# ==========================
 # 📥 Loader recursivo (Docs/PDF/DOCX/TXT/XLSX/CSV/Sheets/PBIX/EXE)
 # ==========================
 _EXE_MAX_BYTES = 4 * 1024 * 1024
@@ -1567,6 +1589,62 @@ def responder():
             _crear_botones_feedback(metad, len(registro_sesion)-1)
             entrada_pregunta.delete(0, tk.END)
             return
+
+        # WEATHER (API directa) después de Docs
+        if _WEATHER_OK and weather_tool and weather_tool.available():
+            try:
+                weather_hits = weather_tool.search(pregunta, top_k=3)
+            except Exception:
+                weather_hits = []
+            if weather_hits:
+                best = max(weather_hits, key=lambda h: float(h.get("score", 0.0)))
+                snippet = (best.get("content") or "").strip() or "No encontré información del clima."
+                refs = ""
+                if best.get("url"):
+                    refs = f"\n\nFuente: {best.get('title','Weather')} — {best.get('url')}"
+                roww, metaw = add_message("MaxiBot", (snippet + refs).strip(), kind="bot")
+                registro_sesion.append({
+                    "timestamp": datetime.now().isoformat(timespec='seconds'),
+                    "usuario": usuario_actual["alias"],
+                    "correo": usuario_actual["correo"],
+                    "pregunta": pregunta,
+                    "respuesta": (snippet + refs).strip(),
+                    "origen": "WEATHER",
+                    "hoja": None,
+                    "feedback": "neutral",
+                })
+                _crear_botones_feedback(metaw, len(registro_sesion)-1)
+                entrada_pregunta.delete(0, tk.END)
+                return
+
+        # NEWS (RSS directo) después de Weather
+        if _NEWS_OK and news_tool and news_tool.available():
+            try:
+                news_hits = news_tool.search(pregunta, top_k=3)
+            except Exception:
+                news_hits = []
+            if news_hits:
+                # Tomar el top 1 o formatear varios
+                # Por simplicidad tomamos el 1 con mejor score
+                best = news_hits[0]
+                snippet = (best.get("content") or "").strip() or "No encontré noticias recientes."
+                refs = ""
+                if best.get("url"):
+                    refs = f"\n\nFuente: {best.get('title','Google News')} — {best.get('url')}"
+                rown, metan = add_message("MaxiBot", (snippet + refs).strip(), kind="bot")
+                registro_sesion.append({
+                    "timestamp": datetime.now().isoformat(timespec='seconds'),
+                    "usuario": usuario_actual["alias"],
+                    "correo": usuario_actual["correo"],
+                    "pregunta": pregunta,
+                    "respuesta": (snippet + refs).strip(),
+                    "origen": "NEWS",
+                    "hoja": None,
+                    "feedback": "neutral",
+                })
+                _crear_botones_feedback(metan, len(registro_sesion)-1)
+                entrada_pregunta.delete(0, tk.END)
+                return
 
         # MCP después
         if MCP_ENABLED and mcp_tool and mcp_tool.available():
