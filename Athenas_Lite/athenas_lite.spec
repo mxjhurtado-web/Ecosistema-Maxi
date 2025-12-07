@@ -8,10 +8,8 @@ a = Analysis(
     binaries=[],
     datas=[
         # Include internal assets (like logo for UI) inside the bundle
-        ('athenas_lite/Athenas2.png', 'athenas_lite'),
-        # Note: 'rubricas' folder is treated as external config by code design
-        # so we don't bundle it into datas unless we want a readonly default.
-        # User requested "junto y dentro", so code now looks next to EXE.
+        ('athenas2.png', '.'), 
+        # Source: root, Dest: root of bundle (sys._MEIPASS)
     ],
     hiddenimports=[
         'mutagen',
@@ -55,7 +53,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='athenas_lite/Athenas.ico'
+    icon='Athenas.ico'
 )
 coll = COLLECT(
     exe,
