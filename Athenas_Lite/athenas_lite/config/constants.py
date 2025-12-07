@@ -1,15 +1,14 @@
 import os
+import sys
 
-# Project root calculation: .../athenas_lite/config/constants.py -> up 3 levels?
-# No, structure is:
-# Root
-#   athenas_lite/
-#     config/
-#       constants.py
-#   rubricas/
-# So we need to go up from config (parent) -> athenas_lite (parent) -> Root
+# Project root calculation:
+# If frozen (EXE), we want the folder where the EXE lives (to find 'rubricas' next to it).
+# If script, we go up from config -> athenas_lite -> Root.
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if getattr(sys, 'frozen', False):
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 PALETTE = {"bg": "#fceff1", "brand": "#e91e63", "brand_dark": "#c2185b"}
 
