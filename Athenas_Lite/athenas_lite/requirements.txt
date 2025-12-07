@@ -1,0 +1,7 @@
+mutagen
+pandas
+google-generativeai
+
+soundfile
+numpy
+python-dotenv

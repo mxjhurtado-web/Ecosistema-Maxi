@@ -2,81 +2,72 @@
 import os
 import sys
 import subprocess
-import re
 import mimetypes
 import logging
+from typing import Optional
+
+try:
+    import mutagen
+except ImportError:
+    mutagen = None
+
+try:
+    import soundfile as sf
+    import numpy as np
+except ImportError:
+    sf = None
+    np = None
 
 logger = logging.getLogger("athenas_lite")
 
-def _bin_path(name: str) -> str:
-    """
-    Busca el ejecutable en este orden:
-    1. Si está empaquetado (PyInstaller): directorio del ejecutable
-    2. Raíz del proyecto (junto a la carpeta athenas_lite/)
-    3. PATH del sistema (solo devuelve el nombre)
-    """
-    exe = f"{name}.exe" if os.name == "nt" else name
-    
-    # Si está empaquetado con PyInstaller
-    if getattr(sys, "frozen", False):
-        base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
-        return os.path.join(base, exe)
-    
-    # Buscar en la raíz del proyecto (parent de athenas_lite/)
-    # __file__ está en athenas_lite/services/system_tools.py
-    # Subimos 2 niveles: services -> athenas_lite -> raíz del proyecto
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    project_exe_path = os.path.join(project_root, exe)
-    
-    if os.path.exists(project_exe_path):
-        return project_exe_path
-    
-    # Fallback: confiar en el PATH del sistema
-    return exe
-
-def verificar_ffmpeg():
-    try:
-        subprocess.run([_bin_path("ffmpeg"), "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
-        return True
-    except Exception:
-        return False
-
-def verificar_ffprobe():
-    try:
-        subprocess.run([_bin_path("ffprobe"), "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
-        return True
-    except Exception:
-        return False
+# Lista de extensiones que Gemini suele soportar nativamente para audio/video
+# (Excluimos .gsm porque suele requerir conversión)
+GEMINI_SUPPORTED_EXTENSIONS = {
+    ".wav", ".mp3", ".aiff", ".aac", ".ogg", ".flac",
+    ".mp4", ".mpeg", ".mov", ".avi", ".flv", ".mpg", ".webm", ".wmv", ".3gp"
+}
 
 def guess_mime(path: str) -> str:
     m, _ = mimetypes.guess_type(path)
     return m or "audio/wav"
 
-def ffprobe_duration(path: str):
+def convert_to_wav(input_path: str, output_path: str) -> Optional[str]:
+    """
+    Convierte audio a WAV usando soundfile (requiere numpy).
+    Útil para archivos .gsm o formatos raw soportados por libsndfile.
+    """
+    if not sf or not np:
+        logger.error("soundfile/numpy no instalados. No se puede convertir.")
+        return None
+        
     try:
-        resultado = subprocess.run(
-            [_bin_path("ffprobe"), "-v", "error", "-show_entries", "format=duration",
-             "-of", "default=noprint_wrappers=1:nokey=1", path],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False
-        )
-        out = (resultado.stdout or "").strip()
-        if out:
-            return float(out)
-    except Exception:
-        pass
+        data, samplerate = sf.read(input_path)
+        sf.write(output_path, data, samplerate)
+        logger.info(f"Convertido: {input_path} -> {output_path}")
+        return output_path
+    except Exception as e:
+        logger.error(f"Error convirtiendo {input_path} con soundfile: {e}")
+        return None
+
+def get_audio_duration(path: str) -> Optional[float]:
+    """
+    Obtiene la duración del archivo de audio/video usando mutagen.
+    No requiere ffmpeg.exe ni ffprobe.exe.
+    """
+    if not mutagen:
+        logger.warning("Mutagen no está instalado. No se puede calcular duración.")
+        return None
+        
     try:
-        proc = subprocess.run([_bin_path("ffmpeg"), "-i", path],
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                              text=True, check=False)
-        m = re.search(r"Duration:\s*(\d{2}):(\d{2}):(\d{2}\.\d+)", proc.stderr or "")
-        if m:
-            h, m_, s = m.groups()
-            return int(h) * 3600 + int(m_) * 60 + float(s)
-    except Exception:
-        pass
+        f = mutagen.File(path)
+        if f is not None and f.info is not None:
+            return f.info.length
+    except Exception as e:
+        logger.error(f"Error obteniendo duración con mutagen para {path}: {e}")
+    
     return None
 
-def human_duration(seconds):
+def human_duration(seconds: Optional[float]) -> str:
     if seconds is None:
         return "N/A"
     seconds = int(round(seconds))
@@ -84,15 +75,8 @@ def human_duration(seconds):
     hh, mm = divmod(mm, 60)
     return f"{hh:02d}:{mm:02d}:{ss:02d}" if hh else f"{mm:02d}:{ss:02d}"
 
-def extraer_audio(video_path, output_path):
-    """Extrae a WAV mono 16k desde cualquier contenedor (incluye .gsm)."""
-    try:
-        logger.info(f"Extracting audio from {video_path} to {output_path}")
-        subprocess.run([
-            _bin_path("ffmpeg"), "-y", "-i", video_path, "-vn",
-            "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1", output_path
-        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
-        return output_path
-    except Exception as e:
-        logger.error(f"Error extracting audio: {e}")
-        return None
+def is_gemini_supported(path: str) -> bool:
+    """Devuelve True si la extensión está en la lista de soportados por Gemini."""
+    ext = os.path.splitext(path)[1].lower()
+    return ext in GEMINI_SUPPORTED_EXTENSIONS
+

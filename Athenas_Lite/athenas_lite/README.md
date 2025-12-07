@@ -36,4 +36,5 @@ python athenas_lite/main.py
 
 ## Dependencias Externas
 
-- **FFmpeg**: Se requiere `ffmpeg.exe` y `ffprobe.exe` en la raíz del proyecto (junto a la carpeta `athenas_lite/`) o en el PATH del sistema para procesar audios que no sean WAV/MP3 nativos.
+- **Mutagen**: Librería Python para análisis de metadatos de audio. Instalada vía pip.
+- **FFmpeg**: YA NO ES REQUERIDO. La aplicación utiliza soporte nativo de Gemini y Mutagen.

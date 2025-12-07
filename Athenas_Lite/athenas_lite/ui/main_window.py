@@ -27,7 +27,7 @@ from ..config.logging_config import logger
 from ..auth.google_auth import verificar_correo_online
 from ..services.gemini_api import (configurar_gemini, llm_json_or_mock, 
                                    analizar_sentimiento, analizar_sentimiento_por_roles)
-from ..services.system_tools import verificar_ffmpeg, ffprobe_duration, human_duration, extraer_audio
+from ..services.system_tools import get_audio_duration, human_duration, is_gemini_supported, convert_to_wav
 from ..services.drive_exports import subir_csv_a_drive
 from ..core.rubric_loader import load_dept_rubric_json_local, rubric_json_to_prompt, LOCAL_RUBRICS_DIR
 from ..core.scoring import aplicar_defaults_items, compute_scores_with_na, _atributos_a_columnas_valor
@@ -235,17 +235,31 @@ class MainApp:
                 nombre_archivo = os.path.basename(path)
                 ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                 
-                # Audio extraction logic
-                ext = os.path.splitext(path)[1].lower()
                 audio_final = path
-                if ext not in [".mp3", ".wav"]:
-                    if not verificar_ffmpeg():
-                        messagebox.showerror("FFmpeg", "ffmpeg no está disponible.")
-                        return
-                    audio_final = os.path.join(save_dir, f"{pathlib.Path(nombre_archivo).stem}_extraido.wav")
-                    extraer_audio(path, audio_final)
+                
+                # Check extension
+                ext = os.path.splitext(path)[1].lower()
+                
+                # Special handling for GSM (convert to WAV using soundfile)
+                if ext == ".gsm":
+                     wav_path = os.path.join(save_dir, f"{pathlib.Path(nombre_archivo).stem}_converted.wav")
+                     converted = convert_to_wav(path, wav_path)
+                     if converted:
+                         audio_final = converted
+                     else:
+                         messagebox.showwarning("Error conversión", f"No se pudo convertir {nombre_archivo}. Revisa logs.")
+                         continue
+                
+                # For everything else, verify Gemini support
+                elif not is_gemini_supported(path):
+                    logger.warning(f"Formato no soportado nativamente: {path}")
+                    messagebox.showwarning("Formato no soportado", 
+                        f"El archivo {nombre_archivo} tiene una extensión no soportada nativamente.\n"
+                        "Athenas Lite: Usa WAV, MP3, MP4, M4A, o GSM.")
+                    continue
 
-                dur_secs = ffprobe_duration(audio_final)
+                # Audio duration with mutagen
+                dur_secs = get_audio_duration(audio_final)
                 dur_str = human_duration(dur_secs)
 
                 # Sentiment
