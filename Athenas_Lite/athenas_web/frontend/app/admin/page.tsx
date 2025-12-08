@@ -1,17 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { apiClient } from "@/lib/api";
 
 export default function AdminPage() {
     const [viewMode, setViewMode] = useState<"admin" | "user">("admin");
+    const [stats, setStats] = useState({
+        analysis_count: 0,
+        active_departments_count: 0,
+        users_count: 0,
+        rubrics_count: 0
+    });
 
-    // Toggle between admin and user view
-    const toggleMode = () => {
-        if (viewMode === "admin") {
-            // Redirect to user dashboard
-            window.location.href = "/dashboard";
-        } else {
-            setViewMode("admin");
+    useEffect(() => {
+        if (viewMode === 'admin') {
+            loadStats();
+        }
+    }, [viewMode]);
+
+    const loadStats = async () => {
+        try {
+            const data = await apiClient.getAdminStats();
+            if (data) {
+                setStats(data);
+            }
+        } catch (error) {
+            console.error("Error loading stats:", error);
         }
     };
 
@@ -33,18 +47,8 @@ export default function AdminPage() {
                             onClick={toggleMode}
                             className="flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors"
                         >
-                            <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                />
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                             Cambiar a Modo Usuario
                         </button>
@@ -56,23 +60,11 @@ export default function AdminPage() {
                     {/* Departments Card */}
                     <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
                         <div className="flex items-center justify-center w-12 h-12 bg-brand/10 rounded-lg mb-4">
-                            <svg
-                                className="w-6 h-6 text-brand"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                                />
+                            <svg className="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">
-                            Departamentos
-                        </h3>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Departamentos</h3>
                         <p className="text-sm text-gray-600 mb-4">
                             Gestionar departamentos activos
                         </p>
@@ -136,19 +128,19 @@ export default function AdminPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-white rounded-xl shadow-lg p-6">
                         <p className="text-sm text-gray-600 mb-1">Total Análisis</p>
-                        <p className="text-3xl font-bold text-brand">0</p>
+                        <p className="text-3xl font-bold text-brand">{stats.analysis_count}</p>
                     </div>
                     <div className="bg-white rounded-xl shadow-lg p-6">
                         <p className="text-sm text-gray-600 mb-1">Departamentos</p>
-                        <p className="text-3xl font-bold text-brand">13</p>
+                        <p className="text-3xl font-bold text-brand">{stats.active_departments_count}</p>
                     </div>
                     <div className="bg-white rounded-xl shadow-lg p-6">
-                        <p className="text-sm text-gray-600 mb-1">Usuarios Activos</p>
-                        <p className="text-3xl font-bold text-brand">0</p>
+                        <p className="text-sm text-gray-600 mb-1">Usuarios</p>
+                        <p className="text-3xl font-bold text-brand">{stats.users_count}</p>
                     </div>
                     <div className="bg-white rounded-xl shadow-lg p-6">
                         <p className="text-sm text-gray-600 mb-1">Rúbricas</p>
-                        <p className="text-3xl font-bold text-brand">13</p>
+                        <p className="text-3xl font-bold text-brand">{stats.rubrics_count}</p>
                     </div>
                 </div>
             </div>

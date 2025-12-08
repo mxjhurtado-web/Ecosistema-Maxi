@@ -55,6 +55,36 @@ async def list_users(_: int = Depends(verify_admin)):
                 for row in rows
             ]
 
+@router.post("/users")
+async def create_user(
+    new_user: UserCreate,
+    admin_id: int = Depends(verify_admin)
+):
+    """Create a new user manually (pre-provisioning)"""
+    import aiosqlite
+    from datetime import datetime
+    
+    async with aiosqlite.connect(storage_service.db_path) as db:
+        # Check if user already exists
+        async with db.execute(
+            "SELECT id FROM users WHERE email = ?", (new_user.email,)
+        ) as cursor:
+            if await cursor.fetchone():
+                raise HTTPException(status_code=400, detail="User with this email already exists")
+        
+        # Create user
+        now = datetime.utcnow().isoformat()
+        await db.execute(
+            """
+            INSERT INTO users (email, name, role, created_at, last_login)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (new_user.email, new_user.name, new_user.role, now, None)
+        )
+        await db.commit()
+    
+    return {"message": "User created successfully"}
+
 @router.put("/users/{user_id}/role")
 async def update_user_role(
     user_id: int,

@@ -18,6 +18,11 @@ export default function UsersManagementPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    // Create User State
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [newUser, setNewUser] = useState({ email: "", name: "", role: "user" });
+    const [creating, setCreating] = useState(false);
+
     const fetchUsers = async () => {
         try {
             const data = await apiClient.getUsers();
@@ -32,6 +37,22 @@ export default function UsersManagementPage() {
     useEffect(() => {
         fetchUsers();
     }, []);
+
+    const handleCreateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setCreating(true);
+        try {
+            await apiClient.createUser(newUser.email, newUser.name, newUser.role);
+            alert("Usuario creado exitosamente. Cuando inicie sesión, su rol será reconocido.");
+            setShowCreateModal(false);
+            setNewUser({ email: "", name: "", role: "user" });
+            fetchUsers();
+        } catch (err: any) {
+            alert(err.message || "Error creando usuario");
+        } finally {
+            setCreating(false);
+        }
+    };
 
     const handleRoleChange = async (userId: number, newRole: string) => {
         if (!confirm(`¿Estás seguro de cambiar el rol a ${newRole}?`)) return;
@@ -77,6 +98,15 @@ export default function UsersManagementPage() {
                         <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
                         <p className="text-gray-600">Administra usuarios y roles del sistema</p>
                     </div>
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Agregar Usuario
+                    </button>
                 </div>
 
                 {error && (
@@ -157,6 +187,66 @@ export default function UsersManagementPage() {
                     )}
                 </div>
             </div>
+
+            {/* Create User Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                        <h2 className="text-xl font-bold text-gray-900 mb-4">Agregar Nuevo Usuario</h2>
+                        <form onSubmit={handleCreateUser} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    required
+                                    value={newUser.email}
+                                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                                    placeholder="usuario@ejemplo.com"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={newUser.name}
+                                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                                    placeholder="Juan Pérez"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                                <select
+                                    value={newUser.role}
+                                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                                >
+                                    <option value="user">Usuario</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCreateModal(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={creating}
+                                    className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark disabled:opacity-50"
+                                >
+                                    {creating ? "Creando..." : "Crear Usuario"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

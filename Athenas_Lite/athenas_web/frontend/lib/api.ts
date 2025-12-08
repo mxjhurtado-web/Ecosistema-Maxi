@@ -163,6 +163,16 @@ class APIClient {
             method: 'DELETE',
         });
     }
+    async createUser(email: string, name: string, role: string): Promise<any> {
+        return this.fetch('/api/users/users', {
+            method: 'POST',
+            body: JSON.stringify({ email, name, role }),
+        });
+    }
+
+    async getAdminStats(): Promise<any> {
+        return this.fetch('/api/admin/stats');
+    }
 }
 
 export const apiClient = new APIClient();

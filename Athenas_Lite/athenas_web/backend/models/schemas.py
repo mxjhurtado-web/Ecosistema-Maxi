@@ -63,4 +63,5 @@ class RubricUpload(BaseModel):
 
 class UserCreate(BaseModel):
     email: str  # Changed from EmailStr
+    name: str # Added name field for pre-provisioning
     role: str  # 'admin' or 'user'

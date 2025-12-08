@@ -118,6 +118,41 @@ async def delete_rubric(
 @router.get("/users")
 async def list_users(_: str = Depends(verify_admin)):
     """List all users"""
-    # This would query the database for users
-    # For now, return placeholder
-    return {"message": "User management coming soon"}
+    # This logic is handled in api.users, this endpoint might be redundant or could redirect
+    return {"message": "Use /api/users/users instead"}
+
+@router.get("/stats")
+async def get_stats(_: str = Depends(verify_admin)):
+    """Get system statistics"""
+    import aiosqlite
+    import os
+    
+    stats = {
+        "analysis_count": 0,
+        "active_departments_count": 0,
+        "users_count": 0,
+        "rubrics_count": 0
+    }
+    
+    async with aiosqlite.connect(storage_service.db_path) as db:
+        # Count analysis
+        async with db.execute("SELECT COUNT(*) FROM analysis_results") as cursor:
+            row = await cursor.fetchone()
+            stats["analysis_count"] = row[0] if row else 0
+            
+        # Count active departments
+        async with db.execute("SELECT COUNT(*) FROM departments WHERE active = 1") as cursor:
+            row = await cursor.fetchone()
+            stats["active_departments_count"] = row[0] if row else 0
+            
+        # Count users
+        async with db.execute("SELECT COUNT(*) FROM users") as cursor:
+            row = await cursor.fetchone()
+            stats["users_count"] = row[0] if row else 0
+            
+    # Count rubrics (files)
+    rubrics_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "..", "rubricas")
+    if os.path.exists(rubrics_dir):
+        stats["rubrics_count"] = len([f for f in os.listdir(rubrics_dir) if f.endswith('.json')])
+        
+    return stats
