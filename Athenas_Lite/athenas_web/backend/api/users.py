@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends, Cookie
 from typing import Optional, List
 from services.storage import storage_service
 from services.keycloak import keycloak_service
+from models.schemas import UserCreate
 
 router = APIRouter()
 

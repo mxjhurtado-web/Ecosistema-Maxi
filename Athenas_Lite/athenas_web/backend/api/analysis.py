@@ -21,8 +21,12 @@ from services.keycloak import keycloak_service
 try:
     from athenas_lite.services.gemini_api import configurar_gemini, analizar_sentimiento, analizar_sentimiento_por_roles
     from athenas_lite.core.rubric_loader import load_dept_rubric_json_local, rubric_json_to_prompt
-    from athenas_lite.core.scoring import aplicar_defaults_items, compute_scores_with_na
+    from athenas_lite.core.scoring import aplicar_defaults_items, compute_scores_with_na, _atributos_a_columnas_valor
     from athenas_lite.services.system_tools import get_audio_duration, human_duration, is_gemini_supported
+    from athenas_lite.services.drive_exports import subir_csv_a_drive
+    import pandas as pd
+    from datetime import datetime
+    import re
 except ImportError as e:
     print(f"Warning: Could not import ATHENAS Lite modules: {e}")
     print("Analysis endpoints will use mock data")
@@ -138,7 +142,106 @@ async def analyze_audio(
             score_final=score_final,
             sentiment=clasif
         )
+
+        # --- EXPORT LOGIC ---
+        exports_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "exports")
+        os.makedirs(exports_dir, exist_ok=True)
+        ts_now = datetime.now()
+        ts_str = ts_now.strftime("%Y-%m-%d_%H-%M-%S")
+        ts_file = ts_now.strftime('%Y%m%d_%H%M%S')
+
+        # 1. Generate TXT Summary
+        txt_path = os.path.join(exports_dir, f"{Path(audio_file.filename).stem}_ATHENAS_Lite.txt")
+        fortalezas = eval_data.get("fortalezas", [])
+        contenido_evaluador = eval_data.get("contenido_evaluador", "")
+        resumen = " • ".join(fortalezas[:2]) if fortalezas else resumen_calido
+
+        with open(txt_path, "w", encoding="utf-8") as f:
+            f.write(f"Asesor: {advisor}\n")
+            f.write(f"Evaluador: {evaluator}\n")
+            f.write(f"Archivo: {audio_file.filename}\n")
+            f.write(f"Departamento seleccionado: {department}\n")
+            f.write(f"Timestamp: {ts_str}\n")
+            f.write(f"Duración: {dur_str}\n\n")
+            f.write("Resumen:\n")
+            f.write(resumen or "N/A")
+            f.write("\n\nContenido para el evaluador:\n")
+            f.write(contenido_evaluador or "N/A")
+            f.write("\n--- CALIFICACIÓN FINAL ---\n")
+            f.write(f"Score de Atributos (Puntaje Bruto, N/A incluido): {score_bruto}%\n")
+            f.write(f"Score Final (Aplicando Críticos): {score_final}%\n")
+            f.write("\n--- PUNTOS CRÍTICOS ---\n")
+            if not criticos:
+                f.write("(Sin críticos configurados)\n")
+            else:
+                for c in criticos:
+                    keyc = c.get("key","(sin_key)")
+                    okc = c.get("ok", False)
+                    f.write(f"{keyc}: {'✅ Cumplido' if okc else '❌ No cumplido'}\n")
+            f.write("\n--- Detalle por atributo ---\n")
+            for d in det_atrib:
+                est = d["estado"]
+                marca = "✅ Cumplido" if est == "OK" else ("❌ No cumplido" if est == "NO" else "🟡 N/A")
+                f.write(f"{marca} {d['key']} → {d['otorgado']} / {d['peso']}\n")
+                
+            f.write("\n--- Sentimiento ---\n")
+            f.write(f"Valoración (1-10): {val}\n")
+            f.write(f"Clasificación: {clasif}\n")
+            f.write(f"Comentario emocional: {comentario}\n")
+            f.write("\n--- Sentimiento por roles ---\n")
+            f.write(f"Cliente -> {sent_cli['clasificacion']} ({sent_cli['valor']}/10). {sent_cli['comentario']}\n")
+            f.write(f"Asesor  -> {sent_ase['clasificacion']} ({sent_ase['valor']}/10). {sent_ase['comentario']}\n")
+
+        # 2. Generate CSV Data
+        fila_atrib, _keys = _atributos_a_columnas_valor(det_atrib)
+        row_data = {
+            "archivo": audio_file.filename,
+            "asesor": advisor,
+            "timestamp": ts_str,
+            "resumen": resumen,
+            "sentimiento": val,
+            "clasificación": clasif,
+            "comentario": comentario,
+            "evaluador": evaluator,
+            "duración": dur_str,
+            "duracion_seg": (round(dur_secs, 3) if dur_secs is not None else None),
+            "contenido_evaluador": contenido_evaluador,
+            "porcentaje_evaluacion": score_final,
+            "score_bruto": score_bruto,
+            "departamento": department,
+            "sentimiento_cliente": sent_cli["valor"],
+            "clasificación_cliente": sent_cli["clasificacion"],
+            "comentario_cliente": sent_cli["comentario"],
+            "sentimiento_asesor": sent_ase["valor"],
+            "clasificación_asesor": sent_ase["clasificacion"],
+            "comentario_asesor": sent_ase["comentario"]
+        }
+        row_data.update(fila_atrib)
         
+        # Populate missing columns logic (simplified for single row)
+        # In multi-row scenario we'd track all keys, but here we just export what we have
+        
+        # Create CSV
+        asesor_slug = re.sub(r'[^A-Za-z0-9_-]+', '_', (advisor or 'asesor').strip()) or 'asesor'
+        export_path = os.path.join(exports_dir, f"ATHENAS_Lite_{asesor_slug}_{ts_file}.csv")
+        
+        drive_link = None
+        try:
+            df = pd.DataFrame([row_data])
+            df.to_csv(export_path, index=False, encoding="utf-8-sig")
+            
+            # 3. Upload to Drive
+            # Using advisor name + timestamp for unique filename in Drive to avoid overwrites or huge appends 
+            # (Original app appended to local if same session, we are stateless per request so new file is safer/easier)
+            # Actually original app generated a 'compilado' for the batch. Here we are doing per-analysis.
+            # To match "compilado" feel, we might name it similarly or just upload this result.
+            drive_filename = f"ATLite_Result_{asesor_slug}_{ts_file}.csv"
+            drive_link = subir_csv_a_drive(df, drive_filename)
+            
+        except Exception as e:
+            print(f"Export/Upload error: {e}")
+            export_path = None # Indicate failure if needed
+        # --- END EXPORT LOGIC ---
         return {
             "id": analysis_id,
             "filename": audio_file.filename,
@@ -147,7 +250,11 @@ async def analyze_audio(
             "score_final": score_final,
             "sentiment": clasif,
             "duration": dur_str,
-            "message": "Analysis completed successfully"
+            "message": "Analysis completed successfully",
+            # New fields for exports
+            "drive_link": drive_link, 
+            "local_csv": export_path,
+            "local_txt": txt_path
         }
     
     finally:
@@ -195,3 +302,76 @@ async def get_analysis(
         raise HTTPException(status_code=403, detail="Access denied")
     
     return AnalysisResult(**analysis)
+
+@router.get("/{analysis_id}/download")
+async def download_analysis_file(
+    analysis_id: int,
+    format: str = "csv",
+    user_id: int = Depends(get_current_user_id)
+):
+    """Download analysis export file (csv or txt)"""
+    from fastapi.responses import FileResponse
+    import os
+    from datetime import datetime
+    import re
+
+    # Get analysis details
+    analysis = await storage_service.get_analysis_by_id(analysis_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
+    # Verify ownership
+    if analysis["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Reconstruct filename pattern
+    # The current export logic uses: ATHENAS_Lite_{advisor}_{timestamp}.csv/txt
+    # We need to find the matching file in exports/
+    
+    exports_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "exports")
+    
+    advisor_slug = re.sub(r'[^A-Za-z0-9_-]+', '_', (analysis["advisor"] or 'asesor').strip())
+    
+    # Timestamp in DB is usually 'YYYY-MM-DD HH:MM:SS' strings from sqlite default
+    # We used '%Y%m%d_%H%M%S' for filename
+    try:
+        # SQLite often stores as string, let's parse flexible
+        ts_str = analysis["timestamp"]
+        # Try different formats if needed, but usually it's iso-like space sep
+        if isinstance(ts_str, str):
+            # Parse '2023-12-08 14:00:00' -> datetime
+            # If it has milliseconds, might fail, so be careful
+            if "." in ts_str:
+                ts_obj = datetime.strptime(ts_str.split(".")[0], "%Y-%m-%d %H:%M:%S")
+            else:
+                ts_obj = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
+            ts_file = ts_obj.strftime('%Y%m%d_%H%M%S')
+        else:
+            # If datetime object
+            ts_file = ts_str.strftime('%Y%m%d_%H%M%S')
+            
+    except Exception as e:
+        print(f"Error parsing timestamp for download: {e}")
+        raise HTTPException(status_code=500, detail="Error resolving file path")
+
+    # Construct filenames
+    if format.lower() == "csv":
+        filename = f"ATHENAS_Lite_{advisor_slug}_{ts_file}.csv"
+    elif format.lower() == "txt":
+        # TXT logic used filename stem: {Path(audio_file.filename).stem}_ATHENAS_Lite.txt
+        # This is harder to reconstruct perfectly if we only have the filename string
+        # Let's try searching for the file with the same prefix
+        # We stored filename="audio.mp3" in DB.
+        stem = Path(analysis["filename"]).stem
+        filename = f"{stem}_ATHENAS_Lite.txt"
+    else:
+        raise HTTPException(status_code=400, detail="Invalid format. Use 'csv' or 'txt'")
+
+    file_path = os.path.join(exports_dir, filename)
+    
+    if not os.path.exists(file_path):
+        # Fallback: maybe timestamp is off by a second? or user renamed?
+        # For now, strict match.
+        raise HTTPException(status_code=404, detail="Export file not found on server")
+        
+    return FileResponse(file_path, filename=filename)

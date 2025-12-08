@@ -69,9 +69,23 @@ export default function AnalysisDetailPage() {
                             Reporte de Análisis
                         </h1>
                     </div>
-                    <button className="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors">
-                        Exportar PDF
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => window.open(apiClient.getDownloadUrl(parseInt(id), "csv"), "_blank")}
+                            className="px-4 py-2 border border-brand text-brand rounded-lg hover:bg-pink-50 transition-colors"
+                        >
+                            Descargar CSV
+                        </button>
+                        <button
+                            onClick={() => window.open(apiClient.getDownloadUrl(parseInt(id), "txt"), "_blank")}
+                            className="px-4 py-2 border border-brand text-brand rounded-lg hover:bg-pink-50 transition-colors"
+                        >
+                            Descargar TXT
+                        </button>
+                        <button className="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors">
+                            Exportar PDF
+                        </button>
+                    </div>
                 </div>
 
                 {/* Metadata */}

@@ -66,14 +66,18 @@ export default function DashboardPage() {
                 storedApiKey || undefined
             );
 
-            alert(`Análisis completado! Score: ${result.score_final}%`);
-
-            // Redirect to results
-            window.location.href = `/results/${result.id}`;
-        } catch (error: any) {
-            alert(`Error: ${error.message}`);
-        } finally {
             setUploading(false);
+            // Instead of auto-redirect, show success state or prompt
+            if (confirm(`Análisis completado! Score: ${result.score_final}%\n\n¿Deseas ir a resultados? (Cancelar para descargar aquí)`)) {
+                window.location.href = `/results/${result.id}`;
+            } else {
+                // Open downloads in new tabs
+                window.open(apiClient.getDownloadUrl(result.id, 'csv'), '_blank');
+                // window.open(apiClient.getDownloadUrl(result.id, 'txt'), '_blank'); // Optional
+            }
+        } catch (error: any) {
+            setUploading(false);
+            alert(`Error: ${error.message}`);
         }
     };
 

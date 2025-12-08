@@ -173,6 +173,10 @@ class APIClient {
     async getAdminStats(): Promise<any> {
         return this.fetch('/api/admin/stats');
     }
+
+    getDownloadUrl(analysisId: number, format: 'csv' | 'txt'): string {
+        return `${this.baseURL}/api/analysis/${analysisId}/download?format=${format}`;
+    }
 }
 
 export const apiClient = new APIClient();

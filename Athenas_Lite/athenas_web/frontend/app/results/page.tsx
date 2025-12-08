@@ -183,12 +183,31 @@ export default function ResultsPage() {
                                                 ).toLocaleDateString("es-MX")}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <a
-                                                    href={`/results/${analysis.id}`}
-                                                    className="text-brand hover:text-brand-dark font-medium text-sm"
-                                                >
-                                                    Ver detalles →
-                                                </a>
+                                                <div className="flex flex-col gap-2">
+                                                    <a
+                                                        href={`/results/${analysis.id}`}
+                                                        className="text-brand hover:text-brand-dark font-medium text-sm"
+                                                    >
+                                                        Ver detalles →
+                                                    </a>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => window.open(apiClient.getDownloadUrl(analysis.id, "csv"), "_blank")}
+                                                            className="text-xs text-brand hover:underline"
+                                                            title="Descargar CSV local"
+                                                        >
+                                                            CSV
+                                                        </button>
+                                                        <span className="text-gray-300">|</span>
+                                                        <button
+                                                            onClick={() => window.open(apiClient.getDownloadUrl(analysis.id, "txt"), "_blank")}
+                                                            className="text-xs text-brand hover:underline"
+                                                            title="Descargar Resumen TXT"
+                                                        >
+                                                            TXT
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
