@@ -11,6 +11,7 @@ logger = logging.getLogger("athenas_lite")
 
 API_KEY_GEMINI = None
 USE_REAL_MODEL = False
+GEMINI_MODEL_SELECTED = "gemini-3-12b"  # Modelo seleccionado por el usuario
 
 # ===== RATE LIMITER =====
 class RateLimiter:
@@ -99,10 +100,15 @@ def configurar_gemini(api_key: str) -> bool:
         USE_REAL_MODEL = False
         return False
 
-def _gemini_model(name="gemini-2.5-flash"):
+def _gemini_model(name=None):
+    """
+    Retorna el modelo de Gemini configurado.
+    Si no se especifica 'name', usa GEMINI_MODEL_SELECTED.
+    """
     if USE_REAL_MODEL:
         try:
-            return genai.GenerativeModel(name)
+            model_name = name or GEMINI_MODEL_SELECTED
+            return genai.GenerativeModel(model_name)
         except Exception:
             return None
     return None
@@ -123,6 +129,23 @@ def llm_json_or_mock(prompt: str, audio_path: str, fallback: dict) -> dict:
             text = getattr(resp, "text", None) or ""
             return json.loads(text)
         except Exception as e:
+            error_msg = str(e)
+            
+            # Detectar cuota agotada
+            if "429" in error_msg or "quota" in error_msg.lower() or "exceeded" in error_msg.lower():
+                logger.error(f"❌ CUOTA AGOTADA para modelo {GEMINI_MODEL_SELECTED}")
+                logger.error(f"💡 Solución: Abre 'Configurar API Key y Modelo' y cambia a otro modelo")
+                
+                # Mensaje específico según el modelo
+                if GEMINI_MODEL_SELECTED == "gemini-2.5-flash":
+                    logger.warning("⚠️ gemini-2.5-flash tiene límite de 20 requests/día")
+                    logger.warning("💡 Recomendación: Cambia a gemini-3-12b (14,400 requests/día)")
+                elif GEMINI_MODEL_SELECTED == "gemini-3-12b":
+                    logger.warning("⚠️ gemini-3-12b agotó su cuota de 14,400 requests/día")
+                    logger.warning("💡 Espera hasta mañana o usa otra API Key")
+                
+                return fallback
+            
             logger.error(f"Gemini output error (returning fallback): {e}")
             pass
     return fallback
@@ -139,6 +162,23 @@ def llm_text_or_mock(prompt: str, audio_path: str, fallback_text: str) -> str:
             resp = model.generate_content([prompt, {"mime_type": guess_mime(audio_path), "data": audio_bytes}])
             return (getattr(resp, "text", None) or "").strip()
         except Exception as e:
+            error_msg = str(e)
+            
+            # Detectar cuota agotada
+            if "429" in error_msg or "quota" in error_msg.lower() or "exceeded" in error_msg.lower():
+                logger.error(f"❌ CUOTA AGOTADA para modelo {GEMINI_MODEL_SELECTED}")
+                logger.error(f"💡 Solución: Abre 'Configurar API Key y Modelo' y cambia a otro modelo")
+                
+                # Mensaje específico según el modelo
+                if GEMINI_MODEL_SELECTED == "gemini-2.5-flash":
+                    logger.warning("⚠️ gemini-2.5-flash tiene límite de 20 requests/día")
+                    logger.warning("💡 Recomendación: Cambia a gemini-3-12b (14,400 requests/día)")
+                elif GEMINI_MODEL_SELECTED == "gemini-3-12b":
+                    logger.warning("⚠️ gemini-3-12b agotó su cuota de 14,400 requests/día")
+                    logger.warning("💡 Espera hasta mañana o usa otra API Key")
+                
+                return fallback_text
+            
             logger.error(f"Gemini output error (returning fallback): {e}")
             pass
     return fallback_text

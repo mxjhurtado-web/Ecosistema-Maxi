@@ -77,10 +77,11 @@ class MainApp:
             sys.exit(1)
 
     def configure_gemini_api(self):
+        """Configuración inicial de Gemini (opcional desde .env)"""
         try:
-            key = GEMINI_API_KEY or simpledialog.askstring("Gemini", "Pega tu API Key de Gemini (opcional):", show="*", parent=self.root)
-            if key:
-                configurar_gemini(key)
+            if GEMINI_API_KEY:
+                configurar_gemini(GEMINI_API_KEY)
+                logger.info("Gemini API Key cargada desde .env")
         except Exception:
             pass
 
@@ -110,9 +111,122 @@ class MainApp:
 
         btn_style = {"bg": PALETTE["brand"], "fg": "white", "font": self.fonts["body"], "width": 32}
         
+        tk.Button(self.root, text="⚙️ Configurar API Key y Modelo", command=self.configurar_api_key_y_modelo, **btn_style).pack(pady=5)
         tk.Button(self.root, text="Seleccionar archivo(s)", command=self.seleccionar_archivo, **btn_style).pack(pady=5)
         tk.Button(self.root, text="Guardar en carpeta...", command=self.seleccionar_carpeta_guardado, **btn_style).pack(pady=5)
         tk.Button(self.root, text="Analizar (Resumen consolidado)", command=self.solicitar_datos_y_analizar, **btn_style).pack(pady=5)
+
+    def configurar_api_key_y_modelo(self):
+        """Ventana para configurar API Key y seleccionar modelo de Gemini"""
+        from ..services.gemini_api import configurar_gemini, GEMINI_MODEL_SELECTED
+        
+        ventana = tk.Toplevel(self.root)
+        ventana.title("Configuración de Gemini")
+        ventana.configure(bg=PALETTE["card"])
+        ventana.geometry("500x350")
+        ventana.transient(self.root)
+        ventana.grab_set()
+        
+        # Título
+        tk.Label(ventana, text="⚙️ Configuración de Gemini API", 
+                bg=PALETTE["card"], fg=PALETTE["text"], 
+                font=("Segoe UI", 13, "bold")).pack(pady=(16, 10))
+        
+        # Frame principal
+        main_frame = tk.Frame(ventana, bg=PALETTE["card"])
+        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        # API Key
+        tk.Label(main_frame, text="API Key:", bg=PALETTE["card"], fg=PALETTE["text"],
+                font=self.fonts["body"]).grid(row=0, column=0, sticky="w", pady=(0, 5))
+        
+        api_key_entry = tk.Entry(main_frame, bg="#2a2a2a", fg=PALETTE["text"], 
+                                insertbackground=PALETTE["text"], relief="flat", 
+                                width=45, show="*")
+        api_key_entry.grid(row=1, column=0, sticky="ew", pady=(0, 5))
+        
+        # Link para obtener API Key
+        link_label = tk.Label(main_frame, text="🔗 Obtener API Key en Google AI Studio", 
+                             bg=PALETTE["card"], fg="#64B5F6", cursor="hand2",
+                             font=("Segoe UI", 9, "underline"))
+        link_label.grid(row=2, column=0, sticky="w", pady=(0, 15))
+        link_label.bind("<Button-1>", lambda e: self._open_url("https://aistudio.google.com/app/apikey"))
+        
+        # Selector de Modelo
+        tk.Label(main_frame, text="Modelo de Gemini:", bg=PALETTE["card"], fg=PALETTE["text"],
+                font=self.fonts["body"]).grid(row=3, column=0, sticky="w", pady=(10, 5))
+        
+        modelo_var = tk.StringVar(value=GEMINI_MODEL_SELECTED)
+        
+        # Radio buttons para modelos
+        radio_frame = tk.Frame(main_frame, bg=PALETTE["card"])
+        radio_frame.grid(row=4, column=0, sticky="w", pady=(0, 5))
+        
+        tk.Radiobutton(radio_frame, text="gemini-3-12b (Recomendado - 14.4K requests/día)", 
+                      variable=modelo_var, value="gemini-3-12b",
+                      bg=PALETTE["card"], fg=PALETTE["text"], selectcolor="#2a2a2a",
+                      activebackground=PALETTE["card"], activeforeground=PALETTE["text"],
+                      font=("Segoe UI", 9)).pack(anchor="w", pady=2)
+        
+        tk.Radiobutton(radio_frame, text="gemini-2.5-flash (20 requests/día)", 
+                      variable=modelo_var, value="gemini-2.5-flash",
+                      bg=PALETTE["card"], fg=PALETTE["text"], selectcolor="#2a2a2a",
+                      activebackground=PALETTE["card"], activeforeground=PALETTE["text"],
+                      font=("Segoe UI", 9)).pack(anchor="w", pady=2)
+        
+        # Info adicional
+        info_label = tk.Label(main_frame, 
+                             text="💡 gemini-3-12b permite analizar ~4,800 audios/día\n"
+                                  "   gemini-2.5-flash solo permite ~6 audios/día",
+                             bg=PALETTE["card"], fg="#FFB74D", justify="left",
+                             font=("Segoe UI", 8))
+        info_label.grid(row=5, column=0, sticky="w", pady=(10, 10))
+        
+        main_frame.grid_columnconfigure(0, weight=1)
+        
+        # Botones
+        btn_frame = tk.Frame(ventana, bg=PALETTE["card"])
+        btn_frame.pack(pady=(0, 16))
+        
+        def guardar():
+            from ..services import gemini_api
+            
+            api_key = api_key_entry.get().strip()
+            modelo = modelo_var.get()
+            
+            if api_key:
+                # Configurar API Key
+                if configurar_gemini(api_key):
+                    # Actualizar modelo seleccionado
+                    gemini_api.GEMINI_MODEL_SELECTED = modelo
+                    messagebox.showinfo("✅ Configuración exitosa", 
+                                      f"API Key configurada\nModelo: {modelo}")
+                    ventana.destroy()
+                else:
+                    messagebox.showerror("❌ Error", "No se pudo configurar la API Key")
+            else:
+                messagebox.showwarning("⚠️ Advertencia", "Debes ingresar una API Key")
+        
+        tk.Button(btn_frame, text="💾 Guardar", command=guardar, 
+                 bg=PALETTE["brand"], fg="white", relief="flat", 
+                 padx=20, pady=10, width=12).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="❌ Cancelar", command=ventana.destroy, 
+                 bg="#616161", fg="white", relief="flat", 
+                 padx=20, pady=10, width=12).pack(side="left", padx=5)
+        
+        # Centrar ventana
+        self.root.update_idletasks()
+        x = self.root.winfo_rootx() + (self.root.winfo_width()//2 - 250)
+        y = self.root.winfo_rooty() + (self.root.winfo_height()//2 - 175)
+        try:
+            ventana.geometry(f"+{x}+{y}")
+        except:
+            pass
+    
+    def _open_url(self, url):
+        """Abre URL en el navegador"""
+        import webbrowser
+        webbrowser.open(url)
 
     def seleccionar_archivo(self):
         archivos = filedialog.askopenfilenames(
