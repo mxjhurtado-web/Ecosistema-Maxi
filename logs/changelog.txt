@@ -54,3 +54,7 @@
 [2025-12-02 18:18:36] Drive: subido HADES_OCR_20251202_181824.csv (1BqYYHRgY7IZbDWWMGD6z1gYFM49GRc5F) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
 [2025-12-02 18:20:29] Resultado guardado: clipboard_1764721206.png (327 chars, 20.92s, riesgo=medio)
 [2025-12-02 18:20:40] Drive: subido HADES_OCR_20251202_182034.csv (1buhX2tfDsKtL2-rOXOa46eOaEfsPDVDw) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2025-12-09 10:50:40] Resultado guardado: 18oct.Pasaporte.png (476 chars, 8.04s, riesgo=bajo)
+[2025-12-09 10:50:48] Resultado guardado: Agencia 5317-ID Folio 133663.jpg (547 chars, 7.13s, riesgo=bajo)
+[2025-12-09 10:50:54] Resultado guardado: Agencia 4694-TX Folio 126754.jpg (610 chars, 6.71s, riesgo=bajo)
+[2025-12-09 10:51:06] Resultado guardado: image (1).png (550 chars, 11.79s, riesgo=bajo)

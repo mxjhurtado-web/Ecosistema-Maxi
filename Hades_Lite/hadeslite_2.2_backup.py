@@ -1,6 +1,6 @@
-# hades_2.2_integrado_full_v4_patched_limpio_final_corregido_v3.py
+# hades_1.6_integrado_full_v4_patched_limpio_final_corregido_v3.py
 # ------------------------------------------------------------------
-# HADES 2.2 — Integrado (FULL v4, Drive patched, Normalización Estricta Final o ya no se que version va jajajaja :) ups)
+# HADES 1.6 — Integrado (FULL v4, Drive patched, Normalización Estricta Final o ya no se que version va jajajaja :) ups)
 # • VERIFICACIÓN: Corregida normalización de fechas DD MM YYYY (Pasaporte MX).
 # • OCR con Gemini Visión (REST): Analizar actual / Analizar carrusel.
 # • EXPORTACIÓN: Salida de OCR forzada a usar fechas normalizadas en la UI.
@@ -80,172 +80,6 @@ _COUNTRY_CUES = {
            "social insurance book", "republic of vietnam", "vietnam"],
 }
 
-ID_TYPES_BY_COUNTRY = {
-
-    "MX": [
-        "Credencial para votar (INE)",
-        "Credencial para votar emitida por el INE",
-        "Pasaporte mexicano",
-        "Tarjeta de identificación consular de México",
-        "Identificación consular mexicana",
-    ],
-
-    "US": [
-        "Pasaporte estadounidense",
-        "United States passport",
-        "State ID",
-        "Driver license",
-        "Licencia de conducir",
-        "Permanent Resident Card",
-        "Green Card",
-        "Employment Authorization Document",
-        "EAD card",
-        "Identificación Militar",
-        "VISA",
-    ],
-
-    "GT": [
-        "Documento Personal de Identificación",
-        "DPI",
-        "Pasaporte guatemalteco",
-        "Identificación consular guatemalteca",
-    ],
-
-    "HN": [
-        "Tarjeta de identidad",
-        "Documento Nacional de Identificación",
-        "Pasaporte hondureño",
-        "Identificación consular hondureña",
-    ],
-
-    "SV": [
-        "Documento Único de Identidad",
-        "DUI",
-        "Pasaporte salvadoreño",
-        "Identificación consular salvadoreña",
-    ],
-
-    "NI": [
-        "Cédula de identidad de Nicaragua",
-        "Consejo Supremo Electoral",
-        "Pasaporte nicaragüense",
-        "Identificación consular nicaragüense",
-    ],
-
-    "CR": [
-        "Cédula de identidad de Costa Rica",
-        "Tribunal Supremo de Elecciones",
-        "Pasaporte costarricense",
-    ],
-
-    "PA": [
-        "Cédula de identidad personal panameña",
-        "Documento de identidad panameño",
-        "Pasaporte panameño",
-    ],
-
-    "CO": [
-        "Cédula de ciudadanía",
-        "Cédula de ciudadanía de Colombia",
-        "Pasaporte colombiano",
-    ],
-
-    "PE": [
-        "Documento Nacional de Identidad de Perú",
-        "DNI de Perú",
-        "Pasaporte peruano",
-    ],
-
-    "EC": [
-        "Cédula de identidad de Ecuador",
-        "Pasaporte ecuatoriano",
-    ],
-
-    "VE": [
-        "Cédula de identidad venezolana",
-        "Pasaporte venezolano",
-    ],
-
-    "DO": [
-        "Cédula de identidad y electoral",
-        "Cédula de República Dominicana",
-        "Pasaporte dominicano",
-    ],
-
-    "CU": [
-        "Pasaporte cubano",
-    ],
-
-    "AR": [
-        "Documento Nacional de Identidad de Argentina",
-        "DNI de Argentina",
-        "Pasaporte argentino",
-    ],
-
-    "CL": [
-        "Cédula de identidad de Chile",
-        "Cédula de identidad chilena",
-        "Servicio de registro civil e identificación",
-        "Pasaporte chileno",
-    ],
-
-    "BR": [
-        "Identificación consular brasileña",
-        "Passaporte brasileiro",
-    ],
-
-    "UY": [
-        "Documento de identidad de Uruguay",
-        "Pasaporte uruguayo",
-    ],
-
-    "PY": [
-        "Cédula de identidad civil",
-        "Pasaporte paraguayo",
-    ],
-
-    "BO": [
-        "Cédula de identidad boliviana",
-        "Pasaporte boliviano",
-        "Identificación consular boliviana",
-    ],
-
-    "ES": [
-        "Documento Nacional de Identidad de España",
-        "DNI de España",
-        "Pasaporte español",
-    ],
-
-    "PH": [
-        "Pasaporte filipino",
-        "Philippines passport",
-    ],
-
-    "JM": [
-        "Passport of Jamaica",
-        "Jamaican passport",
-    ],
-
-    "HT": [
-        "Passport of Haiti",
-        "Haitian passport",
-    ],
-
-    "TT": [
-        "Passport of Trinidad and Tobago",
-    ],
-
-    "PK": [
-        "CNIC (Computerized National Identity Card)",
-        "Pasaporte pakistaní",
-    ],
-
-    "IN": [
-        "Indian passport",
-        "Pasaporte de India",
-    ],
-}
-
 _DATE_RE_TXT_ES = re.compile(r'\b(\d{1,2})\s*(?:de\s*)?([A-Za-záéíóúÁÉÍÓÚñÑ]+)\s*(?:de\s*)?(\d{2,4})\b', re.IGNORECASE)
 
 # -- Patrones textuales y numéricos
@@ -287,22 +121,6 @@ def _infer_doc_country(texto: str):
         if any(c in t for c in cues):
             return cc
     return None
-
-def _normalize_for_match(s: str) -> str:
-    """Minúsculas, sin acentos ni signos, espacios normalizados: ideal para buscar en el glosario."""
-    if not s:
-        return ""
-    s = s.lower()
-    try:
-        s = ''.join(
-            c for c in unicodedata.normalize("NFD", s)
-            if unicodedata.category(c) != "Mn"
-        )
-    except Exception:
-        pass
-    s = re.sub(r"[^a-z0-9\s]", " ", s)  # quita signos raros
-    s = re.sub(r"\s+", " ", s).strip()
-    return s
 
 def _detect_language_bias(texto: str):
     t = (texto or "").lower()
@@ -664,59 +482,27 @@ def _extract_id_number(texto: str, doc_pais: str | None) -> str | None:
     return None
 
 def _extract_id_type(texto: str, doc_pais: str | None) -> str | None:
-    """
-    Determina el tipo de identificación:
-    1) Primero intenta por reglas específicas (INE, DPI, etc.).
-    2) Después usa el glosario ID_TYPES_BY_COUNTRY.
-    3) Por último, cae a tipos genéricos (Pasaporte / Licencia de conducir).
-    """
-    if not texto:
-        return None
-
-    if not doc_pais:
-        doc_pais = _infer_doc_country(texto)
-
-    t_raw = texto.lower()
-    t_norm = _normalize_for_match(texto)
-
-    # -------- 1) Reglas específicas que ya tenías (prioridad alta) --------
+    if not doc_pais: return None
+    t = texto.lower()
+    
+    # 1. Por País y tipo específico (prioridad alta)
     if doc_pais == "MX":
-        if any(kw in t_raw for kw in ["credencial para votar", "ine"]):
-            return "Credencial INE (MX)"
-        if "matrícula consular" in t_raw or "matricula consular" in t_raw:
-            return "Matrícula Consular (MX)"
-        if "pasaporte" in t_raw and "mex" in t_raw:
-            return "Pasaporte (MX)"
-
+        if any(kw in t for kw in ["credencial para votar", "ine"]): return "Credencial INE (MX)"
+        if "matrícula consular" in t: return "Matrícula Consular (MX)"
+        if "pasaporte" in t and "mex" in t: return "Pasaporte (MX)"
     if doc_pais == "GT":
-        if "documento personal de identificacion" in t_norm or "dpi" in t_norm:
-            return "DPI (GT)"
-        if "identificacion consular" in t_norm:
-            return "Identificación Consular (GT)"
-        if "pasaporte" in t_raw:
-            return "Pasaporte (GT)"
-
+        if "documento personal de identificación" in t or "dpi" in t: return "DPI (GT)"
+        if "identificacion consular" in t: return "Identificación Consular (GT)"
+        if "pasaporte" in t: return "Pasaporte (GT)"
     if doc_pais == "PH":
-        if "pasaporte" in t_raw or "passport" in t_raw:
-            return "Pasaporte (PH)"
-
+        return "Pasaporte (PH)"
     if doc_pais == "US":
-        if any(kw in t_norm for kw in ["driver license", "dl class", "licencia de conducir"]):
-            return "Licencia de Conducir (US)"
-
-    # -------- 2) Glosario por país (ID_TYPES_BY_COUNTRY) --------
-    if doc_pais and doc_pais in ID_TYPES_BY_COUNTRY:
-        tipos_pais = ID_TYPES_BY_COUNTRY[doc_pais]
-        for kw in tipos_pais:
-            if _normalize_for_match(kw) in t_norm:
-                return f"{kw} ({doc_pais})"
-
-    # -------- 3) Fallback genérico --------
-    if "pasaporte" in t_raw or "passport" in t_raw:
-        return "Pasaporte"
-    if "licencia de conducir" in t_raw or "driver license" in t_raw:
-        return "Licencia de Conducir"
-
+        if any(kw in t for kw in ["driver license", "licencia de conducir"]): return "Licencia de Conducir (US)"
+    
+    # 2. Por palabras clave genéricas (si no se resolvió antes)
+    if "pasaporte" in t or "passport" in t: return "Pasaporte"
+    if "licencia de conducir" in t or "driver license" in t: return "Licencia de Conducir"
+    
     return None
 # --- Fin funciones de extracción de ID ---
 
@@ -847,132 +633,60 @@ def _age_from_mdy(mdy: str):
     except Exception:
         return None
 
-def _authenticity_score(texto: str, image_path: str | None, forensic_summary: str = ""):
-    """
-    Calcula un score de riesgo de autenticidad combinando:
-    - Coherencia de datos (nombre, DOB, vigencia, CURP/RFC, etc.)
-    - Análisis forense que devuelve Gemini (screen-replay, sellos, hologramas).
-    """
+def _authenticity_score(texto: str, image_path: str|None):
     details = []
     score = 0
     low = (texto or "").lower()
 
-    # País detectado (para reglas más duras en IDs reales)
-    doc_pais = _infer_doc_country(texto)
-
-    # === 1. Chequeo de “muestra / specimen / void” muy fuerte ===
-    if any(w in low for w in _SAMPLE_WORDS if w):
-        score += 80
-        details.append("Contiene 'sample/muestra/void/specimen', muy típico de credenciales de ejemplo o inválidas.")
-
-    # === 2. Nombre ===
-    nombre = _extract_name(texto)
-    if not nombre:
-        # Antes: +10 → lo hacemos mucho más fuerte
-        score += 40
-        details.append("No se detectó nombre del titular (muy inusual en un ID real).")
-
-    # === 3. Fecha de nacimiento y coherencia con CURP / RFC ===
+    # Usamos la lógica del nuevo procesador para obtener la fecha normalizada
     date_results = _process_all_dates_by_type(texto)
     dob_use = date_results.get("fecha_nacimiento_final")
+    
+    # 1. Chequeo de Muestra
+    if any(w in low for w in _SAMPLE_WORDS if w):
+        score += 50; details.append("Contiene 'sample/muestra/void'.")
 
+    # 2. Chequeo de Nombre
+    nombre = _extract_name(texto)
+    if not nombre:
+        score += 10; details.append("No se detectó nombre.")
+
+    # 3. Chequeo de Fecha de Nacimiento e Inconsistencias
     if dob_use and "Sugerida" not in dob_use:
         age = _age_from_mdy(dob_use)
         if age is not None and (age < 15 or age > 120):
-            score += 35
-            details.append(f"Edad implausible según la fecha de nacimiento ({age} años).")
-
-        # México: CURP y RFC deben ser coherentes con la DOB
+            score += 30; details.append(f"Edad implausible ({age} años).")
+        
         curp_m = _CURP_RE.search(texto or "")
-        if curp_m and doc_pais == "MX":
+        if curp_m and _infer_doc_country(texto) == "MX":
             curp = curp_m.group(0)
             curp_dob = _parse_dob_from_curp(curp)
             if curp_dob and curp_dob != dob_use:
-                score += 45
-                details.append("CURP no coincide con la fecha de nacimiento declarada.")
-
+                score += 40; details.append("CURP no coincide con la fecha de nacimiento.")
+        
         rfc_m = _RFC_PER_RE.search(texto or "")
-        if rfc_m and doc_pais == "MX":
-            yy, mm, dd = map(int, rfc_m.groups()[1:4])
+        if rfc_m and _infer_doc_country(texto) == "MX":
+            yy,mm,dd = map(int, rfc_m.groups()[1:4])
             y = 2000 + yy if yy < 50 else 1900 + yy
             rfc_dob = f"{mm:02d}/{dd:02d}/{y:04d}"
             if rfc_dob != dob_use:
-                score += 25
-                details.append("RFC no coincide con la fecha de nacimiento declarada.")
+                score += 20; details.append("RFC no coincide con la fecha de nacimiento.")
     else:
-        # Antes: +10 → más fuerte
-        score += 25
-        details.append("No se identificó una fecha de nacimiento clara en el documento.")
+        score += 10; details.append("No se identificó fecha de nacimiento.")
 
-    # === 4. Vigencia ===
+    # 4. Chequeo de Vigencia
     vig_final = date_results.get("fecha_vigencia_final")
     if not vig_final or "Sugerida" in vig_final:
-        # Antes: +10 → ahora mucho más fuerte
-        score += 30
-        details.append("No se detectó vigencia explícita en el documento (se usa fecha sugerida).")
+        score += 10; details.append("No se detectó vigencia (usamos sugerida).")
 
-    # BONUS: si falta más de un campo esencial en países “serios”
-    faltan_campos_esenciales = 0
-    if not nombre:
-        faltan_campos_esenciales += 1
-    if not dob_use:
-        faltan_campos_esenciales += 1
-    if not vig_final or "Sugerida" in vig_final:
-        faltan_campos_esenciales += 1
-
-    if doc_pais in {"US", "MX", "GT", "HN", "SV", "NI", "CR", "PA", "CO", "PE", "EC", "DO", "VE", "ES"}:
-        if faltan_campos_esenciales >= 2:
-            score += 30
-            details.append("Faltan 2 o más campos esenciales (nombre / nacimiento / vigencia) para este tipo de documento.")
-
-    # === 5. ANÁLISIS FORENSE (respuesta de Gemini) ===
-    if forensic_summary:
-        fs_upper = forensic_summary.upper()
-
-        # VEREDICTO declarado por el modelo
-        if "VEREDICTO: ALTO" in fs_upper:
-            score += 100
-            details.append("⚠️ ANALISTA FORENSE (Gemini): VEREDICTO ALTO.")
-        elif "VEREDICTO: MEDIO" in fs_upper:
-            score += 65
-            details.append("⚠️ ANALISTA FORENSE (Gemini): VEREDICTO MEDIO.")
-
-        # Palabras clave fuertes del análisis visual
-        fraud_clues = [
-            "impresión en papel", "printed on paper", "fotocopia", "photocopy",
-            "no se observan hologramas", "sin hologramas", "holograma plano",
-            "bordes recortados", "recortada", "cropped id",
-            "patrones de moiré", "moire pattern", "screen replay",
-            "posible manipulación digital", "signos de edición", "pixelación extraña",
-            "inconsistent fonts", "fuentes inconsistentes", "digital insertion", "inserción digital",
-            "wrong perspective", "perspectiva incorrecta", "flat lighting", "iluminación plana",
-            "perfect alignment", "alineación perfecta", "digital mockup", "plantilla digital"
-        ]
-        if any(clue in forensic_summary.lower() for clue in fraud_clues):
-            score += 40
-            details.append("El análisis forense menciona posibles manipulaciones visibles (sellos/hologramas/edición).")
-
-        # Adjuntar los primeros bullets del forense para contexto
-        forensic_lines = [line.strip() for line in forensic_summary.splitlines() if line.strip().startswith("-")]
-        if forensic_lines:
-            details.append("--- Hallazgos Forenses ---")
-            details.extend(forensic_lines[:3])
-
-    # === 6. Mapeo a etiqueta de riesgo ===
-    if score < 25:
-        riesgo = "bajo"
-    elif score <= 60:
-        riesgo = "medio"
-    else:
-        riesgo = "alto"
-
+    riesgo = "bajo" if score < 25 else ("medio" if score <= 60 else "alto")
     return riesgo, details
 
 # --- Tk / UI ---
 # (Las importaciones ya se hicieron al inicio)
 
 # ===== ESTILO =====
-APP_TITLE = "HADES 2.2 — Integrado"
+APP_TITLE = "HADES 1.8 — Integrado"
 COLOR_BG = "#0f0b1a"; COLOR_PANEL = "#1a1330"; COLOR_CARD = "#221b3f"
 COLOR_TEXT = "#EAE6FF"; COLOR_MUTED = "#C7B8FF"
 ACCENT = "#7C3AED"; ACCENT_2 = "#A78BFA"; COLOR_BTN = "#2E2357"; COLOR_PRIMARY = ACCENT
@@ -1149,13 +863,13 @@ def verificar_correo_online(correo: str):
 
 # ====== OCR con Gemini Visión (REST) ======
 
-def gemini_vision_extract_text(image_path: str) -> Tuple[str, str]:
+def gemini_vision_extract_text(image_path: str) -> str:
     """
-    Extrae texto con Gemini Visión y realiza un ANALISIS FORENSE.
-    Retorna: (texto_ocr, resumen_forense)
+    Extrae texto con Gemini Visión.
+    ## PULIDO: Se modifica el prompt para exigir formato de clave-valor.
     """
     if not GEMINI_API_KEY:
-        return "⚠️ Configura GEMINI_API_KEY para usar Visión.", ""
+        return "⚠️ Configura GEMINI_API_KEY para usar Visión."
     try:
         from PIL import Image, ImageOps
         # --- Pre-proceso de imagen ---
@@ -1166,40 +880,18 @@ def gemini_vision_extract_text(image_path: str) -> Tuple[str, str]:
         bio.seek(0)
         mime = "image/png"
 
-        # --- Prompt estilo 'clave-valor' + FORENSE ---
-        prompt = (
-            "Actúa como un analista forense de documentos de identidad experto en detección de fraude.\n"
-            "Tu tarea es doble:\n"
-            "1. EXTRAER TEXTO (OCR): Extrae todo el texto visible y reconstruye la información como pares "
-            "CLAVE: VALOR (ej. Nombre: JUAN PEREZ). Incluye todos los números, fechas y claves.\n"
-            "2. ANÁLISIS FORENSE VISUAL: Analiza la imagen buscando señales de manipulación y ausencia de "
-            "elementos de seguridad. Evalúa específicamente:\n"
-            "   - Si parece una tarjeta física de plástico o una impresión/fotocopia en papel.\n"
-            "   - Presencia y aspecto de hologramas, sellos, microtexto, escudos y patrones de fondo de seguridad.\n"
-            "   - Si la foto del titular parece recortada o pegada encima.\n"
-            "   - Artefactos digitales (pixelación extraña, fuentes inconsistentes, bordes recortados).\n"
-            "   - Screen replay (patrones de Moiré, reflejos de pantalla) que indiquen foto tomada a otra pantalla.\n"
-            "   - Inconsistencias en iluminación y sombras (sugiere inserción digital).\n"
-            "   - Alineación perfecta artificial (sugiere plantilla digital).\n\n"
-            "Al final, da un VEREDICTO global de autenticidad:\n"
-            "   - BAJO: No ves señales claras de fraude.\n"
-            "   - MEDIO: Hay dudas o 1 señal fuerte (ej. posible screen replay o falta de hologramas).\n"
-            "   - ALTO: Hay 2 o más señales fuertes de posible fraude (ej. edición digital evidente, foto pegada).\n\n"
-            "FORMATO DE RESPUESTA OBLIGATORIO (usa estos separadores exactos):\n"
-            "---OCR---\n"
-            "(Aquí pon SOLO los pares clave: valor del texto extraído)\n"
-            "---FORENSIC---\n"
-            "VEREDICTO: [BAJO / MEDIO / ALTO]\n"
-            "DETALLES:\n"
-            "- [Detalle 1]\n"
-            "- [Detalle 2]\n"
-            "- [Detalle 3]\n"
-            "(Si no hay texto legible, en OCR pon: (sin texto))"
-        )
+        # --- Prompt estilo 'clave-valor' ---
+        ## PULIDO: NUEVO PROMPT CLAVE-VALOR
+        prompt = ("Extrae todo el texto visible. Luego, RECONSTRUYE la información "
+                  "como una lista de pares CLAVE: VALOR. "
+                  "Ejemplo: Nombre: RAMIREZ MARTINEZ MIRIAN. Fecha de Nacimiento: 05/06/1993. "
+                  "Incluye todos los números, series, claves y fechas. "
+                  "Mantén la puntuación y omite cualquier introducción o comentario. "
+                  "Responde solo el texto formateado en clave-valor en español. "
+                  "Si no hay texto legible, responde exactamente: (sin texto).")
         temp = 0.3
 
         # --- SDK preferente ---
-        txt_full = ""
         if genai is not None:
             try:
                 genai.configure(api_key=GEMINI_API_KEY)
@@ -1208,52 +900,34 @@ def gemini_vision_extract_text(image_path: str) -> Tuple[str, str]:
                     [{"mime_type": mime, "data": bio.getvalue()}, {"text": prompt}],
                     generation_config={"temperature": temp, "top_p": 0.95, "max_output_tokens": 8192}
                 )
-                txt_full = getattr(resp, "text", "") or ""
+                txt = getattr(resp, "text", "") or ""
+                return _clean_ocr_output(txt.strip() if txt.strip() else "(sin texto)")
             except Exception:
                 pass # Si el SDK falla, seguimos con REST
 
         # --- Fallback REST (mismo prompt/config) ---
-        if not txt_full:
-            try:
-                b64 = base64.b64encode(bio.getvalue()).decode("utf-8")
-                model_name = "gemini-2.5-flash"
-                url = "https://generativelanguage.googleapis.com/v1beta/models/" + model_name + ":generateContent"
-                payload = {
-                    "contents": [{
-                        "parts": [
-                            {"inline_data": {"mime_type": mime, "data": b64}},
-                            {"text": prompt}
-                        ]
-                    }],
-                    "generationConfig": {"temperature": temp, "topP": 0.95, "maxOutputTokens": 8192}
-                }
-                headers = {"Content-Type": "application/json"}
-                r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=90)
-                data = r.json()
-                txt_full = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
-            except Exception as e2:
-                return f"❌ Error en Visión (fallback): {e2}", ""
-
-        # --- PARSEO DE RESPUESTA DUAL ---
-        ocr_part = ""
-        forensic_part = ""
-        
-        if "---OCR---" in txt_full:
-            parts = txt_full.split("---FORENSIC---")
-            ocr_raw = parts[0].replace("---OCR---", "").strip()
-            ocr_part = _clean_ocr_output(ocr_raw if ocr_raw else "(sin texto)")
-            
-            if len(parts) > 1:
-                forensic_part = parts[1].strip()
-        else:
-            # Fallback si el modelo no respetó el formato (asumimos que todo es OCR por compatibilidad)
-            ocr_part = _clean_ocr_output(txt_full.strip())
-            forensic_part = "No se pudo generar análisis forense estructurado."
-
-        return ocr_part, forensic_part
-
+        try:
+            b64 = base64.b64encode(bio.getvalue()).decode("utf-8")
+            model_name = "gemini-2.5-flash"
+            url = "https://generativelanguage.googleapis.com/v1beta/models/" + model_name + ":generateContent"
+            payload = {
+                "contents": [{
+                    "parts": [
+                        {"inline_data": {"mime_type": mime, "data": b64}},
+                        {"text": prompt}
+                    ]
+                }],
+                "generationConfig": {"temperature": temp, "topP": 0.95, "maxOutputTokens": 8192}
+            }
+            headers = {"Content-Type": "application/json"}
+            r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=90)
+            data = r.json()
+            txt = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
+            return _clean_ocr_output(txt.strip() if txt.strip() else "(sin texto)")
+        except Exception as e2:
+            return f"❌ Error en Visión (fallback): {e2}"
     except Exception as e:
-        return f"❌ Error en Visión: {e}", ""
+        return f"❌ Error en Visión: {e}"
 
 
 # ====== Modales con tema (oscuro morado) ======
@@ -1314,8 +988,7 @@ def registrar_changelog(evento: str):
         log.write(f"[{ts}] {evento}\n")
 
 def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
-                         datos_esenciales: dict = None, riesgo: str = "", detalles: list = None,
-                         tipo_id: str = None, num_id: str = None):
+                         datos_esenciales: dict = None, riesgo: str = "", detalles: list = None):
     """Guarda resultados y métricas de forma consolidada."""
     # Inicialización
     r = next((res for res in resultados if res['archivo'] == nombre), None)
@@ -1335,8 +1008,6 @@ def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
         
         # Asignación de fechas procesadas
         r['doc_pais'] = doc or ''
-        if tipo_id: r['tipo_id'] = tipo_id
-        if num_id: r['num_id'] = num_id
         r['formato_fecha_detectado'] = fmt or ''
         
         # Nuevos campos de fechas (usados para el exportador)
@@ -1355,28 +1026,10 @@ def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
         # Autenticidad
         r['autenticidad_riesgo'] = riesgo
         r['autenticidad_detalles'] = ' | '.join(detalles or [])
-        
-        # Clasificación tipo "verdadero / falso (estimación)"
-        if riesgo == "bajo":
-            r["documento_flag_sospechoso"] = "no"
-            r["documento_veredicto"] = "Riesgo de Autenticidad (riesgo bajo)."
-        elif riesgo == "medio":
-            r["documento_flag_sospechoso"] = "si"
-            r["documento_veredicto"] = "Documento con Posibles Inconsistencias (riesgo medio, revisar)."
-        else:  # riesgo == "alto"
-            r["documento_flag_sospechoso"] = "si"
-            r["documento_veredicto"] = "Alto Riesgo de Autenticidad (revisión obligatoria)."
-        
         r['todas_las_fechas_sugeridas_mdy'] = fechas_mdy
         
     except Exception as e:
         print(f"[HADES] Error al calcular metadata de resultado: {e}")
-
-    # Copiar datos esenciales (nombre, tipo, número de ID, etc.) al resultado
-    if datos_esenciales:
-        for k, v in datos_esenciales.items():
-            if v is not None:
-                r[k] = v
 
     # métricas (usuario = correo)
     m = next((met for met in metricas if met['archivo'] == nombre), None)
@@ -1685,7 +1338,7 @@ def _age_from_mdy(mdy: str):
     except Exception:
         return None
 
-def _authenticity_score(texto: str, image_path: str|None, forensic_summary: str = ""):
+def _authenticity_score(texto: str, image_path: str|None):
     details = []
     score = 0
     low = (texto or "").lower()
@@ -1730,21 +1383,6 @@ def _authenticity_score(texto: str, image_path: str|None, forensic_summary: str 
     vig_final = date_results.get("fecha_vigencia_final")
     if not vig_final or "Sugerida" in vig_final:
         score += 10; details.append("No se detectó vigencia (usamos sugerida).")
-
-    # 5. ANÁLISIS FORENSE (LLAMADA A GEMINI)
-    if forensic_summary:
-        if "VEREDICTO: ALTO" in forensic_summary:
-            score += 100 # Forzar riesgo alto
-            details.append("⚠️ ANALISTA FORENSE: ALTO RIESGO DETECTADO.")
-        elif "VEREDICTO: MEDIO" in forensic_summary:
-            score += 40
-            details.append("⚠️ ANALISTA FORENSE: Riesgo Medio detectado.")
-        
-        # Extraer detalles del forense (líneas que empiezan con -)
-        forensic_lines = [line.strip() for line in forensic_summary.splitlines() if line.strip().startswith("-")]
-        if forensic_lines:
-            details.append("--- Hallazgos Forenses ---")
-            details.extend(forensic_lines[:3]) # Agregar top 3 hallazgos
 
     riesgo = "bajo" if score < 25 else ("medio" if score <= 60 else "alto")
     return riesgo, details
@@ -1817,10 +1455,6 @@ def _verificar_inicio():
         else:
             messagebox.showerror("Acceso denegado", "Este correo no está autorizado.")
     root.destroy(); return False
-
-# Validar inicio
-if not _verificar_inicio():
-    sys.exit()
 
 
 # Header con imagen flama
@@ -2177,7 +1811,7 @@ def analizar_actual():
     _hide_logo_bg()
     
     # 1. OCR y Normalización
-    texto, forensic_summary = gemini_vision_extract_text(p)
+    texto = gemini_vision_extract_text(p)
     # Se mantiene la normalización para extraer metadatos de riesgo y exportación
     texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
     
@@ -2190,20 +1824,18 @@ def analizar_actual():
     
     datos_esenciales = {
         "nombre": nombre_completo,
-        "tipo_identificacion": tipo_id,
-        "numero_identificacion": num_id,
         "fecha_nacimiento_original": _extract_dob(texto)[0],
         "fecha_nacimiento_sugerida_mdy": date_results.get("fecha_nacimiento_final"),
         "vigencia_original": texto,
         "vigencia_sugerida_mdy": vigencia_final,
     }
     # NOTA: Se pasa el texto original a _authenticity_score para que use la detección de país
-    riesgo, detalles = _authenticity_score(texto, p, forensic_summary)
+    riesgo, detalles = _authenticity_score(texto, p)
     dt = round(time.time() - t0, 2)
 
     # 3. Guardar resultados
     # Usamos el texto original para que el exportador trabaje con el output de Gemini
-    _guardar_resultado(Path(p).name, texto, "actual", dt, datos_esenciales, riesgo, detalles, tipo_id, num_id)
+    _guardar_resultado(Path(p).name, texto, "actual", dt, datos_esenciales, riesgo, detalles)
     
     # 4. Mostrar en el panel
     ocr_text.delete("1.0", "end") # Limpiamos antes de mostrar
@@ -2217,28 +1849,7 @@ def analizar_actual():
     ocr_text.insert("end", f"\nTexto Completo (OCR original):\n", "body_header")
     ocr_text.tag_config("body_header", font=("Segoe UI", 10, "bold"), foreground=COLOR_TEXT)
     
-    # === Semáforo de autenticidad en la UI ===
-    ocr_text.tag_config("risk_low",  foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold"))
-    ocr_text.tag_config("risk_mid",  foreground="gold",       font=("Segoe UI", 10, "bold"))
-    ocr_text.tag_config("risk_high", foreground=COLOR_RED,    font=("Segoe UI", 10, "bold"))
-
-    if riesgo == "bajo":
-        tag = "risk_low"
-        msg = "✅ Riesgo de Autenticidad (riesgo bajo).\n"
-    elif riesgo == "medio":
-        tag = "risk_mid"
-        msg = "⚠ Documento con Posibles Inconsistencias (riesgo medio, revisar).\n"
-    else:
-        tag = "risk_high"
-        msg = "🚨 Alto Riesgo de Autenticidad (revisión obligatoria).\n"
-
-    ocr_text.insert("end", msg, tag)
-
-    # Lista de motivos detectados
-    for d in (detalles or []):
-        ocr_text.insert("end", f" • {d}\n", tag)
-
-    ocr_text.insert("end", "\n")  # línea en blanco antes del texto OCR
+    # (Punto 3 - Arreglo [DOCUMENTO])
     #if doc_pais:
         #ocr_text.insert("end", f"país: {doc_pais}\n", "essential_value")
     
@@ -2271,7 +1882,7 @@ def analizar_carrusel():
         t0 = time.time()
         try:
             # 1. OCR y Normalización (solo para registro/diagnóstico)
-            texto, forensic_summary = gemini_vision_extract_text(p)
+            texto = gemini_vision_extract_text(p)
             texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
             
             # 2. Extracción de datos esenciales y autenticidad (solo para registro)
@@ -2286,19 +1897,17 @@ def analizar_carrusel():
             
             datos_esenciales = {
                 "nombre": nombre_completo,
-                "tipo_identificacion": tipo_id,
-                "numero_identificacion": num_id,
                 "fecha_nacimiento_original": _extract_dob(texto)[0],
                 "fecha_nacimiento_sugerida_mdy": nacimiento_final,
                 "vigencia_original": texto,
                 "vigencia_sugerida_mdy": vigencia_final,
             }
 
-            riesgo, detalles = _authenticity_score(texto, p, forensic_summary)
+            riesgo, detalles = _authenticity_score(texto, p)
             dt = round(time.time() - t0, 2)
 
             # 3. Guardar resultados
-            _guardar_resultado(Path(p).name, texto, "carrusel", dt, datos_esenciales, riesgo, detalles, tipo_id, num_id)
+            _guardar_resultado(Path(p).name, texto, "carrusel", dt, datos_esenciales, riesgo, detalles)
 
             # 4. Mostrar en el panel (SOLO OCR y autenticidad)
             nombre_archivo = Path(p).name
@@ -2307,28 +1916,7 @@ def analizar_carrusel():
             # Mostrar encabezado de resultado
             ocr_text.insert("end", f"\n\nRESULTADO {i}/{total} — {nombre_archivo}\n", "header")
 
-            # === Semáforo de autenticidad en la UI ===
-            ocr_text.tag_config("risk_low",  foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold"))
-            ocr_text.tag_config("risk_mid",  foreground="gold",       font=("Segoe UI", 10, "bold"))
-            ocr_text.tag_config("risk_high", foreground=COLOR_RED,    font=("Segoe UI", 10, "bold"))
-
-            if riesgo == "bajo":
-                tag = "risk_low"
-                msg = "✅ Riesgo de Autenticidad (riesgo bajo).\n"
-            elif riesgo == "medio":
-                tag = "risk_mid"
-                msg = "⚠ Documento con Posibles Inconsistencias (riesgo medio, revisar).\n"
-            else:
-                tag = "risk_high"
-                msg = "🚨 Alto Riesgo de Autenticidad (revisión obligatoria).\n"
-
-            ocr_text.insert("end", msg, tag)
-
-            # Lista de motivos detectados
-            for d in (detalles or []):
-                ocr_text.insert("end", f" • {d}\n", tag)
-
-            ocr_text.insert("end", "\n")  # línea en blanco antes del texto OCR
+            # (Punto 3 - Arreglo [DOCUMENTO])
             #if doc_pais_actual:
                 #ocr_text.insert("end", f"país: {doc_pais_actual}\n", "essential_value")
 
@@ -2388,17 +1976,11 @@ def analizar_identificacion():
 
         try:
             # === 1) OCR de frente y reverso (por separado) ===
-            texto_frente, forensic_frente = gemini_vision_extract_text(frente)
-            texto_reverso, forensic_reverso = gemini_vision_extract_text(reverso)
-            
-            texto_frente = texto_frente or ""
-            texto_reverso = texto_reverso or ""
+            texto_frente = gemini_vision_extract_text(frente) or ""
+            texto_reverso = gemini_vision_extract_text(reverso) or ""
 
             # Texto combinado (lo que se guarda / exporta)
             texto_total = texto_frente + "\n" + texto_reverso
-            
-            # Forense combinado
-            forensic_total = f"--- FRENTE ---\n{forensic_frente}\n--- REVERSO ---\n{forensic_reverso}"
 
             # === 2) Normalización / metadata usando el texto combinado ===
             _, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto_total)
@@ -2411,15 +1993,13 @@ def analizar_identificacion():
 
             datos_esenciales = {
                 "nombre": nombre_completo,
-                "tipo_identificacion": tipo_id,
-                "numero_identificacion": num_id,
                 "fecha_nacimiento_original": _extract_dob(texto_total)[0],
                 "fecha_nacimiento_sugerida_mdy": nacimiento_final,
                 "vigencia_original": texto_total,
                 "vigencia_sugerida_mdy": vigencia_final,
             }
 
-            riesgo, detalles = _authenticity_score(texto_total, frente, forensic_total)
+            riesgo, detalles = _authenticity_score(texto_total, frente)
             dt = round(time.time() - t0, 2)
 
             # Nombre lógico para exportar (frente + reverso)
@@ -2432,8 +2012,6 @@ def analizar_identificacion():
                 datos_esenciales,
                 riesgo,
                 detalles,
-                tipo_id,
-                num_id
             )
 
             # ===== 3) MOSTRAR EN PANEL =====
@@ -2445,28 +2023,7 @@ def analizar_identificacion():
             )
             ocr_text.insert("end", header_line, "header")
 
-            # === Semáforo de autenticidad en la UI ===
-            ocr_text.tag_config("risk_low",  foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold"))
-            ocr_text.tag_config("risk_mid",  foreground="gold",       font=("Segoe UI", 10, "bold"))
-            ocr_text.tag_config("risk_high", foreground=COLOR_RED,    font=("Segoe UI", 10, "bold"))
-
-            if riesgo == "bajo":
-                tag = "risk_low"
-                msg = "✅ Riesgo de Autenticidad (riesgo bajo).\n"
-            elif riesgo == "medio":
-                tag = "risk_mid"
-                msg = "⚠ Documento con Posibles Inconsistencias (riesgo medio, revisar).\n"
-            else:
-                tag = "risk_high"
-                msg = "🚨 Alto Riesgo de Autenticidad (revisión obligatoria).\n"
-
-            ocr_text.insert("end", msg, tag)
-
-            # Lista de motivos detectados
-            for d in (detalles or []):
-                ocr_text.insert("end", f" • {d}\n", tag)
-
-            ocr_text.insert("end", "\n")  # línea en blanco antes del texto OCR
+            # País (una sola vez por ID)
             #if doc_pais:
                 #ocr_text.insert("end", f"país: {doc_pais}\n", "essential_value")
 
@@ -2536,6 +2093,38 @@ def _popup_feedback_then_export_drive():
         pass
     root.wait_window(win)
 
+def _export_drive_only():
+    # Modal morado con 👍/👎 que BLOQUEA hasta seleccionar
+    win = Toplevel(root)
+    win.title("Califica el análisis")
+    win.configure(bg=COLOR_CARD)
+    win.transient(root)
+    win.grab_set()
+    Label(win, text="¿Te gustó el análisis?", bg=COLOR_CARD, fg=COLOR_TEXT).pack(pady=(14, 4))
+
+    btns = Frame(win, bg=COLOR_CARD)
+    btns.pack(pady=10)
+
+    def choose(v):
+        global FEEDBACK_RATING, metricas
+        FEEDBACK_RATING = v
+        for m in metricas:
+            m['feedback'] = FEEDBACK_RATING or ""
+        win.destroy()
+        _export_drive_only()
+
+    Button(btns, text="👍 Me gustó", command=lambda: choose('up'), bg=COLOR_PURPLE, fg="white", relief="flat", padx=16, pady=10).pack(side="left", padx=8)
+    Button(btns, text="👎 No me gustó", command=lambda: choose('down'), bg=COLOR_BTN, fg="white", relief="flat", padx=16, pady=10).pack(side="left", padx=8)
+
+    # Centrar y bloquear
+    root.update_idletasks()
+    x = root.winfo_rootx() + (root.winfo_width()//2 - win.winfo_width()//2)
+    y = root.winfo_rooty() + (root.winfo_height()//2 - win.winfo_height()//2)
+    try:
+        win.geometry(f"+{x}+{y}")
+    except Exception:
+        pass
+    root.wait_window(win)
 
 def _export_drive_only():
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -2549,7 +2138,7 @@ def _export_drive_only():
         metricas_df = pd.DataFrame(columns=['archivo','api','tipo','duracion_s','usuario','feedback'])
 
     combinado_df = resumen_df.merge(metricas_df, on='archivo', how='left', suffixes=('', '_m'))
-    preferred_order = ['archivo','texto','duracion_s','tipo','doc_pais','tipo_id','num_id','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final','fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy','autenticidad_riesgo','autenticidad_detalles','api','usuario','feedback']
+    preferred_order = ['archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final','fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy','autenticidad_riesgo','autenticidad_detalles','api','usuario','feedback']
     final_cols = [c for c in preferred_order if c in combinado_df.columns] + [c for c in combinado_df.columns if c not in preferred_order]
     combinado_df = combinado_df[final_cols]
 
@@ -2579,7 +2168,7 @@ def _do_export(destino_carpeta_local: str):
         messagebox.showinfo("Exportación", "No hay resultados para exportar localmente."); return
 
     # Usar las nuevas columnas finales para exportar los datos procesados
-    cols = [c for c in ['archivo','texto','duracion_s','tipo','doc_pais','tipo_id','num_id','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final'] if c in resumen_df.columns]
+    cols = [c for c in ['archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final'] if c in resumen_df.columns]
     out_df = resumen_df[cols].copy() if cols else resumen_df.copy()
     out_df.to_csv(csv_path, index=False, encoding="utf-8-sig")
 
@@ -2589,8 +2178,6 @@ def _do_export(destino_carpeta_local: str):
             f.write(f"Duración (s): {row.get('duracion_s','')}\n")
             f.write(f"Tipo: {row.get('tipo','')}\n")
             f.write(f"País: {row.get('doc_pais','')}\n")
-            f.write(f"Tipo ID: {row.get('tipo_id','')}\n")
-            f.write(f"Num ID: {row.get('num_id','')}\n")
             f.write(f"Formato fecha detectado: {row.get('formato_fecha_detectado','')}\n")
             f.write(f"Fecha Expedición: {row.get('fecha_expedicion_final','')}\n")
             f.write(f"Vigencia: {row.get('vigencia_final','')}\n")
@@ -2617,6 +2204,21 @@ def borrar_todo():
     ocr_text.delete("1.0", "end")
     _show_logo_bg() # Vuelve a mostrar el logo
     status.config(text="Se limpió el estado.")
+
+# ===== Helpers de extracción de DATOS ESENCIALES (Movidos al final para mejor estructura) =====
+## PULIDO: Se ajusta el regex para intentar no capturar 'DOMICILIO' ni 'DIRECCIÓN'
+_NAME_HINTS = [
+    # Captura el valor después de NOMBRE/NAME/TITULAR/NOMBRES/APELLIDOS
+    r"(?:nombre|names|nombres)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s'.-]+?)(?:\s+(APELLIDOS|SURNAME|DIRECCION|CALLE))?$",
+    r"(?:apellidos|surname)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s'.-]+?)(?:\s+(NOMBRES|NAMES|FECHA))?$",
+    r"(?:nombre|name|titular)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s'.-]+)", # Fallback más simple
+]
+_DOB_HINTS = [
+    r"(?:fecha\s*de\s*nacimiento|f\.\s*de\s*nac\.?|dob|date\s*of\s*birth|nacimient[oa])"
+]
+_CURP_RE = re.compile(r'\b([A-Z][AEIOUX][A-Z]{2})(\d{2})(\d{2})(\d{2})[HM][A-Z]{5}[0-9A-Z]\d\b', re.IGNORECASE)
+_RFC_PER_RE = re.compile(r'\b([A-ZÑ&]{4})(\d{2})(\d{2})(\d{2})[A-Z0-9]{3}\b', re.IGNORECASE)
+_SAMPLE_WORDS = ("muestra","sample","specimen","ejemplo","void")
 
 # --- Funciones de extracción de ID ---
 def _extract_id_number(texto: str, doc_pais: str | None) -> str | None:
@@ -2670,7 +2272,29 @@ def _extract_id_number(texto: str, doc_pais: str | None) -> str | None:
 
     return None
 
-
+def _extract_id_type(texto: str, doc_pais: str | None) -> str | None:
+    if not doc_pais: return None
+    t = texto.lower()
+    
+    # 1. Por País y tipo específico (prioridad alta)
+    if doc_pais == "MX":
+        if any(kw in t for kw in ["credencial para votar", "ine"]): return "Credencial INE (MX)"
+        if "matrícula consular" in t: return "Matrícula Consular (MX)"
+        if "pasaporte" in t and "mex" in t: return "Pasaporte (MX)"
+    if doc_pais == "GT":
+        if "documento personal de identificación" in t or "dpi" in t: return "DPI (GT)"
+        if "identificacion consular" in t: return "Identificación Consular (GT)"
+        if "pasaporte" in t: return "Pasaporte (GT)"
+    if doc_pais == "PH":
+        return "Pasaporte (PH)"
+    if doc_pais == "US":
+        if any(kw in t for kw in ["driver license", "licencia de conducir"]): return "Licencia de Conducir (US)"
+    
+    # 2. Por palabras clave genéricas (si no se resolvió antes)
+    if "pasaporte" in t or "passport" in t: return "Pasaporte"
+    if "licencia de conducir" in t or "driver license" in t: return "Licencia de Conducir"
+    
+    return None
 # --- Fin funciones de extracción de ID ---
 
 def _extract_name(texto: str) -> str | None:
@@ -2797,16 +2421,68 @@ def _age_from_mdy(mdy: str):
     try:
         import datetime as _dt
         m,d,y = map(int, mdy.split("/"))
-        dob = _dt.date(y, m, d)
-        today = _dt.date.today()
-        return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        dob = _dt.date(y,m,d); today = _dt.date.today()
+        return (today - dob).days // 365
     except Exception:
         return None
 
-# PULIDO: Mover los atajos de teclado aquí dentro.
-# ========= ATAJOS =========
-root.bind_all("<Control-v>", lambda e: pegar_imagen_clipboard())
+def _authenticity_score(texto: str, image_path: str|None):
+    details = []
+    score = 0
+    low = (texto or "").lower()
 
-# Continuar con el inicio de la aplicación
-_set_mode_ocr()
-root.mainloop()
+    # Usamos la lógica del nuevo procesador para obtener la fecha normalizada
+    date_results = _process_all_dates_by_type(texto)
+    dob_use = date_results.get("fecha_nacimiento_final")
+    
+    # 1. Chequeo de Muestra
+    if any(w in low for w in _SAMPLE_WORDS if w):
+        score += 50; details.append("Contiene 'sample/muestra/void'.")
+
+    # 2. Chequeo de Nombre
+    nombre = _extract_name(texto)
+    if not nombre:
+        score += 10; details.append("No se detectó nombre.")
+
+    # 3. Chequeo de Fecha de Nacimiento e Inconsistencias
+    if dob_use and "Sugerida" not in dob_use:
+        age = _age_from_mdy(dob_use)
+        if age is not None and (age < 15 or age > 120):
+            score += 30; details.append(f"Edad implausible ({age} años).")
+        
+        curp_m = _CURP_RE.search(texto or "")
+        if curp_m and _infer_doc_country(texto) == "MX":
+            curp = curp_m.group(0)
+            curp_dob = _parse_dob_from_curp(curp)
+            if curp_dob and curp_dob != dob_use:
+                score += 40; details.append("CURP no coincide con la fecha de nacimiento.")
+        
+        rfc_m = _RFC_PER_RE.search(texto or "")
+        if rfc_m and _infer_doc_country(texto) == "MX":
+            yy,mm,dd = map(int, rfc_m.groups()[1:4])
+            y = 2000 + yy if yy < 50 else 1900 + yy
+            rfc_dob = f"{mm:02d}/{dd:02d}/{y:04d}"
+            if rfc_dob != dob_use:
+                score += 20; details.append("RFC no coincide con la fecha de nacimiento.")
+    else:
+        score += 10; details.append("No se identificó fecha de nacimiento.")
+
+    # 4. Chequeo de Vigencia
+    vig_final = date_results.get("fecha_vigencia_final")
+    if not vig_final or "Sugerida" in vig_final:
+        score += 10; details.append("No se detectó vigencia (usamos sugerida).")
+
+    riesgo = "bajo" if score < 25 else ("medio" if score <= 60 else "alto")
+    return riesgo, details
+
+
+# ========= INICIO (Se corrige el NameError aquí) =========
+if _verificar_inicio():
+    
+    # PULIDO: Mover los atajos de teclado aquí dentro.
+    # ========= ATAJOS =========
+    root.bind_all("<Control-v>", lambda e: pegar_imagen_clipboard())
+    
+    # Continuar con el inicio de la aplicación
+    _set_mode_ocr()
+    root.mainloop()

@@ -1,19 +1,30 @@
-# hades_2.2_integrado_full_v4_patched_limpio_final_corregido_v3.py
+# hades_1.6_integrado_full_v4_patched_limpio_final_corregido_v3.py
 # ------------------------------------------------------------------
-# HADES 2.2 — Integrado (FULL v4, Drive patched, Normalización Estricta Final o ya no se que version va jajajaja :) ups)
+# HADES 1.6 — Integrado (FULL v4, Drive patched, Normalización Estricta Final o ya no se que version va jajajaja :) ups)
 # • VERIFICACIÓN: Corregida normalización de fechas DD MM YYYY (Pasaporte MX).
 # • OCR con Gemini Visión (REST): Analizar actual / Analizar carrusel.
 # • EXPORTACIÓN: Salida de OCR forzada a usar fechas normalizadas en la UI.
 # ------------------------------------------------------------------
 
-import os, io, re, time, base64, json, unicodedata, requests, datetime, sys, tempfile
+import os, sys, re, io, base64, time, datetime, json, requests
 try:
     import google.generativeai as genai
 except Exception:
     genai = None
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict
-import pandas as pd
+import webbrowser  # Para abrir hipervínculos
+# pandas se importará con lazy loading en las funciones que lo usan
+
+# ===== KEYCLOAK SSO =====
+_KEYCLOAK_OK = False
+keycloak_auth_instance = None
+try:
+    from keycloak_auth import KeycloakAuth
+    _KEYCLOAK_OK = True
+except Exception:
+    _KEYCLOAK_OK = False
+    KeycloakAuth = None
 
 # ==============================================================================
 # ===== INICIO: BLOQUE DE TKINTER Y DND (CORRECCIÓN NameError) =====
@@ -80,172 +91,6 @@ _COUNTRY_CUES = {
            "social insurance book", "republic of vietnam", "vietnam"],
 }
 
-ID_TYPES_BY_COUNTRY = {
-
-    "MX": [
-        "Credencial para votar (INE)",
-        "Credencial para votar emitida por el INE",
-        "Pasaporte mexicano",
-        "Tarjeta de identificación consular de México",
-        "Identificación consular mexicana",
-    ],
-
-    "US": [
-        "Pasaporte estadounidense",
-        "United States passport",
-        "State ID",
-        "Driver license",
-        "Licencia de conducir",
-        "Permanent Resident Card",
-        "Green Card",
-        "Employment Authorization Document",
-        "EAD card",
-        "Identificación Militar",
-        "VISA",
-    ],
-
-    "GT": [
-        "Documento Personal de Identificación",
-        "DPI",
-        "Pasaporte guatemalteco",
-        "Identificación consular guatemalteca",
-    ],
-
-    "HN": [
-        "Tarjeta de identidad",
-        "Documento Nacional de Identificación",
-        "Pasaporte hondureño",
-        "Identificación consular hondureña",
-    ],
-
-    "SV": [
-        "Documento Único de Identidad",
-        "DUI",
-        "Pasaporte salvadoreño",
-        "Identificación consular salvadoreña",
-    ],
-
-    "NI": [
-        "Cédula de identidad de Nicaragua",
-        "Consejo Supremo Electoral",
-        "Pasaporte nicaragüense",
-        "Identificación consular nicaragüense",
-    ],
-
-    "CR": [
-        "Cédula de identidad de Costa Rica",
-        "Tribunal Supremo de Elecciones",
-        "Pasaporte costarricense",
-    ],
-
-    "PA": [
-        "Cédula de identidad personal panameña",
-        "Documento de identidad panameño",
-        "Pasaporte panameño",
-    ],
-
-    "CO": [
-        "Cédula de ciudadanía",
-        "Cédula de ciudadanía de Colombia",
-        "Pasaporte colombiano",
-    ],
-
-    "PE": [
-        "Documento Nacional de Identidad de Perú",
-        "DNI de Perú",
-        "Pasaporte peruano",
-    ],
-
-    "EC": [
-        "Cédula de identidad de Ecuador",
-        "Pasaporte ecuatoriano",
-    ],
-
-    "VE": [
-        "Cédula de identidad venezolana",
-        "Pasaporte venezolano",
-    ],
-
-    "DO": [
-        "Cédula de identidad y electoral",
-        "Cédula de República Dominicana",
-        "Pasaporte dominicano",
-    ],
-
-    "CU": [
-        "Pasaporte cubano",
-    ],
-
-    "AR": [
-        "Documento Nacional de Identidad de Argentina",
-        "DNI de Argentina",
-        "Pasaporte argentino",
-    ],
-
-    "CL": [
-        "Cédula de identidad de Chile",
-        "Cédula de identidad chilena",
-        "Servicio de registro civil e identificación",
-        "Pasaporte chileno",
-    ],
-
-    "BR": [
-        "Identificación consular brasileña",
-        "Passaporte brasileiro",
-    ],
-
-    "UY": [
-        "Documento de identidad de Uruguay",
-        "Pasaporte uruguayo",
-    ],
-
-    "PY": [
-        "Cédula de identidad civil",
-        "Pasaporte paraguayo",
-    ],
-
-    "BO": [
-        "Cédula de identidad boliviana",
-        "Pasaporte boliviano",
-        "Identificación consular boliviana",
-    ],
-
-    "ES": [
-        "Documento Nacional de Identidad de España",
-        "DNI de España",
-        "Pasaporte español",
-    ],
-
-    "PH": [
-        "Pasaporte filipino",
-        "Philippines passport",
-    ],
-
-    "JM": [
-        "Passport of Jamaica",
-        "Jamaican passport",
-    ],
-
-    "HT": [
-        "Passport of Haiti",
-        "Haitian passport",
-    ],
-
-    "TT": [
-        "Passport of Trinidad and Tobago",
-    ],
-
-    "PK": [
-        "CNIC (Computerized National Identity Card)",
-        "Pasaporte pakistaní",
-    ],
-
-    "IN": [
-        "Indian passport",
-        "Pasaporte de India",
-    ],
-}
-
 _DATE_RE_TXT_ES = re.compile(r'\b(\d{1,2})\s*(?:de\s*)?([A-Za-záéíóúÁÉÍÓÚñÑ]+)\s*(?:de\s*)?(\d{2,4})\b', re.IGNORECASE)
 
 # -- Patrones textuales y numéricos
@@ -287,22 +132,6 @@ def _infer_doc_country(texto: str):
         if any(c in t for c in cues):
             return cc
     return None
-
-def _normalize_for_match(s: str) -> str:
-    """Minúsculas, sin acentos ni signos, espacios normalizados: ideal para buscar en el glosario."""
-    if not s:
-        return ""
-    s = s.lower()
-    try:
-        s = ''.join(
-            c for c in unicodedata.normalize("NFD", s)
-            if unicodedata.category(c) != "Mn"
-        )
-    except Exception:
-        pass
-    s = re.sub(r"[^a-z0-9\s]", " ", s)  # quita signos raros
-    s = re.sub(r"\s+", " ", s).strip()
-    return s
 
 def _detect_language_bias(texto: str):
     t = (texto or "").lower()
@@ -664,59 +493,27 @@ def _extract_id_number(texto: str, doc_pais: str | None) -> str | None:
     return None
 
 def _extract_id_type(texto: str, doc_pais: str | None) -> str | None:
-    """
-    Determina el tipo de identificación:
-    1) Primero intenta por reglas específicas (INE, DPI, etc.).
-    2) Después usa el glosario ID_TYPES_BY_COUNTRY.
-    3) Por último, cae a tipos genéricos (Pasaporte / Licencia de conducir).
-    """
-    if not texto:
-        return None
-
-    if not doc_pais:
-        doc_pais = _infer_doc_country(texto)
-
-    t_raw = texto.lower()
-    t_norm = _normalize_for_match(texto)
-
-    # -------- 1) Reglas específicas que ya tenías (prioridad alta) --------
+    if not doc_pais: return None
+    t = texto.lower()
+    
+    # 1. Por País y tipo específico (prioridad alta)
     if doc_pais == "MX":
-        if any(kw in t_raw for kw in ["credencial para votar", "ine"]):
-            return "Credencial INE (MX)"
-        if "matrícula consular" in t_raw or "matricula consular" in t_raw:
-            return "Matrícula Consular (MX)"
-        if "pasaporte" in t_raw and "mex" in t_raw:
-            return "Pasaporte (MX)"
-
+        if any(kw in t for kw in ["credencial para votar", "ine"]): return "Credencial INE (MX)"
+        if "matrícula consular" in t: return "Matrícula Consular (MX)"
+        if "pasaporte" in t and "mex" in t: return "Pasaporte (MX)"
     if doc_pais == "GT":
-        if "documento personal de identificacion" in t_norm or "dpi" in t_norm:
-            return "DPI (GT)"
-        if "identificacion consular" in t_norm:
-            return "Identificación Consular (GT)"
-        if "pasaporte" in t_raw:
-            return "Pasaporte (GT)"
-
+        if "documento personal de identificación" in t or "dpi" in t: return "DPI (GT)"
+        if "identificacion consular" in t: return "Identificación Consular (GT)"
+        if "pasaporte" in t: return "Pasaporte (GT)"
     if doc_pais == "PH":
-        if "pasaporte" in t_raw or "passport" in t_raw:
-            return "Pasaporte (PH)"
-
+        return "Pasaporte (PH)"
     if doc_pais == "US":
-        if any(kw in t_norm for kw in ["driver license", "dl class", "licencia de conducir"]):
-            return "Licencia de Conducir (US)"
-
-    # -------- 2) Glosario por país (ID_TYPES_BY_COUNTRY) --------
-    if doc_pais and doc_pais in ID_TYPES_BY_COUNTRY:
-        tipos_pais = ID_TYPES_BY_COUNTRY[doc_pais]
-        for kw in tipos_pais:
-            if _normalize_for_match(kw) in t_norm:
-                return f"{kw} ({doc_pais})"
-
-    # -------- 3) Fallback genérico --------
-    if "pasaporte" in t_raw or "passport" in t_raw:
-        return "Pasaporte"
-    if "licencia de conducir" in t_raw or "driver license" in t_raw:
-        return "Licencia de Conducir"
-
+        if any(kw in t for kw in ["driver license", "licencia de conducir"]): return "Licencia de Conducir (US)"
+    
+    # 2. Por palabras clave genéricas (si no se resolvió antes)
+    if "pasaporte" in t or "passport" in t: return "Pasaporte"
+    if "licencia de conducir" in t or "driver license" in t: return "Licencia de Conducir"
+    
     return None
 # --- Fin funciones de extracción de ID ---
 
@@ -847,7 +644,127 @@ def _age_from_mdy(mdy: str):
     except Exception:
         return None
 
+def gemini_vision_auth_check(image_path: str) -> tuple[int, list[str]]:
+    """
+    Analiza la imagen con Gemini Vision para detectar signos de manipulación o falsificación.
+    Retorna (score_adicional, detalles_visuales)
+    """
+    if not GEMINI_API_KEY or not image_path:
+        return 0, []
+    
+    try:
+        from PIL import Image, ImageOps
+        import io, base64
+        
+        # Cargar y preparar imagen
+        im = Image.open(image_path)
+        im = ImageOps.exif_transpose(im)
+        bio = io.BytesIO()
+        im.save(bio, format="PNG")
+        bio.seek(0)
+        mime = "image/png"
+        
+        # Prompt especializado para análisis forense
+        prompt = (
+            "Analiza esta imagen de identificación oficial y detecta posibles signos de FALSIFICACIÓN o MANIPULACIÓN DIGITAL. "
+            "Evalúa específicamente:\n"
+            "1. CALIDAD DE IMPRESIÓN: ¿La calidad es consistente o hay áreas borrosas/pixeladas sospechosas?\n"
+            "2. FUENTES TIPOGRÁFICAS: ¿Las fuentes son consistentes y profesionales o hay inconsistencias?\n"
+            "3. ELEMENTOS DE SEGURIDAD: ¿Se observan hologramas, marcas de agua, microimpresiones u otros elementos de seguridad?\n"
+            "4. MANIPULACIÓN DIGITAL: ¿Hay evidencia de edición (bordes irregulares, sombras inconsistentes, clonación)?\n"
+            "5. AUTENTICIDAD GENERAL: ¿La identificación parece auténtica o hay señales de alerta?\n\n"
+            "Responde SOLO con un análisis breve y directo de cada punto. "
+            "Si detectas problemas, menciónalos claramente. Si todo parece correcto, indícalo."
+        )
+        temp = 0.2  # Baja temperatura para respuestas más deterministas
+        
+        # Intentar con SDK primero
+        visual_analysis = ""
+        if genai is not None:
+            try:
+                genai.configure(api_key=GEMINI_API_KEY)
+                model = genai.GenerativeModel(GEMINI_MODEL)
+                resp = model.generate_content(
+                    [{"mime_type": mime, "data": bio.getvalue()}, {"text": prompt}],
+                    generation_config={"temperature": temp, "top_p": 0.95, "max_output_tokens": 1024}
+                )
+                visual_analysis = getattr(resp, "text", "") or ""
+            except Exception:
+                pass  # Fallback a REST
+        
+        # Fallback REST
+        if not visual_analysis:
+            try:
+                b64 = base64.b64encode(bio.getvalue()).decode("utf-8")
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+                payload = {
+                    "contents": [{
+                        "parts": [
+                            {"inline_data": {"mime_type": mime, "data": b64}},
+                            {"text": prompt}
+                        ]
+                    }],
+                    "generationConfig": {"temperature": temp, "topP": 0.95, "maxOutputTokens": 1024}
+                }
+                headers = {"Content-Type": "application/json"}
+                r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=60)
+                data = r.json()
+                visual_analysis = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
+            except Exception:
+                return 0, ["Error al conectar con Gemini Vision para análisis visual."]
+        
+        # Analizar la respuesta para detectar señales de alerta
+        analysis_lower = visual_analysis.lower()
+        score_visual = 0
+        detalles = []
+        
+        # Palabras clave que indican problemas
+        red_flags = {
+            "manipulación": 25,
+            "editado": 25,
+            "photoshop": 30,
+            "inconsistente": 20,
+            "sospechoso": 20,
+            "irregular": 15,
+            "borroso": 10,
+            "pixelado": 10,
+            "clonación": 30,
+            "falso": 35,
+            "falsificación": 35,
+            "no auténtico": 30,
+            "alterado": 25,
+        }
+        
+        for keyword, penalty in red_flags.items():
+            if keyword in analysis_lower:
+                score_visual += penalty
+                detalles.append(f"Análisis visual detectó: '{keyword}'")
+        
+        # Señales positivas (reducen score)
+        if any(word in analysis_lower for word in ["auténtico", "legítimo", "genuino", "correcto", "profesional"]):
+            if score_visual == 0:
+                detalles.append("Análisis visual: documento parece auténtico.")
+        
+        # Guardar análisis completo como detalle
+        if visual_analysis.strip():
+            detalles.append(f"Análisis completo: {visual_analysis[:200]}...")  # Primeros 200 chars
+        
+        return min(score_visual, 50), detalles  # Cap máximo de 50 puntos por análisis visual
+        
+    except Exception as e:
+        return 0, [f"Error en análisis visual: {str(e)[:100]}"]
+
+
 def _authenticity_score(texto: str, image_path: str|None):
+    """
+    Calcula el score de autenticidad combinando análisis de texto y visual.
+    Retorna (riesgo, details, emoji_semaforo, color_semaforo)
+    
+    Niveles de riesgo:
+    - 🟢 BAJO (0-20): Verde - Documento parece auténtico
+    - 🟡 MEDIO (21-50): Amarillo - Requiere revisión adicional
+    - 🔴 ALTO (51+): Rojo - Alta probabilidad de falsificación
+    """
     details = []
     score = 0
     low = (texto or "").lower()
@@ -858,25 +775,25 @@ def _authenticity_score(texto: str, image_path: str|None):
     
     # 1. Chequeo de Muestra
     if any(w in low for w in _SAMPLE_WORDS if w):
-        score += 50; details.append("Contiene 'sample/muestra/void'.")
+        score += 50; details.append("⚠️ Contiene 'sample/muestra/void'.")
 
     # 2. Chequeo de Nombre
     nombre = _extract_name(texto)
     if not nombre:
-        score += 10; details.append("No se detectó nombre.")
+        score += 10; details.append("⚠️ No se detectó nombre.")
 
     # 3. Chequeo de Fecha de Nacimiento e Inconsistencias
     if dob_use and "Sugerida" not in dob_use:
         age = _age_from_mdy(dob_use)
         if age is not None and (age < 15 or age > 120):
-            score += 30; details.append(f"Edad implausible ({age} años).")
+            score += 30; details.append(f"⚠️ Edad implausible ({age} años).")
         
         curp_m = _CURP_RE.search(texto or "")
         if curp_m and _infer_doc_country(texto) == "MX":
             curp = curp_m.group(0)
             curp_dob = _parse_dob_from_curp(curp)
             if curp_dob and curp_dob != dob_use:
-                score += 40; details.append("CURP no coincide con la fecha de nacimiento.")
+                score += 40; details.append("⚠️ CURP no coincide con la fecha de nacimiento.")
         
         rfc_m = _RFC_PER_RE.search(texto or "")
         if rfc_m and _infer_doc_country(texto) == "MX":
@@ -884,23 +801,106 @@ def _authenticity_score(texto: str, image_path: str|None):
             y = 2000 + yy if yy < 50 else 1900 + yy
             rfc_dob = f"{mm:02d}/{dd:02d}/{y:04d}"
             if rfc_dob != dob_use:
-                score += 20; details.append("RFC no coincide con la fecha de nacimiento.")
+                score += 20; details.append("⚠️ RFC no coincide con la fecha de nacimiento.")
     else:
-        score += 10; details.append("No se identificó fecha de nacimiento.")
+        score += 10; details.append("⚠️ No se identificó fecha de nacimiento.")
 
     # 4. Chequeo de Vigencia
     vig_final = date_results.get("fecha_vigencia_final")
     if not vig_final or "Sugerida" in vig_final:
-        score += 10; details.append("No se detectó vigencia (usamos sugerida).")
+        score += 10; details.append("⚠️ No se detectó vigencia (usamos sugerida).")
+    
+    # 5. 🆕 ANÁLISIS VISUAL CON GEMINI (si hay imagen disponible)
+    if image_path and os.path.exists(image_path):
+        visual_score, visual_details = gemini_vision_auth_check(image_path)
+        score += visual_score
+        details.extend(visual_details)
+    
+    # Determinar nivel de riesgo con nuevo sistema de semáforo
+    if score <= 20:
+        riesgo = "bajo"
+        emoji = "🟢"
+        color = "green"
+    elif score <= 50:
+        riesgo = "medio"
+        emoji = "🟡"
+        color = "yellow"
+    else:
+        riesgo = "alto"
+        emoji = "🔴"
+        color = "red"
+    
+    return riesgo, details, emoji, color
 
-    riesgo = "bajo" if score < 25 else ("medio" if score <= 60 else "alto")
-    return riesgo, details
+
+# ===== AUTENTICACIÓN CON KEYCLOAK SSO =====
+
+def autenticar_con_keycloak():
+    """
+    Inicia sesión con Keycloak usando el wrapper KeycloakAuth.
+    Retorna: (ok: bool, mensaje: str)
+    """
+    global keycloak_auth_instance
+
+    if not _KEYCLOAK_OK or KeycloakAuth is None:
+        return False, "Keycloak no está configurado en este equipo."
+
+    try:
+        keycloak_auth_instance = KeycloakAuth()
+        ok, msg = keycloak_auth_instance.authenticate()
+        if not ok:
+            keycloak_auth_instance = None
+            return False, msg or "No se pudo autenticar con Keycloak."
+
+        correo = (keycloak_auth_instance.get_user_email() or "").strip()
+        nombre = (keycloak_auth_instance.get_user_name() or correo or "Usuario").strip()
+
+        if not correo:
+            keycloak_auth_instance = None
+            return False, "La autenticación SSO no devolvió un correo válido."
+
+        usuario_actual["correo"] = correo
+        usuario_actual["nombre"] = nombre
+        usuario_actual["sso"] = True
+
+        return True, f"Sesión iniciada como {nombre}"
+    except Exception as e:
+        keycloak_auth_instance = None
+        return False, f"Error al autenticar con Keycloak: {e}"
+
+
+def verificar_autenticacion_keycloak() -> bool:
+    """Devuelve True si hay una sesión Keycloak válida."""
+    if not keycloak_auth_instance:
+        return False
+    try:
+        return bool(keycloak_auth_instance.is_authenticated())
+    except Exception:
+        return False
+
+
+def cerrar_sesion_keycloak():
+    """Cierra la sesión SSO y limpia el usuario actual."""
+    global keycloak_auth_instance
+
+    try:
+        if keycloak_auth_instance:
+            try:
+                keycloak_auth_instance.logout()
+            except Exception as e:
+                print(f"Error al cerrar sesión Keycloak: {e}")
+    finally:
+        keycloak_auth_instance = None
+        usuario_actual["correo"] = None
+        usuario_actual["nombre"] = None
+        usuario_actual["sso"] = False
+
 
 # --- Tk / UI ---
 # (Las importaciones ya se hicieron al inicio)
 
 # ===== ESTILO =====
-APP_TITLE = "HADES 2.2 — Integrado"
+APP_TITLE = "HADES 1.8 — Integrado"
 COLOR_BG = "#0f0b1a"; COLOR_PANEL = "#1a1330"; COLOR_CARD = "#221b3f"
 COLOR_TEXT = "#EAE6FF"; COLOR_MUTED = "#C7B8FF"
 ACCENT = "#7C3AED"; ACCENT_2 = "#A78BFA"; COLOR_BTN = "#2E2357"; COLOR_PRIMARY = ACCENT
@@ -917,6 +917,18 @@ SA_JSON_B64 = "ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAgInByb2plY3RfaWQiOiAib
 # JSON de cuenta de servicio en BASE64
 DRIVE_FOLDER_ID = "1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt" # Carpeta destino (URL .../folders/<ID>)
 GEMINI_API_KEY = None # se solicita desde botón
+
+# ===== USUARIO ACTUAL (Keycloak SSO) =====
+usuario_actual = {"correo": None, "nombre": None, "sso": False}
+
+# ===== MODELO GEMINI SELECCIONADO =====
+GEMINI_MODEL = "gemini-1.5-flash"  # Modelo por defecto
+
+# ===== CONFIGURACIÓN DE IA (Gemini + Claude Backup) =====
+CLAUDE_API_KEY = None
+CLAUDE_MODEL = "claude-3-5-sonnet-20241022"  # Modelo por defecto
+AI_PROVIDER = "gemini"  # "gemini" o "claude"
+ENABLE_FALLBACK = True  # Fallback automático si el proveedor principal falla
 
 
 # ===== CONFIG LOGIN (OAuth) =====
@@ -980,8 +992,13 @@ def _load_sa_info():
 
 
 def _creds_sa(scopes):
-    info = _load_sa_info()
-    return service_account.Credentials.from_service_account_info(info, scopes=scopes)
+    try:
+        from google.oauth2 import service_account  # Lazy import
+        info = _load_sa_info()
+        return service_account.Credentials.from_service_account_info(info, scopes=scopes)
+    except ImportError:
+        raise RuntimeError("Google API no disponible (instala google-auth)")
+
 def _creds(scopes):
     return _creds_sa(scopes)
 
@@ -989,7 +1006,10 @@ def _sheets_service():
     if not _GOOGLE_OK:
         raise RuntimeError("Google API no disponible")
     try:
+        from googleapiclient.discovery import build  # Lazy import
         return build("sheets", "v4", credentials=_creds(SCOPES_SHEETS), cache_discovery=False)
+    except ImportError:
+        raise RuntimeError("Google API no disponible (instala google-api-python-client)")
     except RuntimeError as e:
         raise e
     except Exception as e:
@@ -999,7 +1019,16 @@ def _sheets_service():
 def _drive_service(scopes):
     if not _GOOGLE_OK:
         raise RuntimeError("Google API no disponible")
-    return build("drive", "v3", credentials=_creds(scopes), cache_discovery=False)
+    try:
+        from googleapiclient.discovery import build  # Lazy import
+        from googleapiclient.http import MediaFileUpload  # Lazy import
+        return build("drive", "v3", credentials=_creds(scopes), cache_discovery=False)
+    except ImportError:
+        raise RuntimeError("Google API no disponible (instala google-api-python-client)")
+    except RuntimeError as e:
+        raise e
+    except Exception as e:
+        raise RuntimeError(f"Error al inicializar Drive API: {e}")
 
 def _sheet_titles(sheet_id: str):
     try:
@@ -1077,13 +1106,13 @@ def verificar_correo_online(correo: str):
 
 # ====== OCR con Gemini Visión (REST) ======
 
-def gemini_vision_extract_text(image_path: str) -> Tuple[str, str]:
+def gemini_vision_extract_text(image_path: str) -> str:
     """
-    Extrae texto con Gemini Visión y realiza un ANALISIS FORENSE.
-    Retorna: (texto_ocr, resumen_forense)
+    Extrae texto con Gemini Visión.
+    ## PULIDO: Se modifica el prompt para exigir formato de clave-valor.
     """
     if not GEMINI_API_KEY:
-        return "⚠️ Configura GEMINI_API_KEY para usar Visión.", ""
+        return "⚠️ Configura GEMINI_API_KEY para usar Visión."
     try:
         from PIL import Image, ImageOps
         # --- Pre-proceso de imagen ---
@@ -1094,160 +1123,35 @@ def gemini_vision_extract_text(image_path: str) -> Tuple[str, str]:
         bio.seek(0)
         mime = "image/png"
 
-        # --- Prompt estilo 'clave-valor' + FORENSE ---
-        prompt = ("Actúa como un analista forense de documentos de identidad experto en detección de fraude. "
-                  "Tu tarea es doble:\n"
-                  "1. EXTRAER TEXTO (OCR): Extrae todo el texto visible y reconstruye la información como pares CLAVE: VALOR (ej. Nombre: JUAN PEREZ). "
-                  "Incluye todos los números, fechas y claves.\n"
-                  "2. ANÁLISIS FORENSE: Analiza la imagen buscando señales de manipulación:\n"
-                  "   - ARTEFACTOS DIGITALES (bordes pixelados, fuentes inconsistentes).\n"
-                  "   - SCREEN REPLAY (patrones de Moiré, reflejos de pantalla).\n"
-                  "   - MANIPULACIÓN FÍSICA (fotos superpuestas, recortes manuales).\n"
-                  "   - ELEMENTOS DE SEGURIDAD (hologramas planos vs reales).\n\n"
-                  "FORMATO DE RESPUESTA OBLIGATORIO (Usa estos separadores exactos):\n"
-                  "---OCR---\n"
-                  "(Aquí pon SOLO los pares clave: valor del texto extraído)\n"
-                  "---FORENSIC---\n"
-                  "VEREDICTO: [BAJO / MEDIO / ALTO]\n"
-                  "DETALLES:\n"
-                  "- [Detalle 1]\n"
-                  "- [Detalle 2]\n"
-                  "(Si no hay texto legible, en OCR pon: (sin texto))")
+        # --- Prompt estilo 'clave-valor' ---
+        ## PULIDO: NUEVO PROMPT CLAVE-VALOR
+        prompt = ("Extrae todo el texto visible. Luego, RECONSTRUYE la información "
+                  "como una lista de pares CLAVE: VALOR. "
+                  "Ejemplo: Nombre: RAMIREZ MARTINEZ MIRIAN. Fecha de Nacimiento: 05/06/1993. "
+                  "Incluye todos los números, series, claves y fechas. "
+                  "Mantén la puntuación y omite cualquier introducción o comentario. "
+                  "Responde solo el texto formateado en clave-valor en español. "
+                  "Si no hay texto legible, responde exactamente: (sin texto).")
         temp = 0.3
 
         # --- SDK preferente ---
-        txt_full = ""
         if genai is not None:
             try:
                 genai.configure(api_key=GEMINI_API_KEY)
-                model = genai.GenerativeModel('gemini-2.5-flash')
+                model = genai.GenerativeModel(GEMINI_MODEL)
                 resp = model.generate_content(
                     [{"mime_type": mime, "data": bio.getvalue()}, {"text": prompt}],
                     generation_config={"temperature": temp, "top_p": 0.95, "max_output_tokens": 8192}
                 )
-                txt_full = getattr(resp, "text", "") or ""
+                txt = getattr(resp, "text", "") or ""
+                return _clean_ocr_output(txt.strip() if txt.strip() else "(sin texto)")
             except Exception:
                 pass # Si el SDK falla, seguimos con REST
 
         # --- Fallback REST (mismo prompt/config) ---
-        if not txt_full:
-            try:
-                b64 = base64.b64encode(bio.getvalue()).decode("utf-8")
-                model_name = "gemini-2.5-flash"
-                url = "https://generativelanguage.googleapis.com/v1beta/models/" + model_name + ":generateContent"
-                payload = {
-                    "contents": [{
-                        "parts": [
-                            {"inline_data": {"mime_type": mime, "data": b64}},
-                            {"text": prompt}
-                        ]
-                    }],
-                    "generationConfig": {"temperature": temp, "topP": 0.95, "maxOutputTokens": 8192}
-                }
-                headers = {"Content-Type": "application/json"}
-                r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=90)
-                data = r.json()
-                txt_full = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
-            except Exception as e2:
-                return f"❌ Error en Visión (fallback): {e2}", ""
-
-        # --- PARSEO DE RESPUESTA DUAL ---
-        ocr_part = ""
-        forensic_part = ""
-        
-        if "---OCR---" in txt_full:
-            parts = txt_full.split("---FORENSIC---")
-            ocr_raw = parts[0].replace("---OCR---", "").strip()
-            ocr_part = _clean_ocr_output(ocr_raw if ocr_raw else "(sin texto)")
-            
-            if len(parts) > 1:
-                forensic_part = parts[1].strip()
-        else:
-            # Fallback si el modelo no respetó el formato (asumimos que todo es OCR por compatibilidad)
-            ocr_part = _clean_ocr_output(txt_full.strip())
-            forensic_part = "No se pudo generar análisis forense estructurado."
-
-        return ocr_part, forensic_part
-
-    except Exception as e:
-        return f"❌ Error en Visión: {e}", ""
-
-
-
-def gemini_vision_auth_check(image_path: str, texto_ocr: str = "", doc_pais: str | None = None):
-    """
-    Análisis VISUAL de autenticidad con Gemini.
-    No reemplaza validación legal, solo da un semáforo de riesgo basado en señales visuales.
-    """
-    if not GEMINI_API_KEY:
-        return None
-
-    try:
-        from PIL import Image, ImageOps
-        im = Image.open(image_path)
-        im = ImageOps.exif_transpose(im)
-        bio = io.BytesIO()
-        im.save(bio, format="PNG")
-        bio.seek(0)
-        mime = "image/png"
-
-        pais_txt = doc_pais or _infer_doc_country(texto_ocr) or "desconocido"
-
-        prompt = f"""
-Actúa como un analista forense de documentos de identidad experto en detección de fraude.
-
-Tarea:
-1) Observa SOLO la IMAGEN del documento (no inventes texto).
-2) Considera también este contexto OCR (puede contener errores): 
-   \"\"\"{texto_ocr[:2000]}\"\"\"  (trátalo solo como referencia).
-3) Evalúa si el documento PARECE auténtico o sospechoso.
-
-Puntos a revisar (no exhaustivo):
-- ¿Se aprecian elementos de seguridad típicos para documentos del país: {pais_txt}?
-  Ejemplos: hologramas, escudos/emblemas, microtexto, patrones de fondo, relieves, zona MRZ, códigos de barras.
-- ¿Parece un recorte o fotomontaje? (bordes raros, marcos extraños, diferencias de resolución entre foto y fondo)
-- ¿Hay textos borrosos o inconsistentes con el diseño (logo mal hecho, tipografía rara, alineación extraña)?
-- ¿Se ve como una captura de pantalla o una edición digital (overlay, filtros raros)?
-- ¿La foto del titular se ve pegada/insertada torpemente?
-
-Devuelve SOLO un JSON EXACTO con este esquema:
-{{
-  "visual_score": 0-100,           // 0 = muy sospechoso, 100 = se ve muy auténtico
-  "visual_risk": "bajo|medio|alto",
-  "flags": [                       // lista corta de banderas detectadas
-    "sin_hologramas_visibles",
-    "posible_montaje_foto",
-    "falta_escudo_nacional",
-    "zonas_borrosas_sospechosas"
-  ],
-  "comentario": "explicación breve y útil para un analista humano"
-}}
-
-No agregues texto fuera del JSON.
-"""
-
-        temp = 0.2  # baja temperatura para que sea más consistente
-
-        # Si tienes SDK:
-        if genai is not None:
-            try:
-                genai.configure(api_key=GEMINI_API_KEY)
-                model = genai.GenerativeModel("gemini-2.5-flash")
-                resp = model.generate_content(
-                    [{"mime_type": mime, "data": bio.getvalue()}, {"text": prompt}],
-                    generation_config={"temperature": temp, "max_output_tokens": 512}
-                )
-                raw = getattr(resp, "text", "") or ""
-            except Exception:
-                raw = ""
-        else:
-            raw = ""
-
-        # Fallback REST si hace falta
-        if not raw:
+        try:
             b64 = base64.b64encode(bio.getvalue()).decode("utf-8")
-            model_name = "gemini-2.5-flash"
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
             payload = {
                 "contents": [{
                     "parts": [
@@ -1255,29 +1159,157 @@ No agregues texto fuera del JSON.
                         {"text": prompt}
                     ]
                 }],
-                "generationConfig": {"temperature": temp, "maxOutputTokens": 512}
+                "generationConfig": {"temperature": temp, "topP": 0.95, "maxOutputTokens": 8192}
             }
             headers = {"Content-Type": "application/json"}
             r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=90)
             data = r.json()
-            raw = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
-
-        raw = raw.strip()
-        try:
-            parsed = json.loads(raw)
-            return parsed
-        except Exception:
-            # Si viene con basura extra, intento recortar el JSON
-            m = re.search(r'\{.*\}', raw, re.DOTALL)
-            if m:
-                try:
-                    return json.loads(m.group(0))
-                except Exception:
-                    return None
-            return None
+            txt = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
+            return _clean_ocr_output(txt.strip() if txt.strip() else "(sin texto)")
+        except Exception as e2:
+            return f"❌ Error en Visión (fallback): {e2}"
     except Exception as e:
-        print(f"[HADES] Error gemini_vision_auth_check: {e}")
-        return None
+        return f"❌ Error en Visión: {e}"
+
+
+def claude_vision_extract_text(image_path: str) -> str:
+    """
+    Extrae texto con Claude 3.5 Sonnet Vision (backup de Gemini)
+    """
+    if not CLAUDE_API_KEY:
+        return "⚠️ Configura CLAUDE_API_KEY para usar Claude."
+    
+    try:
+        from PIL import Image, ImageOps
+        import io, base64
+        
+        # Preparar imagen
+        im = Image.open(image_path)
+        im = ImageOps.exif_transpose(im)
+        bio = io.BytesIO()
+        im.save(bio, format="PNG")
+        bio.seek(0)
+        b64 = base64.b64encode(bio.getvalue()).decode("utf-8")
+        
+        # Prompt (mismo que Gemini para consistencia)
+        prompt = (
+            "Extrae todo el texto visible. Luego, RECONSTRUYE la información "
+            "como una lista de pares CLAVE: VALOR. "
+            "Ejemplo: Nombre: RAMIREZ MARTINEZ MIRIAN. Fecha de Nacimiento: 05/06/1993. "
+            "Incluye todos los números, series, claves y fechas. "
+            "Mantén la puntuación y omite cualquier introducción o comentario. "
+            "Responde solo el texto formateado en clave-valor en español. "
+            "Si no hay texto legible, responde exactamente: (sin texto)."
+        )
+        
+        # Llamada a Claude API
+        url = "https://api.anthropic.com/v1/messages"
+        headers = {
+            "x-api-key": CLAUDE_API_KEY,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json"
+        }
+        payload = {
+            "model": CLAUDE_MODEL,
+            "max_tokens": 4096,
+            "messages": [{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/png",
+                            "data": b64
+                        }
+                    },
+                    {
+                        "type": "text",
+                        "text": prompt
+                    }
+                ]
+            }]
+        }
+        
+        r = requests.post(url, headers=headers, json=payload, timeout=90)
+        
+        # Manejo de errores de cuota y autenticación
+        if r.status_code == 429:
+            return "❌ CUOTA AGOTADA: Claude ha alcanzado el límite de rate. Espera unos minutos o usa Gemini."
+        elif r.status_code == 401:
+            return "❌ API KEY INVÁLIDA: Verifica tu Claude API Key en https://console.anthropic.com/"
+        elif r.status_code != 200:
+            return f"❌ Claude API error: {r.status_code} - {r.text[:100]}"
+        
+        data = r.json()
+        txt = data.get("content", [{}])[0].get("text", "") or ""
+        return _clean_ocr_output(txt.strip() if txt.strip() else "(sin texto)")
+        
+    except Exception as e:
+        return f"❌ Error en Claude Vision: {e}"
+
+
+def vision_extract_text_with_fallback(image_path: str) -> tuple[str, str]:
+    """
+    Extrae texto con fallback automático entre proveedores.
+    Retorna: (texto_extraido, proveedor_usado)
+    """
+    global AI_PROVIDER
+    
+    # Intentar con el proveedor seleccionado
+    if AI_PROVIDER == "gemini":
+        try:
+            texto = gemini_vision_extract_text(image_path)
+            # Si funciona correctamente, retornar
+            if not texto.startswith("❌") and not texto.startswith("⚠️"):
+                return texto, "Gemini"
+            
+            # Si hay error y fallback está habilitado, intentar con Claude
+            if ENABLE_FALLBACK and CLAUDE_API_KEY:
+                print("[HADES] Gemini falló, usando Claude como backup...")
+                texto_claude = claude_vision_extract_text(image_path)
+                if not texto_claude.startswith("❌") and not texto_claude.startswith("⚠️"):
+                    return texto_claude, "Claude (Fallback)"
+            
+            return texto, "Gemini (con error)"
+            
+        except Exception as e:
+            # Si hay excepción y fallback está habilitado
+            if ENABLE_FALLBACK and CLAUDE_API_KEY:
+                print(f"[HADES] Excepción en Gemini: {e}, usando Claude como backup...")
+                try:
+                    return claude_vision_extract_text(image_path), "Claude (Fallback)"
+                except:
+                    pass
+            return f"❌ Error en Gemini: {e}", "Gemini (error)"
+    
+    elif AI_PROVIDER == "claude":
+        try:
+            texto = claude_vision_extract_text(image_path)
+            # Si funciona correctamente, retornar
+            if not texto.startswith("❌") and not texto.startswith("⚠️"):
+                return texto, "Claude"
+            
+            # Si hay error y fallback está habilitado, intentar con Gemini
+            if ENABLE_FALLBACK and GEMINI_API_KEY:
+                print("[HADES] Claude falló, usando Gemini como backup...")
+                texto_gemini = gemini_vision_extract_text(image_path)
+                if not texto_gemini.startswith("❌") and not texto_gemini.startswith("⚠️"):
+                    return texto_gemini, "Gemini (Fallback)"
+            
+            return texto, "Claude (con error)"
+            
+        except Exception as e:
+            # Si hay excepción y fallback está habilitado
+            if ENABLE_FALLBACK and GEMINI_API_KEY:
+                print(f"[HADES] Excepción en Claude: {e}, usando Gemini como backup...")
+                try:
+                    return gemini_vision_extract_text(image_path), "Gemini (Fallback)"
+                except:
+                    pass
+            return f"❌ Error en Claude: {e}", "Claude (error)"
+    
+    return "❌ No hay proveedor de IA configurado", "Ninguno"
 
 
 # ====== Modales con tema (oscuro morado) ======
@@ -1338,8 +1370,7 @@ def registrar_changelog(evento: str):
         log.write(f"[{ts}] {evento}\n")
 
 def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
-                         datos_esenciales: dict = None, riesgo: str = "", detalles: list = None,
-                         tipo_id: str = None, num_id: str = None):
+                         datos_esenciales: dict = None, riesgo: str = "", detalles: list = None):
     """Guarda resultados y métricas de forma consolidada."""
     # Inicialización
     r = next((res for res in resultados if res['archivo'] == nombre), None)
@@ -1359,8 +1390,6 @@ def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
         
         # Asignación de fechas procesadas
         r['doc_pais'] = doc or ''
-        if tipo_id: r['tipo_id'] = tipo_id
-        if num_id: r['num_id'] = num_id
         r['formato_fecha_detectado'] = fmt or ''
         
         # Nuevos campos de fechas (usados para el exportador)
@@ -1379,28 +1408,10 @@ def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
         # Autenticidad
         r['autenticidad_riesgo'] = riesgo
         r['autenticidad_detalles'] = ' | '.join(detalles or [])
-        
-        # Clasificación tipo "verdadero / falso (estimación)"
-        if riesgo == "bajo":
-            r["documento_flag_sospechoso"] = "no"
-            r["documento_veredicto"] = "Riesgo de Autenticidad (riesgo bajo)."
-        elif riesgo == "medio":
-            r["documento_flag_sospechoso"] = "si"
-            r["documento_veredicto"] = "Documento con Posibles Inconsistencias (riesgo medio, revisar)."
-        else:  # riesgo == "alto"
-            r["documento_flag_sospechoso"] = "si"
-            r["documento_veredicto"] = "Alto Riesgo de Autenticidad (revisión obligatoria)."
-        
         r['todas_las_fechas_sugeridas_mdy'] = fechas_mdy
         
     except Exception as e:
         print(f"[HADES] Error al calcular metadata de resultado: {e}")
-
-    # Copiar datos esenciales (nombre, tipo, número de ID, etc.) al resultado
-    if datos_esenciales:
-        for k, v in datos_esenciales.items():
-            if v is not None:
-                r[k] = v
 
     # métricas (usuario = correo)
     m = next((met for met in metricas if met['archivo'] == nombre), None)
@@ -1561,10 +1572,6 @@ def _verificar_inicio():
             messagebox.showerror("Acceso denegado", "Este correo no está autorizado.")
     root.destroy(); return False
 
-# Validar inicio
-if not _verificar_inicio():
-    sys.exit()
-
 
 # Header con imagen flama
 header = tk.Frame(root, bg=COLOR_BG)
@@ -1587,23 +1594,204 @@ tk.Label(header, text="HADES: El Guardián de tu Información", bg=COLOR_BG, fg=
 # Barra superior
 bar = tk.Frame(root, bg=COLOR_PANEL); bar.pack(fill="x", pady=(6,0))
 
-def pedir_api_key():
-    global GEMINI_API_KEY
+def configurar_api_keys():
+    """Gestor unificado de API Keys para Gemini y Claude con hipervínculos"""
+    global GEMINI_API_KEY, CLAUDE_API_KEY
+    
     if not usuario_actual["correo"]:
-        messagebox.showinfo("Gemini", "Primero verifica tu correo (se hace al iniciar).")
+        messagebox.showinfo("API Keys", "Primero verifica tu correo (se hace al iniciar).")
         return
-    key = themed_askstring("GEMINI_API_KEY", "Pega tu API Key de Gemini:", parent=root, show="*")
-    if key:
-        GEMINI_API_KEY = key.strip()
-        messagebox.showinfo("Gemini", "API Key guardada para esta sesión.")
+    
+    # Crear ventana
+    win = tk.Toplevel(root)
+    win.title("Configurar API Keys")
+    win.configure(bg=COLOR_CARD)
+    win.transient(root)
+    win.grab_set()
+    win.geometry("500x350")
+    
+    # Título
+    tk.Label(win, text="🔑 Configuración de API Keys", bg=COLOR_CARD, fg=COLOR_TEXT,
+             font=("Segoe UI", 13, "bold")).pack(pady=(16, 10))
+    
+    # Frame principal
+    main_frame = tk.Frame(win, bg=COLOR_CARD)
+    main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+    
+    # ===== GEMINI API KEY =====
+    tk.Label(main_frame, text="Gemini API Key (Google):", bg=COLOR_CARD, fg=COLOR_TEXT,
+             font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w", pady=(0, 5))
+    
+    gemini_entry = tk.Entry(main_frame, bg="#1f1440", fg=COLOR_TEXT, insertbackground=COLOR_TEXT,
+                           highlightbackground=ACCENT_2, relief="flat", width=45, show="*")
+    gemini_entry.grid(row=1, column=0, sticky="ew", pady=(0, 5))
+    if GEMINI_API_KEY:
+        gemini_entry.insert(0, GEMINI_API_KEY)
+    
+    # Hipervínculo Gemini
+    link_gemini = tk.Label(main_frame, text="🔗 Obtener Gemini API Key", bg=COLOR_CARD, 
+                          fg=COLOR_BLUE, cursor="hand2", font=("Segoe UI", 9, "underline"))
+    link_gemini.grid(row=2, column=0, sticky="w", pady=(0, 15))
+    link_gemini.bind("<Button-1>", lambda e: webbrowser.open("https://aistudio.google.com/app/apikey"))
+    
+    # ===== CLAUDE API KEY =====
+    tk.Label(main_frame, text="Claude API Key (Anthropic):", bg=COLOR_CARD, fg=COLOR_TEXT,
+             font=("Segoe UI", 10, "bold")).grid(row=3, column=0, sticky="w", pady=(0, 5))
+    
+    claude_entry = tk.Entry(main_frame, bg="#1f1440", fg=COLOR_TEXT, insertbackground=COLOR_TEXT,
+                           highlightbackground=ACCENT_2, relief="flat", width=45, show="*")
+    claude_entry.grid(row=4, column=0, sticky="ew", pady=(0, 5))
+    if CLAUDE_API_KEY:
+        claude_entry.insert(0, CLAUDE_API_KEY)
+    
+    # Hipervínculo Claude
+    link_claude = tk.Label(main_frame, text="🔗 Obtener Claude API Key", bg=COLOR_CARD,
+                          fg=COLOR_BLUE, cursor="hand2", font=("Segoe UI", 9, "underline"))
+    link_claude.grid(row=5, column=0, sticky="w", pady=(0, 20))
+    link_claude.bind("<Button-1>", lambda e: webbrowser.open("https://console.anthropic.com/"))
+    
+    main_frame.grid_columnconfigure(0, weight=1)
+    
+    # Botones
+    btn_frame = tk.Frame(win, bg=COLOR_CARD)
+    btn_frame.pack(pady=(0, 16))
+    
+    def guardar():
+        global GEMINI_API_KEY, CLAUDE_API_KEY
+        gemini_key = gemini_entry.get().strip()
+        claude_key = claude_entry.get().strip()
+        
+        if gemini_key:
+            GEMINI_API_KEY = gemini_key
+        if claude_key:
+            CLAUDE_API_KEY = claude_key
+        
+        keys_configuradas = []
+        if GEMINI_API_KEY:
+            keys_configuradas.append("Gemini")
+        if CLAUDE_API_KEY:
+            keys_configuradas.append("Claude")
+        
+        if keys_configuradas:
+            status.config(text=f"✅ API Keys: {', '.join(keys_configuradas)}")
+        else:
+            status.config(text="⚠️ No se configuraron API Keys")
+        
+        win.destroy()
+    
+    tk.Button(btn_frame, text="💾 Guardar", command=guardar, bg=COLOR_PURPLE, fg="white",
+             relief="flat", padx=20, pady=10, width=12).pack(side="left", padx=5)
+    tk.Button(btn_frame, text="❌ Cancelar", command=win.destroy, bg=COLOR_BTN, fg="white",
+             relief="flat", padx=20, pady=10, width=12).pack(side="left", padx=5)
+    
+    # Centrar ventana
+    root.update_idletasks()
+    x = root.winfo_rootx() + (root.winfo_width()//2 - 250)
+    y = root.winfo_rooty() + (root.winfo_height()//2 - 175)
+    try:
+        win.geometry(f"+{x}+{y}")
+    except:
+        pass
+
+def seleccionar_modelo():
+    """Muestra un menú para seleccionar el modelo de Gemini"""
+    global GEMINI_MODEL
+    
+    # Crear ventana de selección
+    win = tk.Toplevel(root)
+    win.title("Seleccionar Modelo Gemini")
+    win.configure(bg=COLOR_CARD)
+    win.transient(root)
+    win.grab_set()
+    
+    tk.Label(win, text="Selecciona el modelo de Gemini:", bg=COLOR_CARD, fg=COLOR_TEXT, 
+          font=("Segoe UI", 11, "bold")).pack(pady=(14, 10))
+    
+    # Modelos disponibles
+    modelos = {
+        "Gemini 2.0 Flash (Experimental)": "gemini-2.0-flash-exp",
+        "Gemini 1.5 Flash (Recomendado)": "gemini-1.5-flash",
+        "Gemini 1.5 Pro": "gemini-1.5-pro",
+        "Gemini 1.0 Pro Vision": "gemini-1.0-pro-vision"
+    }
+    
+    def elegir(nombre_modelo, id_modelo):
+        global GEMINI_MODEL
+        GEMINI_MODEL = id_modelo
+        status.config(text=f"✅ Modelo: {nombre_modelo}")
+        win.destroy()
+    
+    # Botones para cada modelo
+    for nombre, id_modelo in modelos.items():
+        color_btn = COLOR_PURPLE if id_modelo == GEMINI_MODEL else COLOR_BTN
+        btn = tk.Button(win, text=nombre, command=lambda n=nombre, i=id_modelo: elegir(n, i),
+                    bg=color_btn, fg="white", relief="flat", padx=20, pady=12, width=30)
+        btn.pack(pady=4, padx=20)
+    
+    # Centrar ventana
+    root.update_idletasks()
+    x = root.winfo_rootx() + (root.winfo_width()//2 - 200)
+    y = root.winfo_rooty() + (root.winfo_height()//2 - 150)
+    try:
+        win.geometry(f"+{x}+{y}")
+    except Exception:
+        pass
+
+def seleccionar_proveedor():
+    """Selector de proveedor de IA (Gemini / Claude)"""
+    global AI_PROVIDER
+    
+    win = tk.Toplevel(root)
+    win.title("Seleccionar Proveedor de IA")
+    win.configure(bg=COLOR_CARD)
+    win.transient(root)
+    win.grab_set()
+    
+    tk.Label(win, text="¿Qué proveedor de IA quieres usar?", bg=COLOR_CARD, fg=COLOR_TEXT,
+             font=("Segoe UI", 11, "bold")).pack(pady=(14, 10))
+    
+    tk.Label(win, text="(El otro se usará como backup automático)", bg=COLOR_CARD, fg=COLOR_MUTED,
+             font=("Segoe UI", 9)).pack(pady=(0, 10))
+    
+    def elegir(proveedor):
+        global AI_PROVIDER
+        AI_PROVIDER = proveedor
+        status.config(text=f"✅ Proveedor: {proveedor.upper()}")
+        win.destroy()
+    
+    # Botones
+    btn_gemini = tk.Button(win, text="🔷 Gemini (Google)", 
+                          command=lambda: elegir("gemini"),
+                          bg=COLOR_PURPLE if AI_PROVIDER == "gemini" else COLOR_BTN,
+                          fg="white", relief="flat", padx=20, pady=12, width=25)
+    btn_gemini.pack(pady=4, padx=20)
+    
+    btn_claude = tk.Button(win, text="🟣 Claude (Anthropic)", 
+                          command=lambda: elegir("claude"),
+                          bg=COLOR_PURPLE if AI_PROVIDER == "claude" else COLOR_BTN,
+                          fg="white", relief="flat", padx=20, pady=12, width=25)
+    btn_claude.pack(pady=4, padx=20)
+    
+    # Centrar
+    root.update_idletasks()
+    x = root.winfo_rootx() + (root.winfo_width()//2 - 150)
+    y = root.winfo_rooty() + (root.winfo_height()//2 - 100)
+    try:
+        win.geometry(f"+{x}+{y}")
+    except:
+        pass
 
 btn_cargar = tk.Button(bar, text="Cargar imágenes", bg=COLOR_GREEN, fg="white", relief="flat", padx=10, pady=8,
                        command=lambda: cargar_imagenes()); btn_cargar.pack(side="left", padx=8, pady=8)
 btn_preview = tk.Button(bar, text="Previsualización", bg=COLOR_PURPLE, fg="white", relief="flat", padx=10, pady=8,
                         command=lambda: abrir_previsualizacion()); btn_preview.pack(side="left", padx=(0,8), pady=8)
 
-btn_api = tk.Button(bar, text="Ingresar GEMINI_API_KEY", bg=COLOR_PURPLE, fg=COLOR_TEXT, relief="flat", padx=10, pady=8,
-                    command=pedir_api_key); btn_api.pack(side="left", padx=(0,8), pady=8)
+btn_api = tk.Button(bar, text="🔑 Configurar API Keys", bg=COLOR_PURPLE, fg=COLOR_TEXT, relief="flat", padx=10, pady=8,
+                    command=configurar_api_keys); btn_api.pack(side="left", padx=(0,8), pady=8)
+btn_modelo = tk.Button(bar, text="🤖 Seleccionar Modelo", bg=COLOR_BLUE, fg="white", relief="flat", padx=10, pady=8,
+                      command=seleccionar_modelo); btn_modelo.pack(side="left", padx=(0,8), pady=8)
+btn_proveedor = tk.Button(bar, text="🔷 Proveedor IA", bg=COLOR_BLUE, fg="white", relief="flat", padx=10, pady=8,
+                         command=seleccionar_proveedor); btn_proveedor.pack(side="left", padx=(0,8), pady=8)
 btn_pegar = tk.Button(bar, text="Pegar imagen (Ctrl+V)", bg=COLOR_GREEN, fg=COLOR_TEXT, relief="flat", padx=10, pady=8,
                       command=lambda: pegar_imagen_clipboard()); btn_pegar.pack(side="left", padx=(0,8), pady=8)
 
@@ -1919,8 +2107,8 @@ def analizar_actual():
     t0 = time.time()
     _hide_logo_bg()
     
-    # 1. OCR y Normalización
-    texto, forensic_summary = gemini_vision_extract_text(p)
+    # 1. OCR y Normalización con fallback automático
+    texto, proveedor = vision_extract_text_with_fallback(p)
     # Se mantiene la normalización para extraer metadatos de riesgo y exportación
     texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
     
@@ -1933,20 +2121,18 @@ def analizar_actual():
     
     datos_esenciales = {
         "nombre": nombre_completo,
-        "tipo_identificacion": tipo_id,
-        "numero_identificacion": num_id,
         "fecha_nacimiento_original": _extract_dob(texto)[0],
         "fecha_nacimiento_sugerida_mdy": date_results.get("fecha_nacimiento_final"),
         "vigencia_original": texto,
         "vigencia_sugerida_mdy": vigencia_final,
     }
     # NOTA: Se pasa el texto original a _authenticity_score para que use la detección de país
-    riesgo, detalles = _authenticity_score(texto, p, forensic_summary)
+    riesgo, detalles, emoji_semaforo, color_semaforo = _authenticity_score(texto, p)
     dt = round(time.time() - t0, 2)
 
     # 3. Guardar resultados
     # Usamos el texto original para que el exportador trabaje con el output de Gemini
-    _guardar_resultado(Path(p).name, texto, "actual", dt, datos_esenciales, riesgo, detalles, tipo_id, num_id)
+    _guardar_resultado(Path(p).name, texto, "actual", dt, datos_esenciales, riesgo, detalles)
     
     # 4. Mostrar en el panel
     ocr_text.delete("1.0", "end") # Limpiamos antes de mostrar
@@ -1956,32 +2142,26 @@ def analizar_actual():
     ocr_text.insert("end", f"\nRESULTADO 1/1 — {nombre_archivo}\n", "header")
     ocr_text.tag_config("header", font=("Segoe UI", 12, "bold"), foreground=ACCENT_2)
     
+    # Mostrar proveedor usado
+    ocr_text.insert("end", f"Analizado con: {proveedor}\n", "provider_tag")
+    ocr_text.tag_config("provider_tag", foreground=COLOR_MUTED, font=("Segoe UI", 9, "italic"))
+    
+    # Mostrar semáforo de autenticidad
+    ocr_text.insert("end", f"\n{emoji_semaforo} Autenticidad: {riesgo.upper()}\n", "risk_tag")
+    if color_semaforo == "green":
+        ocr_text.tag_config("risk_tag", foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
+    elif color_semaforo == "yellow":
+        ocr_text.tag_config("risk_tag", foreground="#FFD700", font=("Segoe UI", 11, "bold"))
+    else:
+        ocr_text.tag_config("risk_tag", foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
+    if detalles:
+        ocr_text.insert("end", f"Detalles: {'; '.join(detalles)}\n", "body_header")
+    
     # Se imprime solo la línea de país limpia
     ocr_text.insert("end", f"\nTexto Completo (OCR original):\n", "body_header")
     ocr_text.tag_config("body_header", font=("Segoe UI", 10, "bold"), foreground=COLOR_TEXT)
     
-    # === Semáforo de autenticidad en la UI ===
-    ocr_text.tag_config("risk_low",  foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold"))
-    ocr_text.tag_config("risk_mid",  foreground="gold",       font=("Segoe UI", 10, "bold"))
-    ocr_text.tag_config("risk_high", foreground=COLOR_RED,    font=("Segoe UI", 10, "bold"))
-
-    if riesgo == "bajo":
-        tag = "risk_low"
-        msg = "✅ Riesgo de Autenticidad (riesgo bajo).\n"
-    elif riesgo == "medio":
-        tag = "risk_mid"
-        msg = "⚠ Documento con Posibles Inconsistencias (riesgo medio, revisar).\n"
-    else:
-        tag = "risk_high"
-        msg = "🚨 Alto Riesgo de Autenticidad (revisión obligatoria).\n"
-
-    ocr_text.insert("end", msg, tag)
-
-    # Lista de motivos detectados
-    for d in (detalles or []):
-        ocr_text.insert("end", f" • {d}\n", tag)
-
-    ocr_text.insert("end", "\n")  # línea en blanco antes del texto OCR
+    # (Punto 3 - Arreglo [DOCUMENTO])
     #if doc_pais:
         #ocr_text.insert("end", f"país: {doc_pais}\n", "essential_value")
     
@@ -2013,8 +2193,8 @@ def analizar_carrusel():
     for i, p in enumerate(rutas, start=1):
         t0 = time.time()
         try:
-            # 1. OCR y Normalización (solo para registro/diagnóstico)
-            texto, forensic_summary = gemini_vision_extract_text(p)
+            # 1. OCR y Normalización con fallback automático
+            texto, proveedor = vision_extract_text_with_fallback(p)
             texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
             
             # 2. Extracción de datos esenciales y autenticidad (solo para registro)
@@ -2029,19 +2209,17 @@ def analizar_carrusel():
             
             datos_esenciales = {
                 "nombre": nombre_completo,
-                "tipo_identificacion": tipo_id,
-                "numero_identificacion": num_id,
                 "fecha_nacimiento_original": _extract_dob(texto)[0],
                 "fecha_nacimiento_sugerida_mdy": nacimiento_final,
                 "vigencia_original": texto,
                 "vigencia_sugerida_mdy": vigencia_final,
             }
 
-            riesgo, detalles = _authenticity_score(texto, p, forensic_summary)
+            riesgo, detalles, emoji_semaforo, color_semaforo = _authenticity_score(texto, p)
             dt = round(time.time() - t0, 2)
 
             # 3. Guardar resultados
-            _guardar_resultado(Path(p).name, texto, "carrusel", dt, datos_esenciales, riesgo, detalles, tipo_id, num_id)
+            _guardar_resultado(Path(p).name, texto, "carrusel", dt, datos_esenciales, riesgo, detalles)
 
             # 4. Mostrar en el panel (SOLO OCR y autenticidad)
             nombre_archivo = Path(p).name
@@ -2049,29 +2227,23 @@ def analizar_carrusel():
             
             # Mostrar encabezado de resultado
             ocr_text.insert("end", f"\n\nRESULTADO {i}/{total} — {nombre_archivo}\n", "header")
-
-            # === Semáforo de autenticidad en la UI ===
-            ocr_text.tag_config("risk_low",  foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold"))
-            ocr_text.tag_config("risk_mid",  foreground="gold",       font=("Segoe UI", 10, "bold"))
-            ocr_text.tag_config("risk_high", foreground=COLOR_RED,    font=("Segoe UI", 10, "bold"))
-
-            if riesgo == "bajo":
-                tag = "risk_low"
-                msg = "✅ Riesgo de Autenticidad (riesgo bajo).\n"
-            elif riesgo == "medio":
-                tag = "risk_mid"
-                msg = "⚠ Documento con Posibles Inconsistencias (riesgo medio, revisar).\n"
+            
+            # Mostrar proveedor usado
+            ocr_text.insert("end", f"Analizado con: {proveedor}\n", "provider_tag")
+            ocr_text.tag_config("provider_tag", foreground=COLOR_MUTED, font=("Segoe UI", 9, "italic"))
+            
+            # Mostrar semáforo de autenticidad
+            ocr_text.insert("end", f"\n{emoji_semaforo} Autenticidad: {riesgo.upper()}\n", "risk_tag")
+            if color_semaforo == "green":
+                ocr_text.tag_config("risk_tag", foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
+            elif color_semaforo == "yellow":
+                ocr_text.tag_config("risk_tag", foreground="#FFD700", font=("Segoe UI", 11, "bold"))
             else:
-                tag = "risk_high"
-                msg = "🚨 Alto Riesgo de Autenticidad (revisión obligatoria).\n"
+                ocr_text.tag_config("risk_tag", foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
+            if detalles:
+                ocr_text.insert("end", f"Detalles: {'; '.join(detalles)}\n", "body_header")
 
-            ocr_text.insert("end", msg, tag)
-
-            # Lista de motivos detectados
-            for d in (detalles or []):
-                ocr_text.insert("end", f" • {d}\n", tag)
-
-            ocr_text.insert("end", "\n")  # línea en blanco antes del texto OCR
+            # (Punto 3 - Arreglo [DOCUMENTO])
             #if doc_pais_actual:
                 #ocr_text.insert("end", f"país: {doc_pais_actual}\n", "essential_value")
 
@@ -2130,18 +2302,12 @@ def analizar_identificacion():
         t0 = time.time()
 
         try:
-            # === 1) OCR de frente y reverso (por separado) ===
-            texto_frente, forensic_frente = gemini_vision_extract_text(frente)
-            texto_reverso, forensic_reverso = gemini_vision_extract_text(reverso)
-            
-            texto_frente = texto_frente or ""
-            texto_reverso = texto_reverso or ""
+            # === 1) OCR de frente y reverso (por separado) con fallback ===
+            texto_frente, proveedor_frente = vision_extract_text_with_fallback(frente)
+            texto_reverso, proveedor_reverso = vision_extract_text_with_fallback(reverso)
 
             # Texto combinado (lo que se guarda / exporta)
             texto_total = texto_frente + "\n" + texto_reverso
-            
-            # Forense combinado
-            forensic_total = f"--- FRENTE ---\n{forensic_frente}\n--- REVERSO ---\n{forensic_reverso}"
 
             # === 2) Normalización / metadata usando el texto combinado ===
             _, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto_total)
@@ -2154,15 +2320,13 @@ def analizar_identificacion():
 
             datos_esenciales = {
                 "nombre": nombre_completo,
-                "tipo_identificacion": tipo_id,
-                "numero_identificacion": num_id,
                 "fecha_nacimiento_original": _extract_dob(texto_total)[0],
                 "fecha_nacimiento_sugerida_mdy": nacimiento_final,
                 "vigencia_original": texto_total,
                 "vigencia_sugerida_mdy": vigencia_final,
             }
 
-            riesgo, detalles = _authenticity_score(texto_total, frente, forensic_total)
+            riesgo, detalles, emoji_semaforo, color_semaforo = _authenticity_score(texto_total, frente)
             dt = round(time.time() - t0, 2)
 
             # Nombre lógico para exportar (frente + reverso)
@@ -2175,8 +2339,6 @@ def analizar_identificacion():
                 datos_esenciales,
                 riesgo,
                 detalles,
-                tipo_id,
-                num_id
             )
 
             # ===== 3) MOSTRAR EN PANEL =====
@@ -2187,29 +2349,19 @@ def analizar_identificacion():
                 f"{Path(frente).name} + {Path(reverso).name} ({dt:.2f}s)\n"
             )
             ocr_text.insert("end", header_line, "header")
-
-            # === Semáforo de autenticidad en la UI ===
-            ocr_text.tag_config("risk_low",  foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold"))
-            ocr_text.tag_config("risk_mid",  foreground="gold",       font=("Segoe UI", 10, "bold"))
-            ocr_text.tag_config("risk_high", foreground=COLOR_RED,    font=("Segoe UI", 10, "bold"))
-
-            if riesgo == "bajo":
-                tag = "risk_low"
-                msg = "✅ Riesgo de Autenticidad (riesgo bajo).\n"
-            elif riesgo == "medio":
-                tag = "risk_mid"
-                msg = "⚠ Documento con Posibles Inconsistencias (riesgo medio, revisar).\n"
+            
+            # Mostrar semáforo de autenticidad
+            ocr_text.insert("end", f"\n{emoji_semaforo} Autenticidad: {riesgo.upper()}\n", "risk_tag")
+            if color_semaforo == "green":
+                ocr_text.tag_config("risk_tag", foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
+            elif color_semaforo == "yellow":
+                ocr_text.tag_config("risk_tag", foreground="#FFD700", font=("Segoe UI", 11, "bold"))
             else:
-                tag = "risk_high"
-                msg = "🚨 Alto Riesgo de Autenticidad (revisión obligatoria).\n"
+                ocr_text.tag_config("risk_tag", foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
+            if detalles:
+                ocr_text.insert("end", f"Detalles: {'; '.join(detalles)}\n", "body_header")
 
-            ocr_text.insert("end", msg, tag)
-
-            # Lista de motivos detectados
-            for d in (detalles or []):
-                ocr_text.insert("end", f" • {d}\n", tag)
-
-            ocr_text.insert("end", "\n")  # línea en blanco antes del texto OCR
+            # País (una sola vez por ID)
             #if doc_pais:
                 #ocr_text.insert("end", f"país: {doc_pais}\n", "essential_value")
 
@@ -2279,8 +2431,41 @@ def _popup_feedback_then_export_drive():
         pass
     root.wait_window(win)
 
+def _export_drive_only():
+    # Modal morado con 👍/👎 que BLOQUEA hasta seleccionar
+    win = Toplevel(root)
+    win.title("Califica el análisis")
+    win.configure(bg=COLOR_CARD)
+    win.transient(root)
+    win.grab_set()
+    Label(win, text="¿Te gustó el análisis?", bg=COLOR_CARD, fg=COLOR_TEXT).pack(pady=(14, 4))
+
+    btns = Frame(win, bg=COLOR_CARD)
+    btns.pack(pady=10)
+
+    def choose(v):
+        global FEEDBACK_RATING, metricas
+        FEEDBACK_RATING = v
+        for m in metricas:
+            m['feedback'] = FEEDBACK_RATING or ""
+        win.destroy()
+        _export_drive_only()
+
+    Button(btns, text="👍 Me gustó", command=lambda: choose('up'), bg=COLOR_PURPLE, fg="white", relief="flat", padx=16, pady=10).pack(side="left", padx=8)
+    Button(btns, text="👎 No me gustó", command=lambda: choose('down'), bg=COLOR_BTN, fg="white", relief="flat", padx=16, pady=10).pack(side="left", padx=8)
+
+    # Centrar y bloquear
+    root.update_idletasks()
+    x = root.winfo_rootx() + (root.winfo_width()//2 - win.winfo_width()//2)
+    y = root.winfo_rooty() + (root.winfo_height()//2 - win.winfo_height()//2)
+    try:
+        win.geometry(f"+{x}+{y}")
+    except Exception:
+        pass
+    root.wait_window(win)
 
 def _export_drive_only():
+    import pandas as pd  # Lazy import
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     resumen_df = pd.DataFrame(resultados)
     if resumen_df.empty:
@@ -2292,7 +2477,7 @@ def _export_drive_only():
         metricas_df = pd.DataFrame(columns=['archivo','api','tipo','duracion_s','usuario','feedback'])
 
     combinado_df = resumen_df.merge(metricas_df, on='archivo', how='left', suffixes=('', '_m'))
-    preferred_order = ['archivo','texto','duracion_s','tipo','doc_pais','tipo_id','num_id','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final','fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy','autenticidad_riesgo','autenticidad_detalles','api','usuario','feedback']
+    preferred_order = ['archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final','fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy','autenticidad_riesgo','autenticidad_detalles','api','usuario','feedback']
     final_cols = [c for c in preferred_order if c in combinado_df.columns] + [c for c in combinado_df.columns if c not in preferred_order]
     combinado_df = combinado_df[final_cols]
 
@@ -2312,6 +2497,7 @@ def _export_drive_only():
 
 
 def _do_export(destino_carpeta_local: str):
+    import pandas as pd  # Lazy import
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     os.makedirs(destino_carpeta_local, exist_ok=True)
     csv_path = os.path.join(destino_carpeta_local, f"HADES_OCR_{ts}.csv")
@@ -2322,7 +2508,7 @@ def _do_export(destino_carpeta_local: str):
         messagebox.showinfo("Exportación", "No hay resultados para exportar localmente."); return
 
     # Usar las nuevas columnas finales para exportar los datos procesados
-    cols = [c for c in ['archivo','texto','duracion_s','tipo','doc_pais','tipo_id','num_id','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final'] if c in resumen_df.columns]
+    cols = [c for c in ['archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final'] if c in resumen_df.columns]
     out_df = resumen_df[cols].copy() if cols else resumen_df.copy()
     out_df.to_csv(csv_path, index=False, encoding="utf-8-sig")
 
@@ -2332,8 +2518,6 @@ def _do_export(destino_carpeta_local: str):
             f.write(f"Duración (s): {row.get('duracion_s','')}\n")
             f.write(f"Tipo: {row.get('tipo','')}\n")
             f.write(f"País: {row.get('doc_pais','')}\n")
-            f.write(f"Tipo ID: {row.get('tipo_id','')}\n")
-            f.write(f"Num ID: {row.get('num_id','')}\n")
             f.write(f"Formato fecha detectado: {row.get('formato_fecha_detectado','')}\n")
             f.write(f"Fecha Expedición: {row.get('fecha_expedicion_final','')}\n")
             f.write(f"Vigencia: {row.get('vigencia_final','')}\n")
@@ -2361,376 +2545,46 @@ def borrar_todo():
     _show_logo_bg() # Vuelve a mostrar el logo
     status.config(text="Se limpió el estado.")
 
-# --- Funciones de extracción de ID ---
-def _extract_id_number(texto: str, doc_pais: str | None) -> str | None:
-    if not texto: return None
+
+
+# ========= VERIFICACIÓN DE INICIO CON KEYCLOAK =========
+def _verificar_inicio():
+    """Verifica usuario con Keycloak SSO"""
+    if not _KEYCLOAK_OK:
+        messagebox.showerror(
+            "Keycloak no disponible",
+            "El sistema de autenticación SSO no está configurado.\n"
+            "Contacta al administrador del sistema."
+        )
+        return False
     
-    # Normalizamos el texto (espacios internos y saltos de línea para búsqueda de claves)
-    t_searchable = texto.upper().replace('\n', ' ')
-    t_clean = t_searchable.replace(' ', '').replace('-', '')
+    # Intentar autenticación con Keycloak
+    ok, msg = autenticar_con_keycloak()
     
-    # Prioridad 1: Claves específicas de identificación
-    keywords_num = [
-        "PASAPORTE N.", "NÚMERO DE PASAPORTE", "PASSPORT NO", "NÚMERO DE PASAPORTE", 
-        "NÚMERO DE LICENCIA", "NO. LICENCIA", "NÚMERO DE SERIE",
-        "NÚMERO DE MATRÍCULA", "MATRÍCULA CONSULAR",
-        "CÓDIGO ÚNICO DE IDENTIFICACIÓN", "CUI", # DPI Guatemala
-        "DNI", "DPI", "ID NUMBER", "CLAVE DE ELECTOR", 
-        "NÚMERO DE IDENTIFICACIÓN", "NÚMERO"
-    ]
-    
-    for kw in keywords_num:
-        # Buscamos la clave, permitiendo ":", "-" o un espacio como separador, seguido de [A-Z0-9\-]
-        # Nota: El regex ahora busca el valor y lo trata como RAW STRING.
-        line_match = re.search(f"{kw.replace(' ', ' ?')}\\s*[:\\-]?\\s*([A-Z0-9\\-]+)", t_searchable)
-        
-        if line_match:
-            val = line_match.group(1).strip()
-            clean_val = val.replace(' ', '').replace('-', '')
-
-            # Caso específico DPI/CUI (Guatemala): Buscamos 13 dígitos
-            if kw in ["CÓDIGO ÚNICO DE IDENTIFICACIÓN", "CUI"] and re.match(r'^\d{13}$', clean_val):
-                return clean_val
-
-            # Caso General: Validamos longitud y limpiamos sufijos de texto indeseados (como 'NOMBRE')
-            if clean_val and len(clean_val) >= 8:
-                # Intento de limpieza de texto colado (ej. 'NOMBRE', 'APELLIDO')
-                clean_val_final = re.sub(r'[A-ZÑ]+$', '', clean_val) 
-                if len(clean_val_final) >= 8:
-                    return clean_val_final
-
-    # Prioridad 2: Claves reguladas (CURP, RFC)
-    if doc_pais == "MX":
-        curp_match = _CURP_RE.search(t_clean)
-        if curp_match: return curp_match.group(0)
-        rfc_match = _RFC_PER_RE.search(t_clean)
-        if rfc_match: return rfc_match.group(0)
-
-    # Fallback: Capturar el Número de Control del documento (Licencia de Conducir, etc.)
-    match_long_num = re.search(r'\b([A-Z0-9]{8,25})\b', t_clean)
-    if match_long_num:
-        return match_long_num.group(1) if not match_long_num.group(1).isdigit() or len(match_long_num.group(1)) > 8 else None
-
-    return None
-
-
-# --- Fin funciones de extracción de ID ---
-
-def _extract_name(texto: str) -> str | None:
-    if not texto: return None
-    t = texto.upper()
-    
-    # Diccionario para almacenar los nombres y apellidos encontrados
-    name_parts = {"apellidos": None, "nombres": None, "segundo_apellido": None}
-    
-    # 1. Intento: Capturar Nombres y Apellidos en pares CLAVE: VALOR
-    for line in t.splitlines():
-        # Captura Apellidos/Surname
-        match_apellido = re.search(r'(?:APELLIDOS|SURNAME|APELLIDO)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)', line)
-        if match_apellido:
-            name_parts["apellidos"] = match_apellido.group(1).strip()
-            
-        # Captura Nombres/Given Names/Nombre Completo
-        match_nombre = re.search(r'(?:NOMBRES|NAME|GIVEN NAME|NOMBRE|NOMBRE COMPLETO)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)', line)
-        if match_nombre:
-            # Si se encuentra 'Nombre Completo', lo priorizamos, pero si ya tenemos apellidos, solo usamos el nombre
-            val = match_nombre.group(1).strip()
-            
-            # Si el valor capturado de 'NOMBRE' contiene espacios y parece ser el nombre completo
-            if "COMPLETO" in line and len(val.split()) > 2:
-                return " ".join(val.split()).title() # Retorna inmediatamente el nombre completo
-
-            # Lógica estándar de nombres/apellidos
-            if val not in ["DELA CRUZ", "DE", "LA", "DEL"]: # Exclusión por caso 9
-                name_parts["nombres"] = val
-        
-        # Captura Segundo Apellido (caso 9)
-        match_segundo = re.search(r'(?:SEGUNDO APELLIDO|SEGUNDOAPELLIDO)\s*[:\-]?\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)', line)
-        if match_segundo:
-            name_parts["segundo_apellido"] = match_segundo.group(1).strip()
-
-
-    # 2. Combinación de los resultados capturados
-    apellidos = name_parts["apellidos"]
-    nombres = name_parts["nombres"]
-    segundo = name_parts["segundo_apellido"]
-
-    full_name = []
-    
-    # Orden Preferente: Apellidos (1 o 2) + Nombres
-    # Juntar todos los apellidos
-    apellidos_full = [apellidos] if apellidos else []
-    if segundo and segundo != apellidos: # No repetir si el OCR lo confunde
-        apellidos_full.append(segundo)
-    
-    # Unir apellidos y nombres
-    final_name_parts = [" ".join(apellidos_full).strip()] if apellidos_full else []
-    if nombres:
-        final_name_parts.append(nombres)
-    
-    final_name = " ".join(final_name_parts).strip()
-
-    if final_name:
-        # Post-limpieza y validación (debe tener al menos dos palabras)
-        clean_name = re.sub(r'\s+', ' ', final_name).strip()
-        if len(clean_name.split()) >= 2 and not any(ch.isdigit() for ch in clean_name):
-            # Corregir la mayúsculas/minúsculas de los prefijos como DE, LA, Y
-            title_cased = clean_name.title()
-            for p in ["De ", "La ", "Los ", "Las ", "Y "]:
-                title_cased = title_cased.replace(p, p.lower())
-            return title_cased
-
-    
-    # Fallback a la lógica genérica si no se pudo construir el nombre a partir de partes
-    # Intento 3: Usar regex genérico (mantenido del código anterior)
-    for rx in _NAME_HINTS:
-        for line in t.splitlines():
-            m = re.search(rx, line, flags=re.IGNORECASE)
-            if m:
-                cand = m.group(1).strip()
-                if len(m.groups()) > 1 and m.group(2) is not None:
-                    cand = cand.replace(m.group(2), '').strip()
-                if len(cand.split()) >= 2 and not any(ch.isdigit() for ch in cand):
-                    keywords_to_remove = ["DOMICILIO", "DIRECCION", "ADDRESS", "CALLE", "CASA"]
-                    for kw in keywords_to_remove:
-                        if cand.endswith(kw):
-                            cand = cand[:-len(kw)].strip()
-                    # Corregir la mayúsculas/minúsculas de los prefijos como DE, LA, Y
-                    title_cased = " ".join(cand.split()).title()
-                    for p in ["De ", "La ", "Los ", "Las ", "Y "]:
-                        title_cased = title_cased.replace(p, p.lower())
-                    return title_cased
-
-    return None
-
-def _find_first_date_after_keyword(texto: str, hints: list[str]) -> tuple[str|None, str|None]:
-    """Devuelve (original_encontrada, sugerida_MDY) cerca de palabras clave."""
-    if not texto: return None, None
-    span = 120
-    for kw in hints:
-        for m in re.finditer(kw, texto, flags=re.IGNORECASE):
-            window = texto[m.end(): m.end()+span]
-            for rx in (_DATE_RE_NUM_A,_DATE_RE_ISO,_DATE_RE_DMY_H,_DATE_RE_TXT_ES,
-                       _DATE_RE_TXT_EN,_DATE_RE_TXT_EN_DMY,_DATE_RE_TXT_EN_MDY,
-                       _DATE_RE_EN_MON_DD_YYYY_H,_DATE_RE_EN_DD_MON_YYYY_H, _DATE_RE_TXT_PASSPORT, _DATE_RE_DMMMYYYY):
-                mm = rx.search(window)
-                if mm:
-                    original = mm.group(0).strip()
-                    sugerida = _normalize_date_to_mdy_ctx(original, _infer_doc_country(texto), _detect_language_bias(texto))
-                    if sugerida:
-                        return original, sugerida
-    return None, None
-    
-def _extract_dob(texto: str) -> tuple[str|None, str|None]:
-    return _find_first_date_after_keyword(texto, _DOB_HINTS)
-
-def _parse_dob_from_curp(curp: str):
-    m = _CURP_RE.search(curp or "")
-    if not m: return None
-    yy, mm, dd = map(int, m.groups()[1:4])
-    y = 2000 + yy if yy < 50 else 1900 + yy
-    try:
-        import datetime as _dt
-        _dt.date(y, mm, dd)
-        return f"{int(mm):02d}/{int(dd):02d}/{y:04d}"
-    except Exception:
-        return None
-
-def _age_from_mdy(mdy: str):
-    try:
-        import datetime as _dt
-        m,d,y = map(int, mdy.split("/"))
-        dob = _dt.date(y, m, d)
-        today = _dt.date.today()
-        return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-    except Exception:
-        return None
-
-
-
-def _authenticity_score(texto: str, image_path: str|None, forensic_summary: str = ""):
-    details = []
-    score = 0
-    low = (texto or "").lower()
-
-    # Usamos la lógica del nuevo procesador para obtener la fecha normalizada
-    date_results = _process_all_dates_by_type(texto)
-    dob_use = date_results.get("fecha_nacimiento_final")
-    
-    # 1. Chequeo de Muestra
-    if any(w in low for w in _SAMPLE_WORDS if w):
-        score += 50; details.append("Contiene 'sample/muestra/void'.")
-
-    # 2. Chequeo de Nombre
-    nombre = _extract_name(texto)
-    if not nombre:
-        score += 10; details.append("No se detectó nombre.")
-
-    # 3. Chequeo de Fecha de Nacimiento e Inconsistencias
-    if dob_use and "Sugerida" not in dob_use:
-        age = _age_from_mdy(dob_use)
-        if age is not None and (age < 15 or age > 120):
-            score += 30; details.append(f"Edad implausible ({age} años).")
-        
-        curp_m = _CURP_RE.search(texto or "")
-        if curp_m and _infer_doc_country(texto) == "MX":
-            curp = curp_m.group(0)
-            curp_dob = _parse_dob_from_curp(curp)
-            if curp_dob and curp_dob != dob_use:
-                score += 40; details.append("CURP no coincide con la fecha de nacimiento.")
-        
-        rfc_m = _RFC_PER_RE.search(texto or "")
-        if rfc_m and _infer_doc_country(texto) == "MX":
-            yy,mm,dd = map(int, rfc_m.groups()[1:4])
-            y = 2000 + yy if yy < 50 else 1900 + yy
-            rfc_dob = f"{mm:02d}/{dd:02d}/{y:04d}"
-            if rfc_dob != dob_use:
-                score += 20; details.append("RFC no coincide con la fecha de nacimiento.")
+    if ok:
+        messagebox.showinfo(
+            "Autenticación Exitosa",
+            f"Bienvenido, {usuario_actual['nombre']}\n"
+            f"Correo: {usuario_actual['correo']}"
+        )
+        return True
     else:
-        score += 10; details.append("No se identificó fecha de nacimiento.")
+        messagebox.showerror(
+            "Error de Autenticación",
+            f"No se pudo iniciar sesión:\n{msg}"
+        )
+        return False
 
-    # 4. Chequeo de Vigencia y Expiración
-    vig_final = date_results.get("fecha_vigencia_final")
-    if not vig_final or "Sugerida" in vig_final:
-        score += 10; details.append("No se detectó vigencia (usamos sugerida).")
+
+# ========= INICIO (Optimizado con verificación diferida) =========
+def _init_app():
+    """Inicializa la app después de verificar usuario"""
+    if _verificar_inicio():
+        root.bind_all("<Control-v>", lambda e: pegar_imagen_clipboard())
+        _set_mode_ocr()
     else:
-        # Verificar si está vencido
-        try:
-            import datetime as _dt
-            mm, dd, yyyy = map(int, vig_final.split('/'))
-            exp_date = _dt.date(yyyy, mm, dd)
-            if exp_date < _dt.date.today():
-                score += 50; details.append(f"DOCUMENTO VENCIDO (Expiró: {vig_final}).")
-            
-            # Verificar correlación Cumpleaños vs Vencimiento (Común en USA/MX)
-            # Si tenemos DOB y Vigencia, el día y mes suelen coincidir en licencias
-            if dob_use and "Sugerida" not in dob_use:
-                d_mm, d_dd, _ = map(int, dob_use.split('/'))
-                # Tolerancia de +/- 1 día por zonas horarias o errores OCR leves
-                if (d_mm != mm or d_dd != dd) and _infer_doc_country(texto) == "US":
-                     # No penalizamos fuerte, pero avisamos. En TX/CA suele coincidir.
-                     # score += 10; details.append("Día/Mes de vigencia no coincide con nacimiento.")
-                     pass
-        except Exception:
-            pass
+        root.destroy()
 
-    # 5. Palabras clave de Falsificación (Novelty, etc)
-    fake_keywords = [
-        "novelty", "replica", "authentic", "card creator", "no government", "valid for 20",
-        "non-government", "non government", "private id", "1st amendment", "first amendment",
-        "constitutional id", "not a government", "office use only", "sample", "specimen",
-        "gold member", "platinum member", "vip", "identificación de fantasía"
-    ]
-    # 6. Chequeo de Consistencia Geográfica (Zip Code vs Estado)
-    # Detecta errores comunes en fakes (ej. Zip de NC en dirección de ND)
-    try:
-        # Diccionario simplificado de rangos ZIP por Estado (Primeros 2-3 dígitos o rangos completos)
-        # Formato: STATE_CODE: (min, max)
-        _US_ZIPS = {
-            "AL": (35000, 36999), "AK": (99500, 99999), "AZ": (85000, 86999), "AR": (71600, 72999),
-            "CA": (90000, 96199), "CO": (80000, 81699), "CT": (6000, 6999),   "DE": (19700, 19999),
-            "FL": (32000, 34999), "GA": (30000, 31999), "HI": (96700, 96899), "ID": (83200, 83999),
-            "IL": (60000, 62999), "IN": (46000, 47999), "IA": (50000, 52999), "KS": (66000, 67999),
-            "KY": (40000, 42799), "LA": (70000, 71599), "ME": (3900, 4999),   "MD": (20600, 21999),
-            "MA": (1000, 2799),   "MI": (48000, 49999), "MN": (55000, 56799), "MS": (38600, 39999),
-            "MO": (63000, 65999), "MT": (59000, 59999), "NE": (68000, 69399), "NV": (88900, 89899),
-            "NH": (3000, 3899),   "NJ": (7000, 8999),   "NM": (87000, 88499), "NY": (10000, 14999),
-            "NC": (27000, 28999), "ND": (58000, 58899), "OH": (43000, 45999), "OK": (73000, 74999),
-            "OR": (97000, 97999), "PA": (15000, 19699), "RI": (2800, 2999),   "SC": (29000, 29999),
-            "SD": (57000, 57799), "TN": (37000, 38599), "TX": (75000, 79999), "UT": (84000, 84799),
-            "VT": (5000, 5999),   "VA": (22000, 24699), "WA": (98000, 99499), "WV": (24700, 26999),
-            "WI": (53000, 54999), "WY": (82000, 83199), "DC": (20000, 20599)
-        }
-        
-        # Mapeo de Nombres de Estados a Códigos
-        _STATE_NAMES = {
-            "ALABAMA": "AL", "ALASKA": "AK", "ARIZONA": "AZ", "ARKANSAS": "AR", "CALIFORNIA": "CA",
-            "COLORADO": "CO", "CONNECTICUT": "CT", "DELAWARE": "DE", "FLORIDA": "FL", "GEORGIA": "GA",
-            "HAWAII": "HI", "IDAHO": "ID", "ILLINOIS": "IL", "INDIANA": "IN", "IOWA": "IA",
-            "KANSAS": "KS", "KENTUCKY": "KY", "LOUISIANA": "LA", "MAINE": "ME", "MARYLAND": "MD",
-            "MASSACHUSETTS": "MA", "MICHIGAN": "MI", "MINNESOTA": "MN", "MISSISSIPPI": "MS",
-            "MISSOURI": "MO", "MONTANA": "MT", "NEBRASKA": "NE", "NEVADA": "NV", "NEW HAMPSHIRE": "NH",
-            "NEW JERSEY": "NJ", "NEW MEXICO": "NM", "NEW YORK": "NY", "NORTH CAROLINA": "NC",
-            "NORTH DAKOTA": "ND", "OHIO": "OH", "OKLAHOMA": "OK", "OREGON": "OR", "PENNSYLVANIA": "PA",
-            "RHODE ISLAND": "RI", "SOUTH CAROLINA": "SC", "SOUTH DAKOTA": "SD", "TENNESSEE": "TN",
-            "TEXAS": "TX", "UTAH": "UT", "VERMONT": "VT", "VIRGINIA": "VA", "WASHINGTON": "WA",
-            "WEST VIRGINIA": "WV", "WISCONSIN": "WI", "WYOMING": "WY", "DISTRICT OF COLUMBIA": "DC"
-        }
-
-        # Buscar Zip Code (5 dígitos)
-        zip_match = re.search(r'\b(\d{5})\b', texto)
-        if zip_match:
-            zip_val = int(zip_match.group(1))
-            
-            # Buscar Estado (Nombre completo o Abreviatura de 2 letras en mayúsculas rodeada de espacios)
-            state_found = None
-            t_upper = texto.upper()
-            
-            # 1. Buscar por nombre completo
-            for s_name, s_code in _STATE_NAMES.items():
-                if s_name in t_upper:
-                    state_found = s_code
-                    break
-            
-            # 2. Si no, buscar por código (ej. " TX ")
-            if not state_found:
-                for s_code in _US_ZIPS.keys():
-                    if re.search(r'\b' + s_code + r'\b', t_upper):
-                        state_found = s_code
-                        break
-            
-            # Validar
-            if state_found and state_found in _US_ZIPS:
-                z_min, z_max = _US_ZIPS[state_found]
-                if not (z_min <= zip_val <= z_max):
-                    # Excepción: Algunos zips cruzan fronteras, pero una desviación grande es sospechosa.
-                    # En el caso del usuario: ND (58xxx) vs 28216 (NC) -> Desviación enorme.
-                    score += 60
-                    details.append(f"INCONSISTENCIA GEOGRÁFICA: Zip {zip_val} no corresponde a {state_found}.")
-    except Exception:
-        pass
-
-    # 7. Análisis VISUAL con Gemini (sellos, hologramas, montajes, etc.)
-    visual_info = None
-    try:
-        if image_path:
-            visual_info = gemini_vision_auth_check(image_path, texto, _infer_doc_country(texto))
-    except Exception as e:
-        print(f"[HADES] Error en análisis visual Gemini: {e}")
-        visual_info = None
-
-    if visual_info:
-        v_score = visual_info.get("visual_score", 50)
-        v_risk = visual_info.get("visual_risk", "medio")
-        v_flags = visual_info.get("flags", [])
-        v_comment = visual_info.get("comentario", "")
-
-        # Ajustamos el score global según el riesgo visual
-        if v_risk == "bajo":
-            score += 0
-        elif v_risk == "medio":
-            score += 15
-        else:  # alto
-            score += 35
-
-        # Guardamos detalles explicativos
-        details.append(f"[Visual Gemini] Riesgo: {v_risk}, score={v_score}")
-        if v_comment:
-            details.append(f"[Visual Gemini] {v_comment}")
-        for fl in v_flags:
-            details.append(f"[Visual Gemini] flag: {fl}")
-
-    riesgo = "bajo" if score < 25 else ("medio" if score <= 60 else "alto")
-    return riesgo, details
-
-
-# ========= INICIO (Se corrige el NameError aquí) =========
-if _verificar_inicio():
-    
-    # PULIDO: Mover los atajos de teclado aquí dentro.
-    # ========= ATAJOS =========
-    root.bind_all("<Control-v>", lambda e: pegar_imagen_clipboard())
-    
-    # Continuar con el inicio de la aplicación
-    _set_mode_ocr()
-    root.mainloop()
+# Mostrar UI primero, luego verificar (arranque más rápido)
+root.after(100, _init_app)  # Verificar después de 100ms
+root.mainloop()
