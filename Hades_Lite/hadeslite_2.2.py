@@ -922,7 +922,7 @@ GEMINI_API_KEY = None # se solicita desde botón
 usuario_actual = {"correo": None, "nombre": None, "sso": False}
 
 # ===== MODELO GEMINI SELECCIONADO =====
-GEMINI_MODEL = "gemini-1.5-flash"  # Modelo por defecto
+GEMINI_MODEL = "gemini-2.5-flash"  # Modelo fijo (el que funcionaba antes)
 
 # ===== CONFIGURACIÓN DE IA (Gemini + Claude Backup) =====
 CLAUDE_API_KEY = None
@@ -1788,10 +1788,6 @@ btn_preview = tk.Button(bar, text="Previsualización", bg=COLOR_PURPLE, fg="whit
 
 btn_api = tk.Button(bar, text="🔑 Configurar API Keys", bg=COLOR_PURPLE, fg=COLOR_TEXT, relief="flat", padx=10, pady=8,
                     command=configurar_api_keys); btn_api.pack(side="left", padx=(0,8), pady=8)
-btn_modelo = tk.Button(bar, text="🤖 Seleccionar Modelo", bg=COLOR_BLUE, fg="white", relief="flat", padx=10, pady=8,
-                      command=seleccionar_modelo); btn_modelo.pack(side="left", padx=(0,8), pady=8)
-btn_proveedor = tk.Button(bar, text="🔷 Proveedor IA", bg=COLOR_BLUE, fg="white", relief="flat", padx=10, pady=8,
-                         command=seleccionar_proveedor); btn_proveedor.pack(side="left", padx=(0,8), pady=8)
 btn_pegar = tk.Button(bar, text="Pegar imagen (Ctrl+V)", bg=COLOR_GREEN, fg=COLOR_TEXT, relief="flat", padx=10, pady=8,
                       command=lambda: pegar_imagen_clipboard()); btn_pegar.pack(side="left", padx=(0,8), pady=8)
 
