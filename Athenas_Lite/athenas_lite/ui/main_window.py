@@ -4,6 +4,7 @@ import sys
 import pathlib
 import datetime
 import re
+import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, ttk
 from collections import Counter, defaultdict
@@ -55,22 +56,128 @@ class MainApp:
         self.setup_ui()
 
     def authenticate_user(self):
+        """Autenticación con Keycloak SSO con splash screen"""
+        # Crear ventana de splash
+        splash = tk.Toplevel(self.root)
+        splash.title("ATHENAS Lite")
+        splash.geometry("400x300")
+        splash.configure(bg="#fceff1")
+        splash.resizable(False, False)
+        
+        # Centrar ventana
+        splash.update_idletasks()
+        x = (splash.winfo_screenwidth() // 2) - 200
+        y = (splash.winfo_screenheight() // 2) - 150
+        splash.geometry(f"+{x}+{y}")
+        
+        # Quitar bordes de ventana
+        splash.overrideredirect(True)
+        
+        # Frame principal
+        main_frame = tk.Frame(splash, bg="#fceff1", bd=2, relief="solid")
+        main_frame.pack(fill="both", expand=True, padx=2, pady=2)
+        
+        # Logo (intentar cargar imagen, si no, usar texto)
         try:
-            correo = simpledialog.askstring("Autorización", "Ingresa tu correo corporativo:", parent=self.root)
-            if not correo:
-                messagebox.showerror("Autorización", "Debes ingresar un correo para continuar.")
+            logo_path = _resource_path("athenas2.png")
+            if os.path.exists(logo_path) and Image and ImageTk:
+                logo_img = Image.open(logo_path).resize((80, 110))
+                logo_tk = ImageTk.PhotoImage(logo_img)
+                logo_label = tk.Label(main_frame, image=logo_tk, bg="#fceff1")
+                logo_label.image = logo_tk  # Mantener referencia
+                logo_label.pack(pady=(20, 10))
+            else:
+                raise Exception("No logo")
+        except:
+            tk.Label(main_frame, text="ATHENAS", font=("Segoe UI", 24, "bold"), 
+                    fg="#e91e63", bg="#fceff1").pack(pady=(20, 5))
+            tk.Label(main_frame, text="Lite", font=("Segoe UI", 16), 
+                    fg="#c2185b", bg="#fceff1").pack(pady=(0, 10))
+        
+        # Título
+        tk.Label(main_frame, text="Autenticación SSO", font=("Segoe UI", 12, "bold"),
+                fg="#333333", bg="#fceff1").pack(pady=(10, 5))
+        
+        # Mensaje de estado
+        status_label = tk.Label(main_frame, text="Iniciando autenticación...", 
+                               font=("Segoe UI", 9), fg="#666666", bg="#fceff1")
+        status_label.pack(pady=10)
+        
+        # Barra de progreso (indeterminada)
+        try:
+            progress = ttk.Progressbar(main_frame, mode='indeterminate', length=300)
+            progress.pack(pady=10)
+            progress.start(10)
+        except:
+            pass
+        
+        splash.update()
+        
+        # Función para actualizar estado
+        def update_status(message):
+            status_label.config(text=message)
+            splash.update()
+        
+        try:
+            # Importar módulo de Keycloak
+            import sys
+            import os
+            parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if parent_dir not in sys.path:
+                sys.path.insert(0, parent_dir)
+            
+            from keycloak_auth import KeycloakAuth
+            
+            update_status("Conectando con servidor SSO...")
+            splash.update()
+            
+            # Autenticar con Keycloak
+            keycloak = KeycloakAuth()
+            
+            update_status("Abriendo navegador...")
+            splash.update()
+            
+            # Ejecutar autenticación en thread para no bloquear UI
+            import threading
+            auth_result = {"success": False, "message": ""}
+            
+            def do_auth():
+                success, message = keycloak.authenticate()
+                auth_result["success"] = success
+                auth_result["message"] = message
+            
+            auth_thread = threading.Thread(target=do_auth)
+            auth_thread.daemon = True
+            auth_thread.start()
+            
+            # Esperar autenticación con actualizaciones de UI
+            update_status("Esperando autenticación en navegador...")
+            while auth_thread.is_alive():
+                splash.update()
+                time.sleep(0.1)
+            
+            if not auth_result["success"]:
+                splash.destroy()
+                messagebox.showerror("Autorización", f"Error de autenticación:\n{auth_result['message']}")
                 self.root.destroy()
                 sys.exit(1)
             
-            ok, nombre = verificar_correo_online(correo.strip().lower())
-            if not ok:
-                messagebox.showerror("Autorización", "Tu correo no está autorizado. Solicita alta en el Sheet.")
-                self.root.destroy()
-                sys.exit(1)
+            # Obtener información del usuario
+            update_status("Obteniendo información del usuario...")
+            splash.update()
             
-            self.nombre_evaluador = nombre or correo
+            self.nombre_evaluador = keycloak.get_user_name() or keycloak.get_user_email()
             logger.info(f"User authenticated: {self.nombre_evaluador}")
+            
+            update_status("✅ Autenticación exitosa")
+            splash.update()
+            time.sleep(0.5)
+            
+            # Cerrar splash
+            splash.destroy()
+            
         except Exception as e:
+            splash.destroy()
             logger.exception("Auth failed")
             messagebox.showerror("Autorización", f"Error validando acceso:\n{e}")
             self.root.destroy()
@@ -122,70 +229,71 @@ class MainApp:
         
         ventana = tk.Toplevel(self.root)
         ventana.title("Configuración de Gemini")
-        ventana.configure(bg=PALETTE["card"])
-        ventana.geometry("500x350")
+        ventana.configure(bg="#fceff1")
+        ventana.geometry("550x380")
         ventana.transient(self.root)
         ventana.grab_set()
         
         # Título
         tk.Label(ventana, text="⚙️ Configuración de Gemini API", 
-                bg=PALETTE["card"], fg=PALETTE["text"], 
+                bg="#fceff1", fg="#0D47A1", 
                 font=("Segoe UI", 13, "bold")).pack(pady=(16, 10))
         
         # Frame principal
-        main_frame = tk.Frame(ventana, bg=PALETTE["card"])
+        main_frame = tk.Frame(ventana, bg="#fceff1")
         main_frame.pack(fill="both", expand=True, padx=20, pady=10)
         
         # API Key
-        tk.Label(main_frame, text="API Key:", bg=PALETTE["card"], fg=PALETTE["text"],
+        tk.Label(main_frame, text="API Keys (separadas por comas para rotación):", bg="#fceff1", fg="#333333",
                 font=self.fonts["body"]).grid(row=0, column=0, sticky="w", pady=(0, 5))
         
-        api_key_entry = tk.Entry(main_frame, bg="#2a2a2a", fg=PALETTE["text"], 
-                                insertbackground=PALETTE["text"], relief="flat", 
-                                width=45, show="*")
+        api_key_entry = tk.Entry(main_frame, bg="white", fg="#333333", 
+                                insertbackground="#333333", relief="solid", 
+                                width=50, show="*", bd=1)
         api_key_entry.grid(row=1, column=0, sticky="ew", pady=(0, 5))
+        
+        # Ejemplo de múltiples keys
+        example_label = tk.Label(main_frame, text="Ejemplo: key1, key2, key3, key4", 
+                                bg="#fceff1", fg="#999999", font=("Segoe UI", 8, "italic"))
+        example_label.grid(row=2, column=0, sticky="w", pady=(0, 5))
         
         # Link para obtener API Key
         link_label = tk.Label(main_frame, text="🔗 Obtener API Key en Google AI Studio", 
-                             bg=PALETTE["card"], fg="#64B5F6", cursor="hand2",
+                             bg="#fceff1", fg="#1976D2", cursor="hand2",
                              font=("Segoe UI", 9, "underline"))
         link_label.grid(row=2, column=0, sticky="w", pady=(0, 15))
         link_label.bind("<Button-1>", lambda e: self._open_url("https://aistudio.google.com/app/apikey"))
         
         # Selector de Modelo
-        tk.Label(main_frame, text="Modelo de Gemini:", bg=PALETTE["card"], fg=PALETTE["text"],
+        tk.Label(main_frame, text="Modelo de Gemini:", bg="#fceff1", fg="#333333",
                 font=self.fonts["body"]).grid(row=3, column=0, sticky="w", pady=(10, 5))
         
         modelo_var = tk.StringVar(value=GEMINI_MODEL_SELECTED)
         
         # Radio buttons para modelos
-        radio_frame = tk.Frame(main_frame, bg=PALETTE["card"])
+        radio_frame = tk.Frame(main_frame, bg="#fceff1")
         radio_frame.grid(row=4, column=0, sticky="w", pady=(0, 5))
         
-        tk.Radiobutton(radio_frame, text="gemini-3-12b (Recomendado - 14.4K requests/día)", 
-                      variable=modelo_var, value="gemini-3-12b",
-                      bg=PALETTE["card"], fg=PALETTE["text"], selectcolor="#2a2a2a",
-                      activebackground=PALETTE["card"], activeforeground=PALETTE["text"],
-                      font=("Segoe UI", 9)).pack(anchor="w", pady=2)
-        
-        tk.Radiobutton(radio_frame, text="gemini-2.5-flash (20 requests/día)", 
+        tk.Radiobutton(radio_frame, text="gemini-2.5-flash (Recomendado para audio - 20 requests/día)", 
                       variable=modelo_var, value="gemini-2.5-flash",
-                      bg=PALETTE["card"], fg=PALETTE["text"], selectcolor="#2a2a2a",
-                      activebackground=PALETTE["card"], activeforeground=PALETTE["text"],
-                      font=("Segoe UI", 9)).pack(anchor="w", pady=2)
+                      bg="#fceff1", fg="#333333", selectcolor="white",
+                      activebackground="#fceff1", activeforeground="#333333",
+                      font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=2)
         
         # Info adicional
         info_label = tk.Label(main_frame, 
-                             text="💡 gemini-3-12b permite analizar ~4,800 audios/día\n"
-                                  "   gemini-2.5-flash solo permite ~6 audios/día",
-                             bg=PALETTE["card"], fg="#FFB74D", justify="left",
-                             font=("Segoe UI", 8))
+                             text="⚠️ Modelos Gemma (gemma-3-12b, etc.) NO soportan análisis de audio\n"
+                                  "💡 gemini-2.5-flash es el único modelo gratuito que funciona con audio\n"
+                                  "   Límite: 20 requests/día (~6 audios)\n"
+                                  "🔄 Con 4 API keys puedes analizar ~24 audios/día (rotación automática)",
+                             bg="#fceff1", fg="#E65100", justify="left",
+                             font=("Segoe UI", 8, "bold"))
         info_label.grid(row=5, column=0, sticky="w", pady=(10, 10))
         
         main_frame.grid_columnconfigure(0, weight=1)
         
         # Botones
-        btn_frame = tk.Frame(ventana, bg=PALETTE["card"])
+        btn_frame = tk.Frame(ventana, bg="#fceff1")
         btn_frame.pack(pady=(0, 16))
         
         def guardar():
@@ -208,16 +316,16 @@ class MainApp:
                 messagebox.showwarning("⚠️ Advertencia", "Debes ingresar una API Key")
         
         tk.Button(btn_frame, text="💾 Guardar", command=guardar, 
-                 bg=PALETTE["brand"], fg="white", relief="flat", 
-                 padx=20, pady=10, width=12).pack(side="left", padx=5)
+                 bg="#C2185B", fg="white", relief="flat", 
+                 padx=20, pady=10, width=12, font=("Segoe UI", 9, "bold")).pack(side="left", padx=5)
         tk.Button(btn_frame, text="❌ Cancelar", command=ventana.destroy, 
-                 bg="#616161", fg="white", relief="flat", 
-                 padx=20, pady=10, width=12).pack(side="left", padx=5)
+                 bg="#757575", fg="white", relief="flat", 
+                 padx=20, pady=10, width=12, font=("Segoe UI", 9)).pack(side="left", padx=5)
         
         # Centrar ventana
         self.root.update_idletasks()
-        x = self.root.winfo_rootx() + (self.root.winfo_width()//2 - 250)
-        y = self.root.winfo_rooty() + (self.root.winfo_height()//2 - 175)
+        x = self.root.winfo_rootx() + (self.root.winfo_width()//2 - 275)
+        y = self.root.winfo_rooty() + (self.root.winfo_height()//2 - 190)
         try:
             ventana.geometry(f"+{x}+{y}")
         except:

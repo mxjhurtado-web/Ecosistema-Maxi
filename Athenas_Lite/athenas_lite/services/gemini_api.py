@@ -11,7 +11,11 @@ logger = logging.getLogger("athenas_lite")
 
 API_KEY_GEMINI = None
 USE_REAL_MODEL = False
-GEMINI_MODEL_SELECTED = "gemini-3-12b"  # Modelo seleccionado por el usuario
+GEMINI_MODEL_SELECTED = "gemini-2.5-flash"  # Modelo por defecto (soporta audio)
+
+# Sistema de rotación de API Keys
+GEMINI_API_KEYS = []  # Lista de API keys disponibles
+CURRENT_KEY_INDEX = 0  # Índice de la key actual
 
 # ===== RATE LIMITER =====
 class RateLimiter:
@@ -84,20 +88,59 @@ Devuelve SOLO JSON:
 
 def configurar_gemini(api_key: str) -> bool:
     global API_KEY_GEMINI, USE_REAL_MODEL
-    api_key = (api_key or "").strip()
-    if not api_key:
-        USE_REAL_MODEL = False
-        API_KEY_GEMINI = None
-        return False
+    """
+    Configura Gemini con una o múltiples API keys.
+    Si se pasan múltiples keys separadas por comas, se habilita rotación.
+    """
+    global API_KEY_GEMINI, USE_REAL_MODEL, GEMINI_API_KEYS, CURRENT_KEY_INDEX
     try:
-        genai.configure(api_key=api_key)
-        API_KEY_GEMINI = api_key
+        # Separar múltiples keys si están separadas por comas
+        keys = [k.strip() for k in api_key.split(',') if k.strip()]
+        
+        if not keys:
+            return False
+        
+        # Guardar todas las keys
+        GEMINI_API_KEYS = keys
+        CURRENT_KEY_INDEX = 0
+        
+        # Configurar la primera key
+        API_KEY_GEMINI = keys[0]
+        genai.configure(api_key=API_KEY_GEMINI)
         USE_REAL_MODEL = True
-        logger.info("Gemini configured successfully.")
+        
+        if len(keys) > 1:
+            logger.info(f"✅ Gemini configurado con {len(keys)} API keys (rotación habilitada)")
+        else:
+            logger.info("Gemini configured successfully.")
+        
         return True
     except Exception as e:
-        logger.error(f"Error configuring Gemini: {e}")
+        logger.error(f"Error configurando Gemini: {e}")
         USE_REAL_MODEL = False
+        return False
+
+def rotate_api_key() -> bool:
+    """
+    Rota a la siguiente API key disponible.
+    Retorna True si hay más keys disponibles, False si ya se agotaron todas.
+    """
+    global API_KEY_GEMINI, CURRENT_KEY_INDEX, GEMINI_API_KEYS
+    
+    if not GEMINI_API_KEYS or len(GEMINI_API_KEYS) <= 1:
+        logger.warning("⚠️ No hay más API keys para rotar")
+        return False
+    
+    # Rotar al siguiente índice
+    CURRENT_KEY_INDEX = (CURRENT_KEY_INDEX + 1) % len(GEMINI_API_KEYS)
+    API_KEY_GEMINI = GEMINI_API_KEYS[CURRENT_KEY_INDEX]
+    
+    try:
+        genai.configure(api_key=API_KEY_GEMINI)
+        logger.info(f"🔄 Rotando a API Key #{CURRENT_KEY_INDEX + 1}/{len(GEMINI_API_KEYS)}")
+        return True
+    except Exception as e:
+        logger.error(f"Error rotando API key: {e}")
         return False
 
 def _gemini_model(name=None):
@@ -134,15 +177,32 @@ def llm_json_or_mock(prompt: str, audio_path: str, fallback: dict) -> dict:
             # Detectar cuota agotada
             if "429" in error_msg or "quota" in error_msg.lower() or "exceeded" in error_msg.lower():
                 logger.error(f"❌ CUOTA AGOTADA para modelo {GEMINI_MODEL_SELECTED}")
-                logger.error(f"💡 Solución: Abre 'Configurar API Key y Modelo' y cambia a otro modelo")
+                
+                # Intentar rotar a otra API key
+                if rotate_api_key():
+                    logger.info("🔄 Reintentando con nueva API key...")
+                    # Reintentar con la nueva key
+                    try:
+                        wait_time = rate_limiter.wait_if_needed()
+                        with open(audio_path, "rb") as f:
+                            audio_bytes = f.read()
+                        resp = model.generate_content(
+                            [prompt, {"mime_type": guess_mime(audio_path), "data": audio_bytes}],
+                            generation_config={"response_mime_type": "application/json"}
+                        )
+                        text = getattr(resp, "text", None) or ""
+                        return json.loads(text)
+                    except Exception as retry_error:
+                        logger.error(f"Error en reintento: {retry_error}")
+                        pass
+                
+                # Si no hay más keys o falló el reintento
+                logger.error(f"💡 Solución: Abre 'Configurar API Key y Modelo' y agrega más API keys")
                 
                 # Mensaje específico según el modelo
                 if GEMINI_MODEL_SELECTED == "gemini-2.5-flash":
                     logger.warning("⚠️ gemini-2.5-flash tiene límite de 20 requests/día")
-                    logger.warning("💡 Recomendación: Cambia a gemini-3-12b (14,400 requests/día)")
-                elif GEMINI_MODEL_SELECTED == "gemini-3-12b":
-                    logger.warning("⚠️ gemini-3-12b agotó su cuota de 14,400 requests/día")
-                    logger.warning("💡 Espera hasta mañana o usa otra API Key")
+                    logger.warning(f"💡 Keys disponibles: {len(GEMINI_API_KEYS)}, Key actual: #{CURRENT_KEY_INDEX + 1}")
                 
                 return fallback
             
@@ -167,15 +227,28 @@ def llm_text_or_mock(prompt: str, audio_path: str, fallback_text: str) -> str:
             # Detectar cuota agotada
             if "429" in error_msg or "quota" in error_msg.lower() or "exceeded" in error_msg.lower():
                 logger.error(f"❌ CUOTA AGOTADA para modelo {GEMINI_MODEL_SELECTED}")
-                logger.error(f"💡 Solución: Abre 'Configurar API Key y Modelo' y cambia a otro modelo")
+                
+                # Intentar rotar a otra API key
+                if rotate_api_key():
+                    logger.info("🔄 Reintentando con nueva API key...")
+                    # Reintentar con la nueva key
+                    try:
+                        wait_time = rate_limiter.wait_if_needed()
+                        with open(audio_path, "rb") as f:
+                            audio_bytes = f.read()
+                        resp = model.generate_content([prompt, {"mime_type": guess_mime(audio_path), "data": audio_bytes}])
+                        return (getattr(resp, "text", None) or "").strip()
+                    except Exception as retry_error:
+                        logger.error(f"Error en reintento: {retry_error}")
+                        pass
+                
+                # Si no hay más keys o falló el reintento
+                logger.error(f"💡 Solución: Abre 'Configurar API Key y Modelo' y agrega más API keys")
                 
                 # Mensaje específico según el modelo
                 if GEMINI_MODEL_SELECTED == "gemini-2.5-flash":
                     logger.warning("⚠️ gemini-2.5-flash tiene límite de 20 requests/día")
-                    logger.warning("💡 Recomendación: Cambia a gemini-3-12b (14,400 requests/día)")
-                elif GEMINI_MODEL_SELECTED == "gemini-3-12b":
-                    logger.warning("⚠️ gemini-3-12b agotó su cuota de 14,400 requests/día")
-                    logger.warning("💡 Espera hasta mañana o usa otra API Key")
+                    logger.warning(f"💡 Keys disponibles: {len(GEMINI_API_KEYS)}, Key actual: #{CURRENT_KEY_INDEX + 1}")
                 
                 return fallback_text
             
