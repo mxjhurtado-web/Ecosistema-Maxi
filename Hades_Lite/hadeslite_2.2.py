@@ -6,7 +6,7 @@
 # • EXPORTACIÓN: Salida de OCR forzada a usar fechas normalizadas en la UI.
 # ------------------------------------------------------------------
 
-import os, sys, re, io, base64, time, datetime, json, requests
+import os, sys, re, io, base64, time, datetime, json, requests, tempfile, unicodedata
 try:
     import google.generativeai as genai
 except Exception:
@@ -1125,13 +1125,13 @@ def gemini_vision_extract_text(image_path: str) -> str:
 
         # --- Prompt estilo 'clave-valor' ---
         ## PULIDO: NUEVO PROMPT CLAVE-VALOR
-        prompt = ("Extrae todo el texto visible. Luego, RECONSTRUYE la información "
-                  "como una lista de pares CLAVE: VALOR. "
-                  "Ejemplo: Nombre: RAMIREZ MARTINEZ MIRIAN. Fecha de Nacimiento: 05/06/1993. "
-                  "Incluye todos los números, series, claves y fechas. "
-                  "Mantén la puntuación y omite cualquier introducción o comentario. "
-                  "Responde solo el texto formateado en clave-valor en español. "
-                  "Si no hay texto legible, responde exactamente: (sin texto).")
+        prompt = ("Eres un experto en OCR. Extrae TODO el texto visible de esta imagen de documento oficial. "
+                  "Organiza la información como pares CLAVE: VALOR. "
+                  "Ejemplo: Nombre: RAMIREZ MARTINEZ MIRIAN, Fecha de Nacimiento: 05/06/1993, Número: 123456789. "
+                  "IMPORTANTE: Incluye TODOS los números, series, claves, fechas y texto que veas. "
+                  "Mantén la puntuación original. "
+                  "Responde SOLO el texto extraído en formato clave-valor en español. "
+                  "NO agregues comentarios, introducciones ni explicaciones.")
         temp = 0.3
 
         # --- SDK preferente ---
@@ -1193,13 +1193,13 @@ def claude_vision_extract_text(image_path: str) -> str:
         
         # Prompt (mismo que Gemini para consistencia)
         prompt = (
-            "Extrae todo el texto visible. Luego, RECONSTRUYE la información "
-            "como una lista de pares CLAVE: VALOR. "
-            "Ejemplo: Nombre: RAMIREZ MARTINEZ MIRIAN. Fecha de Nacimiento: 05/06/1993. "
-            "Incluye todos los números, series, claves y fechas. "
-            "Mantén la puntuación y omite cualquier introducción o comentario. "
-            "Responde solo el texto formateado en clave-valor en español. "
-            "Si no hay texto legible, responde exactamente: (sin texto)."
+            "Eres un experto en OCR. Extrae TODO el texto visible de esta imagen de documento oficial. "
+            "Organiza la información como pares CLAVE: VALOR. "
+            "Ejemplo: Nombre: RAMIREZ MARTINEZ MIRIAN, Fecha de Nacimiento: 05/06/1993, Número: 123456789. "
+            "IMPORTANTE: Incluye TODOS los números, series, claves, fechas y texto que veas. "
+            "Mantén la puntuación original. "
+            "Responde SOLO el texto extraído en formato clave-valor en español. "
+            "NO agregues comentarios, introducciones ni explicaciones."
         )
         
         # Llamada a Claude API
