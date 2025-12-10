@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ApiKeyManager from "./ApiKeyManager";
 
 export default function SettingsPage() {
     const [name, setName] = useState("");
@@ -160,51 +161,9 @@ export default function SettingsPage() {
                             />
                         </div>
 
-                        {/* API Key Section */}
+                        {/* API Key Manager - Rotating Keys */}
                         <div className="border-t pt-6">
-                            <div className="mb-4">
-                                <h3 className="text-lg font-medium text-gray-900">
-                                    API Key de Gemini
-                                </h3>
-                                <p className="text-sm text-gray-600 mt-1">
-                                    Configura tu propia API key para análisis personalizados
-                                </p>
-                            </div>
-
-                            <div className="bg-pink-50 border border-brand/20 rounded-lg p-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    API Key
-                                </label>
-                                <input
-                                    type="password"
-                                    value={apiKey}
-                                    onChange={(e) => setApiKey(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent bg-white"
-                                    placeholder="Ingresa tu API key de Gemini"
-                                />
-                                <p className="text-xs text-gray-500 mt-2">
-                                    Si no proporcionas una, se usará la configurada por defecto del sistema
-                                </p>
-                            </div>
-
-                            {apiKey && (
-                                <div className="flex items-center gap-2 text-sm text-green-600 mt-2">
-                                    <svg
-                                        className="w-5 h-5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                        />
-                                    </svg>
-                                    API Key configurada
-                                </div>
-                            )}
+                            <ApiKeyManager />
                         </div>
 
                         {/* Save Button */}

@@ -264,6 +264,87 @@ class StorageService:
                         os.remove(filepath)
         except Exception as e:
             print(f"Error during cleanup: {e}")
+    
+    # ==========================================
+    # API Key Management Methods
+    # ==========================================
+    
+    async def get_user_api_keys(self, user_id: int) -> List[Dict]:
+        """Get all API keys for a user"""
+        async with aiosqlite.connect(self.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                """SELECT id, api_key_encrypted, status, key_index, last_used_at
+                   FROM user_api_keys 
+                   WHERE user_id = ? 
+                   ORDER BY key_index""",
+                (user_id,)
+            ) as cursor:
+                rows = await cursor.fetchall()
+                return [dict(row) for row in rows]
+    
+    async def add_user_api_key(
+        self, 
+        user_id: int, 
+        encrypted_key: str, 
+        key_index: int
+    ) -> int:
+        """Add a new API key for user"""
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                """INSERT INTO user_api_keys 
+                   (user_id, api_key_encrypted, status, key_index)
+                   VALUES (?, ?, 'active', ?)""",
+                (user_id, encrypted_key, key_index)
+            )
+            await db.commit()
+            return cursor.lastrowid
+    
+    async def update_api_key_status(self, key_id: int, status: str):
+        """Update status of an API key"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                "UPDATE user_api_keys SET status = ? WHERE id = ?",
+                (status, key_id)
+            )
+            await db.commit()
+    
+    async def update_api_key_last_used(self, key_id: int):
+        """Update last_used_at timestamp for an API key"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                "UPDATE user_api_keys SET last_used_at = ? WHERE id = ?",
+                (datetime.now(), key_id)
+            )
+            await db.commit()
+    
+    async def delete_user_api_key(self, key_id: int):
+        """Delete an API key"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                "DELETE FROM user_api_keys WHERE id = ?",
+                (key_id,)
+            )
+            await db.commit()
+    
+    async def get_user_last_reset_date(self, user_id: int) -> Optional[str]:
+        """Get last reset date for user's API keys"""
+        async with aiosqlite.connect(self.db_path) as db:
+            async with db.execute(
+                "SELECT last_key_reset_date FROM users WHERE id = ?",
+                (user_id,)
+            ) as cursor:
+                row = await cursor.fetchone()
+                return row[0] if row and row[0] else None
+    
+    async def update_user_reset_date(self, user_id: int, date: str):
+        """Update last reset date for user's API keys"""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute(
+                "UPDATE users SET last_key_reset_date = ? WHERE id = ?",
+                (date, user_id)
+            )
+            await db.commit()
 
 # Global instance
 storage_service = StorageService()

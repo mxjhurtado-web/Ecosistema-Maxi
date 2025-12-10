@@ -67,8 +67,14 @@ async def analyze_audio(
 ):
     """
     Analyze single audio file
-    Uses existing ATHENAS Lite logic
+    Uses existing ATHENAS Lite logic with rotating API keys
     """
+    # Import API key manager
+    from services.api_key_manager import get_api_key_manager
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
     # Validate file
     if not is_gemini_supported(audio_file.filename):
         raise HTTPException(
@@ -76,9 +82,26 @@ async def analyze_audio(
             detail=f"Unsupported file format. Use WAV, MP3, MP4, M4A, or GSM"
         )
     
-    # Configure Gemini if API key provided
+    # Get API key manager
+    key_mgr = get_api_key_manager(storage_service)
+    
+    # If user provides a new key, add it to their collection
     if gemini_api_key:
-        configurar_gemini(gemini_api_key)
+        success, message = await key_mgr.add_key(user_id, gemini_api_key)
+        if not success and "already exists" not in message:
+            logger.warning(f"Could not add API key for user {user_id}: {message}")
+    
+    # Get active API key for this user
+    active_key = await key_mgr.get_active_key(user_id)
+    
+    if not active_key:
+        raise HTTPException(
+            status_code=400,
+            detail="No active API keys available. Please add at least one API key in Settings."
+        )
+    
+    # Configure Gemini with active key
+    configurar_gemini(active_key)
     
     # Save file temporarily
     file_content = await audio_file.read()
@@ -112,15 +135,53 @@ async def analyze_audio(
         }
 
         # Use llm_json_or_mock to get real data
-        try:
-            from athenas_lite.services.gemini_api import llm_json_or_mock
-            eval_data = llm_json_or_mock(prompt, temp_path, mock_eval_data)
-        except ImportError:
-            # If function not available (e.g. older version of gemini_api), use mock
-            print("Warning: llm_json_or_mock not found, using mock data")
-            eval_data = mock_eval_data
-        except Exception as e:
-            print(f"Error calling Gemini: {e}")
+        eval_data = None
+        max_retries = 2  # Try current key + 1 rotation
+        
+        for attempt in range(max_retries):
+            try:
+                from athenas_lite.services.gemini_api import llm_json_or_mock
+                eval_data = llm_json_or_mock(prompt, temp_path, mock_eval_data)
+                break  # Success, exit retry loop
+                
+            except ImportError:
+                # If function not available, use mock
+                logger.warning("llm_json_or_mock not found, using mock data")
+                eval_data = mock_eval_data
+                break
+                
+            except Exception as e:
+                error_msg = str(e)
+                logger.error(f"Error calling Gemini (attempt {attempt + 1}/{max_retries}): {error_msg}")
+                
+                # Check if it's a quota/rate limit error
+                if ("429" in error_msg or "quota" in error_msg.lower() or 
+                    "resource_exhausted" in error_msg.lower()):
+                    
+                    logger.warning(f"⚠️ Quota exhausted on key. Attempting rotation...")
+                    
+                    # Try to rotate to next key
+                    success, new_key = await key_mgr.rotate_key(user_id, active_key)
+                    
+                    if success and new_key:
+                        logger.info(f"🔄 Rotated to new API key for user {user_id}")
+                        active_key = new_key
+                        configurar_gemini(active_key)
+                        # Continue to next attempt with new key
+                    else:
+                        # No more keys available
+                        logger.error(f"❌ All API keys exhausted for user {user_id}")
+                        raise HTTPException(
+                            status_code=429,
+                            detail="All API keys exhausted. Keys will reset tomorrow or add more keys in Settings."
+                        )
+                else:
+                    # Other error, use mock data
+                    eval_data = mock_eval_data
+                    break
+        
+        # If we exhausted retries without success, use mock
+        if eval_data is None:
             eval_data = mock_eval_data
         
         # Apply defaults
