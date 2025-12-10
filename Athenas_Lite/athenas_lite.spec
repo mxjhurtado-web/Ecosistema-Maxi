@@ -1,40 +1,101 @@
 # -*- mode: python ; coding: utf-8 -*-
+"""
+PyInstaller spec file for ATHENAS Lite Refactored
+Includes: Keycloak auth, multi-key management, rubrics, all dependencies
+"""
+
+import os
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
+
+# Collect all submodules from athenas_lite package
+athenas_hiddenimports = collect_submodules('athenas_lite')
+
+# Additional hidden imports
+additional_imports = [
+    # Google APIs
+    'google.generativeai',
+    'google.generativeai.types',
+    'google.oauth2',
+    'google.oauth2.service_account',
+    'googleapiclient',
+    'googleapiclient.discovery',
+    'googleapiclient.http',
+    
+    # Keycloak & Auth
+    'requests',
+    'urllib3',
+    'http.server',
+    'webbrowser',
+    'threading',
+    
+    # Data processing
+    'pandas',
+    'numpy',
+    'json',
+    'base64',
+    'datetime',
+    
+    # Environment
+    'dotenv',
+    'python-dotenv',
+    
+    # UI
+    'tkinter',
+    'tkinter.filedialog',
+    'tkinter.messagebox',
+    'tkinter.ttk',
+    'tkinter.font',
+    'PIL',
+    'PIL.Image',
+    'PIL.ImageTk',
+    
+    # Audio processing
+    'mutagen',
+    'soundfile',
+    
+    # Utilities
+    'logging',
+    'pathlib',
+    'unicodedata',
+    're',
+]
 
 a = Analysis(
     ['athenas_lite/main.py'],
     pathex=[],
     binaries=[],
     datas=[
-        # Include internal assets (like logo for UI) inside the bundle
-        ('athenas2.png', '.'), 
-        # Source: root, Dest: root of bundle (sys._MEIPASS)
+        # Logo/Icon
+        ('athenas2.png', '.'),
+        ('Athenas.ico', '.'),
+        
+        # Rubricas folder (CRITICAL - contains department JSON files)
+        ('rubricas', 'rubricas'),
+        
+        # Config folder structure (for api_keys.json template)
+        ('athenas_lite/config', 'athenas_lite/config'),
+        
+        # .env.example for reference
+        ('athenas_lite/.env.example', 'athenas_lite'),
     ],
-    hiddenimports=[
-        'mutagen',
-        'soundfile',
-        'numpy',
-        'pandas',
-        'google.generativeai',
-        'dotenv',
-        'PIL',
-        'PIL.Image',
-        'PIL.ImageTk',
-        'tkinter',
-        'tkinter.filedialog',
-        'tkinter.messagebox',
-        'tkinter.ttk'
-    ],
+    hiddenimports=athenas_hiddenimports + additional_imports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'matplotlib',
+        'scipy',
+        'pytest',
+        'setuptools',
+    ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
 )
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
@@ -42,12 +103,12 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='Athenas_Lite_Refactored',
+    name='Athenas_Lite_v4',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False, # Set to True if you want to see terminal output for debug
+    console=False,  # Set to True for debugging
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -55,6 +116,7 @@ exe = EXE(
     entitlements_file=None,
     icon='Athenas.ico'
 )
+
 coll = COLLECT(
     exe,
     a.binaries,
@@ -63,5 +125,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='Athenas_Lite_Refactored',
+    name='Athenas_Lite_v4',
 )
