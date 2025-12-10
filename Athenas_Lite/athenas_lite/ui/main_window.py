@@ -166,8 +166,17 @@ class MainApp:
             update_status("Obteniendo información del usuario...")
             splash.update()
             
-            self.nombre_evaluador = keycloak.get_user_name() or keycloak.get_user_email()
-            logger.info(f"User authenticated: {self.nombre_evaluador}")
+            user_email = keycloak.get_user_email() or "unknown"
+            self.nombre_evaluador = keycloak.get_user_name() or user_email
+            logger.info(f"User authenticated: {self.nombre_evaluador} ({user_email})")
+            
+            # Cargar API Keys específicas del usuario
+            try:
+                from athenas_lite.services import gemini_api
+                gemini_api.load_api_keys(user_email)
+                logger.info(f"API Keys cargadas para {user_email}")
+            except Exception as e:
+                logger.error(f"Error cargando keys de usuario: {e}")
             
             update_status("✅ Autenticación exitosa")
             splash.update()
@@ -224,107 +233,186 @@ class MainApp:
         tk.Button(self.root, text="Analizar (Resumen consolidado)", command=self.solicitar_datos_y_analizar, **btn_style).pack(pady=5)
 
     def configurar_api_key_y_modelo(self):
-        """Ventana para configurar API Key y seleccionar modelo de Gemini"""
-        from ..services.gemini_api import configurar_gemini, GEMINI_MODEL_SELECTED
+        """Ventana avanzada para gestión de API Keys y Modelo"""
+        # Importar dinámicamente para asegurar estado actualizado
+        from athenas_lite.services import gemini_api
+        from athenas_lite.services.gemini_api import GEMINI_MODEL_SELECTED, GEMINI_API_KEYS
         
         ventana = tk.Toplevel(self.root)
-        ventana.title("Configuración de Gemini")
+        ventana.title("Gestión de API Keys Gemini")
         ventana.configure(bg="#fceff1")
-        ventana.geometry("550x380")
+        ventana.geometry("700x550")
         ventana.transient(self.root)
         ventana.grab_set()
         
-        # Título
-        tk.Label(ventana, text="⚙️ Configuración de Gemini API", 
-                bg="#fceff1", fg="#0D47A1", 
-                font=("Segoe UI", 13, "bold")).pack(pady=(16, 10))
+        # Estilos
+        COLOR_BG = "#fceff1"
+        COLOR_CARD = "white"
+        COLOR_ACTIVE = "#4CAF50" # Verde
+        COLOR_EXHAUSTED = "#F44336" # Rojo
         
-        # Frame principal
-        main_frame = tk.Frame(ventana, bg="#fceff1")
-        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        # --- HEADER ---
+        header_frame = tk.Frame(ventana, bg=COLOR_BG)
+        header_frame.pack(fill="x", padx=20, pady=(15, 10))
         
-        # API Key
-        tk.Label(main_frame, text="API Keys (separadas por comas para rotación):", bg="#fceff1", fg="#333333",
-                font=self.fonts["body"]).grid(row=0, column=0, sticky="w", pady=(0, 5))
+        tk.Label(header_frame, text="⚙️ Gestión de Llaves y Modelo", 
+                bg=COLOR_BG, fg="#0D47A1", font=("Segoe UI", 16, "bold")).pack(side="left")
+                
+        # --- PANEL PRINCIPAL (Scrollable) ---
+        container = tk.Frame(ventana, bg=COLOR_BG)
+        container.pack(fill="both", expand=True, padx=20, pady=5)
         
-        api_key_entry = tk.Entry(main_frame, bg="white", fg="#333333", 
-                                insertbackground="#333333", relief="solid", 
-                                width=50, show="*", bd=1)
-        api_key_entry.grid(row=1, column=0, sticky="ew", pady=(0, 5))
+        canvas = tk.Canvas(container, bg=COLOR_BG, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=COLOR_BG)
         
-        # Ejemplo de múltiples keys
-        example_label = tk.Label(main_frame, text="Ejemplo: key1, key2, key3, key4", 
-                                bg="#fceff1", fg="#999999", font=("Segoe UI", 8, "italic"))
-        example_label.grid(row=2, column=0, sticky="w", pady=(0, 5))
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
         
-        # Link para obtener API Key
-        link_label = tk.Label(main_frame, text="🔗 Obtener API Key en Google AI Studio", 
-                             bg="#fceff1", fg="#1976D2", cursor="hand2",
-                             font=("Segoe UI", 9, "underline"))
-        link_label.grid(row=2, column=0, sticky="w", pady=(0, 15))
-        link_label.bind("<Button-1>", lambda e: self._open_url("https://aistudio.google.com/app/apikey"))
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
         
-        # Selector de Modelo
-        tk.Label(main_frame, text="Modelo de Gemini:", bg="#fceff1", fg="#333333",
-                font=self.fonts["body"]).grid(row=3, column=0, sticky="w", pady=(10, 5))
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # --- SECCIÓN DE KEYS ---
+        keys_label_frame = tk.LabelFrame(scrollable_frame, text=" Mis API Keys ", 
+                                       bg=COLOR_BG, fg="#333333", font=("Segoe UI", 11, "bold"))
+        keys_label_frame.pack(fill="x", padx=5, pady=10, ipady=5)
+        
+        # Area donde se pintan las keys
+        keys_container = tk.Frame(keys_label_frame, bg=COLOR_BG)
+        keys_container.pack(fill="x", padx=10, pady=5)
+        
+        def refresh_keys_list():
+            # Limpiar
+            for widget in keys_container.winfo_children():
+                widget.destroy()
+            
+            # Repintar
+            if not gemini_api.GEMINI_API_KEYS:
+                tk.Label(keys_container, text="No hay API Keys registradas.", 
+                        bg=COLOR_BG, fg="#666666", font=("Segoe UI", 10, "italic")).pack(pady=10)
+            
+            for i, key_data in enumerate(gemini_api.GEMINI_API_KEYS):
+                k = key_data["key"]
+                status = key_data["status"]
+                
+                # Card para la key
+                card = tk.Frame(keys_container, bg="white", bd=1, relief="solid")
+                card.pack(fill="x", pady=2)
+                
+                # Indicador de estado (Semáforo)
+                color = COLOR_ACTIVE if status == "active" else COLOR_EXHAUSTED
+                status_text = "ACTIVA" if status == "active" else "AGOTADA"
+                
+                indicator = tk.Label(card, text="●", fg=color, bg="white", font=("Arial", 16))
+                indicator.pack(side="left", padx=(10, 5))
+                
+                # Info Key
+                masked_key = f"{k[:4]}...{k[-4:]}" if len(k) > 8 else k
+                info_frame = tk.Frame(card, bg="white")
+                info_frame.pack(side="left", fill="x", expand=True, padx=5, pady=5)
+                
+                tk.Label(info_frame, text=f"API KEY {i+1}", bg="white", fg="#333333", 
+                        font=("Segoe UI", 9, "bold")).pack(anchor="w")
+                tk.Label(info_frame, text=f"{masked_key} • {status_text}", 
+                        bg="white", fg="#666666", font=("Segoe UI", 8)).pack(anchor="w")
+                
+                # Botón Eliminar
+                btn_del = tk.Button(card, text="🗑️", bg="white", relief="flat", cursor="hand2",
+                                   command=lambda idx=i: delete_key(idx))
+                btn_del.pack(side="right", padx=10)
+
+        def add_new_key():
+            new_k = entry_new_key.get().strip()
+            if not new_k: return
+            
+            # Usar email actual almacenado en el módulo
+            current_email = gemini_api.CURRENT_USER_EMAIL
+            
+            if gemini_api.add_api_key(new_k, current_email):
+                entry_new_key.delete(0, tk.END)
+                refresh_keys_list()
+                messagebox.showinfo("Éxito", "API Key agregada correctamente", parent=ventana)
+            else:
+                messagebox.showerror("Error", "Key inválida o duplicada", parent=ventana)
+        
+        def delete_key(index):
+            if messagebox.askyesno("Confirmar", "¿Eliminar esta API Key?", parent=ventana):
+                current_email = gemini_api.CURRENT_USER_EMAIL
+                if gemini_api.remove_api_key(index, current_email):
+                    refresh_keys_list()
+
+        def reset_status():
+            current_email = gemini_api.CURRENT_USER_EMAIL
+            gemini_api.reset_keys_status(current_email)
+            refresh_keys_list()
+            # Forzar reconfiguración para que tome una activa
+            gemini_api.configurar_gemini() 
+            messagebox.showinfo("Restablecido", "Estatus de todas las keys restablecido a ACTIVO", parent=ventana)
+
+        # Input para nueva key
+        add_frame = tk.Frame(keys_label_frame, bg=COLOR_BG)
+        add_frame.pack(fill="x", padx=10, pady=(10, 5))
+        
+        entry_new_key = tk.Entry(add_frame, bg="white", width=40, relief="solid", bd=1)
+        entry_new_key.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        
+        tk.Button(add_frame, text="➕ Agregar Key", bg=PALETTE["brand"], fg="white", 
+                 command=add_new_key).pack(side="left")
+        
+        # Link obtener key
+        link = tk.Label(keys_label_frame, text="🔗 Obtener Key en Google AI Studio", 
+                       bg=COLOR_BG, fg="#1976D2", cursor="hand2", font=("Segoe UI", 9, "underline"))
+        link.pack(anchor="w", padx=10, pady=(0, 10))
+        link.bind("<Button-1>", lambda e: self._open_url("https://aistudio.google.com/app/apikey"))
+
+        # Botón Reset Status
+        tk.Button(keys_label_frame, text="🔄 Restablecer Estatus (Todas a Verde)", 
+                 bg="#607D8B", fg="white", command=reset_status).pack(anchor="e", padx=10, pady=5)
+        
+        # --- SECCIÓN DE MODELO ---
+        model_frame = tk.LabelFrame(scrollable_frame, text=" Modelo Gemini ", 
+                                  bg=COLOR_BG, fg="#333333", font=("Segoe UI", 11, "bold"))
+        model_frame.pack(fill="x", padx=5, pady=10, ipady=5)
         
         modelo_var = tk.StringVar(value=GEMINI_MODEL_SELECTED)
         
-        # Radio buttons para modelos
-        radio_frame = tk.Frame(main_frame, bg="#fceff1")
-        radio_frame.grid(row=4, column=0, sticky="w", pady=(0, 5))
+        tk.Label(model_frame, 
+                text=f"Modelo actual: {GEMINI_MODEL_SELECTED}",
+                bg=COLOR_BG, fg="#1976D2", font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=10, pady=8)
         
-        tk.Radiobutton(radio_frame, text="gemini-2.5-flash (Recomendado para audio - 20 requests/día)", 
-                      variable=modelo_var, value="gemini-2.5-flash",
-                      bg="#fceff1", fg="#333333", selectcolor="white",
-                      activebackground="#fceff1", activeforeground="#333333",
-                      font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=2)
+        tk.Label(model_frame, 
+                text="💡 Límite: 15 RPM (requests por minuto)",
+                bg=COLOR_BG, fg="#666666", justify="left", font=("Segoe UI", 8)).pack(anchor="w", padx=25, pady=2)
+
+        # Cargar lista inicial
+        refresh_keys_list()
+
+        # --- BOTONES FINALES ---
+        btn_action_frame = tk.Frame(ventana, bg=COLOR_BG)
+        btn_action_frame.pack(fill="x", padx=20, pady=15)
         
-        # Info adicional
-        info_label = tk.Label(main_frame, 
-                             text="⚠️ Modelos Gemma (gemma-3-12b, etc.) NO soportan análisis de audio\n"
-                                  "💡 gemini-2.5-flash es el único modelo gratuito que funciona con audio\n"
-                                  "   Límite: 20 requests/día (~6 audios)\n"
-                                  "🔄 Con 4 API keys puedes analizar ~24 audios/día (rotación automática)",
-                             bg="#fceff1", fg="#E65100", justify="left",
-                             font=("Segoe UI", 8, "bold"))
-        info_label.grid(row=5, column=0, sticky="w", pady=(10, 10))
-        
-        main_frame.grid_columnconfigure(0, weight=1)
-        
-        # Botones
-        btn_frame = tk.Frame(ventana, bg="#fceff1")
-        btn_frame.pack(pady=(0, 16))
-        
-        def guardar():
-            from ..services import gemini_api
+        def save_and_close():
+            # Guardamos modelo seleccionado
+            gemini_api.GEMINI_MODEL_SELECTED = modelo_var.get()
+            # Las keys ya se guardaron al agregarlas
+            # Reconfigurar con la primera disponible
+            gemini_api.configurar_gemini()
+            ventana.destroy()
+            messagebox.showinfo("Configuración", "Cambios guardados correctamente", parent=self.root)
             
-            api_key = api_key_entry.get().strip()
-            modelo = modelo_var.get()
-            
-            if api_key:
-                # Configurar API Key
-                if configurar_gemini(api_key):
-                    # Actualizar modelo seleccionado
-                    gemini_api.GEMINI_MODEL_SELECTED = modelo
-                    messagebox.showinfo("✅ Configuración exitosa", 
-                                      f"API Key configurada\nModelo: {modelo}")
-                    ventana.destroy()
-                else:
-                    messagebox.showerror("❌ Error", "No se pudo configurar la API Key")
-            else:
-                messagebox.showwarning("⚠️ Advertencia", "Debes ingresar una API Key")
+        tk.Button(btn_action_frame, text="Guardar y Cerrar", bg=PALETTE["brand"], fg="white",
+                 width=20, font=("Segoe UI", 10, "bold"), command=save_and_close).pack(side="right")
         
-        tk.Button(btn_frame, text="💾 Guardar", command=guardar, 
-                 bg="#C2185B", fg="white", relief="flat", 
-                 padx=20, pady=10, width=12, font=("Segoe UI", 9, "bold")).pack(side="left", padx=5)
-        tk.Button(btn_frame, text="❌ Cancelar", command=ventana.destroy, 
-                 bg="#757575", fg="white", relief="flat", 
-                 padx=20, pady=10, width=12, font=("Segoe UI", 9)).pack(side="left", padx=5)
+        tk.Button(btn_action_frame, text="Cancelar", bg="#999999", fg="white",
+                 width=15, font=("Segoe UI", 10), command=ventana.destroy).pack(side="right", padx=10)
         
         # Centrar ventana
         self.root.update_idletasks()
-        x = self.root.winfo_rootx() + (self.root.winfo_width()//2 - 275)
         y = self.root.winfo_rooty() + (self.root.winfo_height()//2 - 190)
         try:
             ventana.geometry(f"+{x}+{y}")

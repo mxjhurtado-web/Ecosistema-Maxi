@@ -57,11 +57,16 @@ def rubric_json_to_prompt(dept: str, rubric: dict) -> str:
     sections = rubric.get("sections", [])
     criticos = rubric.get("section_VI", {}).get("criticos", [])
 
-    # incluye críticos marcados en items
+    # incluye críticos marcados en items (evitando duplicados)
+    existing_keys = {c.get("key") for c in criticos}  # Set de keys ya existentes
     for s in sections:
         for it in s.get("items", []) or []:
             if it.get("critico", False) and it.get("key"):
-                criticos.append({"key": it["key"]})
+                key = it["key"]
+                if key not in existing_keys:  # Solo agregar si no existe
+                    criticos.append({"key": key})
+                    existing_keys.add(key)
+
 
     out = []
     out.append(f"Departamento: {dep}")
