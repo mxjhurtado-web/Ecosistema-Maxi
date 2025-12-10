@@ -13,4 +13,7 @@ venv/
 .coverage.*.*.*.*
 .claude/
 Conversaciones_Maxibot/
-*.db
+*.dbMaxiBot_V4.6.2_DevOpsMCP.py
+devops_mcp.py
+README_V4.6.2.md
+operaciones_tab.py

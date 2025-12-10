@@ -1,6 +1,15 @@
 """
 FastAPI main application entry point for ATHENAS Lite Web
 """
+import sys
+from pathlib import Path
+
+# Add paths FIRST before any other imports
+backend_dir = Path(__file__).parent
+sys.path.insert(0, str(backend_dir))
+athenas_lite_dir = backend_dir.parent.parent / "athenas_lite"
+sys.path.insert(0, str(athenas_lite_dir))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -40,10 +49,6 @@ async def health_check():
     return {"status": "healthy"}
 
 # Import and include routers
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent))
-
 from api import auth, admin, analysis, users, api_keys
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])

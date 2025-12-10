@@ -2,6 +2,13 @@
 OAuth callback server on port 8080 (like MaxiBot)
 Captures the authorization code and redirects to frontend with session
 """
+import sys
+from pathlib import Path
+
+# Add paths for imports
+backend_dir = Path(__file__).parent
+sys.path.insert(0, str(backend_dir))
+
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 import os
