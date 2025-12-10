@@ -50,10 +50,21 @@ class MainApp:
         self.nombre_asesor = ""
         self.selected_department = None
         
+        # Configure safe window close
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
         # Init sequence
         self.authenticate_user()
         self.configure_gemini_api()
         self.setup_ui()
+
+    def on_closing(self):
+        """Manejo seguro del cierre de ventana"""
+        try:
+            self.root.quit()
+            self.root.destroy()
+        except:
+            pass  # Ignorar errores al cerrar
 
     def authenticate_user(self):
         """Autenticación con Keycloak SSO con splash screen"""
