@@ -3,6 +3,7 @@
 
 block_cipher = None
 
+import certifi  # ✅ Para incluir certificados SSL
 from PyInstaller.utils.hooks import copy_metadata
 from PyInstaller.building.build_main import Analysis, PYZ, EXE, COLLECT
 
@@ -22,6 +23,9 @@ a = Analysis(
 
         # Opcional: incluir también el propio .ico junto al exe
         ('MaxiBot.ico', '.'),
+
+        # ✅ Certificados SSL para requests/HTTPS (CRÍTICO para DevOps MCP)
+        (certifi.where(), 'certifi'),
 
         # Si quieres cargar un .env desde el exe, descomenta:
         # ('.env', '.'),
@@ -59,6 +63,25 @@ a = Analysis(
         # Dependencias adicionales
         'pandas',
         'requests',
+        
+        # ✅ SSL/HTTPS support (CRÍTICO para DevOps MCP)
+        'certifi',
+        'urllib3',
+        'urllib3.util',
+        'urllib3.util.ssl_',
+        'urllib3.util.retry',
+        'urllib3.contrib',
+        'urllib3.contrib.pyopenssl',
+        'charset_normalizer',
+        'charset_normalizer.md',
+        
+        # ✅ Requests library dependencies
+        'requests.adapters',
+        'requests.auth',
+        'requests.models',
+        'requests.sessions',
+        'requests.packages',
+        'requests.packages.urllib3',
     ],
     hookspath=[],
     hooksconfig={},
