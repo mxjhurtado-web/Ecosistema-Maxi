@@ -8,6 +8,8 @@ import difflib
 import requests
 from datetime import datetime
 import io, base64, json, re, time
+import webbrowser  # ✅ Para abrir links en el navegador
+from api_key_manager import get_api_key_manager  # ✅ Sistema de rotación de API Keys
 
 # ====== imports extra para loader avanzado ======
 try:
@@ -83,7 +85,8 @@ COLORS = {
     "chip_bg": "#eaf2ff",
     "chip_ok_bg": "#e8fff2",
     "chip_text": "#0f172a",
-    "bot_bubble": "#e8f7e9",
+    "bot_bubble": "#e8f5e9",  # Verde muy claro - mejor contraste
+    "bot_text": "#1b5e20",  # Verde oscuro - mejor legibilidad
     "user_bubble": "#1b4bff",
     "user_text": "#ffffff",
     "divider": "#e5e7eb"
@@ -336,22 +339,78 @@ def verificar_correo_online(correo):
 # ===========================
 def buscar_con_gemini(prompt: str):
     """
-    Llama a Gemini usando la API Key actual.
-    Si no hay API Key configurada, avisa de forma clara.
+    Llama a Gemini con rotación automática de API Keys.
+    Si la key se agota, rota automáticamente a la siguiente.
+    Actualiza GEMINI_API_KEY global para compatibilidad con DevOps MCP.
     """
-    if not GEMINI_API_KEY:
-        return ("No hay API Key configurada para el modelo. "
-                "Por favor, vuelve a iniciar sesión e ingresa una API Key.")
-
+    global GEMINI_API_KEY
+    
+    user_email = usuario_actual.get("correo")
+    if not user_email:
+        return "No hay usuario autenticado."
+    
+    # Get API Key Manager
+    api_mgr = get_api_key_manager()
+    api_key = api_mgr.get_active_key(user_email)
+    
+    if not api_key:
+        return ("❌ No hay API Keys activas configuradas.\n\n"
+                "Por favor, configura tus API Keys desde el botón "
+                "⚙️ Configuración en la parte superior.")
+    
+    # Update global variable for DevOps MCP compatibility
+    GEMINI_API_KEY = api_key
+    
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     headers = {"Content-Type": "application/json"}
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    
     try:
-        resp = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=30)
+        resp = requests.post(f"{url}?key={api_key}", headers=headers, json=payload, timeout=30)
         data = resp.json()
-        return data["candidates"][0]["content"]["parts"][0]["text"]
+        
+        # Check for quota/rate limit errors
+        if "error" in data:
+            error_msg = str(data.get("error", {})).lower()
+            
+            # Detect quota exhaustion
+            if any(keyword in error_msg for keyword in ["quota", "exhausted", "rate limit", "429"]):
+                print(f"⚠️ API Key agotada, intentando rotar...")
+                
+                # Rotate to next key
+                success, new_key = api_mgr.rotate_key(user_email, api_key)
+                
+                if success and new_key:
+                    print(f"🔄 Rotación exitosa, reintentando con nueva key...")
+                    
+                    # Update global variable
+                    GEMINI_API_KEY = new_key
+                    
+                    # Retry with new key
+                    resp = requests.post(f"{url}?key={new_key}", headers=headers, json=payload, timeout=30)
+                    data = resp.json()
+                    
+                    if "candidates" in data:
+                        return data["candidates"][0]["content"]["parts"][0]["text"]
+                    else:
+                        return f"Error con la nueva key: {data.get('error', 'Unknown error')}"
+                else:
+                    return ("❌ Todas las API Keys están agotadas.\n\n"
+                            "Las keys se resetearán automáticamente mañana, "
+                            "o puedes agregar nuevas keys desde ⚙️ Configuración.")
+        
+        # Normal response
+        if "candidates" in data:
+            return data["candidates"][0]["content"]["parts"][0]["text"]
+        else:
+            return f"Error en respuesta de Gemini: {data.get('error', 'No candidates found')}"
+            
+    except requests.exceptions.Timeout:
+        return "⏱️ Timeout: Gemini tardó demasiado en responder. Intenta de nuevo."
+    except requests.exceptions.RequestException as e:
+        return f"❌ Error de conexión con Gemini: {e}"
     except Exception as e:
-        return f"No se pudo obtener respuesta de Gemini: {e}"
+        return f"❌ Error inesperado: {e}"
 
 
 
@@ -1114,30 +1173,78 @@ def rounded_rect(c, x1, y1, x2, y2, r, fill):
     c.create_rectangle(x1, y1 + r - 1, x2, y2 - r + 1, outline="", fill=fill)
 
 def create_bubble(parent, text, is_user=False):
+    """
+    Creates a chat bubble with selectable text and clickable links.
+    Uses Text widget instead of Canvas for better text interaction.
+    """
     wrap = max(int(app.winfo_width() * 0.55), 360)
-    pad_x, pad_y, r = 14, 10, 18
+    pad_x, pad_y = 14, 10
     fill = COLORS["user_bubble"] if is_user else COLORS["bot_bubble"]
-    fg = COLORS["user_text"] if is_user else COLORS["text_primary"]
-
-    c = tk.Canvas(parent, bg=COLORS["card_bg"], bd=0, highlightthickness=0)
-    t = c.create_text(
-        pad_x, pad_y,
-        text=sanitize_text(text), font=FONT["body"], fill=fg,
-        width=wrap, anchor="nw", justify="left"
+    fg = COLORS["user_text"] if is_user else COLORS.get("bot_text", COLORS["text_primary"])
+    
+    # Create frame for bubble with rounded appearance
+    bubble_frame = tk.Frame(parent, bg=fill, relief="flat", bd=0)
+    
+    # Create Text widget (selectable!)
+    text_widget = tk.Text(
+        bubble_frame,
+        wrap="word",
+        font=FONT["body"],
+        bg=fill,
+        fg=fg,
+        relief="flat",
+        bd=0,
+        padx=pad_x,
+        pady=pad_y,
+        width=int(wrap / 8),  # approximate character width
+        height=3,  # minimum height for visibility
+        cursor="arrow",
+        state="normal",
+        highlightthickness=0
     )
-    c.update_idletasks()
-    x1, y1, x2, y2 = c.bbox(t)
-    width = x2 - x1 + pad_x*2
-    height = y2 - y1 + pad_y*2
-    shadow_offset = 3
-    shadow_color = "#d0d7e2"
-    c.config(width=width + shadow_offset, height=height + shadow_offset)
-    rounded_rect(c, shadow_offset, shadow_offset,
-                 width + shadow_offset, height + shadow_offset,
-                 r, shadow_color)
-    rounded_rect(c, 0, 0, width, height, r, fill)
-    c.tag_raise(t)
-    return c, width + shadow_offset, height + shadow_offset
+    
+    # Insert text
+    clean_text = sanitize_text(text)
+    text_widget.insert("1.0", clean_text)
+    
+    # Find and tag URLs to make them clickable
+    url_pattern = r'https?://[^\s<>"{}|\\^`\[\]]+'
+    for match in re.finditer(url_pattern, clean_text):
+        start_idx = f"1.0+{match.start()}c"
+        end_idx = f"1.0+{match.end()}c"
+        url = match.group(0)
+        
+        # Create unique tag for this URL
+        tag_name = f"url_{match.start()}"
+        text_widget.tag_add(tag_name, start_idx, end_idx)
+        text_widget.tag_config(tag_name, foreground="#0066cc", underline=True)
+        
+        # Make clickable - open in browser
+        text_widget.tag_bind(tag_name, "<Button-1>", 
+                           lambda e, u=url: webbrowser.open(u))
+        text_widget.tag_bind(tag_name, "<Enter>", 
+                           lambda e: text_widget.config(cursor="hand2"))
+        text_widget.tag_bind(tag_name, "<Leave>", 
+                           lambda e: text_widget.config(cursor="arrow"))
+    
+    # Calculate height based on content BEFORE disabling
+    text_widget.update_idletasks()
+    line_count = int(text_widget.index('end-1c').split('.')[0])
+    # Ensure minimum height and proper sizing for long text
+    actual_height = max(line_count, 3)
+    
+    # Make read-only but selectable (users can copy text)
+    text_widget.config(state="disabled")
+    text_widget.config(height=actual_height)
+    
+    text_widget.pack()
+    
+    # Return frame and dimensions
+    bubble_frame.update_idletasks()
+    width = text_widget.winfo_reqwidth()
+    height = text_widget.winfo_reqheight()
+    
+    return bubble_frame, width, height
 
 # ===========================
 # 💾 MEMORIA DE CHAT (30 min)
@@ -1283,11 +1390,26 @@ def header_card(root, show_chips=True):
         chip_texts = [
             ("En línea", COLORS["chip_ok_bg"]),
             ("Modelo v4.6.2 DevOpsMCP", COLORS["chip_bg"]),
-            ("Tiempo de respuesta < 2s", COLORS["chip_bg"])
         ]
         spacing = 8
         x = w - 20
         y = 18
+        
+        # Add configuration button (removed traffic light - status visible in config dialog)
+        config_btn = tk.Button(
+            canvas, text="⚙️ Configuración",
+            command=mostrar_configuracion_api,
+            bg="#f0f0f0", fg=COLORS["text_primary"],
+            relief="flat", bd=0, padx=12, pady=4,
+            font=FONT["btn_small"],
+            cursor="hand2"
+        )
+        config_btn.update_idletasks()
+        ww = config_btn.winfo_reqwidth()
+        canvas.create_window(x, y, window=config_btn, anchor="ne")
+        x -= (ww + spacing)
+        
+        # Add remaining chips
         for txt, bg in reversed(chip_texts):
             lbl = make_chip_label(txt, bg)
             lbl.update_idletasks()
@@ -1442,8 +1564,8 @@ def mostrar_alias(nombre_real):
             messagebox.showwarning("Alias requerido", "Por favor, ingresa cómo quieres que te llame.")
             return
         usuario_actual["alias"] = alias
-        # 👉 Después del alias, pasamos a pedir la API Key
-        mostrar_api_key()
+        # 👉 Ir directo al chat - las API Keys se configuran desde el botón ⚙️ Configuración
+        mostrar_chat()
 
     tk.Button(
         form, text="Continuar", command=guardar_alias,
@@ -1802,6 +1924,206 @@ def responder():
 
         entrada_pregunta.delete(0, tk.END)
 
+# ===========================
+# ⚙️ CONFIGURACIÓN DE API KEYS
+# ===========================
+def mostrar_configuracion_api():
+    """Muestra el diálogo de configuración de API Keys - VERSIÓN SIMPLIFICADA"""
+    user_email = usuario_actual.get("correo")
+    if not user_email:
+        messagebox.showerror("Error", "No hay usuario autenticado")
+        return
+    
+    api_mgr = get_api_key_manager()
+    
+    # Create dialog window
+    dialog = tk.Toplevel(app)
+    dialog.title("⚙️ Configuración de API Keys")
+    dialog.geometry("600x500")
+    dialog.configure(bg=COLORS["app_bg"])
+    dialog.transient(app)
+    dialog.grab_set()
+    
+    # Main container
+    main_frame = tk.Frame(dialog, bg=COLORS["app_bg"])
+    main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+    
+    # Header
+    tk.Label(
+        main_frame, text="🔑 Gestión de API Keys",
+        font=("Segoe UI", 14, "bold"),
+        bg=COLORS["app_bg"], fg=COLORS["text_primary"]
+    ).pack(pady=(0, 10))
+    
+    # Status display
+    status = api_mgr.get_keys_status(user_email)
+    status_label = tk.Label(
+        main_frame,
+        text=f"📊 {status['active']} activas | {status['exhausted']} agotadas | {status['total']}/4 total",
+        font=FONT["body"], bg=COLORS["app_bg"], fg=COLORS["text_secondary"]
+    )
+    status_label.pack(pady=10)
+    
+    # Keys list frame
+    keys_frame = tk.Frame(main_frame, bg=COLORS["card_bg"], relief="solid", bd=1)
+    keys_frame.pack(fill="both", expand=True, pady=10)
+    
+    # Keys list header
+    tk.Label(
+        keys_frame, text="API Keys configuradas:",
+        font=("Segoe UI", 10, "bold"),
+        bg=COLORS["card_bg"], fg=COLORS["text_primary"]
+    ).pack(pady=10, anchor="w", padx=10)
+    
+    # Keys container (scrollable)
+    keys_container = tk.Frame(keys_frame, bg=COLORS["card_bg"])
+    keys_container.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+    
+    def refresh_keys():
+        """Refresh the keys list"""
+        for widget in keys_container.winfo_children():
+            widget.destroy()
+        
+        status = api_mgr.get_keys_status(user_email)
+        
+        if not status["keys"]:
+            tk.Label(
+                keys_container,
+                text="No hay API Keys configuradas",
+                font=FONT["body"], bg=COLORS["card_bg"],
+                fg=COLORS["text_secondary"]
+            ).pack(pady=20)
+        else:
+            for key_info in status["keys"]:
+                key_row = tk.Frame(keys_container, bg="#f5f5f5", relief="flat", bd=1)
+                key_row.pack(fill="x", pady=2)
+                
+                status_color = "#4caf50" if key_info["status"] == "active" else "#ff5252"
+                status_text = "🟢" if key_info["status"] == "active" else "🔴"
+                
+                tk.Label(
+                    key_row, text=f"{status_text} Key #{key_info['index'] + 1}: {key_info['preview']}",
+                    font=("Courier New", 9),
+                    bg="#f5f5f5", fg=COLORS["text_primary"]
+                ).pack(side="left", padx=10, pady=5)
+                
+                tk.Button(
+                    key_row, text="🗑️",
+                    command=lambda idx=key_info["index"]: remove_key(idx),
+                    bg="#ffebee", fg="#c62828",
+                    relief="flat", bd=0, padx=5, pady=2,
+                    font=("Segoe UI", 8)
+                ).pack(side="right", padx=5)
+        
+        # Update status
+        status = api_mgr.get_keys_status(user_email)
+        status_label.config(
+            text=f"📊 {status['active']} activas | {status['exhausted']} agotadas | {status['total']}/4 total"
+        )
+    
+    def remove_key(idx):
+        if messagebox.askyesno("Confirmar", f"¿Eliminar API Key #{idx + 1}?"):
+            success, message = api_mgr.remove_key(user_email, idx)
+            if success:
+                refresh_keys()
+            else:
+                messagebox.showerror("Error", message)
+    
+    # Initial keys display
+    refresh_keys()
+    
+    # Separator
+    tk.Frame(main_frame, bg=COLORS["divider"], height=1).pack(fill="x", pady=10)
+    
+    # Add new key section
+    tk.Label(
+        main_frame, text="➕ Agregar nueva API Key:",
+        font=("Segoe UI", 10, "bold"),
+        bg=COLORS["app_bg"], fg=COLORS["text_primary"]
+    ).pack(anchor="w", pady=(0, 5))
+    
+    key_entry = tk.Entry(
+        main_frame, font=("Courier New", 10),
+        relief="solid", bd=1, show="*"
+    )
+    key_entry.pack(fill="x", ipady=8, pady=5)
+    
+    def add_key():
+        new_key = key_entry.get().strip()
+        if not new_key:
+            messagebox.showwarning("Advertencia", "Ingresa una API Key")
+            return
+        
+        success, message = api_mgr.add_key(user_email, new_key)
+        if success:
+            messagebox.showinfo("Éxito", message)
+            key_entry.delete(0, tk.END)
+            refresh_keys()
+        else:
+            messagebox.showerror("Error", message)
+    
+    key_entry.bind("<Return>", lambda e: add_key())
+    
+    # Buttons frame
+    btn_frame = tk.Frame(main_frame, bg=COLORS["app_bg"])
+    btn_frame.pack(fill="x", pady=10)
+    
+    def actualizar_mcp():
+        """Sincroniza la API Key actual con DevOps MCP"""
+        global GEMINI_API_KEY, devops_mcp
+        
+        # Get active key
+        api_key = api_mgr.get_active_key(user_email)
+        
+        if not api_key:
+            messagebox.showwarning("Sin keys", "No hay API Keys activas para sincronizar")
+            return
+        
+        # Update global
+        GEMINI_API_KEY = api_key
+        
+        # Reinitialize DevOps MCP if authenticated
+        try:
+            if keycloak_auth_instance and keycloak_auth_instance.access_token:
+                token = keycloak_auth_instance.access_token
+                devops_mcp = get_devops_mcp(keycloak_token=token, gemini_api_key=api_key)
+                messagebox.showinfo("✅ Éxito", 
+                    "DevOps MCP actualizado con nueva API Key\n\n"
+                    f"Key: {api_key[:4]}...{api_key[-4:]}")
+                print("✅ DevOps MCP reinicializado con API Key")
+            else:
+                messagebox.showinfo("✅ Éxito", 
+                    "API Key global actualizada\n\n"
+                    f"Key: {api_key[:4]}...{api_key[-4:]}\n\n"
+                    "Nota: DevOps MCP se actualizará en el próximo login")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al actualizar MCP: {e}")
+    
+    tk.Button(
+        btn_frame, text="🔄 Actualizar MCP",
+        command=actualizar_mcp,
+        bg="#4caf50", fg="#fff",
+        relief="flat", bd=0, padx=20, pady=8,
+        font=FONT["btn"]
+    ).pack(side="left", padx=(0, 10))
+    
+    tk.Button(
+        btn_frame, text="➕ Agregar",
+        command=add_key,
+        bg=COLORS["accent"], fg="#fff",
+        relief="flat", bd=0, padx=20, pady=8,
+        font=FONT["btn"]
+    ).pack(side="left", padx=(0, 10))
+    
+    tk.Button(
+        btn_frame, text="Cerrar",
+        command=dialog.destroy,
+        bg="#e0e0e0", fg=COLORS["text_primary"],
+        relief="flat", bd=0, padx=20, pady=8,
+        font=FONT["btn"]
+    ).pack(side="left")
+
+
 def mostrar_chat():
     global chat_canvas, chat_inner, chat_inner_id, entrada_pregunta
     limpiar_pantalla()
@@ -1892,14 +2214,6 @@ def mostrar_chat():
         font=FONT["btn_small"]
     ).pack(side="left", padx=(0, 8))
 
-    tk.Button(
-        btn_row, text="Cargar carpeta (Loader)",
-        command=lambda: cargar_loader(),
-        bg="#e9e9ff", fg=COLORS["text_primary"],
-        relief="flat", bd=0, padx=12, pady=6,
-        font=FONT["btn_small"]
-    ).pack(side="left", padx=(0, 8))
-
     # Botón de Operaciones (DevOps MCP)
     if _DEVOPS_MCP_OK and usuario_actual.get("sso"):
         tk.Button(
@@ -1930,15 +2244,6 @@ def mostrar_chat():
         relief="flat", bd=0, padx=12, pady=6,
         font=FONT["btn_small"]
     ).pack(side="right", padx=(8, 0))
-
-
-def cargar_loader():
-    """Refresca el índice del Loader (DocsTool) manualmente."""
-    try:
-        n = docs_tool.refresh()
-        messagebox.showinfo("Loader", f"Índice actualizado ({n} documentos).")
-    except Exception as e:
-        messagebox.showerror("Loader", f"No se pudo refrescar el índice: {e}")
 
 
 # ===========================
