@@ -1,4 +1,5 @@
 # MaxiBot.spec
+# Actualizado para MaxiBot_V4.6.2_DevOpsMCP.py
 
 block_cipher = None
 
@@ -12,7 +13,7 @@ except Exception:
     pass
 
 a = Analysis(
-    ['MaxiBot_V4.6.1_Keycloack.py'],
+    ['MaxiBot_V4.6.2_DevOpsMCP.py'],  # ✅ Actualizado al nuevo archivo
     pathex=['.'],
     binaries=[],
     datas=[
@@ -26,17 +27,38 @@ a = Analysis(
         # ('.env', '.'),
     ] + datas_meta,
     hiddenimports=[
+        # Google APIs
         'googleapiclient',
         'googleapiclient.discovery',
         'googleapiclient.http',
         'google.oauth2.service_account',
+        
+        # Document parsers
         'PyPDF2',
         'docx',
         'openpyxl',
+        
+        # Image handling
         'PIL',
         'PIL.Image',
         'PIL.ImageTk',
+        
+        # MCP
         'mcp',
+        
+        # ✅ Módulos nuevos de MaxiBot V4.6.2
+        'devops_mcp',
+        'weather_direct',
+        'news_direct',
+        'operaciones_tab',
+        'registro',
+        'registro_adapter',
+        'keycloak_auth',
+        'keycloak_config',
+        
+        # Dependencias adicionales
+        'pandas',
+        'requests',
     ],
     hookspath=[],
     hooksconfig={},
