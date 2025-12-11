@@ -59,6 +59,7 @@ a = Analysis(
         'registro_adapter',
         'keycloak_auth',
         'keycloak_config',
+        'api_key_manager',  # ✅ Sistema de rotación de API Keys
         
         # Dependencias adicionales
         'pandas',
