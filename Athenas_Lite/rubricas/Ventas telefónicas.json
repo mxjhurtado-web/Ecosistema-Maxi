@@ -311,7 +311,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Confirmar los datos clave de la transacción para asegurar la conformidad del cliente. El resumen suele incluir: el nombre del remitente, el nombre del beneficiario, la ciudad, estado y país a donde se envía, así como el pagador por el cual se realiza la transacción y el tipo de envío (efectivo, depósito, etc.); posteriormente se confirman las cantidades comenzando por el total del envío, el cargo por el envío, el total de ambos,  el tipo de cambio, y el total a recibir del beneficiario. Es importante que se utilicen las denominaciones correctas de cada país, y se debe leer la cantidad completa (incluyendo centavos) para evitar errores. Lo indispensable es leer el resumen de la transacción y obtener la confirmación o aceptación del cliente antes de proceder.",
+          "descripcion": "Confirmar los datos clave de la transacción para asegurar la conformidad del cliente. El resumen suele incluir: el nombre del remitente, el nombre del beneficiario, la ciudad, estado y país a donde se envía, así como el pagador por el cual se realiza la transacción y el tipo de envío (efectivo, depósito, etc.), se confirman las cantidades comenzando por el total del envío, el cargo por el envío, el total de ambos,  el tipo de cambio, y el total a recibir del beneficiario. Es importante que se utilicen las denominaciones correctas de cada país, y se debe leer la cantidad completa (incluyendo centavos) para evitar errores. Lo indispensable es leer el resumen de la transacción y obtener la confirmación o aceptación del cliente antes de proceder.",
           "sinonimos_validos": [
             "validación transacción",
             "datos monetarios",
