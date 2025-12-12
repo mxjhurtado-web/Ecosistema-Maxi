@@ -10,7 +10,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "La llamada debe ser respondida en los primeros 5 segundos para asegurar una atención rápida y eficiente. El asesor no debe atender después de 5 segundos, mantener silencio prolongado ni usar tono de espera al inicio de la conversación (\"marcando...\", \"llamada en curso\").",
+          "descripcion": "La llamada debe ser respondida en los primeros 5 segundos. CRITERIO MATEMÁTICO ESTRICTO: Si el audio muestra que el asesor tarda más de 5 segundos en hablar (ej. 6, 7, 8s...), DEBES MARCAR 'ok': false. No hay tolerancia. El asesor no debe mantener silencio prolongado ni usar tono de espera.",
           "sinonimos_validos": [
             "rapidez",
             "tiempo de contestación",
