@@ -165,6 +165,14 @@ def rubric_json_to_prompt(dept: str, rubric: dict) -> str:
             suger = f" | sugerencias: {', '.join(sug)}" if sug else ""
             crit = " | CRITICO" if it.get("critico", False) else ""
             out.append(f" - {it.get('key','(sin clave)')} | peso: {peso}{suger}{crit}")
+            # [FIX] Incluir descripción explícita para que el LLM sepa las reglas exactas (tiempo, palabras prohibidas, etc.)
+            desc = it.get("descripcion", "").strip()
+            if desc:
+                out.append(f"   [Descripción]: {desc}")
+            
+            sinonimos = it.get("sinonimos_validos", [])
+            if sinonimos:
+                out.append(f"   [Sinónimos/Contexto]: {', '.join(sinonimos)}")
 
     if criticos:
         out.append("\nCriterios críticos (para tu referencia):")
