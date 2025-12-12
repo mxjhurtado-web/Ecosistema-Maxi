@@ -10,7 +10,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "La llamada debe ser respondida en los primeros 5 segundos para asegurar una atención rápida y eficiente. El asesor no debe atender después de 5 segundos, mantener silencio prolongado ni usar tono de espera al inicio de la conversación (\"marcando...\", \"llamada en curso\").",
+          "descripcion": "La llamada debe ser respondida en los primeros 5 segundos. CRITERIO MATEMÁTICO ESTRICTO: Si el audio muestra que el asesor tarda más de 5 segundos en hablar (ej. 6, 7, 8s...), DEBES MARCAR 'ok': false. No hay tolerancia. El asesor no debe mantener silencio prolongado ni usar tono de espera.",
           "sinonimos_validos": [
             "rapidez",
             "tiempo de contestación",
@@ -72,7 +72,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Adaptar el trato utilizando CUALQUIERA de estos elementos: Nombre, Apellido o Título de cortesía (ej. \"Agente\", \"Joven\", \"Señorita\" seguido del nombre/apellido). Lo ideal es al inicio, medio y al final, pero si la llamada es breve basta con hacerlo DOS VECES para cumplir, NOTA DE CONTEXTO: Si se escucha que el interlocutor está ocupado, atendiendo clientes, manejando o tiene prisa, la personalización puede omitirse sin penalización (marcar 'ok': true).",
+          "descripcion": "Adaptar el trato utilizando CUALQUIERA de estos elementos: Nombre, Apellido o Título de cortesía (ej. \"Agente\", \"Joven\", \"Señorita\" seguido del nombre/apellido). Lo ideal es al inicio, medio y al final, pero si la llamada es breve basta con hacerlo DOS VECES para cumplir.",
           "sinonimos_validos": [
             "trato personalizado",
             "nombre del cliente",
@@ -102,7 +102,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Evitar el uso repetitivo (más de 3 veces) de frases o sonidos que interrumpan la fluidez de la conversación, manteniendo el diálogo claro y profesional. Evitar: \"Este...\", \"Mmm...\", \"Ajá...\", \"Okey...\", \"¿Verdad?\", \"Pues...\", \"Eh...\". Si palabras como \"vale\" u \"okay\" se usan para confirmar instrucciones, tienen valor en el contexto de la llamada o dar continuidad, no se consideran muletillas.",
+          "descripcion": "La llamada debe ser respondida en los primeros 5 segundos. CRITERIO MATEMÁTICO ESTRICTO: Si el audio muestra que el asesor tarda más de 5 segundos en hablar (ej. 6, 7, 8s...), DEBES MARCAR 'ok': false. No hay tolerancia. El asesor no debe mantener silencio prolongado ni usar tono de espera.",
           "sinonimos_validos": [
             "relleno verbal",
             "frases repetitivas",
@@ -214,7 +214,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Utilizar el equipo y las herramientas de manera eficiente y apropiada para brindar un servicio óptimo (adjuntar documentación, liberar envíos correctamente, estatus de envíos, uso correcto del mute). No debe: usar mal el mute o no respetar pausas.",
+          "descripcion": "Gestión de Tiempos de Espera (Hold/Mute). Si el asesor necesita poner al cliente en espera, debe avisar o pedir permiso previamente (ej. \"¿Me permites un momento?\"), el asesor puede usar diferentes frases, no hay un guion exacto. Lo esencial es mantener informado al cliente y no abandonarlo en la línea, haciendo presencia activa cada 2 minutos. No debe: usar mal el mute o no respetar pausas. Enfocate al asesor evaluado, ignora totalmente al asesor o asesores que interactuaron previamente en la llamada",
           "sinonimos_validos": [
             "herramientas",
             "procedimientos",
