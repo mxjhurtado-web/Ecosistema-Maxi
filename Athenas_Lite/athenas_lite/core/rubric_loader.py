@@ -96,6 +96,23 @@ def rubric_json_to_prompt(dept: str, rubric: dict) -> str:
         if rule_text:
             out.append(rule_text)
 
+    # Instrucciones estrictas para scripts obligatorios definidos en la rúbrica
+    # Si un item en la rúbrica tiene la clave 'script_obligatorio', agregamos
+    # una nota clara en el prompt indicando que ese texto debe aparecer
+    # textualmente en la transcripción del audio. NO se permiten parafraseos.
+    for s in sections:
+        for it in s.get("items", []) or []:
+            script = it.get("script_obligatorio")
+            if script:
+                out.append("\nAVISO IMPORTANTE - SCRIPT OBLIGATORIO:")
+                out.append(f"- Item: {it.get('key','(sin clave)')}")
+                out.append("- REQUISITO: El siguiente texto debe ser LEÍDO TEXTUALMENTE por el asesor.")
+                out.append("  Si la transcripción o el audio no contienen el texto EXACTO (ignorando mayúsculas y puntuación), debes marcar 'ok: false'. No se aceptan parafraseos ni cambios de palabras.")
+                # Aportamos el texto obligatorio tal cual para facilitar la comprobación
+                out.append("- Texto obligatorio (cítalo exactamente):")
+                out.append(f"  \"{script}\"")
+                out.append("- Evidencia requerida: si marcas 'ok: false', aporta la cita parcial del audio donde falta o difiere el texto.")
+
     # Refuerzo anti-alucinación
     out.append(
         "\nIMPORTANTE:\n"
