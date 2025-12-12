@@ -247,7 +247,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Finalizar la llamada con actitud de servicio. Es INDISPENSABLE que el asesor AGRADEZCA LA LLAMADA, mencione su nombre y OFREZCA ayuda adicional (ej. \"¿Algo más en lo que le pueda apoyar?\"), el fraseo puede variar. NOTA: NO es necesario mencionar el nombre de la empresa o departamento en la despedida. El fraseo es libre. NOTA DE CONTEXTO: Si se corta la llamada abruptamente la omisión de la misma por el corte se considera CUMPLIDO.",
+          "descripcion": "Finalizar la llamada con actitud de servicio. Es INDISPENSABLE mencionar nombre del asesor y empresa (Maxi) o departamento, acompañado de una de las siguientes opciones: 1) Ofrecer ayuda adicional (ej. '¿Algo más en lo que le pueda ayudar?'), O BIEN 2) Agradecer la llamada. Es deseable añadir una frase de cortesía. El fraseo es libre. NOTA: Si la llamada se corta abruptamente, se considera CUMPLIDO.",
           "sinonimos_validos": [
             "cierre",
             "cordialidad",
