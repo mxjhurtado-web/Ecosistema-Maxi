@@ -108,22 +108,18 @@ def rubric_json_to_prompt(dept: str, rubric: dict) -> str:
         "prefiere marcar 'ok: true' o 'aplicable: false' en lugar de 'ok: false'."
     )
 
-    out.append("\nCriterio de TOLERANCIA (muy importante):")
+    out.append("\nCriterio de RIGUROSIDAD (muy importante):")
     out.append(
-        "- SOLO marca 'ok: false' cuando la falla sea CLARA, IMPORTANTE y tenga impacto real "
-        "en la experiencia del cliente, en la operación o en el cumplimiento."
+        "- Marca 'ok: false' ante CUALQUIER desviación, error, omisión o falta de precisión, por mínima que sea."
     )
     out.append(
-        "- Si la evidencia es dudosa, incompleta o ambigua, prefiere marcar 'ok: true' o "
-        "'aplicable: false' en lugar de castigar al asesor."
+        "- NO toleres errores pequeños ni de forma. El apego al guion y procedimiento debe ser EXACTO."
     )
     out.append(
-        "- Errores pequeños de forma (muletillas, frases no perfectas, ligeros cambios en el guion) "
-        "NO deben marcarse como 'ok: false' si el objetivo principal del criterio se cumple."
+        "- Si la evidencia es dudosa, incompleta o ambigua, SE ESTRICTO y marca 'ok: false' si no puedes confirmar el cumplimiento total."
     )
     out.append(
-        "- Nunca inventes errores: si no encuentras evidencia clara en el audio, asume que el criterio "
-        "se cumplió o que 'no aplica'."
+        "- Tu objetivo es la EXCELENCIA: cualquier detalle que no sea perfecto debe ser penalizado."
     )
 
     # ----- FIN-----

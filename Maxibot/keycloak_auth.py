@@ -372,3 +372,7 @@ class KeycloakAuth:
 
         except Exception as e:
             return False, f"Error: {str(e)}"
+
+    def get_access_token(self) -> Optional[str]:
+        """Obtiene el access token actual para uso con servicios externos (ej. DevOps MCP)"""
+        return self.access_token
