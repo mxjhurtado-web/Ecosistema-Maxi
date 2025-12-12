@@ -231,7 +231,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "CONDICIÓN DE APLICABILIDAD: Este punto se evalúa ÚNICAMENTE si se está realizando un ENVÍO DE DINERO. Si la llamada es de Cancelación, Consulta o Modificación, marcar 'aplicable': false (No Aplica). Si es envío: El objetivo es validar la vigencia de los datos de contacto (Teléfono y/o Dirección). SE CONSIDERA CUMPLIDO si el asesor pregunta y el cliente confirma que \"son los mismos datos\", \"todo sigue igual\" o \"no hay cambios\", O el cliente confirma por sí mismo. En este caso de validación global, NO es necesario que el asesor lea o pida el dato explícitamente. El asesor puede usar frases variadas para validar la información existente o pedir datos nuevos  No es necesario un guion exacto; lo indispensable es validar la ubicación y contacto del destinatario.",
+          "descripcion": "CONDICIÓN DE APLICABILIDAD: Este punto se evalúa ÚNICAMENTE si se está realizando un ENVÍO DE DINERO. Si la llamada es de Cancelación, Consulta o Modificación, marcar 'aplicable': false (No Aplica). Si es envío: El objetivo es que el asesor INTENTE validar la vigencia de los datos. SE CONSIDERA CUMPLIDO ('ok': true) si el asesor pregunta por los datos (teléfono/dirección) AUNQUE el cliente responda que 'son los mismos' o 'no hay cambios'. La validación es la GESTIÓN del asesor, no el cambio de datos. Si el asesor pregunta '¿Mismo teléfono y dirección?' (o similar, FRASEO LIBRE) y el cliente dice 'Sí', ES CUMPLIDO. Solo marcar 'ok': false si el asesor NO PREGUNTA ni valida nada.",
           "sinonimos_validos": [
             "teléfono beneficiario",
             "dirección beneficiario",
