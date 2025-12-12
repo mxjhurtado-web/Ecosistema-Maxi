@@ -10,8 +10,13 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "La llamada debe ser respondida en los primeros 5 segundos para asegurar una atención rápida y eficiente. El asesor no debe atender después de 5 segundos, mantener silencio prolongado ni usar tono de espera al inicio de la conversación (\"marcando...\", \"llamada en curso\").",
-          "sinonimos_validos": ["rapidez", "tiempo de contestación", "respuesta inmediata", "velocidad de atención"]
+          "descripcion": "La llamada debe ser respondida en los primeros 5 segundos. CRITERIO MATEMÁTICO ESTRICTO: Si el audio muestra que el asesor tarda más de 5 segundos en hablar (ej. 6, 7, 8s...), DEBES MARCAR 'ok': false. No hay tolerancia. El asesor no debe mantener silencio prolongado ni usar tono de espera.",
+          "sinonimos_validos": [
+            "rapidez",
+            "tiempo de contestación",
+            "respuesta inmediata",
+            "velocidad de atención"
+          ]
         },
         {
           "key": "guion_saludo_inicial",
@@ -19,8 +24,16 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "El asesor debe iniciar con cortesía mencionando su nombre y la entidad (empresa 'Maxi' o departamento). El orden no importa.  El saludo explícito (\"Buenos días\", \"Hola\") es deseable pero no obligatorio si la apertura es amable. EXCEPCIÓN POR TRANSFERENCIA: Si el asesor recibe la llamada transferida de otro agente, es suficiente con un saludo cordial y confirmar su nombre para considerarlo CUMPLIDO (no es obligatorio repetir la entidad/empresa en este caso). Lo indispensable es la identificación personal y la amabilidad. No debe: no saludar, contestar en silencio o no decir su nombre.",
-          "sinonimos_validos": ["presentación", "saludo inicial", "introducción", "bienvenida", "apertura", "identificación de entidad", "recepción de llamada"]
+          "descripcion": "El asesor debe iniciar con cortesía mencionando su nombre y la entidad (empresa 'Maxi' o departamento). El orden no importa.  El saludo explícito (\"Buenos días\", \"Hola\") es deseable pero no obligatorio si la apertura es amable. EXCEPCIÓN POR TRANSFERENCIA: Si el asesor recibe la llamada transferida de otro agente, es suficiente con un saludo cordial y confirmar su nombre para considerarlo CUMPLIDO (no es obligatorio repetir la entidad/empresa en este caso). No debe: no saludar, contestar en silencio o no decir su nombre.",
+          "sinonimos_validos": [
+            "presentación",
+            "saludo inicial",
+            "introducción",
+            "bienvenida",
+            "apertura",
+            "identificación de entidad",
+            "recepción de llamada"
+          ]
         }
       ]
     },
@@ -34,7 +47,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Utilizar un tono amigable, claro y adecuado al contexto, transmitiendo amabilidad y disposición para ayudar. Voz pausada, firme y segura, con entonación cordial y buena modulación. No debe: voz muy baja, demasiado rápido, tono molesto/cortante, monótono, sonar cansado o subir demasiado la voz.",
-          "sinonimos_validos": ["entonación", "claridad", "modulación", "cordialidad"]
+          "sinonimos_validos": [
+            "entonación",
+            "claridad",
+            "modulación",
+            "cordialidad"
+          ]
         },
         {
           "key": "diccion",
@@ -43,7 +61,11 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Hablar con claridad y precisión, asegurándose de que el mensaje sea comprendido sin dificultad (\"¿Me escucha bien?\", \"Se lo repito\", \"Permítame aclarar\"), el fraseo puede variar. No debe: comerse palabras, balbucear/tartamudear, hablar entre dientes, pronunciar de forma confusa.",
-          "sinonimos_validos": ["pronunciación", "articulación", "claridad verbal"]
+          "sinonimos_validos": [
+            "pronunciación",
+            "articulación",
+            "claridad verbal"
+          ]
         },
         {
           "key": "personalizacion",
@@ -52,7 +74,14 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Adaptar el trato utilizando CUALQUIERA de estos elementos: Nombre, Apellido o Título de cortesía (ej. \"Agente\", \"Joven\", \"Señorita\" seguido del nombre/apellido). Lo ideal es al inicio, medio y al final, pero si la llamada es breve basta con hacerlo DOS VECES para cumplir.",
-          "sinonimos_validos": ["trato personalizado", "nombre del cliente", "apellido del cliente", "referencia directa", "título de cortesía", "agente"]
+          "sinonimos_validos": [
+            "trato personalizado",
+            "nombre del cliente",
+            "apellido del cliente",
+            "referencia directa",
+            "título de cortesía",
+            "agente"
+          ]
         },
         {
           "key": "lenguaje_adecuado",
@@ -61,7 +90,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Utilizar un lenguaje formal, respetuoso y adaptado al público, evitando expresiones coloquiales o inadecuadas. Frases como \"Claro que sí\", \"Con gusto le apoyo\", \"Es correcto\". El fraseo puede variar. No debe: usar palabras vulgares, expresiones irrespetuosas, sarcasmo, burlas, frases de falta de disposición.",
-          "sinonimos_validos": ["formalidad", "respeto", "profesionalismo", "trato cordial"]
+          "sinonimos_validos": [
+            "formalidad",
+            "respeto",
+            "profesionalismo",
+            "trato cordial"
+          ]
         },
         {
           "key": "evitar_muletillas",
@@ -69,8 +103,13 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Evitar el uso repetitivo (más de 3 veces) de frases o sonidos que interrumpan la fluidez de la conversación, manteniendo el diálogo claro y profesional. Evitar: \"Este...\", \"Mmm...\", \"Ajá...\", \"Okey...\", \"¿Verdad?\", \"Pues...\", \"Eh...\". Si palabras como \"vale\" u \"okay\" se usan para confirmar instrucciones, tienen valor en el contexto de la llamada o dar continuidad, no se consideran muletillas.",
-          "sinonimos_validos": ["relleno verbal", "frases repetitivas", "muletillas", "expresiones sin valor"]
+          "descripcion": "Evitar el uso repetitivo (más de 3 veces) de frases o sonidos que interrumpan la fluidez de la conversación, manteniendo el diálogo claro y profesional. Evitar: \"Este...\", \"Mmm...\", \"Ajá...\", \"Okey...\", \"¿Verdad?\", \"Pues...\", \"Eh...\".",
+          "sinonimos_validos": [
+            "relleno verbal",
+            "frases repetitivas",
+            "muletillas",
+            "expresiones sin valor"
+          ]
         }
       ]
     },
@@ -84,7 +123,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Prestar total atención a lo que el cliente dice, demostrando interés y comprensión para ofrecer soluciones adecuadas (ej. \"Correcto\", \"Lo entiendo\", \"Tomo nota\"), el fraseo puede variar, no hay un guion exacto. No debe: ignorar al cliente, interrumpir constantemente.",
-          "sinonimos_validos": ["atención", "validación", "acompañamiento", "comprensión"]
+          "sinonimos_validos": [
+            "atención",
+            "validación",
+            "acompañamiento",
+            "comprensión"
+          ]
         },
         {
           "key": "sondeo",
@@ -93,7 +137,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Realizar preguntas adecuadas para identificar al cliente y sus necesidades. El asesor puede usar diferentes frases para solicitar datos como folio, clave o nombres (ej. \"¿Desde qué agencia llama?\", \"¿Cuál es su nombre completo?\"). No es necesario un guion exacto; lo importante es indagar la información necesaria para atender la solicitud. No debe: no hacer preguntas o asumir información.",
-          "sinonimos_validos": ["indagación", "validación de datos", "preguntas clave", "confirmación"]
+          "sinonimos_validos": [
+            "indagación",
+            "validación de datos",
+            "preguntas clave",
+            "confirmación"
+          ]
         },
         {
           "key": "asertividad",
@@ -102,7 +151,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Expresar las ideas de forma clara y directa, manteniendo siempre el respeto. Usar frases de apoyo como \"Con mucho gusto lo ayudo\", \"Yo lo apoyo\", \"Vamos a revisarlo\", \"Gracias por la información\". El fraseo puede variar, no hay un guion exacto. No debe: dar información insegura, divagar o titubear.",
-          "sinonimos_validos": ["seguridad", "claridad", "determinación", "dirección"]
+          "sinonimos_validos": [
+            "seguridad",
+            "claridad",
+            "determinación",
+            "dirección"
+          ]
         }
       ]
     },
@@ -116,7 +170,14 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Mostrar comprensión y disposición ante las necesidades o preocupaciones del cliente, generando confianza y un trato empático (ej. \"Lamentamos lo ocurrido\", \"Una disculpa\", \"No se preocupe, yo le ayudo\"), el fraseo puede variar, no hay un guion exacto. No debe: mostrar desinterés, sarcasmo, minimizar el problema.",
-          "sinonimos_validos": ["comprensión", "sensibilidad", "apoyo", "trato humano", "amabilidad", "validación"]
+          "sinonimos_validos": [
+            "comprensión",
+            "sensibilidad",
+            "apoyo",
+            "trato humano",
+            "amabilidad",
+            "validación"
+          ]
         },
         {
           "key": "control_llamada",
@@ -125,7 +186,12 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Gestionar la conversación de manera que se mantenga enfocado en la solución, evitando desviaciones innecesarias (ej. \"Regresemos al punto\", \"Vamos paso a paso\", \"Permítame guiarlo\"), el fraseo puede variar. No debe: dejar que la llamada se desvíe ni perder el hilo.",
-          "sinonimos_validos": ["conducción", "manejo", "guía", "dirección"]
+          "sinonimos_validos": [
+            "conducción",
+            "manejo",
+            "guía",
+            "dirección"
+          ]
         },
         {
           "key": "ofrecer_sms",
@@ -134,7 +200,13 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "CONDICIÓN DE APLICABILIDAD: Este punto se evalúa ÚNICAMENTE si se está realizando un ENVÍO DE DINERO. Si la llamada es de Cancelación, Consulta, Modificación o no se concreta un envío, marcar 'aplicable': false (No Aplica). Si es envío: Ofrecer al cliente la opción de recibir notificaciones por mensaje de texto sobre su envío. El asesor puede usar variantes como: \"¿Desea recibir mensajes con actualizaciones?\", \"¿Desea recibir las notificaciones a su celular?\". No es necesario un guíon exacto, lo indispensable es que se oferte el servicio.",
-          "sinonimos_validos": ["oferta sms", "notificaciones", "mensajes de texto", "actualizaciones celular", "avisos al celular"]
+          "sinonimos_validos": [
+            "oferta sms",
+            "notificaciones",
+            "mensajes de texto",
+            "actualizaciones celular",
+            "avisos al celular"
+          ]
         },
         {
           "key": "encuesta_maxi",
@@ -143,16 +215,31 @@
           "aplicable": false,
           "evidencia": "Puntos por default (NA=4)",
           "descripcion": "ITEM ADMINISTRATIVO (NA=4). Evaluar ÚNICAMENTE si el REMITENTE (el cliente que llama) es NUEVO o es su PRIMER ENVÍO con Maxi. El cumplimiento debe ir acompañado de frases de perfilamiento, no hay frases exactas obligatorias. Si el cliente es recurrente o ya está registrado, marcar 'aplicable': false y otorgar automáticamente 4/4 puntos.",
-          "sinonimos_validos": ["encuesta", "perfilamiento", "primera vez", "registro", "cliente nuevo", "como se enteró", "quién le recomendó"]
-      },
+          "sinonimos_validos": [
+            "encuesta",
+            "perfilamiento",
+            "primera vez",
+            "registro",
+            "cliente nuevo",
+            "como se enteró",
+            "quién le recomendó"
+          ]
+        },
         {
           "key": "actualizar_beneficiario",
           "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "CONDICIÓN DE APLICABILIDAD: Este punto se evalúa ÚNICAMENTE si se está realizando un ENVÍO DE DINERO. Si la llamada es de Cancelación, Consulta o Modificación, marcar 'aplicable': false (No Aplica). Si es envío: El objetivo es validar la vigencia de los datos de contacto (Teléfono y/o Dirección). SE CONSIDERA CUMPLIDO si el asesor pregunta y el cliente confirma que \"son los mismos datos\", \"todo sigue igual\" o \"no hay cambios\", O el cliente confirma por sí mismo. En este caso de validación global, NO es necesario que el asesor lea o pida el dato explícitamente. El asesor puede usar frases variadas para validar la información existente o pedir datos nuevos  No es necesario un guion exacto; lo indispensable es validar la ubicación y contacto del destinatario.",
-          "sinonimos_validos": ["teléfono beneficiario", "dirección beneficiario", "domicilio destinatario", "ubicación", "validación de contacto", "confirmar datos"]
+          "descripcion": "CONDICIÓN DE APLICABILIDAD: Este punto se evalúa ÚNICAMENTE si se está realizando un ENVÍO DE DINERO. Si la llamada es de Cancelación, Consulta o Modificación, marcar 'aplicable': false (No Aplica). Si es envío: El objetivo es que el asesor INTENTE validar la vigencia de los datos. SE CONSIDERA CUMPLIDO ('ok': true) si el asesor pregunta por los datos (teléfono/dirección) AUNQUE el cliente responda que 'son los mismos' o 'no hay cambios'. La validación es la GESTIÓN del asesor, no el cambio de datos. Si el asesor pregunta '¿Mismo teléfono y dirección?' (o similar, FRASEO LIBRE) y el cliente dice 'Sí', ES CUMPLIDO. Solo marcar 'ok': false si el asesor NO PREGUNTA ni valida nada.",
+          "sinonimos_validos": [
+            "teléfono beneficiario",
+            "dirección beneficiario",
+            "domicilio destinatario",
+            "ubicación",
+            "validación de contacto",
+            "confirmar datos"
+          ]
         },
         {
           "key": "despedida_cordial",
@@ -160,8 +247,15 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Finalizar la llamada con actitud de servicio. Es INDISPENSABLE que el asesor mencione su nombre y OFREZCA ayuda adicional (ej. \"¿Algo más en lo que le pueda apoyar?\"), el fraseo puede variar. NOTA: NO es necesario mencionar el nombre de la empresa o departamento en la despedida, basta con una despedida amable y nombre. El fraseo es libre. NOTA DE CONTEXTO: Si se corta la llamada abruptamente la omisión de la misma por el corte se considera CUMPLIDO.",
-          "sinonimos_validos": ["cierre", "cordialidad", "oferta de ayuda", "agradecimiento", "despedida", "¿algo más?"]
+          "descripcion": "Finalizar la llamada con actitud de servicio. Es INDISPENSABLE mencionar nombre del asesor y empresa (Maxi) o departamento, acompañado de una de las siguientes opciones: 1) Ofrecer ayuda adicional (ej. '¿Algo más en lo que le pueda ayudar?'), O BIEN 2) Agradecer la llamada. Es deseable añadir una frase de cortesía. El fraseo es libre. NOTA: Si la llamada se corta abruptamente, se considera CUMPLIDO.",
+          "sinonimos_validos": [
+            "cierre",
+            "cordialidad",
+            "oferta de ayuda",
+            "agradecimiento",
+            "despedida",
+            "¿algo más?"
+          ]
         }
       ]
     },
@@ -174,8 +268,13 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-	        "descripcion": "CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si se realiza un ENVÍO DE DINERO o si el cliente solicita una MODIFICACIÓN DE TELÉFONO. Si es Cancelación, Consulta o modificación de otro dato ajeno, marcar 'aplicable': false (No Aplica). Si aplica: El objetivo es asegurar la contactabilidad. Se considera CUMPLIDO con CUALQUIER intento de ratificar, corregir o conseguir un número. Es válido: confirmar terminación, leer el número completo, preguntar '¿Algún número de teléfono de usted que me pudiera proporcionar?', '¿Su número de teléfono continúa con terminación _?' o pedir un número nuevo. El fraseo es libre y no requiere un guion específico.",
-          "sinonimos_validos": ["validación teléfono", "confirmación número", "dato de contacto", "medio de contacto"]
+          "descripcion": "CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si se realiza un ENVÍO DE DINERO o si el cliente solicita una MODIFICACIÓN DE TELÉFONO. Si es Cancelación, Consulta o modificación de otro dato ajeno, marcar 'aplicable': false (No Aplica). Si aplica: El objetivo es asegurar la contactabilidad. Se considera CUMPLIDO con CUALQUIER intento de ratificar, corregir o conseguir un número. Es válido: confirmar terminación, leer el número completo, preguntar '¿Algún número de teléfono de usted que me pudiera proporcionar?', '¿Su número de teléfono continúa con terminación _?' o pedir un número nuevo. El fraseo es libre y no requiere un guion específico.",
+          "sinonimos_validos": [
+            "validación teléfono",
+            "confirmación número",
+            "dato de contacto",
+            "medio de contacto"
+          ]
         },
         {
           "key": "confirmacion_direccion_cliente",
@@ -183,8 +282,13 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-    	    "descripcion": "CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si se realiza un ENVÍO DE DINERO o si el cliente solicita una MODIFICACIÓN DE DIRECCIÓN. Si es Cancelación, Consulta o modificación de otro dato ajeno, marcar 'aplicable': false (No Aplica). Si aplica: El objetivo es asegurar la ubicación correcta. Se considera CUMPLIDO con CUALQUIER intento de ratificar, corregir o conseguir el domicilio. Es válido: preguntar si sigue viviendo en la misma dirección, confirmar solo ciudad/estado, o pedir datos para el envío. El fraseo es libre y no requiere leer la dirección completa si el cliente confirma que es la misma.",
-  	      "sinonimos_validos": ["validación dirección", "confirmación domicilio", "ubicación", "datos de envío"]
+          "descripcion": "CONDICIÓN DE APLICABILIDAD: Evaluar ÚNICAMENTE si se realiza un ENVÍO DE DINERO o si el cliente solicita una MODIFICACIÓN DE DIRECCIÓN. Si es Cancelación, Consulta o modificación de otro dato ajeno, marcar 'aplicable': false (No Aplica). Si aplica: El objetivo es asegurar la ubicación correcta. Se considera CUMPLIDO con CUALQUIER intento de ratificar, corregir o conseguir el domicilio. Es válido: preguntar si sigue viviendo en la misma dirección, confirmar solo ciudad/estado, o pedir datos para el envío. El fraseo es libre y no requiere leer la dirección completa si el cliente confirma que es la misma.",
+          "sinonimos_validos": [
+            "validación dirección",
+            "confirmación domicilio",
+            "ubicación",
+            "datos de envío"
+          ]
         },
         {
           "key": "confirmacion_recibo",
@@ -193,7 +297,13 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Confirmar con el interlocutor el Nombre y Número de la agencia o tienda donde se gestionará el recibo (aplica para envíos, modificaciones, cancelaciones o reimpresiones). El orden de los datos no importa (puede mencionar primero el nombre o el número). Lo indispensable es mencionar estos datos de ubicación y obtener una confirmación verbal del cliente.",
-          "sinonimos_validos": ["validación recibo", "nombre de agencia", "número de tienda", "confirmación de destino", "ubicación de agencia"]
+          "sinonimos_validos": [
+            "validación recibo",
+            "nombre de agencia",
+            "número de tienda",
+            "confirmación de destino",
+            "ubicación de agencia"
+          ]
         },
         {
           "key": "confirmacion_datos_transaccion",
@@ -201,8 +311,12 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Confirmar los datos clave de la transacción para asegurar la conformidad del cliente. El resumen suele incluir: el nombre del remitente, el nombre del beneficiario, la ciudad, estado y país a donde se envía, así como el pagador por el cual se realiza la transacción y el tipo de envío (efectivo, depósito, etc.); posteriormente se confirman las cantidades comenzando por el total del envío, el cargo por el envío, el total de ambos,  el tipo de cambio, y el total a recibir del beneficiario. Es importante que se utilicen las denominaciones correctas de cada país, y se debe leer la cantidad completa (incluyendo centavos) para evitar errores. Lo indispensable es leer el resumen de la transacción y obtener la confirmación o aceptación del cliente antes de proceder.",
-          "sinonimos_validos": ["validación transacción", "datos monetarios", "detalles del envío"]
+          "descripcion": "Confirmar los datos clave de la transacción para asegurar la conformidad del cliente. El resumen suele incluir: el nombre del remitente, el nombre del beneficiario, la ciudad, estado y país a donde se envía, así como el pagador por el cual se realiza la transacción y el tipo de envío (efectivo, depósito, etc.), se confirman las cantidades comenzando por el total del envío, el cargo por el envío, el total de ambos,  el tipo de cambio, y el total a recibir del beneficiario. Es importante que se utilicen las denominaciones correctas de cada país, y se debe leer la cantidad completa (incluyendo centavos) para evitar errores. Lo indispensable es leer el resumen de la transacción y obtener la confirmación o aceptación del cliente antes de proceder.",
+          "sinonimos_validos": [
+            "validación transacción",
+            "datos monetarios",
+            "detalles del envío"
+          ]
         },
         {
           "key": "etiqueta_qm",
@@ -226,7 +340,13 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Mantiene una línea de cordialidad y respeto con el interlocutor. Se valora la empatía, amabilidad y el enfoque en resolver la situación del cliente. No debe: ser grosero, impaciente, sarcástico, mostrar desinterés o falta de disposición.",
-          "sinonimos_validos": ["servicio", "disposición", "trato cordial", "orientación al cliente", "respeto"]
+          "sinonimos_validos": [
+            "servicio",
+            "disposición",
+            "trato cordial",
+            "orientación al cliente",
+            "respeto"
+          ]
         },
         {
           "key": "solucion_cliente",
@@ -236,7 +356,14 @@
           "aplicable": true,
           "evidencia": "",
           "descripcion": "Dar solución efectiva a la solicitud del cliente, independientemente del tipo de trámite (envío, cancelación, duda o consulta). El asesor debe asegurar que la acción realizada o la información brindada coincida con precisión con lo requerido por el cliente. El objetivo es evitar errores de gestión que obliguen al cliente a volver a llamar.",
-          "sinonimos_validos": ["resolución", "cierre efectivo", "gestión completa", "resultado correcto", "precisión de datos", "aclaración de dudas"]
+          "sinonimos_validos": [
+            "resolución",
+            "cierre efectivo",
+            "gestión completa",
+            "resultado correcto",
+            "precisión de datos",
+            "aclaración de dudas"
+          ]
         },
         {
           "key": "derechos_cancelacion",
@@ -249,16 +376,31 @@
           "regla_critica_na": "Si el ítem es marcado como 'aplicable': false, **NO SE APLICA LA PENALIZACIÓN CRÍTICA** y el score total se calcula normalmente. Si el ítem es 'aplicable': true y se marca 'ok': false (falla), el score total de la cédula se anula (0%).",
           "script_obligatorio": "SI ES UN ENVÍO: Leer el script obligatorio de Derechos de Cancelación textualmente: \"Le recuerdo que puede solicitar cancelación de envío y obtener reembolso a menos que los fondos hayan sido cobrados o depositados. Su cancelación puede ser completada en un lapso no mayor a 3 días hábiles. Para cancelaciones favor de contactarnos al (866) 2162852 desde la agencia o por email a customerservice@maxillc.com. Si considera que hay un error en su envío comuníquese dentro de los próximos 180 días.\"",
           "excepciones": "EXCEPCIONES ÚNICAS (Marcar 'ok': true): 1) Si la agencia es de California (CA), 2) Si el interlocutor es un Agente/Tienda, 3) Si el cliente tiene prisa, o 4) Si la llamada se CORTA abruptamente antes de poder leerlos.",
-          "sinonimos_validos": ["derechos cancelación", "reembolso", "política de cancelación", "reverso del recibo", "script CPFB"]
+          "sinonimos_validos": [
+            "derechos cancelación",
+            "reembolso",
+            "política de cancelación",
+            "reverso del recibo",
+            "script CPFB"
+          ]
         }
       ]
     }
   ],
   "section_VI": {
     "criticos": [
-      { "key": "actitud_servicio", "ok": true },
-      { "key": "solucion_cliente", "ok": true },
-      { "key": "derechos_cancelacion", "ok": true }
+      {
+        "key": "actitud_servicio",
+        "ok": true
+      },
+      {
+        "key": "solucion_cliente",
+        "ok": true
+      },
+      {
+        "key": "derechos_cancelacion",
+        "ok": true
+      }
     ]
   },
   "fortalezas": [],
