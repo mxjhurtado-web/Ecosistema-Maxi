@@ -53,3 +53,8 @@ Thumbs.db
 
 # Config files with sensitive data
 athenas_lite/config/api_keys.json
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
