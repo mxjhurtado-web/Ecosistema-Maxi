@@ -101,17 +101,19 @@ GLOBAL_RULES = {
      "TIEMPO_DE_RESOLUCION_90_DIAS": """REGLA BLINDADA 'Tiempo de Resolución 90 días' (Crítico):
   - FILTRO DE BLOQUEO INMEDIATO (Si ocurre algo de esto, TU RESPUESTA DEBE SER 'ok: true', 'aplicable: false'):
     1. ¿La llamada es de SALIDA (Outbound)? -> BLOQUEAR (No aplica, aunque digan reporte).
-    2. ¿Es un ENVÍO A CUENTA o DEPÓSITO BANCARIO, ESTA RETENIDO, EN VERIFICACIÓN, RECHAZADO, CANCELADO? -> BLOQUEAR (No aplica).
+    2. ¿Es un ENVÍO A CUENTA o DEPÓSITO BANCARIO, ESTA RETENIDO, EN VERIFICACIÓN, RECHAZADO, CANCELADO? -> BLOQUEAR (No aplica), En depósitos a cuenta NUNCA aplica el plazo de 90 días.
     3. ¿Es una COORDINACIÓN, corrección de folio, corrección de datos del beneficiario, desbloqueo o error de captura? -> BLOQUEAR (No aplica).
     4. ¿El envío está DISPONIBLE (aunque la tienda no quiera pagar o tenga problemas técnicos)? -> BLOQUEAR (No aplica).
     5. ¿Es cierre de caso o notificación de resolución, Notificación de Pagador o ya mandaron comprobante? -> BLOQUEAR (No aplica).
-  - IMPORTANTE: En los casos anteriores (puntos 1-5), los asesores pueden usar la frase 'voy a levantar Reporte'. IGNORA esa frase si cae en el filtro de bloqueo.
+    6. ¿Es un CAMBIO DE ESTATUS, solicitud de cancelación, rechazo, envío retenido o no liberado? -> BLOQUEAR (No aplica).
+    7. ¿El asesor ofrece un 'REPORTE DE VERIFICACIÓN', 'REPORTE DE ESTATUS' o 'SOLICITUD DE RASTREO'? -> BLOQUEAR (NA). Esto es distinto a una investigación de pago.
+  - IMPORTANTE: En los casos anteriores (puntos 1-7), los asesores pueden usar la frase 'voy a levantar Reporte'. IGNORA esa frase si cae en el filtro de bloqueo.
   - CONDICIONES DE ACTIVACIÓN (EVALÚA SI CUMPLE TODO):
     1) La llamada es de ENTRADA (Inbound) de consumidores, es decir clientes o beneficiarios.
     2) El cliente reporta que el beneficiario NO COBRÓ/RECIBIÓ el dinero.
     3) El asesor indica explícitamente que debe LEVANTAR UN REPORTE o INICIAR INVESTIGACIÓN DE PAGO.
     * Llamada de ENTRADA + Dinero PERDIDO/NO APARECE/NO COBRADO + Se LEVANTA UN REPORTE o INICIA INVESTIGACIÓN DE PAGO.
-  - REGLA DE ORO (DEFAULT): Ante cualquier duda entre 'Coordinación' u otros motivos y estos casos, si NO se cumplen las condiciones exactas, ASUME que NO APLICA (ok: true, aplicable: false).
+  - REGLA DE ORO (DEFAULT): Ante cualquier duda entre 'Coordinación' u otros motivos y estos casos, si NO se cumplen las condiciones exactas, ASUME que NO APLICA (ok: true, aplicable: false). Si escuchas "Depósito", "Cuenta", "Banco", "BBVA" o similar, la regla se desactiva AUTOMÁTICAMENTE.
   - SOLO SI APLICA REALMENTE: El asesor debe decir '1 a 90 días'. Si omite el plazo, marca 'ok: false'.""",
 
      "DUAL_CONSENT": """REGLA BLINDADA 'Dual Consent' (Crítico):
@@ -298,3 +300,4 @@ KEYS_ADMINISTRATIVAS = [
     "llamadas_seguimiento",
     "nota_ticket_fresh"
 ]
+
