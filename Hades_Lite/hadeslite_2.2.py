@@ -91,7 +91,7 @@ _COUNTRY_CUES = {
            "social insurance book", "republic of vietnam", "vietnam"],
 }
 
-_DATE_RE_TXT_ES = re.compile(r'\b(\d{1,2})\s*(?:de\s*)?([A-Za-záéíóúÁÉÍÓÚñÑ]+)\s*(?:de\s*)?(\d{2,4})\b', re.IGNORECASE)
+_DATE_RE_TXT_ES = re.compile(r'\b(\d{1,2})\s*(?:de\s*)?([A-Za-záéíóúÁÉÍÓÚñÑ]+)\s*(?:de\s*)?(\\d{2,4})\b', re.IGNORECASE)
 
 # -- Patrones textuales y numéricos
 _DATE_RE_TXT_EN_DMY = re.compile(r'\b(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{2,4})\b', re.IGNORECASE)
@@ -114,8 +114,14 @@ _DATE_RE_TXT_PASSPORT = re.compile(r'\b(\d{1,2})\s+([A-Za-z]{3,})\s+/\s+[A-Za-z]
 # 🆕 Patrón para DDMONYYYY (Guatemala DPI)
 _DATE_RE_DMMMYYYY = re.compile(r'\b(\d{1,2})([A-Za-z]{3,})(\d{4})\b', re.IGNORECASE)
 
+# 🆕 Patrón para DD MON/MES YYYY (Honduras, Matrículas Consulares) - e.g., "14 ENE 1975", "14 JAN 1975"
+_DATE_RE_DD_MON_YYYY = re.compile(r'\b(\d{1,2})\s+([A-Z]{3})[/\s]+(\d{4})\b', re.IGNORECASE)
+
 # Patrón para rangos de año 2022 - 2032 (para INE)
 _DATE_RE_YEAR_RANGE = re.compile(r'(\d{4})\s*[-\u2013]\s*(\d{4})')
+
+# 🆕 Patrón para año solo (Matrículas Consulares - fecha de vencimiento)
+_DATE_RE_YEAR_ONLY = re.compile(r'\b(20\d{2})\b')  # Solo años 2000-2099
 
 
 def _clean_ocr_output(texto: str) -> str:
@@ -192,6 +198,18 @@ def _normalize_date_to_mdy_ctx(s: str, country_ctx: str|None, lang_ctx: str|None
             return f"{m_int:02d}/{d_int:02d}/{y_int:04d}"
         except ValueError:
             pass
+
+    # 4.5. 🆕 DD MON YYYY (Honduras, Matrículas Consulares) - e.g., "14 ENE 1975", "14 JAN 1975"
+    m = _DATE_RE_DD_MON_YYYY.search(st)
+    if m:
+        da, mon, y = m.groups()
+        # Intentar primero con meses en español
+        mo = _MONTHS_ES.get(mon.lower())
+        if not mo:
+            # Si no funciona, intentar con meses en inglés
+            mo = _MONTHS_EN.get(mon.lower())
+        if mo:
+            return f"{int(mo):02d}/{int(da):02d}/{_coerce_year(int(y)):04d}"
 
     # 5. Otros formatos textuales (CORREGIDO)
     for rx in [_DATE_RE_EN_MON_DD_YYYY_H, _DATE_RE_EN_DD_MON_YYYY_H,
@@ -355,7 +373,8 @@ def _process_all_dates_by_type(texto: str) -> Dict[str, Optional[str]]:
             all_regexes = (_DATE_RE_NUM_A, _DATE_RE_ISO, _DATE_RE_DMY_H,
                            _DATE_RE_EN_MON_DD_YYYY_H, _DATE_RE_EN_DD_MON_YYYY_H,
                            _DATE_RE_TXT_EN_MDY, _DATE_RE_TXT_EN_DMY, _DATE_RE_TXT_ES,
-                           _DATE_RE_DD_MM_YYYY_SPACE, _DATE_RE_TXT_PASSPORT, _DATE_RE_YEAR_RANGE, _DATE_RE_DMMMYYYY)
+                           _DATE_RE_DD_MM_YYYY_SPACE, _DATE_RE_TXT_PASSPORT, _DATE_RE_YEAR_RANGE, 
+                           _DATE_RE_DMMMYYYY, _DATE_RE_DD_MON_YYYY)
 
             original_date_match = None
             for rx in all_regexes:
@@ -1384,6 +1403,9 @@ else:
     root = tk.Tk()
 root.title(APP_TITLE); root.geometry("1120x740"); root.configure(bg=COLOR_BG)
 
+# Ocultar ventana principal hasta que termine la autenticación
+root.withdraw()
+
 # ===== ESTILO TTK =====
 
 style = ttk.Style(root)
@@ -2132,9 +2154,9 @@ def analizar_identificacion():
         t0 = time.time()
 
         try:
-            # === 1) OCR de frente y reverso (por separado) con fallback ===
-            texto_frente, proveedor_frente = vision_extract_text_with_fallback(frente)
-            texto_reverso, proveedor_reverso = vision_extract_text_with_fallback(reverso)
+            # === 1) OCR de frente y reverso (por separado) solo con Gemini ===
+            texto_frente = gemini_vision_extract_text(frente)
+            texto_reverso = gemini_vision_extract_text(reverso)
 
             # Texto combinado (lo que se guarda / exporta)
             texto_total = texto_frente + "\n" + texto_reverso
@@ -2376,40 +2398,172 @@ def borrar_todo():
     status.config(text="Se limpió el estado.")
 
 
+# ========= PANTALLA DE BIENVENIDA CON AUTENTICACIÓN MANUAL =========
+def mostrar_pantalla_bienvenida():
+    """
+    Muestra una pantalla de bienvenida con el logo de HADES
+    y un botón para iniciar la autenticación manualmente.
+    """
+    # Crear ventana de bienvenida
+    welcome = tk.Toplevel()
+    welcome.title("HADES - Bienvenido")
+    welcome.configure(bg=COLOR_BG)
+    welcome.overrideredirect(True)  # Sin bordes de ventana
+    
+    # Tamaño y centrado
+    welcome_width = 500
+    welcome_height = 500
+    screen_width = welcome.winfo_screenwidth()
+    screen_height = welcome.winfo_screenheight()
+    x = (screen_width - welcome_width) // 2
+    y = (screen_height - welcome_height) // 2
+    welcome.geometry(f"{welcome_width}x{welcome_height}+{x}+{y}")
+    
+    # Frame principal
+    main_frame = tk.Frame(welcome, bg=COLOR_BG)
+    main_frame.pack(expand=True, fill="both", padx=40, pady=40)
+    
+    # Logo de HADES (si existe)
+    try:
+        logo_path = Path(__file__).parent / "Logo_Hades.png"
+        if logo_path.exists():
+            logo_img = Image.open(logo_path)
+            # Redimensionar logo
+            logo_img.thumbnail((250, 250), Image.Resampling.LANCZOS)
+            logo_tk = ImageTk.PhotoImage(logo_img)
+            logo_label = tk.Label(main_frame, image=logo_tk, bg=COLOR_BG)
+            logo_label.image = logo_tk  # Mantener referencia
+            logo_label.pack(pady=(0, 20))
+    except Exception:
+        pass  # Si no hay logo, continuar sin él
+    
+    # Título
+    tk.Label(
+        main_frame,
+        text="HADES",
+        font=("Segoe UI", 32, "bold"),
+        fg=ACCENT,
+        bg=COLOR_BG
+    ).pack()
+    
+    tk.Label(
+        main_frame,
+        text="El Guardián de tu Información",
+        font=("Segoe UI", 13),
+        fg=COLOR_MUTED,
+        bg=COLOR_BG
+    ).pack(pady=(5, 40))
+    
+    # Mensaje de estado (inicialmente vacío)
+    status_label = tk.Label(
+        main_frame,
+        text="",
+        font=("Segoe UI", 10),
+        fg=COLOR_TEXT,
+        bg=COLOR_BG
+    )
+    status_label.pack(pady=10)
+    
+    # Botón de autenticación
+    def iniciar_autenticacion():
+        # Deshabilitar botón
+        btn_auth.config(state="disabled", bg=COLOR_PANEL)
+        status_label.config(text="Espere un momento...", fg=COLOR_MUTED)
+        welcome.update()
+        
+        # Pequeña pausa para que se vea el mensaje
+        welcome.after(500, lambda: _ejecutar_autenticacion_manual(welcome, status_label))
+    
+    btn_auth = tk.Button(
+        main_frame,
+        text="🔐 Iniciar Sesión con Keycloak",
+        command=iniciar_autenticacion,
+        bg=COLOR_PURPLE,
+        fg="white",
+        font=("Segoe UI", 12, "bold"),
+        relief="flat",
+        padx=30,
+        pady=15,
+        cursor="hand2"
+    )
+    btn_auth.pack(pady=20)
+    
+    # Hover effect
+    def on_enter(e):
+        if btn_auth['state'] != 'disabled':
+            btn_auth.config(bg=ACCENT)
+    
+    def on_leave(e):
+        if btn_auth['state'] != 'disabled':
+            btn_auth.config(bg=COLOR_PURPLE)
+    
+    btn_auth.bind("<Enter>", on_enter)
+    btn_auth.bind("<Leave>", on_leave)
+    
+    # Versión
+    tk.Label(
+        main_frame,
+        text="Versión 2.2",
+        font=("Segoe UI", 9),
+        fg=COLOR_MUTED,
+        bg=COLOR_BG
+    ).pack(side="bottom", pady=(20, 0))
+    
+    # Esperar a que se cierre la ventana
+    welcome.wait_window()
 
-# ========= VERIFICACIÓN DE INICIO CON KEYCLOAK =========
-def _verificar_inicio():
-    """Verifica usuario con Keycloak SSO"""
+def _ejecutar_autenticacion_manual(welcome, status_label):
+    """Ejecuta la autenticación de Keycloak desde la pantalla de bienvenida"""
     if not _KEYCLOAK_OK:
+        welcome.destroy()
         messagebox.showerror(
             "Keycloak no disponible",
             "El sistema de autenticación SSO no está configurado.\n"
             "Contacta al administrador del sistema."
         )
-        return False
+        root.destroy()
+        return
+    
+    # Actualizar mensaje
+    status_label.config(text="Redirigiendo a Keycloak...", fg=ACCENT)
+    welcome.update()
     
     # Intentar autenticación con Keycloak
     ok, msg = autenticar_con_keycloak()
     
     if ok:
-        messagebox.showinfo(
-            "Autenticación Exitosa",
-            f"Bienvenido, {usuario_actual['nombre']}\n"
-            f"Correo: {usuario_actual['correo']}"
-        )
-        return True
+        # Autenticación exitosa
+        status_label.config(text=f"✅ Bienvenido, {usuario_actual['nombre']}", fg=COLOR_GREEN)
+        welcome.update()
+        welcome.after(1500, welcome.destroy)  # Cerrar después de 1.5 segundos
     else:
+        # Autenticación fallida
+        welcome.destroy()
         messagebox.showerror(
             "Error de Autenticación",
             f"No se pudo iniciar sesión:\n{msg}"
         )
-        return False
+        root.destroy()
+
+
+# ========= VERIFICACIÓN DE INICIO CON KEYCLOAK =========
+def _verificar_inicio():
+    """Verifica usuario con Keycloak SSO"""
+    # Esta función ahora solo verifica si ya hay sesión
+    # La autenticación real se hace en mostrar_pantalla_bienvenida()
+    return verificar_autenticacion_keycloak()
 
 
 # ========= INICIO (Optimizado con verificación diferida) =========
 def _init_app():
     """Inicializa la app después de verificar usuario"""
+    # Mostrar pantalla de bienvenida con botón de autenticación
+    mostrar_pantalla_bienvenida()
+    
+    # Verificar si la autenticación fue exitosa
     if _verificar_inicio():
+        # Mostrar ventana principal solo después de autenticación exitosa
+        root.deiconify()
         root.bind_all("<Control-v>", lambda e: pegar_imagen_clipboard())
         _set_mode_ocr()
     else:
