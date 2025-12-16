@@ -18,6 +18,15 @@ GLOBAL_RULES = {
        - Evalúa SU desempeño (aunque sea breve) y marca 'Cumplido' o 'No Cumplido'. NUNCA uses 'aplicable: false' (N/A) para excusar un mal saludo o tono.""",
     
      "etiqueta_qm": """REGLA 'QM': Cualquier item con una 'key' que contenga 'etiqueta_qm' (por ejemplo 'etiqueta_qm_entrada') DEBE SER MARCADO SIEMPRE como 'aplicable: false' cuando la llamada no es una llamada de Calidad/Quality Monitoring (QM).""",
+   
+    "tiempo_respuesta": """REGLA DE BLOQUEO 'Tiempo de Respuesta' (Entrada vs Salida):
+    1. ANALIZA EL ORIGEN DE LA LLAMADA:
+       - ¿Es llamada de SALIDA (el asesor marca al cliente, se escucha tono de llamada)? -> BLOQUEO POSITIVO.
+       - ¿Es llamada de ENTRADA (el cliente marca y el asesor contesta)? -> ENTONCES APLICA la medición de 5 segundos.
+    2. INSTRUCCIÓN OBLIGATORIA:
+       - Si es SALIDA: Tu respuesta DEBE SER 'ok': true y 'aplicable': true.
+         (IMPORTANTE: Marca 'aplicable': true para que aparezca como CUMPLIDO/VERDE. En evidencia escribe: 'Llamada de salida - Cumplimiento automático').
+       - Si es ENTRADA: Evalúa rigurosamente los 5 segundos.""",
 
      "CAPACITACION": """REGLA BLINDADA 'Capacitación - Entrada vs Salida':
     1. DETERMINA EL TIPO DE LLAMADA:
@@ -98,6 +107,13 @@ GLOBAL_RULES = {
 
      "TRANSFERENCIA_CORRECTA": """REGLA 'Transferencia Correcta' (Condicional): Se marca 'aplicable:true' cuando en la llamada se realiza una transferencia de la llamada a otro asesor o área. Para considerar la transferencia como correcta, el asesor debe seguir buenas prácticas (informar motivo, enlazar con aviso, evitar transferencias en frío). Si no hay transferencia, se marca 'aplicable:false'. Si hay transferencia pero es inadecuada (en frío, sin avisar, sin confirmar), se marca 'ok:false'.""",
 
+     "SE_DAN_LINEAMIENTOS_FRAUDE": """REGLA DE CONTEXTO 'Lineamientos de Fraude':
+    1. FILTRO DE TEMA:
+       - ¿La llamada es solo operativa (cancelar folio, liberar envío, verificar estatus) sin que se mencione o trate un riesgo activo -> ENTONCES NO APLICA ('aplicable': false).
+    2. CONDICIÓN DE ACTIVACIÓN (SOLO SI):
+       -EN la llamada se está tratando un tema de POSIBLE FRAUDE, EXTORSIÓN, SOSPECHA, SEGURIDAD o se detecta vulnerabilidad en el cliente.
+    Si no se cumplen estas condiciones exactas, marca 'aplicable': false para proteger el score.""",
+
      "TIEMPO_DE_RESOLUCION_90_DIAS": """REGLA BLINDADA 'Tiempo de Resolución 90 días' (Crítico):
   - FILTRO DE BLOQUEO INMEDIATO (Si ocurre algo de esto, TU RESPUESTA DEBE SER 'ok: true', 'aplicable: false'):
     1. ¿La llamada es de SALIDA (Outbound)? -> BLOQUEAR (No aplica, aunque digan reporte).
@@ -136,6 +152,7 @@ RULES_BY_DEPT = {
     # Reglas que se aplican a TODOS los departamentos
     "_COMUNES": [
         "UNIVERSAL_DE_ENFOQUE",
+        "tiempo_respuesta",
     ],
 
     "Administración de agencias": [
@@ -193,6 +210,7 @@ RULES_BY_DEPT = {
 
     "Prevención de fraudes": [
         "etiqueta_qm",
+        "SE_DAN_LINEAMIENTOS_FRAUDE",
         "TRANSFERENCIA_CORRECTA",
         "NOTAS_CORPORATE",
     ],
@@ -300,4 +318,5 @@ KEYS_ADMINISTRATIVAS = [
     "llamadas_seguimiento",
     "nota_ticket_fresh"
 ]
+
 
