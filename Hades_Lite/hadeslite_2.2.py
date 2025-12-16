@@ -924,11 +924,8 @@ usuario_actual = {"correo": None, "nombre": None, "sso": False}
 # ===== MODELO GEMINI SELECCIONADO =====
 GEMINI_MODEL = "gemini-2.5-flash"  # Modelo fijo (el que funcionaba antes)
 
-# ===== CONFIGURACIÓN DE IA (Gemini + Claude Backup) =====
-CLAUDE_API_KEY = None
-CLAUDE_MODEL = "claude-3-5-sonnet-20241022"  # Modelo por defecto
-AI_PROVIDER = "gemini"  # "gemini" o "claude"
-ENABLE_FALLBACK = True  # Fallback automático si el proveedor principal falla
+# ===== CONFIGURACIÓN DE IA (Solo Gemini) =====
+# Claude ha sido removido - solo usamos Gemini
 
 
 # ===== CONFIG LOGIN (OAuth) =====
@@ -1172,144 +1169,8 @@ def gemini_vision_extract_text(image_path: str) -> str:
         return f"❌ Error en Visión: {e}"
 
 
-def claude_vision_extract_text(image_path: str) -> str:
-    """
-    Extrae texto con Claude 3.5 Sonnet Vision (backup de Gemini)
-    """
-    if not CLAUDE_API_KEY:
-        return "⚠️ Configura CLAUDE_API_KEY para usar Claude."
-    
-    try:
-        from PIL import Image, ImageOps
-        import io, base64
-        
-        # Preparar imagen
-        im = Image.open(image_path)
-        im = ImageOps.exif_transpose(im)
-        bio = io.BytesIO()
-        im.save(bio, format="PNG")
-        bio.seek(0)
-        b64 = base64.b64encode(bio.getvalue()).decode("utf-8")
-        
-        # Prompt (mismo que Gemini para consistencia)
-        prompt = (
-            "Eres un experto en OCR. Extrae TODO el texto visible de esta imagen de documento oficial. "
-            "Organiza la información como pares CLAVE: VALOR. "
-            "Ejemplo: Nombre: RAMIREZ MARTINEZ MIRIAN, Fecha de Nacimiento: 05/06/1993, Número: 123456789. "
-            "IMPORTANTE: Incluye TODOS los números, series, claves, fechas y texto que veas. "
-            "Mantén la puntuación original. "
-            "Responde SOLO el texto extraído en formato clave-valor en español. "
-            "NO agregues comentarios, introducciones ni explicaciones."
-        )
-        
-        # Llamada a Claude API
-        url = "https://api.anthropic.com/v1/messages"
-        headers = {
-            "x-api-key": CLAUDE_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
-        }
-        payload = {
-            "model": CLAUDE_MODEL,
-            "max_tokens": 4096,
-            "messages": [{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "image/png",
-                            "data": b64
-                        }
-                    },
-                    {
-                        "type": "text",
-                        "text": prompt
-                    }
-                ]
-            }]
-        }
-        
-        r = requests.post(url, headers=headers, json=payload, timeout=90)
-        
-        # Manejo de errores de cuota y autenticación
-        if r.status_code == 429:
-            return "❌ CUOTA AGOTADA: Claude ha alcanzado el límite de rate. Espera unos minutos o usa Gemini."
-        elif r.status_code == 401:
-            return "❌ API KEY INVÁLIDA: Verifica tu Claude API Key en https://console.anthropic.com/"
-        elif r.status_code != 200:
-            return f"❌ Claude API error: {r.status_code} - {r.text[:100]}"
-        
-        data = r.json()
-        txt = data.get("content", [{}])[0].get("text", "") or ""
-        return _clean_ocr_output(txt.strip() if txt.strip() else "(sin texto)")
-        
-    except Exception as e:
-        return f"❌ Error en Claude Vision: {e}"
 
 
-def vision_extract_text_with_fallback(image_path: str) -> tuple[str, str]:
-    """
-    Extrae texto con fallback automático entre proveedores.
-    Retorna: (texto_extraido, proveedor_usado)
-    """
-    global AI_PROVIDER
-    
-    # Intentar con el proveedor seleccionado
-    if AI_PROVIDER == "gemini":
-        try:
-            texto = gemini_vision_extract_text(image_path)
-            # Si funciona correctamente, retornar
-            if not texto.startswith("❌") and not texto.startswith("⚠️"):
-                return texto, "Gemini"
-            
-            # Si hay error y fallback está habilitado, intentar con Claude
-            if ENABLE_FALLBACK and CLAUDE_API_KEY:
-                print("[HADES] Gemini falló, usando Claude como backup...")
-                texto_claude = claude_vision_extract_text(image_path)
-                if not texto_claude.startswith("❌") and not texto_claude.startswith("⚠️"):
-                    return texto_claude, "Claude (Fallback)"
-            
-            return texto, "Gemini (con error)"
-            
-        except Exception as e:
-            # Si hay excepción y fallback está habilitado
-            if ENABLE_FALLBACK and CLAUDE_API_KEY:
-                print(f"[HADES] Excepción en Gemini: {e}, usando Claude como backup...")
-                try:
-                    return claude_vision_extract_text(image_path), "Claude (Fallback)"
-                except:
-                    pass
-            return f"❌ Error en Gemini: {e}", "Gemini (error)"
-    
-    elif AI_PROVIDER == "claude":
-        try:
-            texto = claude_vision_extract_text(image_path)
-            # Si funciona correctamente, retornar
-            if not texto.startswith("❌") and not texto.startswith("⚠️"):
-                return texto, "Claude"
-            
-            # Si hay error y fallback está habilitado, intentar con Gemini
-            if ENABLE_FALLBACK and GEMINI_API_KEY:
-                print("[HADES] Claude falló, usando Gemini como backup...")
-                texto_gemini = gemini_vision_extract_text(image_path)
-                if not texto_gemini.startswith("❌") and not texto_gemini.startswith("⚠️"):
-                    return texto_gemini, "Gemini (Fallback)"
-            
-            return texto, "Claude (con error)"
-            
-        except Exception as e:
-            # Si hay excepción y fallback está habilitado
-            if ENABLE_FALLBACK and GEMINI_API_KEY:
-                print(f"[HADES] Excepción en Claude: {e}, usando Gemini como backup...")
-                try:
-                    return gemini_vision_extract_text(image_path), "Gemini (Fallback)"
-                except:
-                    pass
-            return f"❌ Error en Claude: {e}", "Claude (error)"
-    
-    return "❌ No hay proveedor de IA configurado", "Ninguno"
 
 
 # ====== Modales con tema (oscuro morado) ======
@@ -1595,8 +1456,8 @@ tk.Label(header, text="HADES: El Guardián de tu Información", bg=COLOR_BG, fg=
 bar = tk.Frame(root, bg=COLOR_PANEL); bar.pack(fill="x", pady=(6,0))
 
 def configurar_api_keys():
-    """Gestor unificado de API Keys para Gemini y Claude con hipervínculos"""
-    global GEMINI_API_KEY, CLAUDE_API_KEY
+    """Gestor de API Key para Gemini con hipervínculo"""
+    global GEMINI_API_KEY
     
     if not usuario_actual["correo"]:
         messagebox.showinfo("API Keys", "Primero verifica tu correo (se hace al iniciar).")
@@ -1604,11 +1465,11 @@ def configurar_api_keys():
     
     # Crear ventana
     win = tk.Toplevel(root)
-    win.title("Configurar API Keys")
+    win.title("Configurar API Key")
     win.configure(bg=COLOR_CARD)
     win.transient(root)
     win.grab_set()
-    win.geometry("500x350")
+    win.geometry("500x250")
     
     # Título
     tk.Label(win, text="🔑 Configuración de API Keys", bg=COLOR_CARD, fg=COLOR_TEXT,
@@ -1634,22 +1495,6 @@ def configurar_api_keys():
     link_gemini.grid(row=2, column=0, sticky="w", pady=(0, 15))
     link_gemini.bind("<Button-1>", lambda e: webbrowser.open("https://aistudio.google.com/app/apikey"))
     
-    # ===== CLAUDE API KEY =====
-    tk.Label(main_frame, text="Claude API Key (Anthropic):", bg=COLOR_CARD, fg=COLOR_TEXT,
-             font=("Segoe UI", 10, "bold")).grid(row=3, column=0, sticky="w", pady=(0, 5))
-    
-    claude_entry = tk.Entry(main_frame, bg="#1f1440", fg=COLOR_TEXT, insertbackground=COLOR_TEXT,
-                           highlightbackground=ACCENT_2, relief="flat", width=45, show="*")
-    claude_entry.grid(row=4, column=0, sticky="ew", pady=(0, 5))
-    if CLAUDE_API_KEY:
-        claude_entry.insert(0, CLAUDE_API_KEY)
-    
-    # Hipervínculo Claude
-    link_claude = tk.Label(main_frame, text="🔗 Obtener Claude API Key", bg=COLOR_CARD,
-                          fg=COLOR_BLUE, cursor="hand2", font=("Segoe UI", 9, "underline"))
-    link_claude.grid(row=5, column=0, sticky="w", pady=(0, 20))
-    link_claude.bind("<Button-1>", lambda e: webbrowser.open("https://console.anthropic.com/"))
-    
     main_frame.grid_columnconfigure(0, weight=1)
     
     # Botones
@@ -1657,25 +1502,14 @@ def configurar_api_keys():
     btn_frame.pack(pady=(0, 16))
     
     def guardar():
-        global GEMINI_API_KEY, CLAUDE_API_KEY
+        global GEMINI_API_KEY
         gemini_key = gemini_entry.get().strip()
-        claude_key = claude_entry.get().strip()
         
         if gemini_key:
             GEMINI_API_KEY = gemini_key
-        if claude_key:
-            CLAUDE_API_KEY = claude_key
-        
-        keys_configuradas = []
-        if GEMINI_API_KEY:
-            keys_configuradas.append("Gemini")
-        if CLAUDE_API_KEY:
-            keys_configuradas.append("Claude")
-        
-        if keys_configuradas:
-            status.config(text=f"✅ API Keys: {', '.join(keys_configuradas)}")
+            status.config(text="✅ API Key configurada: Gemini")
         else:
-            status.config(text="⚠️ No se configuraron API Keys")
+            status.config(text="⚠️ No se configuró API Key")
         
         win.destroy()
     
@@ -1687,7 +1521,7 @@ def configurar_api_keys():
     # Centrar ventana
     root.update_idletasks()
     x = root.winfo_rootx() + (root.winfo_width()//2 - 250)
-    y = root.winfo_rooty() + (root.winfo_height()//2 - 175)
+    y = root.winfo_rooty() + (root.winfo_height()//2 - 125)
     try:
         win.geometry(f"+{x}+{y}")
     except:
@@ -2103,8 +1937,8 @@ def analizar_actual():
     t0 = time.time()
     _hide_logo_bg()
     
-    # 1. OCR y Normalización con fallback automático
-    texto, proveedor = vision_extract_text_with_fallback(p)
+    # 1. OCR y Normalización (solo Gemini)
+    texto = gemini_vision_extract_text(p)
     # Se mantiene la normalización para extraer metadatos de riesgo y exportación
     texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
     
@@ -2138,8 +1972,8 @@ def analizar_actual():
     ocr_text.insert("end", f"\nRESULTADO 1/1 — {nombre_archivo}\n", "header")
     ocr_text.tag_config("header", font=("Segoe UI", 12, "bold"), foreground=ACCENT_2)
     
-    # Mostrar proveedor usado
-    ocr_text.insert("end", f"Analizado con: {proveedor}\n", "provider_tag")
+    # Mostrar proveedor usado (siempre Gemini ahora)
+    ocr_text.insert("end", f"Analizado con: Gemini\n", "provider_tag")
     ocr_text.tag_config("provider_tag", foreground=COLOR_MUTED, font=("Segoe UI", 9, "italic"))
     
     # Mostrar semáforo de autenticidad
@@ -2189,8 +2023,8 @@ def analizar_carrusel():
     for i, p in enumerate(rutas, start=1):
         t0 = time.time()
         try:
-            # 1. OCR y Normalización con fallback automático
-            texto, proveedor = vision_extract_text_with_fallback(p)
+            # 1. OCR y Normalización (solo Gemini)
+            texto = gemini_vision_extract_text(p)
             texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
             
             # 2. Extracción de datos esenciales y autenticidad (solo para registro)
@@ -2224,8 +2058,8 @@ def analizar_carrusel():
             # Mostrar encabezado de resultado
             ocr_text.insert("end", f"\n\nRESULTADO {i}/{total} — {nombre_archivo}\n", "header")
             
-            # Mostrar proveedor usado
-            ocr_text.insert("end", f"Analizado con: {proveedor}\n", "provider_tag")
+            # Mostrar proveedor usado (siempre Gemini ahora)
+            ocr_text.insert("end", f"Analizado con: Gemini\n", "provider_tag")
             ocr_text.tag_config("provider_tag", foreground=COLOR_MUTED, font=("Segoe UI", 9, "italic"))
             
             # Mostrar semáforo de autenticidad

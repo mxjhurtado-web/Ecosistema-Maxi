@@ -74,3 +74,8 @@
 [2025-12-09 13:20:30] Resultado guardado: Agencia 5317-ID Folio 133663.jpg (546 chars, 12.56s, riesgo=bajo)
 [2025-12-09 13:20:45] Resultado guardado: Agencia 4694-TX Folio 126754.jpg (540 chars, 14.78s, riesgo=bajo)
 [2025-12-09 13:21:00] Resultado guardado: image (1).png (510 chars, 14.26s, riesgo=bajo)
+[2025-12-16 10:14:46] Resultado guardado: 18oct.Pasaporte.png (716 chars, 33.48s, riesgo=bajo)
+[2025-12-16 10:17:44] Resultado guardado: 18oct.Pasaporte.png (746 chars, 38.47s, riesgo=bajo)
+[2025-12-16 10:18:07] Resultado guardado: Agencia 5317-ID Folio 133663.jpg (513 chars, 23.62s, riesgo=bajo)
+[2025-12-16 10:18:16] Resultado guardado: Agencia 4694-TX Folio 126754.jpg (11 chars, 8.12s, riesgo=medio)
+[2025-12-16 10:18:45] Resultado guardado: image (1).png (469 chars, 29.35s, riesgo=bajo)
