@@ -1999,7 +1999,7 @@ def analizar_actual():
     ocr_text.tag_config("provider_tag", foreground=COLOR_MUTED, font=("Segoe UI", 9, "italic"))
     
     # Mostrar semáforo de autenticidad
-    ocr_text.insert("end", f"\n{emoji_semaforo} Autenticidad: {riesgo.upper()}\n", "risk_tag")
+    ocr_text.insert("end", f"\n{emoji_semaforo} Riesgo de falsificación: {riesgo.upper()}\n", "risk_tag")
     if color_semaforo == "green":
         ocr_text.tag_config("risk_tag", foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
     elif color_semaforo == "yellow":
@@ -2085,7 +2085,7 @@ def analizar_carrusel():
             ocr_text.tag_config("provider_tag", foreground=COLOR_MUTED, font=("Segoe UI", 9, "italic"))
             
             # Mostrar semáforo de autenticidad
-            ocr_text.insert("end", f"\n{emoji_semaforo} Autenticidad: {riesgo.upper()}\n", "risk_tag")
+            ocr_text.insert("end", f"\n{emoji_semaforo} Riesgo de falsificación: {riesgo.upper()}\n", "risk_tag")
             if color_semaforo == "green":
                 ocr_text.tag_config("risk_tag", foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
             elif color_semaforo == "yellow":
@@ -2203,7 +2203,7 @@ def analizar_identificacion():
             ocr_text.insert("end", header_line, "header")
             
             # Mostrar semáforo de autenticidad
-            ocr_text.insert("end", f"\n{emoji_semaforo} Autenticidad: {riesgo.upper()}\n", "risk_tag")
+            ocr_text.insert("end", f"\n{emoji_semaforo} Riesgo de falsificación: {riesgo.upper()}\n", "risk_tag")
             if color_semaforo == "green":
                 ocr_text.tag_config("risk_tag", foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
             elif color_semaforo == "yellow":
@@ -2405,19 +2405,27 @@ def mostrar_pantalla_bienvenida():
     y un botón para iniciar la autenticación manualmente.
     """
     # Crear ventana de bienvenida
-    welcome = tk.Toplevel()
+    welcome = tk.Toplevel(root)
     welcome.title("HADES - Bienvenido")
     welcome.configure(bg=COLOR_BG)
-    welcome.overrideredirect(True)  # Sin bordes de ventana
     
     # Tamaño y centrado
     welcome_width = 500
-    welcome_height = 500
+    welcome_height = 600  # Aumentado de 500 a 600 para que quepa el botón
     screen_width = welcome.winfo_screenwidth()
     screen_height = welcome.winfo_screenheight()
     x = (screen_width - welcome_width) // 2
     y = (screen_height - welcome_height) // 2
     welcome.geometry(f"{welcome_width}x{welcome_height}+{x}+{y}")
+    
+    # Configurar ventana
+    welcome.overrideredirect(True)  # Sin bordes de ventana
+    welcome.lift()  # Traer al frente
+    welcome.attributes('-topmost', True)  # Siempre encima
+    welcome.focus_force()  # Forzar foco
+    
+    # Actualizar para que se renderice
+    welcome.update()
     
     # Frame principal
     main_frame = tk.Frame(welcome, bg=COLOR_BG)
@@ -2452,7 +2460,7 @@ def mostrar_pantalla_bienvenida():
         font=("Segoe UI", 13),
         fg=COLOR_MUTED,
         bg=COLOR_BG
-    ).pack(pady=(5, 40))
+    ).pack(pady=(5, 20))  # Reducido de 40 a 20 para que quepa el botón
     
     # Mensaje de estado (inicialmente vacío)
     status_label = tk.Label(
@@ -2508,6 +2516,10 @@ def mostrar_pantalla_bienvenida():
         fg=COLOR_MUTED,
         bg=COLOR_BG
     ).pack(side="bottom", pady=(20, 0))
+    
+    # Forzar actualización para que se muestren todos los widgets
+    welcome.update_idletasks()
+    welcome.update()
     
     # Esperar a que se cierre la ventana
     welcome.wait_window()
