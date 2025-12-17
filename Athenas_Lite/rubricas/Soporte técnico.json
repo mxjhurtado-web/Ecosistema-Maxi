@@ -10,7 +10,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "La llamada debe ser respondida antes de los 5 segundos. Si hay un silencio inicial breve propio de la conexión del sistema, no se debe penalizar al asesor. Solo marcar 'No cumplido' si se detecta que el asesor descuelga y deja al cliente esperando deliberadamente.",
+          "descripcion": "REGLA DE PRIORIDAD (ENTRADA VS SALIDA): 1) Si la llamada es de SALIDA (asesor marca al cliente/tono de llamada) y el cliente demora en tomar la llamada (responder llamada), NO PENALIZAR AL ASESOR EVALUADO, deberas marcarlo como CUMPLIDO ('ok': true). 2) Si la llamada es de ENTRADA debe ser respondida en los primeros 5 segundos. CRITERIO MATEMÁTICO ESTRICTO: Si el audio muestra que el asesor tarda más de 5 segundos en hablar (ej. 6, 7, 8s...), DEBES MARCAR 'ok': false. No hay tolerancia. El asesor no debe mantener silencio prolongado ni usar tono de espera. ",
           "sinonimos_validos": ["rapidez", "tiempo de contestación", "respuesta inmediata", "velocidad de atención"]
         },
         {
@@ -19,7 +19,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "El asesor debe iniciar con cortesía, mencionando su nombre su nombre y la entidad (empresa 'Maxi' o departamento). El orden no importa y el fraseo puede variar (ej. 'Gracias por comunicarse a Maxi', 'Soporte Técnico le atiende'). El saludo explícito (\"Buenos días\", \"Hola\") es deseable pero no obligatorio si la apertura es amable. EXCEPCIÓN POR TRANSFERENCIA: Si el asesor recibe la llamada transferida, es suficiente con un saludo cordial y confirmar su nombre. Lo indispensable es la identificación personal y la amabilidad. No debe: no saludar, contestar en silencio o no decir su nombre.",
+          "descripcion": "El asesor debe iniciar con cortesía, mencionando su nombre y la entidad (empresa 'Maxi' o Soporte técnico). El orden no importa.  El saludo explícito (\"Buenos días\", \"Hola\") es deseable pero no obligatorio si la apertura es amable. EXCEPCIÓN POR TRANSFERENCIA: Si el asesor recibe la llamada transferida de otro agente, es suficiente con un saludo cordial y confirmar su nombre para considerarlo CUMPLIDO (no es obligatorio repetir la entidad/empresa en este caso). Si es llamada de salida: Se espera identificación clara (ej. \"Gracias por atender mi llamada, soy [Nombre]\"), aunque el fraseo del saludo inicial puede variar. No debe: no saludar, contestar en silencio o no decir su nombre.",
           "sinonimos_validos": ["presentación", "saludo inicial", "introducción", "bienvenida", "apertura", "identificación de entidad"]
         }
       ]
@@ -51,8 +51,13 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Adaptar el trato utilizando CUALQUIERA de estos elementos: Nombre, Apellido o Título de cortesía (ej. \"Agente\", \"Joven\", \"Señorita\" seguido del nombre/apellido). Lo ideal es al inicio y al final, pero si la llamada es breve o el interlocutor tiene prisa, basta con hacerlo UNA VEZ para cumplir. NOTA DE CONTEXTO: Si se escucha que el interlocutor está ocupado, atendiendo clientes, manejando o tiene prisa, la personalización puede omitirse sin penalización (marcar 'ok': true).",
-          "sinonimos_validos": ["trato personalizado", "nombre del cliente", "apellido del cliente", "referencia directa", "título de cortesía", "agente"]
+          "descripcion": "El asesor debe dirigirse al cliente por su NOMBRE o APELLIDO (ej. 'Sr. Banda', 'Alejandro'), . REGLA DE EXCLUSIÓN: Los títulos genéricos como 'Caballero', 'Dama', 'Joven', 'Señorita' o 'Agente' NO CUENTAN como personalización si no van acompañados del nombre o apellido. Lo ideal es al inicio, medio y al final. CRITERIO MATEMÁTICO DE FRECUENCIA: El asesor debe usar el nombre/apellido AL MENOS 2 VECES durante la llamada. INSTRUCCIÓN DE CALIFICACIÓN: Cuenta las veces que el asesor dice el nombre/apellido. Si el conteo es 0 o 1, TU RESPUESTA OBLIGATORIA ES 'ok': false. No importa si fue muy amable; si no cumple la frecuencia mínima de 2, no aprueba. En el campo 'evidencia', indica explícitamente el conteo (ej. 'Solo lo mencionó 1 vez').",
+          "sinonimos_validos": [
+            "trato personalizado",
+            "nombre del cliente",
+            "apellido del cliente",
+            "referencia directa"
+          ]
         },
         {
           "key": "lenguaje_adecuado",
@@ -69,7 +74,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Evitar el uso repetitivo (más de 3 veces) de frases o sonidos que interrumpan la fluidez de la conversación, manteniendo el diálogo claro y profesional. Evitar: \"Este...\", \"Mmm...\", \"Ajá...\", \"Okey...\", \"¿Verdad?\", \"Pues...\", \"Eh...\". Si palabras como \"vale\" u \"okay\" se usan para confirmar instrucciones, tienen valor en el contexto de la llamada o dar continuidad, no se consideran muletillas.",
+          "descripcion": "Evitar el uso repetitivo (más de 3 veces) de frases o sonidos que interrumpan la fluidez de la conversación, manteniendo el diálogo claro y profesional. Evitar: \"Este...\", \"Mmm...\", \"Ajá...\", \"Okey...\", \"¿Verdad?\", \"Pues...\", \"Eh...\".",
           "sinonimos_validos": ["relleno verbal", "frases repetitivas", "muletillas", "expresiones sin valor"]
         }
       ]
@@ -142,7 +147,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Gestión de Tiempos de Espera (Hold/Mute). Si necesita poner al usuario en espera, debe avisar (ej.\"Permítame un momento\"), el fraseo puede variar, no hay guion exacto. Mantener presencia activa (no dejar silencios prolongados sin actualizar al usuario). Agradecer la espera al regresar.",
+          "descripcion": "Gestión de Tiempos de Espera (Hold/Mute). Si el asesor necesita poner al cliente en espera, debe avisar o pedir permiso previamente (ej. \"¿Me permites un momento?\"), el asesor puede usar diferentes frases, no hay un guion exacto. Lo esencial es mantener informado al cliente y no abandonarlo en la línea, HACIENDO presencia ACTIVA cada 2 MINUTOS. No debe: usar mal el mute o no respetar pausas. Enfocate al asesor evaluado, ignora totalmente al asesor o asesores que interactuaron previamente en la llamada",
           "sinonimos_validos": ["tiempos de espera", "hold", "pausas", "gestión de tiempo", "aviso de espera"]
         },
         {
@@ -151,7 +156,7 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-           "descripcion": "Finalizar la llamada con actitud de servicio y nombre. Confirmar que no hay dudas adicionales (ej. \"¿Hay algo más en lo que le pueda apoyar?\"), el fraseo puede variar, no hay guion exacto NOTA: NO es necesario mencionar el nombre de la empresa/depto obligatoriamente. Si se corta la llamada abruptamente la omision de la misma por el corte se considera CUMPLIDO ",
+          "descripcion": "Cierre de llamada. LISTA DE CHEQUEO OBLIGATORIA (Debe cumplir los 3 elementos): 1) Mencionar su NOMBRE (ej. Omar). 2) Mencionar la EMPRESA o DEPARTAMENTO (ej. Maxi/Soporte Técnico). 3) Agradecer u ofrecer ayuda adicional. El orden no importa. CONDICIÓN DE FALLA: Si el asesor es amable pero OLVIDA UN SOLO elemento, DEBES MARCAR 'ok': false. No se aceptan despedidas incompletas como 'Gracias, buen día'.INSTRUCCIÓN DE EVIDENCIA: Si marcas fallo, escribe qué elemento faltó (ej. 'Faltó mencionar la empresa').",
           "sinonimos_validos": ["cierre", "cordialidad", "oferta de ayuda", "agradecimiento", "despedida"]
         }
       ]
