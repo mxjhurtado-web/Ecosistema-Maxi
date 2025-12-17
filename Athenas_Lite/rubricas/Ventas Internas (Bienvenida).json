@@ -1,12 +1,12 @@
 {
-  "department": "Ventas Internas (Ajustes)",
+  "department": "Ventas Internas (Bienvenida)",
   "sections": [
     {
       "name": "Saludo",
       "items": [
         {
           "key": "tiempo_respuesta",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -20,7 +20,7 @@
         },
         {
           "key": "guion_saludo_inicial",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -42,7 +42,7 @@
       "items": [
         {
           "key": "tono_voz",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -56,7 +56,7 @@
         },
         {
           "key": "diccion",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -69,7 +69,7 @@
         },
         {
           "key": "personalizacion",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -83,7 +83,7 @@
         },
         {
           "key": "lenguaje_adecuado",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -97,7 +97,7 @@
         },
         {
           "key": "evitar_muletillas",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -116,7 +116,7 @@
       "items": [
         {
           "key": "escucha_activa",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -130,11 +130,11 @@
         },
         {
           "key": "sondeo",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Validar la información Haciendo preguntas que confirmen o parafraseen lo compartido por el cliente.  No es necesario un guion exacto; lo importante es indagar la información necesaria para atender la solicitud. No debe: no hacer preguntas, asumir información sin validar, ofrecer una solución prematura sin haber recolectado los datos necesarios.",
+          "descripcion": "Validar la información con preguntas que confirmen o parafraseen lo compartido por el cliente. No debe: Suponer el origen de la alerta, o no preguntar información relevante.",
           "sinonimos_validos": [
             "indagación",
             "validación de datos",
@@ -144,7 +144,7 @@
         },
         {
           "key": "asertividad",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -163,7 +163,7 @@
       "items": [
         {
           "key": "empatia",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -179,7 +179,7 @@
         },
         {
           "key": "control_llamada",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -195,7 +195,7 @@
         },
         {
           "key": "proactividad",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -209,7 +209,7 @@
         },
         {
           "key": "uso_herramientas_trabajo",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
@@ -225,11 +225,11 @@
         },
         {
           "key": "despedida_cordial",
-          "peso": 5,
+          "peso": 4,
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Cierre de llamada. LISTA DE CHEQUEO OBLIGATORIA (Debe cumplir los 3 elementos): 1) Mencionar su NOMBRE (ej. Omar). 2) Mencionar la EMPRESA o DEPARTAMENTO (ej. Maxi/Ventas internas ajustes). 3) Agradecer u ofrecer ayuda adicional. El orden no importa. CONDICIÓN DE FALLA: Si el asesor es amable pero OLVIDA UN SOLO elemento, DEBES MARCAR 'ok': false. No se aceptan despedidas incompletas como 'Gracias, buen día'.INSTRUCCIÓN DE EVIDENCIA: Si marcas fallo, escribe qué elemento faltó (ej. 'Faltó mencionar la empresa').",
+          "descripcion": "Cierre de llamada. LISTA DE CHEQUEO OBLIGATORIA (Debe cumplir los 3 elementos): 1) Mencionar su NOMBRE (ej. Omar). 2) Mencionar la EMPRESA o DEPARTAMENTO (ej. Maxi/Ventas internas bienvenida). 3) Agradecer u ofrecer ayuda adicional. El orden no importa. CONDICIÓN DE FALLA: Si el asesor es amable pero OLVIDA UN SOLO elemento, DEBES MARCAR 'ok': false. No se aceptan despedidas incompletas como 'Gracias, buen día'.INSTRUCCIÓN DE EVIDENCIA: Si marcas fallo, escribe qué elemento faltó (ej. 'Faltó mencionar la empresa').",
           "sinonimos_validos": [
             "cierre",
             "cordialidad",
@@ -244,39 +244,112 @@
       "name": "Dominio y manejo de la información",
       "items": [
         {
-          "key": "se_realiza_ajuste_agencias_adicionales",
-          "peso": 7,
+          "key": "se_verifican_numeros",
+          "peso": 5,
           "ok": true,
-          "aplicable": false,
-          "evidencia": "Puntos por default (NA=7)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=7). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 7 puntos automáticos).",
-          "sinonimos_validos": []
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Durante la llamada de bienvenida se debe revisar que la información cargada en el sistema coincida con lo que menciona el agente. Preguntar por el teléfono registrado de la agencia y confirmar el correo electrónico.",
+          "sinonimos_validos": [
+            "validación teléfono",
+            "teléfono",
+            "fax",
+            "correo electrónico"
+          ]
         },
         {
-          "key": "se_comparte_info_chat_busqueda",
-          "peso": 7,
+          "key": "se_confirman_horarios",
+          "peso": 4,
           "ok": true,
-          "aplicable": false,
-          "evidencia": "Puntos por default (NA=7)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=7). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 7 puntos automáticos).",
-          "sinonimos_validos": []
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Revisar con el agente los horarios operativos y los días de apertura de la agencia. Estos datos deben cargarse en la pestaña de Internal Sales Monitor.",
+          "sinonimos_validos": [
+            "horarios",
+            "días de apertura",
+            "sales monitor"
+          ]
         },
         {
-          "key": "se_llena_formato_prospecto_completo",
-          "peso": 6,
+          "key": "se_pregunta_mejor_momento",
+          "peso": 4,
           "ok": true,
-          "aplicable": false,
-          "evidencia": "Puntos por default (NA=6)",
-          "descripcion": "ITEM ADMINISTRATIVO (NA=6). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 6 puntos automáticos).",
-          "sinonimos_validos": []
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Validar el mejor momento para contactarlo y confirmar que todo esté en orden en la tienda, además de revisar si tiene solicitudes adicionales aparte del tipo de cambio.",
+          "sinonimos_validos": [
+            "mejor momento",
+            "horario de contacto",
+            "solicitudes adicionales"
+          ]
         },
         {
-          "key": "etiqueta_qm",
+          "key": "se_verifica_usuarios_adicionales",
+          "peso": 5,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Corroborar que todas las personas con acceso al sistema de envíos tengan usuarios propios, para evitar problemas en aclaraciones o mal uso del sistema.",
+          "sinonimos_validos": [
+            "usuarios",
+            "acceso al sistema",
+            "usuarios propios"
+          ]
+        },
+        {
+          "key": "se_ofrece_envio_tipo_cambio",
+          "peso": 4,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Se debe confirmar con el agente si el tipo de cambio se le enviará por email o por fax.",
+          "sinonimos_validos": [
+            "tipo de cambio",
+            "email",
+            "fax",
+            "envío"
+          ]
+        },
+        {
+          "key": "se_promueven_caracteristicas",
+          "peso": 5,
+          "ok": true,
+          "aplicable": true,
+          "evidencia": "",
+          "descripcion": "Mencionar que además de envíos desde EUA a Latinoamérica, la plataforma también ofrece: Cambio de cheques, Recargas nacionales e internacionales, Pagos de bill y Envíos domésticos mediante ATM.",
+          "sinonimos_validos": [
+            "promoción",
+            "cambio de cheques",
+            "recargas",
+            "pagos de bill",
+            "atm"
+          ]
+        },
+        {
+          "key": "se_carga_info_corporate",
           "peso": 5,
           "ok": true,
           "aplicable": false,
           "evidencia": "Puntos por default (NA=5)",
           "descripcion": "ITEM ADMINISTRATIVO (NA=5). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 5 puntos automáticos).",
+          "sinonimos_validos": []
+        },
+        {
+          "key": "se_confirma_seguimiento_chat",
+          "peso": 4,
+          "ok": true,
+          "aplicable": false,
+          "evidencia": "Puntos por default (NA=4)",
+          "descripcion": "ITEM ADMINISTRATIVO (NA=4). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 4 puntos automáticos).",
+          "sinonimos_validos": []
+        },
+        {
+          "key": "etiqueta_qm",
+          "peso": 4,
+          "ok": true,
+          "aplicable": false,
+          "evidencia": "Puntos por default (NA=4)",
+          "descripcion": "ITEM ADMINISTRATIVO (NA=4). NO EVALUAR AUDIO. Responder SIEMPRE con 'aplicable': false. (Esto otorga los 4 puntos automáticos).",
           "sinonimos_validos": []
         }
       ]
@@ -291,23 +364,13 @@
           "ok": true,
           "aplicable": true,
           "evidencia": "",
-          "descripcion": "Mantiene buena atención en todo momento. Evitar reflejar emociones personales sobre la llamada. Lograr dar un servicio positivo, educado y profesional durante toda la interacción.",
+          "descripcion": "Mantener buena atención en todo momento. Evitar reflejar emociones personales sobre la llamada. Lograr dar un servicio positivo, educado y profesional durante toda la interacción.",
           "sinonimos_validos": [
             "servicio",
             "disposición",
             "trato cordial",
             "orientación al cliente"
           ]
-        },
-       {
-          "key": "seguimiento_acuerdo_ok",
-          "peso": 0,
-          "critico": true, 
-          "ok": true,
-          "aplicable": true,
-          "evidencia": "Blindaje Positivo",
-          "descripcion": "ITEM BLINDADO POSITIVO. NO EVALUAR AUDIO. Responder SIEMPRE con 'ok': true y 'aplicable': true.",
-          "sinonimos_validos": []
         }
       ]
     }
@@ -316,10 +379,6 @@
     "criticos": [
       {
         "key": "actitud_servicio",
-        "ok": true
-      },
-      {
-        "key": "guimiento_acuerdo_ok",
         "ok": true
       }
     ]
