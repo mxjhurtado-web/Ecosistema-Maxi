@@ -33,12 +33,13 @@ from ..services.drive_exports import subir_csv_a_drive
 from ..core.rubric_loader import load_dept_rubric_json_local, rubric_json_to_prompt, LOCAL_RUBRICS_DIR
 from ..core.scoring import aplicar_defaults_items, compute_scores_with_na, _atributos_a_columnas_valor
 from .helpers import pick_font, _resource_path
+from .results_panel import ResultsPanel, AudioPlayer, TxtViewer
 
 class MainApp:
     def __init__(self, root):
         self.root = root
         self.root.title("ATHENAS Lite v3.2.1 (Refactored)")
-        self.root.geometry("700x620")
+        self.root.geometry("1200x700")
         self.root.configure(bg=PALETTE["bg"])
         
         self.fonts = pick_font(self.root)
@@ -49,6 +50,12 @@ class MainApp:
         self.nombre_evaluador = ""
         self.nombre_asesor = ""
         self.selected_department = None
+        self.analysis_results = []  # Store analysis results
+        
+        # UI Components (will be initialized in setup_ui)
+        self.results_panel = None
+        self.txt_viewer = None
+        self.audio_player = None
         
         # Configure safe window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -215,33 +222,53 @@ class MainApp:
     def setup_ui(self):
         # Header
         header_frame = tk.Frame(self.root, bg=PALETTE["bg"])
-        header_frame.pack(pady=20)
+        header_frame.pack(pady=10, fill="x")
         
         if Image and ImageTk:
             try:
                 logo_path = _resource_path("athenas2.png")
                 if os.path.exists(logo_path):
-                    logo_img = Image.open(logo_path).resize((40, 55))
+                    logo_img = Image.open(logo_path).resize((30, 42))
                     self.logo_tk = ImageTk.PhotoImage(logo_img)
-                    tk.Label(header_frame, image=self.logo_tk, bg=PALETTE["bg"]).pack(side="left", padx=(5,2))
+                    tk.Label(header_frame, image=self.logo_tk, bg=PALETTE["bg"]).pack(side="left", padx=(10,2))
             except Exception:
                 pass
 
         tk.Label(header_frame,
                  text="Athenas Lite: Transforma la Voz en Calidad",
-                 font=self.fonts["title"], fg="#0D47A1", bg=PALETTE["bg"]).pack(side="left", padx=5)
+                 font=("Segoe UI", 14, "bold"), fg="#0D47A1", bg=PALETTE["bg"]).pack(side="left", padx=5)
 
-        # Loading Zone
-        zona_carga = tk.Frame(self.root, bg="#f9d6d5", bd=2, relief="groove")
-        zona_carga.pack(pady=20, padx=40, fill="x")
-        tk.Label(zona_carga, text="Carga tus audios (hasta 10)", font=self.fonts["body"], fg="#333333", bg="#f9d6d5").pack(pady=10)
-
-        btn_style = {"bg": PALETTE["brand"], "fg": "white", "font": self.fonts["body"], "width": 32}
+        # Main PanedWindow (horizontal split)
+        main_paned = tk.PanedWindow(self.root, orient=tk.HORIZONTAL, sashwidth=5, bg="#cccccc")
+        main_paned.pack(fill="both", expand=True, padx=5, pady=5)
         
-        tk.Button(self.root, text="⚙️ Configurar API Key y Modelo", command=self.configurar_api_key_y_modelo, **btn_style).pack(pady=5)
-        tk.Button(self.root, text="Seleccionar archivo(s)", command=self.seleccionar_archivo, **btn_style).pack(pady=5)
-        tk.Button(self.root, text="Guardar en carpeta...", command=self.seleccionar_carpeta_guardado, **btn_style).pack(pady=5)
-        tk.Button(self.root, text="Analizar (Resumen consolidado)", command=self.solicitar_datos_y_analizar, **btn_style).pack(pady=5)
+        # LEFT PANEL - Controls
+        left_panel = tk.Frame(main_paned, bg=PALETTE["bg"], width=350)
+        main_paned.add(left_panel, minsize=300)
+        
+        # Loading Zone
+        zona_carga = tk.Frame(left_panel, bg="#f9d6d5", bd=2, relief="groove")
+        zona_carga.pack(pady=10, padx=10, fill="x")
+        tk.Label(zona_carga, text="Carga tus audios (hasta 10)", 
+                font=("Segoe UI", 9, "bold"), fg="#333333", bg="#f9d6d5").pack(pady=8)
+
+        btn_style = {"bg": PALETTE["brand"], "fg": "white", "font": ("Segoe UI", 9), "width": 30}
+        
+        tk.Button(left_panel, text="⚙️ Configurar API Key y Modelo", 
+                 command=self.configurar_api_key_y_modelo, **btn_style).pack(pady=5, padx=10)
+        tk.Button(left_panel, text="📁 Seleccionar archivo(s)", 
+                 command=self.seleccionar_archivo, **btn_style).pack(pady=5, padx=10)
+        tk.Button(left_panel, text="💾 Guardar en carpeta...", 
+                 command=self.seleccionar_carpeta_guardado, **btn_style).pack(pady=5, padx=10)
+        tk.Button(left_panel, text="🚀 Analizar (Resumen consolidado)", 
+                 command=self.solicitar_datos_y_analizar, **btn_style).pack(pady=5, padx=10)
+        
+        # RIGHT PANEL - Results
+        right_panel = tk.Frame(main_paned, bg="#fceff1")
+        main_paned.add(right_panel, minsize=600)
+        
+        # Setup results panel with vertical split
+        self.setup_results_panel(right_panel)
 
     def configurar_api_key_y_modelo(self):
         """Ventana avanzada para gestión de API Keys y Modelo"""
@@ -434,6 +461,64 @@ class MainApp:
         """Abre URL en el navegador"""
         import webbrowser
         webbrowser.open(url)
+    
+    def setup_results_panel(self, parent):
+        """Configura el panel de resultados con sub-paneles verticales"""
+        # Vertical PanedWindow for results area
+        results_paned = tk.PanedWindow(parent, orient=tk.VERTICAL, sashwidth=5, bg="#cccccc")
+        results_paned.pack(fill="both", expand=True)
+        
+        # Top section: Results list + TXT viewer (side by side)
+        top_frame = tk.Frame(results_paned, bg="#fceff1")
+        results_paned.add(top_frame, minsize=300)
+        
+        # Horizontal split for list and viewer
+        top_paned = tk.PanedWindow(top_frame, orient=tk.HORIZONTAL, sashwidth=5, bg="#cccccc")
+        top_paned.pack(fill="both", expand=True)
+        
+        # Results list (left)
+        list_container = tk.Frame(top_paned, bg="#fceff1")
+        top_paned.add(list_container, minsize=250)
+        self.results_panel = ResultsPanel(list_container, on_selection_callback=self.on_audio_selected)
+        
+        # TXT viewer (right)
+        viewer_container = tk.Frame(top_paned, bg="#fceff1")
+        top_paned.add(viewer_container, minsize=350)
+        self.txt_viewer = TxtViewer(viewer_container)
+        
+        # Bottom section: Audio player
+        bottom_frame = tk.Frame(results_paned, bg="#fceff1")
+        results_paned.add(bottom_frame, minsize=150)
+        self.audio_player = AudioPlayer(bottom_frame)
+    
+    def update_results_panel(self):
+        """Actualiza el panel de resultados con el último análisis"""
+        if self.results_panel and self.analysis_results:
+            # El último resultado ya fue agregado a self.analysis_results
+            # Actualizamos el panel
+            last_result = self.analysis_results[-1]
+            self.results_panel.add_result(last_result)
+            logger.info(f"Results panel updated with: {last_result.get('nombre_archivo')}")
+    
+    def on_audio_selected(self, result):
+        """Callback cuando se selecciona un audio de la lista"""
+        logger.info(f"Audio selected: {result.get('nombre_archivo')}")
+        
+        # Cargar contenido TXT
+        txt_path = result.get("txt_path")
+        if txt_path and os.path.exists(txt_path):
+            self.txt_viewer.load_content(txt_path)
+            # Cargar TXT para exportación PDF
+            self.audio_player.load_for_export(txt_path)
+        else:
+            logger.warning(f"TXT file not found: {txt_path}")
+        
+        # Cargar audio en el reproductor
+        audio_path = result.get("audio_path")
+        if audio_path and os.path.exists(audio_path):
+            self.audio_player.load_audio(audio_path)
+        else:
+            logger.warning(f"Audio file not found: {audio_path}")
 
     def seleccionar_archivo(self):
         archivos = filedialog.askopenfilenames(
@@ -637,6 +722,19 @@ class MainApp:
                     f.write("\n--- Sentimiento por roles ---\n")
                     f.write(f"Cliente -> {sent_cli['clasificacion']} ({sent_cli['valor']}/10). {sent_cli['comentario']}\n")
                     f.write(f"Asesor  -> {sent_ase['clasificacion']} ({sent_ase['valor']}/10). {sent_ase['comentario']}\n")
+
+                # Add result to tracking
+                self.analysis_results.append({
+                    "audio_path": audio_final,
+                    "txt_path": txt_path,
+                    "nombre_archivo": nombre_archivo,
+                    "departamento": dept,
+                    "score": score_final,
+                    "timestamp": ts
+                })
+                
+                # Update results panel
+                self.update_results_panel()
 
                 # Data collection for CSV
                 fila_atrib, _keys = _atributos_a_columnas_valor(det_atrib)

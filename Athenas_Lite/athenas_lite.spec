@@ -47,6 +47,7 @@ additional_imports = [
     'tkinter.messagebox',
     'tkinter.ttk',
     'tkinter.font',
+    'tkinter.scrolledtext',  # For TxtViewer
     'PIL',
     'PIL.Image',
     'PIL.ImageTk',
@@ -54,6 +55,18 @@ additional_imports = [
     # Audio processing
     'mutagen',
     'soundfile',
+    'pygame',  # For audio playback
+    'pygame.mixer',
+    
+    # PDF generation
+    'reportlab',
+    'reportlab.lib',
+    'reportlab.lib.pagesizes',
+    'reportlab.lib.styles',
+    'reportlab.lib.units',
+    'reportlab.lib.colors',
+    'reportlab.lib.enums',
+    'reportlab.platypus',
     
     # Utilities
     'logging',
@@ -70,6 +83,7 @@ a = Analysis(
         # Logo/Icon
         ('athenas2.png', '.'),
         ('Athenas.ico', '.'),
+        ('maxisend_logo.png', '.'),  # Maxi logo for PDF export
         
         # Rubricas folder (CRITICAL - contains department JSON files)
         ('rubricas', 'rubricas'),

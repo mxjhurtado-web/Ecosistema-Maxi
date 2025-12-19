@@ -5,3 +5,5 @@ google-generativeai
 soundfile
 numpy
 python-dotenv
+pygame
+reportlab
