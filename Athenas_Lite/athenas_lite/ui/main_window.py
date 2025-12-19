@@ -193,8 +193,14 @@ class MainApp:
                 from athenas_lite.services import gemini_api
                 gemini_api.load_api_keys(user_email)
                 logger.info(f"API Keys cargadas para {user_email}")
+                
+                # IMPORTANTE: Configurar Gemini con las keys cargadas
+                if gemini_api.configurar_gemini():
+                    logger.info(f"✅ Gemini configurado correctamente con keys de {user_email}")
+                else:
+                    logger.warning(f"⚠️ No se pudo configurar Gemini - posiblemente sin keys guardadas")
             except Exception as e:
-                logger.error(f"Error cargando keys de usuario: {e}")
+                logger.error(f"Error cargando/configurando keys de usuario: {e}")
             
             update_status("✅ Autenticación exitosa")
             splash.update()

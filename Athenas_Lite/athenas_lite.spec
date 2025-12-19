@@ -57,6 +57,14 @@ additional_imports = [
     'soundfile',
     'pygame',  # For audio playback
     'pygame.mixer',
+    'pygame.pkgdata',
+    
+    # Pygame dependencies (fix for PyInstaller)
+    'jaraco',
+    'jaraco.text',
+    'jaraco.functools',
+    'jaraco.context',
+    'more_itertools',
     
     # PDF generation
     'reportlab',
