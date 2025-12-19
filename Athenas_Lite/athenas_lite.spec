@@ -12,9 +12,31 @@ block_cipher = None
 # Collect all submodules from athenas_lite package
 athenas_hiddenimports = collect_submodules('athenas_lite')
 
-# Collect ALL from pygame and jaraco (fix for missing dependencies)
+# Collect ALL from pygame, jaraco, and their dependencies (comprehensive fix)
 pygame_datas, pygame_binaries, pygame_hiddenimports = collect_all('pygame')
 jaraco_datas, jaraco_binaries, jaraco_hiddenimports = collect_all('jaraco')
+more_itertools_datas, more_itertools_binaries, more_itertools_hiddenimports = collect_all('more_itertools')
+
+# Additional common dependencies that jaraco/pygame might need
+try:
+    inflect_datas, inflect_binaries, inflect_hiddenimports = collect_all('inflect')
+except:
+    inflect_datas, inflect_binaries, inflect_hiddenimports = [], [], []
+
+try:
+    backports_datas, backports_binaries, backports_hiddenimports = collect_all('backports')
+except:
+    backports_datas, backports_binaries, backports_hiddenimports = [], [], []
+
+try:
+    zipp_datas, zipp_binaries, zipp_hiddenimports = collect_all('zipp')
+except:
+    zipp_datas, zipp_binaries, zipp_hiddenimports = [], [], []
+
+try:
+    importlib_resources_datas, importlib_resources_binaries, importlib_resources_hiddenimports = collect_all('importlib_resources')
+except:
+    importlib_resources_datas, importlib_resources_binaries, importlib_resources_hiddenimports = [], [], []
 
 # Additional hidden imports
 additional_imports = [
@@ -81,12 +103,35 @@ additional_imports = [
 all_hiddenimports = (athenas_hiddenimports + 
                      additional_imports + 
                      pygame_hiddenimports + 
-                     jaraco_hiddenimports)
+                     jaraco_hiddenimports +
+                     more_itertools_hiddenimports +
+                     inflect_hiddenimports +
+                     backports_hiddenimports +
+                     zipp_hiddenimports +
+                     importlib_resources_hiddenimports)
+
+# Combine all binaries
+all_binaries = (pygame_binaries + 
+                jaraco_binaries + 
+                more_itertools_binaries +
+                inflect_binaries +
+                backports_binaries +
+                zipp_binaries +
+                importlib_resources_binaries)
+
+# Combine all datas
+all_extra_datas = (pygame_datas + 
+                   jaraco_datas + 
+                   more_itertools_datas +
+                   inflect_datas +
+                   backports_datas +
+                   zipp_datas +
+                   importlib_resources_datas)
 
 a = Analysis(
     ['athenas_lite/main.py'],
     pathex=[],
-    binaries=pygame_binaries + jaraco_binaries,
+    binaries=all_binaries,
     datas=[
         # Logo/Icon
         ('athenas2.png', '.'),
@@ -101,7 +146,7 @@ a = Analysis(
         
         # .env.example for reference
         ('athenas_lite/.env.example', 'athenas_lite'),
-    ] + pygame_datas + jaraco_datas,
+    ] + all_extra_datas,
     hiddenimports=all_hiddenimports,
     hookspath=[],
     hooksconfig={},
