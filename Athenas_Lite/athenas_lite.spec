@@ -38,6 +38,11 @@ try:
 except:
     importlib_resources_datas, importlib_resources_binaries, importlib_resources_hiddenimports = [], [], []
 
+try:
+    platformdirs_datas, platformdirs_binaries, platformdirs_hiddenimports = collect_all('platformdirs')
+except:
+    platformdirs_datas, platformdirs_binaries, platformdirs_hiddenimports = [], [], []
+
 # Additional hidden imports
 additional_imports = [
     # Google APIs
@@ -108,7 +113,8 @@ all_hiddenimports = (athenas_hiddenimports +
                      inflect_hiddenimports +
                      backports_hiddenimports +
                      zipp_hiddenimports +
-                     importlib_resources_hiddenimports)
+                     importlib_resources_hiddenimports +
+                     platformdirs_hiddenimports)
 
 # Combine all binaries
 all_binaries = (pygame_binaries + 
@@ -117,7 +123,8 @@ all_binaries = (pygame_binaries +
                 inflect_binaries +
                 backports_binaries +
                 zipp_binaries +
-                importlib_resources_binaries)
+                importlib_resources_binaries +
+                platformdirs_binaries)
 
 # Combine all datas
 all_extra_datas = (pygame_datas + 
@@ -126,7 +133,8 @@ all_extra_datas = (pygame_datas +
                    inflect_datas +
                    backports_datas +
                    zipp_datas +
-                   importlib_resources_datas)
+                   importlib_resources_datas +
+                   platformdirs_datas)
 
 a = Analysis(
     ['athenas_lite/main.py'],
