@@ -5,12 +5,16 @@ Includes: Keycloak auth, multi-key management, rubrics, all dependencies
 """
 
 import os
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules, collect_all
 
 block_cipher = None
 
 # Collect all submodules from athenas_lite package
 athenas_hiddenimports = collect_submodules('athenas_lite')
+
+# Collect ALL from pygame and jaraco (fix for missing dependencies)
+pygame_datas, pygame_binaries, pygame_hiddenimports = collect_all('pygame')
+jaraco_datas, jaraco_binaries, jaraco_hiddenimports = collect_all('jaraco')
 
 # Additional hidden imports
 additional_imports = [
@@ -55,16 +59,6 @@ additional_imports = [
     # Audio processing
     'mutagen',
     'soundfile',
-    'pygame',  # For audio playback
-    'pygame.mixer',
-    'pygame.pkgdata',
-    
-    # Pygame dependencies (fix for PyInstaller)
-    'jaraco',
-    'jaraco.text',
-    'jaraco.functools',
-    'jaraco.context',
-    'more_itertools',
     
     # PDF generation
     'reportlab',
@@ -83,10 +77,16 @@ additional_imports = [
     're',
 ]
 
+# Combine all hidden imports
+all_hiddenimports = (athenas_hiddenimports + 
+                     additional_imports + 
+                     pygame_hiddenimports + 
+                     jaraco_hiddenimports)
+
 a = Analysis(
     ['athenas_lite/main.py'],
     pathex=[],
-    binaries=[],
+    binaries=pygame_binaries + jaraco_binaries,
     datas=[
         # Logo/Icon
         ('athenas2.png', '.'),
@@ -101,8 +101,8 @@ a = Analysis(
         
         # .env.example for reference
         ('athenas_lite/.env.example', 'athenas_lite'),
-    ],
-    hiddenimports=athenas_hiddenimports + additional_imports,
+    ] + pygame_datas + jaraco_datas,
+    hiddenimports=all_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
