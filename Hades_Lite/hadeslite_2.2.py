@@ -929,24 +929,29 @@ def _authenticity_score(texto: str, image_path: str|None):
         details_internal.append(f"⚠️ Número de ID sospechoso: {num_id}")
         details_user.append("Patrón de identificación no válido")
     
-    # 6. 🆕 ANÁLISIS VISUAL FORENSE CON GEMINI (peso reducido para evitar falsos positivos)
-    if image_path and os.path.exists(image_path):
+    # 6. 🆕 ANÁLISIS VISUAL FORENSE CONDICIONAL (solo para documentos ya sospechosos)
+    # ESTRATEGIA: Solo usar análisis visual si el OCR ya detectó problemas
+    # Esto evita falsos positivos en documentos legítimos mientras confirma fraudes
+    
+    if image_path and os.path.exists(image_path) and score > 25:
+        # Solo analizar visualmente si ya hay señales de sospecha (score > 25)
         visual_score, visual_details_internal = gemini_vision_auth_check(image_path)
-        # CLAVE: Limitar el impacto del análisis visual a máximo 25 puntos
-        # Esto evita que documentos reales sean marcados como falsos por interpretación excesiva
-        visual_score_aplicado = min(visual_score, 25)  # Cap de 25 puntos
+        
+        # Peso MUY reducido: máximo 10 puntos (solo para confirmar sospechas)
+        visual_score_aplicado = min(visual_score, 10)
         score += visual_score_aplicado
         
         if visual_score > 0:
-            details_internal.append(f"Análisis visual: {visual_score} pts (aplicados: {visual_score_aplicado} pts)")
-            details_internal.extend(visual_details_internal[:2])
+            details_internal.append(f"Análisis visual confirmatorio: {visual_score} pts (aplicados: {visual_score_aplicado} pts)")
+            details_internal.extend(visual_details_internal[:1])  # Solo 1 detalle
         
-        # Mensaje genérico para el usuario basado en el score visual
-        if visual_score > 40:
-            details_user.append("Análisis visual detectó anomalías significativas")
-        elif visual_score > 20:
-            details_user.append("Análisis visual requiere verificación")
-        # Si visual_score <= 20, no agregamos mensaje (documento OK visualmente)
+        # Mensaje genérico solo si el análisis visual confirma problemas serios
+        if visual_score > 30:
+            details_user.append("Análisis visual confirmó anomalías")
+    
+    # NOTA: Si score <= 25, NO se hace análisis visual
+    # Documentos con datos limpios pasan directo sin análisis visual
+    # Esto elimina falsos positivos en documentos legítimos
     
     # 7. Validación de consistencia interna adicional
     # Verificar que el nombre no sea obviamente falso
