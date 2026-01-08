@@ -952,22 +952,22 @@ def _authenticity_score(texto: str, image_path: str|None):
             details_internal.append(f"⚠️ Nombre sospechoso: {nombre}")
             details_user.append("Datos personales no válidos")
     
-    # Determinar nivel de riesgo con umbrales más estrictos
-    if score <= 15:
+    # Determinar nivel de riesgo con umbrales ajustados
+    if score <= 17:  # Cambiado de 15 a 17
         riesgo = "bajo"
         emoji = "🟢"
         color = "green"
         # Mensaje genérico positivo
         if not details_user:
             details_user = ["Documento aparenta ser auténtico"]
-    elif score <= 40:
+    elif score <= 45:  # Cambiado de 40 a 45
         riesgo = "medio"
         emoji = "🟡"
         color = "yellow"
         # Mensaje genérico de precaución
         if not details_user:
             details_user = ["Requiere verificación adicional"]
-    else:
+    else:  # 46+
         riesgo = "alto"
         emoji = "🔴"
         color = "red"
