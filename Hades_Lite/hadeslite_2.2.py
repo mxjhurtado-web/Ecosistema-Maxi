@@ -7,6 +7,9 @@
 # ------------------------------------------------------------------
 
 import os, sys, re, io, base64, time, datetime, json, requests, tempfile, unicodedata
+import threading
+import queue
+import gc
 try:
     import google.generativeai as genai
 except Exception:
@@ -727,7 +730,8 @@ def gemini_vision_auth_check(image_path: str) -> tuple[int, list[str]]:
                 model = genai.GenerativeModel(GEMINI_MODEL)
                 resp = model.generate_content(
                     [{"mime_type": mime, "data": bio.getvalue()}, {"text": prompt}],
-                    generation_config={"temperature": temp, "top_p": 0.9, "max_output_tokens": 2048}
+                    generation_config={"temperature": temp, "top_p": 0.9, "max_output_tokens": 2048},
+                    request_options={"timeout": GEMINI_TIMEOUT_LONG}  # Timeout más largo para análisis forense
                 )
                 visual_analysis = getattr(resp, "text", "") or ""
             except Exception:
@@ -748,9 +752,14 @@ def gemini_vision_auth_check(image_path: str) -> tuple[int, list[str]]:
                     "generationConfig": {"temperature": temp, "topP": 0.9, "maxOutputTokens": 2048}
                 }
                 headers = {"Content-Type": "application/json"}
-                r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=90)
+                r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, 
+                                 timeout=GEMINI_TIMEOUT_LONG)  # Timeout más largo para análisis forense
                 data = r.json()
                 visual_analysis = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
+            except requests.Timeout:
+                return 0, ["Timeout en análisis forense visual"]
+            except requests.ConnectionError:
+                return 0, ["Sin conexión para análisis forense"]
             except Exception:
                 return 0, ["Error en análisis forense visual"]
         
@@ -1278,12 +1287,16 @@ def gemini_vision_extract_text(image_path: str) -> str:
                 model = genai.GenerativeModel(GEMINI_MODEL)
                 resp = model.generate_content(
                     [{"mime_type": mime, "data": bio.getvalue()}, {"text": prompt}],
-                    generation_config={"temperature": temp, "top_p": 0.95, "max_output_tokens": 8192}
+                    generation_config={"temperature": temp, "top_p": 0.95, "max_output_tokens": 4096},
+                    request_options={"timeout": GEMINI_TIMEOUT_SHORT}  # Timeout más corto
                 )
-                txt = getattr(resp, "text", "") or ""
-                return _clean_ocr_output(txt.strip() if txt.strip() else "(sin texto)")
+                texto = getattr(resp, "text", "") or ""
+                if texto.strip():
+                    im.close()  # Liberar imagen
+                    gc.collect()  # Liberar memoria
+                    return texto
             except Exception:
-                pass # Si el SDK falla, seguimos con REST
+                pass  # fallback a REST
 
         # --- Fallback REST (mismo prompt/config) ---
         try:
@@ -1296,15 +1309,26 @@ def gemini_vision_extract_text(image_path: str) -> str:
                         {"text": prompt}
                     ]
                 }],
-                "generationConfig": {"temperature": temp, "topP": 0.95, "maxOutputTokens": 8192}
+                "generationConfig": {"temperature": temp, "topP": 0.95, "maxOutputTokens": 4096}
             }
             headers = {"Content-Type": "application/json"}
-            r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=90)
+            r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, 
+                             timeout=GEMINI_TIMEOUT_SHORT)  # Timeout más corto
             data = r.json()
-            txt = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
-            return _clean_ocr_output(txt.strip() if txt.strip() else "(sin texto)")
+            texto = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
+            
+            # Liberar recursos
+            im.close()
+            gc.collect()
+            return texto
+
+        except requests.Timeout:
+            return "⚠️ Timeout: Gemini tardó demasiado. Intenta con una imagen más pequeña."
+        except requests.ConnectionError:
+            return "⚠️ Sin conexión a internet. Verifica tu red."
         except Exception as e2:
-            return f"❌ Error en Visión (fallback): {e2}"
+            registrar_changelog(f"ERROR en gemini_vision_extract_text: {str(e2)[:200]}")
+            return f"⚠️ Error al extraer texto: {str(e2)[:100]}"
     except Exception as e:
         return f"❌ Error en Visión: {e}"
 
@@ -1360,9 +1384,56 @@ def themed_askstring(title: str, prompt: str, initialvalue: str = "", parent=Non
 # ====== Estado / resultados / métricas (Función de guardado mejorada) ======
 rutas=[]; idx=-1; rot=0
 resultados=[] # [{archivo, texto, duracion_s, tipo, doc_pais, ...}]
-metricas=[] # [{archivo, api, tipo, duracion_s, usuario, feedback}]
-FEEDBACK_RATING=None
 API_USADA="gemini-vision"
+
+# ====== Threading y Estabilidad ======
+current_operation = None
+cancel_requested = False
+
+# Timeouts optimizados (más cortos para evitar bloqueos)
+GEMINI_TIMEOUT_SHORT = 30   # Para OCR básico
+GEMINI_TIMEOUT_LONG = 45    # Para análisis forense
+DRIVE_TIMEOUT = 20          # Para upload a Drive
+
+class ThreadedOperation:
+    """Ejecuta operaciones pesadas en thread separado para no bloquear UI"""
+    def __init__(self):
+        self.thread = None
+        self.result_queue = queue.Queue()
+        self.cancel_flag = threading.Event()
+    
+    def run(self, func, *args, **kwargs):
+        """Ejecuta función en thread separado"""
+        def wrapper():
+            try:
+                result = func(*args, **kwargs)
+                self.result_queue.put(('success', result))
+            except Exception as e:
+                import traceback
+                error_detail = traceback.format_exc()
+                self.result_queue.put(('error', str(e), error_detail))
+        
+        self.thread = threading.Thread(target=wrapper, daemon=True)
+        self.thread.start()
+    
+    def cancel(self):
+        """Marca operación para cancelar"""
+        self.cancel_flag.set()
+    
+    def is_cancelled(self):
+        """Verifica si se solicitó cancelación"""
+        return self.cancel_flag.is_set()
+    
+    def is_done(self):
+        """Verifica si terminó"""
+        return self.thread is None or not self.thread.is_alive()
+    
+    def get_result(self, timeout=0.1):
+        """Obtiene resultado si está listo"""
+        try:
+            return self.result_queue.get(timeout=timeout)
+        except queue.Empty:
+            return None
 
 def registrar_changelog(evento: str):
     ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1414,14 +1485,7 @@ def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
     except Exception as e:
         print(f"[HADES] Error al calcular metadata de resultado: {e}")
 
-    # métricas (usuario = correo)
-    m = next((met for met in metricas if met['archivo'] == nombre), None)
-    if not m:
-        m = {'archivo': nombre, 'api': API_USADA, 'tipo': tipo, 'duracion_s': duracion_s, 'usuario': usuario_actual.get('correo') or "", 'feedback': FEEDBACK_RATING or ""}
-        metricas.append(m)
-    else:
-        m.update({'api': API_USADA, 'tipo': tipo, 'duracion_s': duracion_s, 'usuario': usuario_actual.get('correo') or "", 'feedback': FEEDBACK_RATING or ""})
-        
+    # Registro de changelog
     registrar_changelog(f"Resultado guardado: {nombre} ({len(texto)} chars, {duracion_s:.2f}s, riesgo={riesgo})")
 
 
@@ -2080,8 +2144,18 @@ def analizar_actual():
     t0 = time.time()
     _hide_logo_bg()
     
+    # Mostrar mensaje de procesamiento
+    ocr_text.delete("1.0", "end")
+    ocr_text.insert("end", "⏳ Procesando imagen con Gemini Vision...\n", "processing")
+    ocr_text.tag_config("processing", font=("Segoe UI", 11, "italic"), foreground=ACCENT)
+    root.update()  # Actualizar UI inmediatamente
+    
     # 1. OCR y Normalización (solo Gemini)
     texto = gemini_vision_extract_text(p)
+    
+    # Actualizar progreso
+    ocr_text.insert("end", "✓ OCR completado\n⏳ Analizando autenticidad...\n", "processing")
+    root.update()  # Mantener UI responsiva
     # Se mantiene la normalización para extraer metadatos de riesgo y exportación
     texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
     
@@ -2147,7 +2221,8 @@ def analizar_actual():
     ocr_text.see("end")
     root.update_idletasks() # Forzar el despliegue
     
-    root.after(1000, _popup_feedback_then_export_drive)
+    # Exportar directamente a Drive sin pedir feedback
+    root.after(500, _export_drive_only)
 
 def analizar_carrusel():
     """Analiza TODAS las imágenes y muestra cada resultado en el panel conforme avanza."""
@@ -2156,7 +2231,12 @@ def analizar_carrusel():
 
     total = len(rutas)
     _hide_logo_bg()
-    ocr_text.delete("1.0", "end") # Limpiamos el panel
+    ocr_text.delete("1.0", "end")
+    
+    # Mostrar mensaje inicial
+    ocr_text.insert("end", f"⏳ Procesando {total} imágenes...\n\n", "processing")
+    ocr_text.tag_config("processing", font=("Segoe UI", 11, "bold"), foreground=ACCENT)
+    root.update()  # Actualizar UI # Limpiamos el panel
     
     # Configurar negrita para carrusel
     ocr_text.tag_config("value_bold", font=("Segoe UI", 10, "bold"), foreground=COLOR_TEXT)
@@ -2164,8 +2244,16 @@ def analizar_carrusel():
     ocr_text.tag_config("essential_header", font=("Segoe UI", 12, "bold"), foreground=ACCENT_2) # Tag para DATOS ESENCIALES
     ocr_text.tag_config("risk_tag", foreground=COLOR_GREEN, font=("Segoe UI", 10, "bold")) # Por defecto verde
 
-    for i, p in enumerate(rutas, start=1):
+    for i in range(total):
+        p = rutas[i]
         t0 = time.time()
+        
+        # Actualizar progreso
+        ocr_text.insert("end", f"\n[{i+1}/{total}] Procesando {Path(p).name}...\n", "progress")
+        ocr_text.tag_config("progress", font=("Segoe UI", 10, "italic"), foreground=COLOR_MUTED)
+        ocr_text.see("end")
+        root.update()  # Mantener UI responsiva
+        
         try:
             # 1. OCR y Normalización (solo Gemini)
             texto = gemini_vision_extract_text(p)
@@ -2236,7 +2324,8 @@ def analizar_carrusel():
             continue
 
     # Un solo feedback al finalizar todo el carrusel (y export a Drive)
-    root.after(1000, _popup_feedback_then_export_drive)
+    # Exportar directamente a Drive sin pedir feedback
+    root.after(500, _export_drive_only)
 
 def analizar_identificacion():
     """
@@ -2262,6 +2351,11 @@ def analizar_identificacion():
     ocr_text.delete("1.0", "end")
 
     total_ids = len(rutas) // 2  # cada par = 1 identificación
+    
+    # Mostrar mensaje inicial
+    ocr_text.insert("end", f"⏳ Procesando {total_ids} identificaciones (frente + reverso)...\n\n", "processing")
+    ocr_text.tag_config("processing", font=("Segoe UI", 11, "bold"), foreground=ACCENT)
+    root.update()  # Actualizar UI
 
     # Tags de formato
     ocr_text.tag_config("value_bold", font=("Segoe UI", 10, "bold"), foreground=COLOR_TEXT)
@@ -2275,6 +2369,12 @@ def analizar_identificacion():
         reverso = rutas[i + 1]
         idx_doc += 1
         t0 = time.time()
+        
+        # Actualizar progreso
+        ocr_text.insert("end", f"\n[{idx_doc}/{total_ids}] Procesando {Path(frente).name} + {Path(reverso).name}...\n", "progress")
+        ocr_text.tag_config("progress", font=("Segoe UI", 10, "italic"), foreground=COLOR_MUTED)
+        ocr_text.see("end")
+        root.update()  # Mantener UI responsiva
 
         try:
             # === 1) OCR de frente y reverso (por separado) solo con Gemini ===
@@ -2372,74 +2472,10 @@ def analizar_identificacion():
             continue
 
     # Feedback + export a Drive al final
-    root.after(1000, _popup_feedback_then_export_drive)
+    # Exportar directamente a Drive sin pedir feedback
+    root.after(500, _export_drive_only)
 
-def _popup_feedback_then_export_drive():
-    # Modal morado con 👍/👎 que BLOQUEA hasta seleccionar
-    win = Toplevel(root)
-    win.title("Califica el análisis")
-    win.configure(bg=COLOR_CARD)
-    win.transient(root)
-    win.grab_set()
-    Label(win, text="¿Te gustó el análisis?", bg=COLOR_CARD, fg=COLOR_TEXT).pack(pady=(14, 4))
-
-    btns = Frame(win, bg=COLOR_CARD)
-    btns.pack(pady=10)
-
-    def choose(v):
-        global FEEDBACK_RATING, metricas
-        FEEDBACK_RATING = v
-        for m in metricas:
-            m['feedback'] = FEEDBACK_RATING or ""
-        win.destroy()
-        _export_drive_only()
-
-    Button(btns, text="👍 Me gustó", command=lambda: choose('up'), bg=COLOR_PURPLE, fg="white", relief="flat", padx=16, pady=10).pack(side="left", padx=8)
-    Button(btns, text="👎 No me gustó", command=lambda: choose('down'), bg=COLOR_BTN, fg="white", relief="flat", padx=16, pady=10).pack(side="left", padx=8)
-
-    # Centrar y bloquear
-    root.update_idletasks()
-    x = root.winfo_rootx() + (root.winfo_width()//2 - win.winfo_width()//2)
-    y = root.winfo_rooty() + (root.winfo_height()//2 - win.winfo_height()//2)
-    try:
-        win.geometry(f"+{x}+{y}")
-    except Exception:
-        pass
-    root.wait_window(win)
-
-def _export_drive_only():
-    # Modal morado con 👍/👎 que BLOQUEA hasta seleccionar
-    win = Toplevel(root)
-    win.title("Califica el análisis")
-    win.configure(bg=COLOR_CARD)
-    win.transient(root)
-    win.grab_set()
-    Label(win, text="¿Te gustó el análisis?", bg=COLOR_CARD, fg=COLOR_TEXT).pack(pady=(14, 4))
-
-    btns = Frame(win, bg=COLOR_CARD)
-    btns.pack(pady=10)
-
-    def choose(v):
-        global FEEDBACK_RATING, metricas
-        FEEDBACK_RATING = v
-        for m in metricas:
-            m['feedback'] = FEEDBACK_RATING or ""
-        win.destroy()
-        _export_drive_only()
-
-    Button(btns, text="👍 Me gustó", command=lambda: choose('up'), bg=COLOR_PURPLE, fg="white", relief="flat", padx=16, pady=10).pack(side="left", padx=8)
-    Button(btns, text="👎 No me gustó", command=lambda: choose('down'), bg=COLOR_BTN, fg="white", relief="flat", padx=16, pady=10).pack(side="left", padx=8)
-
-    # Centrar y bloquear
-    root.update_idletasks()
-    x = root.winfo_rootx() + (root.winfo_width()//2 - win.winfo_width()//2)
-    y = root.winfo_rooty() + (root.winfo_height()//2 - win.winfo_height()//2)
-    try:
-        win.geometry(f"+{x}+{y}")
-    except Exception:
-        pass
-    root.wait_window(win)
-
+# Función de exportación directa a Drive (sin feedback)
 def _export_drive_only():
     import pandas as pd  # Lazy import
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -2448,18 +2484,17 @@ def _export_drive_only():
         print("[HADES] No hay resultados para exportar a Drive.")
         return
 
-    metricas_df = pd.DataFrame(metricas).copy()
-    if metricas_df.empty:
-        metricas_df = pd.DataFrame(columns=['archivo','api','tipo','duracion_s','usuario','feedback'])
-
-    combinado_df = resumen_df.merge(metricas_df, on='archivo', how='left', suffixes=('', '_m'))
-    preferred_order = ['archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final','fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy','autenticidad_riesgo','autenticidad_detalles','api','usuario','feedback']
-    final_cols = [c for c in preferred_order if c in combinado_df.columns] + [c for c in combinado_df.columns if c not in preferred_order]
-    combinado_df = combinado_df[final_cols]
+    # Columnas preferidas para el CSV
+    preferred_order = ['archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado',
+                      'fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final',
+                      'fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy',
+                      'autenticidad_riesgo','autenticidad_detalles']
+    final_cols = [c for c in preferred_order if c in resumen_df.columns] + [c for c in resumen_df.columns if c not in preferred_order]
+    resumen_df = resumen_df[final_cols]
 
     tmp_dir = tempfile.gettempdir()
     drive_tmp_csv = os.path.join(tmp_dir, f"HADES_OCR_{ts}.csv")
-    combinado_df.to_csv(drive_tmp_csv, index=False, encoding="utf-8-sig")
+    resumen_df.to_csv(drive_tmp_csv, index=False, encoding="utf-8-sig")
 
     remote_name = f"HADES_OCR_{ts}.csv"
     info_msgs = []
