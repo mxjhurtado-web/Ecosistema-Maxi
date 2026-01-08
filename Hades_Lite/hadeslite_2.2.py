@@ -2550,8 +2550,7 @@ def exportar_resultados():
     _do_export(carpeta)
 
 def borrar_todo():
-    rutas.clear(); resultados.clear(); metricas.clear()
-    global FEEDBACK_RATING; FEEDBACK_RATING=None
+    rutas.clear(); resultados.clear()
     ocr_text.delete("1.0", "end")
     _show_logo_bg() # Vuelve a mostrar el logo
     status.config(text="Se limpió el estado.")
@@ -2559,32 +2558,22 @@ def borrar_todo():
 
 # ========= PANTALLA DE BIENVENIDA CON AUTENTICACIÓN MANUAL =========
 def mostrar_pantalla_bienvenida():
-    """
-    Muestra una pantalla de bienvenida con el logo de HADES
-    y un botón para iniciar la autenticación manualmente.
-    """
-    # Crear ventana de bienvenida
+    """Muestra pantalla de bienvenida con botón de autenticación manual"""
     welcome = tk.Toplevel(root)
-    welcome.title("HADES - Bienvenido")
+    welcome.title("HADES - Bienvenida")
     welcome.configure(bg=COLOR_BG)
+    welcome.geometry("500x600")
+    welcome.resizable(False, False)
     
-    # Tamaño y centrado
-    welcome_width = 500
-    welcome_height = 600  # Aumentado de 500 a 600 para que quepa el botón
-    screen_width = welcome.winfo_screenwidth()
-    screen_height = welcome.winfo_screenheight()
-    x = (screen_width - welcome_width) // 2
-    y = (screen_height - welcome_height) // 2
-    welcome.geometry(f"{welcome_width}x{welcome_height}+{x}+{y}")
+    # Centrar ventana
+    welcome.update_idletasks()
+    x = (welcome.winfo_screenwidth() // 2) - (250)
+    y = (welcome.winfo_screenheight() // 2) - (300)
+    welcome.geometry(f"500x600+{x}+{y}")
     
-    # Configurar ventana
-    welcome.overrideredirect(True)  # Sin bordes de ventana
-    welcome.lift()  # Traer al frente
-    welcome.attributes('-topmost', True)  # Siempre encima
-    welcome.focus_force()  # Forzar foco
-    
-    # Actualizar para que se renderice
-    welcome.update()
+    # Configurar ventana (permitir minimizar para autenticación)
+    welcome.lift()
+    welcome.focus_force()
     
     # Frame principal
     main_frame = tk.Frame(welcome, bg=COLOR_BG)

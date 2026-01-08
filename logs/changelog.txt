@@ -92,3 +92,60 @@
 [2025-12-16 23:23:02] Resultado guardado: image (3).png (541 chars, 14.59s, riesgo=bajo)
 [2025-12-16 23:23:16] Resultado guardado: image (2).png (565 chars, 14.06s, riesgo=bajo)
 [2025-12-16 23:23:24] Resultado guardado: 18oct.Pasaporte.png (756 chars, 7.84s, riesgo=bajo)
+[2026-01-07 21:15:25] Análisis forense - Score: 87 - ⚠️ No se detectó nombre válido | ⚠️ No se detectó vigencia válida | Forense: 'sospechoso' (+25)
+[2026-01-07 21:15:25] Resultado guardado: clipboard_1767842106.png (413 chars, 16.80s, riesgo=alto)
+[2026-01-07 21:15:31] Drive: subido HADES_OCR_20260107_211528.csv (1QzPrNk14XVtWZmmZNso8iD67-zP9L6Ja) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2026-01-07 21:16:39] Análisis forense - Score: 45 - Forense: 'ausencia de' (+30) | Forense: 'no se observa' (+25) | Forense: Señales mixtas detectadas (-10)
+[2026-01-07 21:16:39] Resultado guardado: clipboard_1767842173.png (468 chars, 17.96s, riesgo=alto)
+[2026-01-07 21:16:43] Drive: subido HADES_OCR_20260107_211639.csv (1Htb7JsaRwky9wMbNvM9DwBx-tpu7tGET) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2026-01-07 21:17:31] Análisis forense - Score: 72 - ⚠️ No se detectó vigencia válida | Forense: 'falsificación' (+45) | Forense: 'no se observa' (+25)
+[2026-01-07 21:17:31] Resultado guardado: clipboard_1767842232.png (407 chars, 15.09s, riesgo=alto)
+[2026-01-07 21:17:36] Drive: subido HADES_OCR_20260107_211732.csv (1mepuUDJQ3ILMtldAMXi4AgRScMQPPLuH) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2026-01-07 21:18:39] Análisis forense - Score: 12 - ⚠️ No se detectó vigencia válida | Forense: Documento aparenta autenticidad | Análisis completo: Como experto forense en documentos de identidad, he realizado un análisis exhaustivo de la imagen proporcionada de la credencial del INE.
+
+---
+
+**ANÁLISIS FORENSE DE LA CREDENCIAL DEL INE**
+
+**1. ELEMENTOS DE SEGURIDAD:**
+*   **Hologramas, marcas de agua, microimpresiones:**
+    *   Se observa clara
+[2026-01-07 21:18:39] Resultado guardado: clipboard_1767842272.png + clipboard_1767842281.png (1865 chars, 35.96s, riesgo=bajo)
+[2026-01-07 21:18:43] Drive: subido HADES_OCR_20260107_211840.csv (1kwfVpU9eO6xxZnS6TIeMScE5KNQ2KXyC) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2026-01-07 21:34:46] Análisis forense - Score: 30 - Forense: 'borroso' (+15) | Forense: 'no se observa' (+25) | Forense: Señales mixtas detectadas (-10)
+[2026-01-07 21:34:46] Resultado guardado: clipboard_1767843265.png (259 chars, 18.87s, riesgo=medio)
+[2026-01-07 21:34:50] Drive: subido HADES_OCR_20260107_213446.csv (1uTdync4OKwV_CRkVRfH1G2RhjTJaRWZt) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2026-01-07 21:35:41] Análisis forense - Score: 47 - ⚠️ Edad implausible: -22 años | ⚠️ No se detectó vigencia válida | Análisis completo: Como experto forense en documentos de identidad, he realizado un análisis exhaustivo de la imagen proporcionada de la tarjeta de identificación de Illinois. A continuación, se presenta la evaluación técnica por categoría:
+
+---
+
+**ANÁLISIS FORENSE DE LA TARJETA DE IDENTIFICACIÓN DE ILLINOIS**
+
+**1. E
+[2026-01-07 21:35:41] Resultado guardado: clipboard_1767843310.png (521 chars, 27.52s, riesgo=alto)
+[2026-01-07 21:35:45] Drive: subido HADES_OCR_20260107_213541.csv (1S3OdywEhJhCWCYekl9AACDLrXe_htTDy) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2026-01-07 21:36:34] Análisis forense - Score: 15 - Forense: 'no se observa' (+25) | Forense: Señales mixtas detectadas (-10) | Análisis completo: Como experto forense en documentos de identidad, he realizado un análisis exhaustivo de la imagen proporcionada, utilizando las técnicas forenses profesionales solicitadas.
+
+---
+
+**ANÁLISIS FORENSE DETALLADO:**
+
+**1. ELEMENTOS DE SEGURIDAD:**
+*   **Hologramas, marcas de agua, microimpresiones:** No 
+[2026-01-07 21:36:34] Resultado guardado: clipboard_1767843369.png (435 chars, 22.49s, riesgo=bajo)
+[2026-01-07 21:36:37] Drive: subido HADES_OCR_20260107_213634.csv (1BPIkdyqcgh-SBXulkgi-4y1sazW9qhYl) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2026-01-07 21:37:10] Análisis forense - Score: 87 - ⚠️ No se detectó nombre válido | ⚠️ No se detectó vigencia válida | Forense: 'falsificación' (+45)
+[2026-01-07 21:37:10] Resultado guardado: clipboard_1767843411.png (416 chars, 17.48s, riesgo=alto)
+[2026-01-07 21:37:13] Drive: subido HADES_OCR_20260107_213710.csv (1ZLwEPKim08llNLzyd-0jB9H4m18s8UsM) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2026-01-07 21:38:28] Análisis forense - Score: 0 - Análisis completo: Como experto forense en documentos de identidad, procedo a realizar un análisis técnico de la imagen proporcionada de la credencial del INE.
+
+**ANÁLISIS FORENSE:**
+
+---
+
+**1. ELEMENTOS DE SEGURIDAD:**
+
+*   **Hologramas, marcas de agua, microimpresiones:**
+    *   **Holograma:** En la esquina
+[2026-01-07 21:38:28] Resultado guardado: clipboard_1767843445.png + clipboard_1767843469.png (1012 chars, 35.57s, riesgo=bajo)
+[2026-01-07 21:38:32] Drive: subido HADES_OCR_20260107_213828.csv (1lliwDsjT0O4gU7ZMSnlktqKFP-N08NPT) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
