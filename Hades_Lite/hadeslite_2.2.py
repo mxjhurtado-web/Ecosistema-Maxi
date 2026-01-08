@@ -839,7 +839,7 @@ def gemini_vision_auth_check(image_path: str) -> tuple[int, list[str]]:
         if visual_analysis.strip():
             detalles_internos.append(f"Análisis completo: {visual_analysis[:300]}")
         
-        return min(score_visual, 60), detalles_internos  # Cap aumentado a 60 puntos
+        return min(score_visual, 50), detalles_internos  # Cap reducido a 50 para evitar falsos positivos
         
     except Exception as e:
         return 0, [f"Error en análisis forense: {str(e)[:100]}"]
@@ -907,21 +907,21 @@ def _authenticity_score(texto: str, image_path: str|None):
                 details_internal.append(f"⚠️ RFC no coincide: RFC={rfc_dob} vs DOB={dob_use}")
                 details_user.append("Inconsistencia en datos fiscales")
     else:
-        score += 12
+        score += 8  # Reducido de 12 a 8
         details_internal.append("⚠️ No se identificó fecha de nacimiento")
         details_user.append("Información incompleta")
 
-    # 4. Chequeo de Vigencia
+    # 4. Chequeo de Vigencia (penalización reducida para evitar falsos positivos)
     vig_final = date_results.get("fecha_vigencia_final")
     if not vig_final or "Sugerida" in vig_final:
-        score += 12
+        score += 8  # Reducido de 12 a 8
         details_internal.append("⚠️ No se detectó vigencia válida")
         # No agregar a details_user (no es crítico para el usuario)
     
-    # 5. Validación de Número de ID
+    # 5. Validación de Número de ID (penalización reducida)
     num_id = _extract_id_number(texto, doc_pais)
     if not num_id:
-        score += 10
+        score += 6  # Reducido de 10 a 6
         details_internal.append("⚠️ No se detectó número de identificación")
         details_user.append("Información incompleta")
     elif num_id in ["123456789", "000000000", "111111111", "999999999"]:
@@ -952,22 +952,22 @@ def _authenticity_score(texto: str, image_path: str|None):
             details_internal.append(f"⚠️ Nombre sospechoso: {nombre}")
             details_user.append("Datos personales no válidos")
     
-    # Determinar nivel de riesgo con umbrales ajustados
-    if score <= 17:  # Cambiado de 15 a 17
+    # Determinar nivel de riesgo con umbrales más permisivos (reducir falsos positivos)
+    if score <= 20:  # Cambiado de 17 a 20 para reducir falsos positivos
         riesgo = "bajo"
         emoji = "🟢"
         color = "green"
         # Mensaje genérico positivo
         if not details_user:
             details_user = ["Documento aparenta ser auténtico"]
-    elif score <= 45:  # Cambiado de 40 a 45
+    elif score <= 50:  # Cambiado de 45 a 50 para reducir falsos positivos
         riesgo = "medio"
         emoji = "🟡"
         color = "yellow"
         # Mensaje genérico de precaución
         if not details_user:
             details_user = ["Requiere verificación adicional"]
-    else:  # 46+
+    else:  # 51+
         riesgo = "alto"
         emoji = "🔴"
         color = "red"
@@ -2292,14 +2292,15 @@ def analizar_carrusel():
             ocr_text.insert("end", f"Analizado con: Gemini\n", "provider_tag")
             ocr_text.tag_config("provider_tag", foreground=COLOR_MUTED, font=("Segoe UI", 9, "italic"))
             
-            # Mostrar semáforo de autenticidad
-            ocr_text.insert("end", f"\n{emoji} Riesgo de falsificación: {riesgo.upper()}\n", "risk_tag")
+            # Mostrar semáforo de autenticidad (tag único por resultado)
+            risk_tag = f"risk_tag_{i}"
+            ocr_text.insert("end", f"\n{emoji} Riesgo de falsificación: {riesgo.upper()}\n", risk_tag)
             if color == "green":
-                ocr_text.tag_config("risk_tag", foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
+                ocr_text.tag_config(risk_tag, foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
             elif color == "yellow":
-                ocr_text.tag_config("risk_tag", foreground="#FFD700", font=("Segoe UI", 11, "bold"))
+                ocr_text.tag_config(risk_tag, foreground="#FFD700", font=("Segoe UI", 11, "bold"))
             else:
-                ocr_text.tag_config("risk_tag", foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
+                ocr_text.tag_config(risk_tag, foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
             # Mostrar solo mensajes genéricos al usuario
             if detalles:
                 ocr_text.insert("end", f"{'; '.join(detalles)}\n", "body_header")
@@ -2423,14 +2424,15 @@ def analizar_identificacion():
             )
             ocr_text.insert("end", header_line, "header")
             
-            # Mostrar semáforo de autenticidad
-            ocr_text.insert("end", f"\n{emoji} Riesgo de falsificación: {riesgo.upper()}\n", "risk_tag")
+            # Mostrar semáforo de autenticidad (tag único por ID)
+            risk_tag = f"risk_tag_id_{idx_doc}"
+            ocr_text.insert("end", f"\n{emoji} Riesgo de falsificación: {riesgo.upper()}\n", risk_tag)
             if color == "green":
-                ocr_text.tag_config("risk_tag", foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
+                ocr_text.tag_config(risk_tag, foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
             elif color == "yellow":
-                ocr_text.tag_config("risk_tag", foreground="#FFD700", font=("Segoe UI", 11, "bold"))
+                ocr_text.tag_config(risk_tag, foreground="#FFD700", font=("Segoe UI", 11, "bold"))
             else:
-                ocr_text.tag_config("risk_tag", foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
+                ocr_text.tag_config(risk_tag, foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
             # Mostrar solo mensajes genéricos al usuario
             if detalles:
                 ocr_text.insert("end", f"{'; '.join(detalles)}\n", "body_header")
