@@ -1904,10 +1904,8 @@ _show_logo_bg()
 
 # --- Pie de página con botones (abajo de todo) ---
 footer = tk.Frame(root, bg=COLOR_PANEL); footer.pack(fill="x")
-btn_analizar = tk.Button(footer, text="🔍 Analizar actual", bg=COLOR_PURPLE, fg=COLOR_TEXT, relief="flat", padx=12, pady=10,
-                         command=lambda: analizar_actual()); btn_analizar.pack(side="left", padx=8, pady=10)
-btn_carrusel = tk.Button(footer, text="🎯 Analizar carrusel", bg=COLOR_PURPLE, fg="white", relief="flat", padx=12, pady=10,
-                         command=lambda: analizar_carrusel()); btn_carrusel.pack(side="left", padx=8, pady=10)
+btn_analizar = tk.Button(footer, text="🔍 Analizar", bg=COLOR_PURPLE, fg="white", relief="flat", padx=12, pady=10,
+                         command=lambda: analizar_carrusel()); btn_analizar.pack(side="left", padx=8, pady=10)
 btn_ident = tk.Button(footer, text="🪪 Analizar identificación", bg=COLOR_PURPLE, fg=COLOR_TEXT, relief="flat", padx=12, pady=10,
                         command=lambda: analizar_identificacion()); btn_ident.pack(side="left", padx=8, pady=10)
 btn_export = tk.Button(footer, text="💾 Exportar", bg=COLOR_GREEN, fg=COLOR_TEXT, relief="flat", padx=12, pady=10,
@@ -2174,7 +2172,7 @@ def analizar_actual():
         "vigencia_sugerida_mdy": vigencia_final,
     }
     # NOTA: Se pasa el texto original a _authenticity_score para que use la detección de país
-    riesgo, detalles, emoji_semaforo, color_semaforo = _authenticity_score(texto, p)
+    riesgo, detalles, emoji, color = _authenticity_score(texto, p)
     dt = round(time.time() - t0, 2)
 
     # 3. Guardar resultados
@@ -2194,10 +2192,10 @@ def analizar_actual():
     ocr_text.tag_config("provider_tag", foreground=COLOR_MUTED, font=("Segoe UI", 9, "italic"))
     
     # Mostrar semáforo de autenticidad
-    ocr_text.insert("end", f"\n{emoji_semaforo} Riesgo de falsificación: {riesgo.upper()}\n", "risk_tag")
-    if color_semaforo == "green":
+    ocr_text.insert("end", f"\n{emoji} Riesgo de falsificación: {riesgo.upper()}\n", "risk_tag")
+    if color == "green":
         ocr_text.tag_config("risk_tag", foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
-    elif color_semaforo == "yellow":
+    elif color == "yellow":
         ocr_text.tag_config("risk_tag", foreground="#FFD700", font=("Segoe UI", 11, "bold"))
     else:
         ocr_text.tag_config("risk_tag", foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
@@ -2277,7 +2275,7 @@ def analizar_carrusel():
                 "vigencia_sugerida_mdy": vigencia_final,
             }
 
-            riesgo, detalles, emoji_semaforo, color_semaforo = _authenticity_score(texto, p)
+            riesgo, detalles, emoji, color = _authenticity_score(texto, p)
             dt = round(time.time() - t0, 2)
 
             # 3. Guardar resultados
@@ -2288,17 +2286,17 @@ def analizar_carrusel():
             doc_pais_actual = _infer_doc_country(texto) # Re-obtener el país por si las claves de GTM/PHL funcionan mejor ahora
             
             # Mostrar encabezado de resultado
-            ocr_text.insert("end", f"\n\nRESULTADO {i}/{total} — {nombre_archivo}\n", "header")
+            ocr_text.insert("end", f"\n\nRESULTADO {i+1}/{total} — {nombre_archivo}\n", "header")
             
             # Mostrar proveedor usado (siempre Gemini ahora)
             ocr_text.insert("end", f"Analizado con: Gemini\n", "provider_tag")
             ocr_text.tag_config("provider_tag", foreground=COLOR_MUTED, font=("Segoe UI", 9, "italic"))
             
             # Mostrar semáforo de autenticidad
-            ocr_text.insert("end", f"\n{emoji_semaforo} Riesgo de falsificación: {riesgo.upper()}\n", "risk_tag")
-            if color_semaforo == "green":
+            ocr_text.insert("end", f"\n{emoji} Riesgo de falsificación: {riesgo.upper()}\n", "risk_tag")
+            if color == "green":
                 ocr_text.tag_config("risk_tag", foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
-            elif color_semaforo == "yellow":
+            elif color == "yellow":
                 ocr_text.tag_config("risk_tag", foreground="#FFD700", font=("Segoe UI", 11, "bold"))
             else:
                 ocr_text.tag_config("risk_tag", foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
@@ -2401,7 +2399,7 @@ def analizar_identificacion():
                 "vigencia_sugerida_mdy": vigencia_final,
             }
 
-            riesgo, detalles, emoji_semaforo, color_semaforo = _authenticity_score(texto_total, frente)
+            riesgo, detalles, emoji, color = _authenticity_score(texto_total, frente)
             dt = round(time.time() - t0, 2)
 
             # Nombre lógico para exportar (frente + reverso)
@@ -2426,10 +2424,10 @@ def analizar_identificacion():
             ocr_text.insert("end", header_line, "header")
             
             # Mostrar semáforo de autenticidad
-            ocr_text.insert("end", f"\n{emoji_semaforo} Riesgo de falsificación: {riesgo.upper()}\n", "risk_tag")
-            if color_semaforo == "green":
+            ocr_text.insert("end", f"\n{emoji} Riesgo de falsificación: {riesgo.upper()}\n", "risk_tag")
+            if color == "green":
                 ocr_text.tag_config("risk_tag", foreground=COLOR_GREEN, font=("Segoe UI", 11, "bold"))
-            elif color_semaforo == "yellow":
+            elif color == "yellow":
                 ocr_text.tag_config("risk_tag", foreground="#FFD700", font=("Segoe UI", 11, "bold"))
             else:
                 ocr_text.tag_config("risk_tag", foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
