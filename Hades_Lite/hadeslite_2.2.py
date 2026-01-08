@@ -929,29 +929,31 @@ def _authenticity_score(texto: str, image_path: str|None):
         details_internal.append(f"⚠️ Número de ID sospechoso: {num_id}")
         details_user.append("Patrón de identificación no válido")
     
-    # 6. 🆕 ANÁLISIS VISUAL FORENSE CONDICIONAL (solo para documentos ya sospechosos)
-    # ESTRATEGIA: Solo usar análisis visual si el OCR ya detectó problemas
-    # Esto evita falsos positivos en documentos legítimos mientras confirma fraudes
+    # 6. 🆕 ANÁLISIS VISUAL FORENSE (siempre activo, peso mínimo)
+    # ESTRATEGIA: Analizar TODOS los documentos pero con peso muy reducido
+    # Esto mantiene detección de fraudes sin causar falsos positivos
     
-    if image_path and os.path.exists(image_path) and score > 25:
-        # Solo analizar visualmente si ya hay señales de sospecha (score > 25)
+    if image_path and os.path.exists(image_path):
         visual_score, visual_details_internal = gemini_vision_auth_check(image_path)
         
-        # Peso MUY reducido: máximo 10 puntos (solo para confirmar sospechas)
-        visual_score_aplicado = min(visual_score, 10)
+        # Peso optimizado para detección: máximo 20 puntos
+        # Balance: suficiente para detectar fraudes, controlado para limitar falsos positivos
+        visual_score_aplicado = min(visual_score, 20)
         score += visual_score_aplicado
         
         if visual_score > 0:
-            details_internal.append(f"Análisis visual confirmatorio: {visual_score} pts (aplicados: {visual_score_aplicado} pts)")
-            details_internal.extend(visual_details_internal[:1])  # Solo 1 detalle
+            details_internal.append(f"Análisis visual: {visual_score} pts (aplicados: {visual_score_aplicado} pts)")
+            details_internal.extend(visual_details_internal[:1])
         
-        # Mensaje genérico solo si el análisis visual confirma problemas serios
-        if visual_score > 30:
-            details_user.append("Análisis visual confirmó anomalías")
+        # Mensaje genérico solo si el análisis visual detecta problemas muy serios
+        if visual_score > 40:
+            details_user.append("Análisis visual detectó anomalías significativas")
+        elif visual_score > 25:
+            details_user.append("Análisis visual requiere verificación")
     
-    # NOTA: Si score <= 25, NO se hace análisis visual
-    # Documentos con datos limpios pasan directo sin análisis visual
-    # Esto elimina falsos positivos en documentos legítimos
+    # NOTA: Análisis visual SIEMPRE activo pero con peso reducido
+    # Esto balancea detección (mantiene capacidad de detectar fraudes)
+    # vs falsos positivos (peso bajo no marca documentos reales)
     
     # 7. Validación de consistencia interna adicional
     # Verificar que el nombre no sea obviamente falso
@@ -963,15 +965,15 @@ def _authenticity_score(texto: str, image_path: str|None):
             details_internal.append(f"⚠️ Nombre sospechoso: {nombre}")
             details_user.append("Datos personales no válidos")
     
-    # Determinar nivel de riesgo con umbrales más permisivos para reducir falsos positivos
-    if score <= 20:  # Umbral permisivo para BAJO
+    # Determinar nivel de riesgo (optimizado para detección)
+    if score <= 16:  # Umbral para BAJO
         riesgo = "bajo"
         emoji = "🟢"
         color = "green"
         # Mensaje genérico positivo
         if not details_user:
             details_user = ["Documento aparenta ser auténtico"]
-    elif score <= 45:  # Umbral permisivo para MEDIO
+    elif score <= 40:  # Umbral para MEDIO
         riesgo = "medio"
         emoji = "🟡"
         color = "yellow"
@@ -979,7 +981,7 @@ def _authenticity_score(texto: str, image_path: str|None):
         if not details_user:
             details_user = ["Requiere verificación adicional"]
         details_user.append("⚠️ Se recomienda validación física del documento")
-    else:  # 46+
+    else:  # 41+
         riesgo = "alto"
         emoji = "🔴"
         color = "red"
