@@ -665,7 +665,7 @@ def _age_from_mdy(mdy: str):
 
 def gemini_vision_auth_check(image_path: str) -> tuple[int, list[str]]:
     """
-    Analiza la imagen con Gemini Vision para detectar signos de manipulación o falsificación.
+    Análisis forense avanzado con Gemini Vision para detectar falsificación.
     Retorna (score_adicional, detalles_visuales)
     """
     if not GEMINI_API_KEY or not image_path:
@@ -683,19 +683,41 @@ def gemini_vision_auth_check(image_path: str) -> tuple[int, list[str]]:
         bio.seek(0)
         mime = "image/png"
         
-        # Prompt especializado para análisis forense
+        # Prompt forense avanzado
         prompt = (
-            "Analiza esta imagen de identificación oficial y detecta posibles signos de FALSIFICACIÓN o MANIPULACIÓN DIGITAL. "
-            "Evalúa específicamente:\n"
-            "1. CALIDAD DE IMPRESIÓN: ¿La calidad es consistente o hay áreas borrosas/pixeladas sospechosas?\n"
-            "2. FUENTES TIPOGRÁFICAS: ¿Las fuentes son consistentes y profesionales o hay inconsistencias?\n"
-            "3. ELEMENTOS DE SEGURIDAD: ¿Se observan hologramas, marcas de agua, microimpresiones u otros elementos de seguridad?\n"
-            "4. MANIPULACIÓN DIGITAL: ¿Hay evidencia de edición (bordes irregulares, sombras inconsistentes, clonación)?\n"
-            "5. AUTENTICIDAD GENERAL: ¿La identificación parece auténtica o hay señales de alerta?\n\n"
-            "Responde SOLO con un análisis breve y directo de cada punto. "
-            "Si detectas problemas, menciónalos claramente. Si todo parece correcto, indícalo."
+            "Actúa como un experto forense en documentos de identidad. Analiza esta imagen con técnicas forenses profesionales.\n\n"
+            "ANÁLISIS FORENSE REQUERIDO:\n"
+            "1. ELEMENTOS DE SEGURIDAD:\n"
+            "   - Hologramas, marcas de agua, microimpresiones\n"
+            "   - Tintas especiales, guilloches (patrones de líneas)\n"
+            "   - Elementos táctiles (relieve, textura)\n\n"
+            "2. ANÁLISIS DE IMPRESIÓN:\n"
+            "   - Calidad de impresión (offset profesional vs casera)\n"
+            "   - Resolución y nitidez de texto/imágenes\n"
+            "   - Alineación de capas (registro de color)\n"
+            "   - Bordes de texto (limpios vs borrosos)\n\n"
+            "3. DETECCIÓN DE MANIPULACIÓN DIGITAL:\n"
+            "   - Clonación de áreas (stamp/clone tool)\n"
+            "   - Bordes irregulares en foto o texto\n"
+            "   - Inconsistencias de iluminación/sombras\n"
+            "   - Artefactos de compresión JPEG sospechosos\n"
+            "   - Transiciones de color no naturales\n\n"
+            "4. TIPOGRAFÍA Y LAYOUT:\n"
+            "   - Fuentes oficiales vs genéricas (Arial, Times)\n"
+            "   - Espaciado y kerning profesional\n"
+            "   - Alineación y márgenes estándar\n\n"
+            "5. FOTOGRAFÍA:\n"
+            "   - Calidad profesional vs casera\n"
+            "   - Fondo uniforme y apropiado\n"
+            "   - Iluminación frontal consistente\n"
+            "   - Proporciones faciales correctas\n\n"
+            "INSTRUCCIONES:\n"
+            "- Evalúa cada categoría con score de 0-10 (10=muy sospechoso, 0=auténtico)\n"
+            "- Menciona evidencia específica para scores >5\n"
+            "- Sé directo y técnico, sin ambigüedades\n"
+            "- Si detectas manipulación, especifica el tipo exacto"
         )
-        temp = 0.2  # Baja temperatura para respuestas más deterministas
+        temp = 0.1  # Temperatura muy baja para análisis determinista
         
         # Intentar con SDK primero
         visual_analysis = ""
@@ -705,7 +727,7 @@ def gemini_vision_auth_check(image_path: str) -> tuple[int, list[str]]:
                 model = genai.GenerativeModel(GEMINI_MODEL)
                 resp = model.generate_content(
                     [{"mime_type": mime, "data": bio.getvalue()}, {"text": prompt}],
-                    generation_config={"temperature": temp, "top_p": 0.95, "max_output_tokens": 1024}
+                    generation_config={"temperature": temp, "top_p": 0.9, "max_output_tokens": 2048}
                 )
                 visual_analysis = getattr(resp, "text", "") or ""
             except Exception:
@@ -723,133 +745,232 @@ def gemini_vision_auth_check(image_path: str) -> tuple[int, list[str]]:
                             {"text": prompt}
                         ]
                     }],
-                    "generationConfig": {"temperature": temp, "topP": 0.95, "maxOutputTokens": 1024}
+                    "generationConfig": {"temperature": temp, "topP": 0.9, "maxOutputTokens": 2048}
                 }
                 headers = {"Content-Type": "application/json"}
-                r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=60)
+                r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, timeout=90)
                 data = r.json()
                 visual_analysis = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
             except Exception:
-                return 0, ["Error al conectar con Gemini Vision para análisis visual."]
+                return 0, ["Error en análisis forense visual"]
         
-        # Analizar la respuesta para detectar señales de alerta
+        # Análisis forense mejorado con más keywords
         analysis_lower = visual_analysis.lower()
         score_visual = 0
-        detalles = []
+        detalles_internos = []  # Detalles técnicos (no se muestran al usuario)
         
-        # Palabras clave que indican problemas
+        # Red flags expandidos con pesos ajustados
         red_flags = {
-            "manipulación": 25,
-            "editado": 25,
-            "photoshop": 30,
-            "inconsistente": 20,
-            "sospechoso": 20,
-            "irregular": 15,
-            "borroso": 10,
-            "pixelado": 10,
-            "clonación": 30,
-            "falso": 35,
-            "falsificación": 35,
-            "no auténtico": 30,
-            "alterado": 25,
+            # Manipulación digital (peso alto)
+            "manipulación": 30,
+            "manipulacion": 30,
+            "editado": 30,
+            "photoshop": 40,
+            "clonación": 40,
+            "clonacion": 40,
+            "alterado": 30,
+            "retocado": 25,
+            
+            # Falsificación directa (peso muy alto)
+            "falso": 45,
+            "falsificación": 45,
+            "falsificacion": 45,
+            "no auténtico": 40,
+            "fraudulento": 45,
+            
+            # Inconsistencias (peso medio-alto)
+            "inconsistente": 25,
+            "sospechoso": 25,
+            "irregular": 20,
+            "anómalo": 25,
+            "anomalo": 25,
+            
+            # Calidad (peso medio)
+            "borroso": 15,
+            "pixelado": 15,
+            "baja calidad": 20,
+            "amateur": 20,
+            "casera": 25,
+            
+            # Elementos faltantes (peso alto)
+            "sin holograma": 35,
+            "falta marca de agua": 35,
+            "ausencia de": 30,
+            "no se observa": 25,
+            
+            # Tipografía (peso medio)
+            "fuente genérica": 20,
+            "fuente generica": 20,
+            "arial": 15,
+            "times new roman": 15,
+            
+            # Bordes y transiciones (peso medio-alto)
+            "bordes irregulares": 30,
+            "transición abrupta": 25,
+            "transicion abrupta": 25,
+            "recorte sospechoso": 30,
         }
         
         for keyword, penalty in red_flags.items():
             if keyword in analysis_lower:
                 score_visual += penalty
-                detalles.append(f"Análisis visual detectó: '{keyword}'")
+                detalles_internos.append(f"Forense: '{keyword}' (+{penalty})")
         
-        # Señales positivas (reducen score)
-        if any(word in analysis_lower for word in ["auténtico", "legítimo", "genuino", "correcto", "profesional"]):
+        # Señales positivas (bonificación)
+        positive_signals = ["auténtico", "autentico", "legítimo", "legitimo", "genuino", "profesional", "oficial"]
+        if any(word in analysis_lower for word in positive_signals):
             if score_visual == 0:
-                detalles.append("Análisis visual: documento parece auténtico.")
+                detalles_internos.append("Forense: Documento aparenta autenticidad")
+            else:
+                # Reducir score si hay señales positivas mezcladas
+                score_visual = max(0, score_visual - 10)
+                detalles_internos.append("Forense: Señales mixtas detectadas (-10)")
         
-        # Guardar análisis completo como detalle
+        # Guardar análisis completo en detalles internos (para logs)
         if visual_analysis.strip():
-            detalles.append(f"Análisis completo: {visual_analysis[:200]}...")  # Primeros 200 chars
+            detalles_internos.append(f"Análisis completo: {visual_analysis[:300]}")
         
-        return min(score_visual, 50), detalles  # Cap máximo de 50 puntos por análisis visual
+        return min(score_visual, 60), detalles_internos  # Cap aumentado a 60 puntos
         
     except Exception as e:
-        return 0, [f"Error en análisis visual: {str(e)[:100]}"]
+        return 0, [f"Error en análisis forense: {str(e)[:100]}"]
 
 
 def _authenticity_score(texto: str, image_path: str|None):
     """
-    Calcula el score de autenticidad combinando análisis de texto y visual.
-    Retorna (riesgo, details, emoji_semaforo, color_semaforo)
+    Calcula el score de autenticidad combinando análisis de texto y visual forense.
+    Retorna (riesgo, details_user, emoji_semaforo, color_semaforo)
     
-    Niveles de riesgo:
-    - 🟢 BAJO (0-20): Verde - Documento parece auténtico
-    - 🟡 MEDIO (21-50): Amarillo - Requiere revisión adicional
-    - 🔴 ALTO (51+): Rojo - Alta probabilidad de falsificación
+    Niveles de riesgo (umbrales más estrictos):
+    - 🟢 BAJO (0-15): Verde - Documento aparenta ser auténtico
+    - 🟡 MEDIO (16-40): Amarillo - Requiere verificación adicional
+    - 🔴 ALTO (41+): Rojo - Alta probabilidad de falsificación
     """
-    details = []
+    details_internal = []  # Detalles técnicos (para logs)
+    details_user = []      # Mensajes para el usuario (genéricos)
     score = 0
     low = (texto or "").lower()
 
     # Usamos la lógica del nuevo procesador para obtener la fecha normalizada
     date_results = _process_all_dates_by_type(texto)
     dob_use = date_results.get("fecha_nacimiento_final")
+    doc_pais = _infer_doc_country(texto)
     
-    # 1. Chequeo de Muestra
+    # 1. Chequeo de Muestra/Plantilla (crítico)
     if any(w in low for w in _SAMPLE_WORDS if w):
-        score += 50; details.append("⚠️ Contiene 'sample/muestra/void'.")
+        score += 60
+        details_internal.append("⚠️ CRÍTICO: Contiene 'sample/muestra/void'")
+        details_user.append("Documento de muestra detectado")
 
     # 2. Chequeo de Nombre
     nombre = _extract_name(texto)
     if not nombre:
-        score += 10; details.append("⚠️ No se detectó nombre.")
+        score += 15
+        details_internal.append("⚠️ No se detectó nombre válido")
+        details_user.append("Información incompleta")
 
     # 3. Chequeo de Fecha de Nacimiento e Inconsistencias
     if dob_use and "Sugerida" not in dob_use:
         age = _age_from_mdy(dob_use)
         if age is not None and (age < 15 or age > 120):
-            score += 30; details.append(f"⚠️ Edad implausible ({age} años).")
+            score += 35
+            details_internal.append(f"⚠️ Edad implausible: {age} años")
+            details_user.append("Inconsistencia en datos personales")
         
+        # Validación CURP (México) - mejorada
         curp_m = _CURP_RE.search(texto or "")
-        if curp_m and _infer_doc_country(texto) == "MX":
+        if curp_m and doc_pais == "MX":
             curp = curp_m.group(0)
             curp_dob = _parse_dob_from_curp(curp)
             if curp_dob and curp_dob != dob_use:
-                score += 40; details.append("⚠️ CURP no coincide con la fecha de nacimiento.")
+                score += 45
+                details_internal.append(f"⚠️ CURP no coincide: CURP={curp_dob} vs DOB={dob_use}")
+                details_user.append("Inconsistencia en identificadores oficiales")
         
+        # Validación RFC (México) - mejorada
         rfc_m = _RFC_PER_RE.search(texto or "")
-        if rfc_m and _infer_doc_country(texto) == "MX":
-            yy,mm,dd = map(int, rfc_m.groups()[1:4])
+        if rfc_m and doc_pais == "MX":
+            yy, mm, dd = map(int, rfc_m.groups()[1:4])
             y = 2000 + yy if yy < 50 else 1900 + yy
             rfc_dob = f"{mm:02d}/{dd:02d}/{y:04d}"
             if rfc_dob != dob_use:
-                score += 20; details.append("⚠️ RFC no coincide con la fecha de nacimiento.")
+                score += 25
+                details_internal.append(f"⚠️ RFC no coincide: RFC={rfc_dob} vs DOB={dob_use}")
+                details_user.append("Inconsistencia en datos fiscales")
     else:
-        score += 10; details.append("⚠️ No se identificó fecha de nacimiento.")
+        score += 12
+        details_internal.append("⚠️ No se identificó fecha de nacimiento")
+        details_user.append("Información incompleta")
 
     # 4. Chequeo de Vigencia
     vig_final = date_results.get("fecha_vigencia_final")
     if not vig_final or "Sugerida" in vig_final:
-        score += 10; details.append("⚠️ No se detectó vigencia (usamos sugerida).")
+        score += 12
+        details_internal.append("⚠️ No se detectó vigencia válida")
+        # No agregar a details_user (no es crítico para el usuario)
     
-    # 5. 🆕 ANÁLISIS VISUAL CON GEMINI (si hay imagen disponible)
+    # 5. Validación de Número de ID
+    num_id = _extract_id_number(texto, doc_pais)
+    if not num_id:
+        score += 10
+        details_internal.append("⚠️ No se detectó número de identificación")
+        details_user.append("Información incompleta")
+    elif num_id in ["123456789", "000000000", "111111111", "999999999"]:
+        score += 40
+        details_internal.append(f"⚠️ Número de ID sospechoso: {num_id}")
+        details_user.append("Patrón de identificación no válido")
+    
+    # 6. 🆕 ANÁLISIS VISUAL FORENSE CON GEMINI
     if image_path and os.path.exists(image_path):
-        visual_score, visual_details = gemini_vision_auth_check(image_path)
+        visual_score, visual_details_internal = gemini_vision_auth_check(image_path)
         score += visual_score
-        details.extend(visual_details)
+        details_internal.extend(visual_details_internal)
+        
+        # Mensaje genérico para el usuario basado en el score visual
+        if visual_score > 40:
+            details_user.append("Análisis visual detectó anomalías significativas")
+        elif visual_score > 20:
+            details_user.append("Análisis visual requiere verificación")
+        # Si visual_score <= 20, no agregamos mensaje (documento OK visualmente)
     
-    # Determinar nivel de riesgo con nuevo sistema de semáforo
-    if score <= 20:
+    # 7. Validación de consistencia interna adicional
+    # Verificar que el nombre no sea obviamente falso
+    if nombre:
+        nombre_lower = nombre.lower()
+        fake_patterns = ["test", "prueba", "ejemplo", "sample", "xxxx", "aaaa"]
+        if any(pattern in nombre_lower for pattern in fake_patterns):
+            score += 35
+            details_internal.append(f"⚠️ Nombre sospechoso: {nombre}")
+            details_user.append("Datos personales no válidos")
+    
+    # Determinar nivel de riesgo con umbrales más estrictos
+    if score <= 15:
         riesgo = "bajo"
         emoji = "🟢"
         color = "green"
-    elif score <= 50:
+        # Mensaje genérico positivo
+        if not details_user:
+            details_user = ["Documento aparenta ser auténtico"]
+    elif score <= 40:
         riesgo = "medio"
         emoji = "🟡"
         color = "yellow"
+        # Mensaje genérico de precaución
+        if not details_user:
+            details_user = ["Requiere verificación adicional"]
     else:
         riesgo = "alto"
         emoji = "🔴"
         color = "red"
+        # Mensaje genérico de alerta
+        if not details_user:
+            details_user = ["Se detectaron inconsistencias significativas"]
     
-    return riesgo, details, emoji, color
+    # Guardar detalles internos en logs (para auditoría)
+    if details_internal:
+        registrar_changelog(f"Análisis forense - Score: {score} - {' | '.join(details_internal[:3])}")
+    
+    return riesgo, details_user, emoji, color
 
 
 # ===== AUTENTICACIÓN CON KEYCLOAK SSO =====
@@ -2006,8 +2127,9 @@ def analizar_actual():
         ocr_text.tag_config("risk_tag", foreground="#FFD700", font=("Segoe UI", 11, "bold"))
     else:
         ocr_text.tag_config("risk_tag", foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
+    # Mostrar solo mensajes genéricos al usuario
     if detalles:
-        ocr_text.insert("end", f"Detalles: {'; '.join(detalles)}\n", "body_header")
+        ocr_text.insert("end", f"{'; '.join(detalles)}\n", "body_header")
     
     # Se imprime solo la línea de país limpia
     ocr_text.insert("end", f"\nTexto Completo (OCR original):\n", "body_header")
@@ -2092,8 +2214,9 @@ def analizar_carrusel():
                 ocr_text.tag_config("risk_tag", foreground="#FFD700", font=("Segoe UI", 11, "bold"))
             else:
                 ocr_text.tag_config("risk_tag", foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
+            # Mostrar solo mensajes genéricos al usuario
             if detalles:
-                ocr_text.insert("end", f"Detalles: {'; '.join(detalles)}\n", "body_header")
+                ocr_text.insert("end", f"{'; '.join(detalles)}\n", "body_header")
 
             # (Punto 3 - Arreglo [DOCUMENTO])
             #if doc_pais_actual:
@@ -2210,8 +2333,9 @@ def analizar_identificacion():
                 ocr_text.tag_config("risk_tag", foreground="#FFD700", font=("Segoe UI", 11, "bold"))
             else:
                 ocr_text.tag_config("risk_tag", foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
+            # Mostrar solo mensajes genéricos al usuario
             if detalles:
-                ocr_text.insert("end", f"Detalles: {'; '.join(detalles)}\n", "body_header")
+                ocr_text.insert("end", f"{'; '.join(detalles)}\n", "body_header")
 
             # País (una sola vez por ID)
             #if doc_pais:
