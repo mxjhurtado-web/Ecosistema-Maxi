@@ -149,3 +149,9 @@
     *   **Holograma:** En la esquina
 [2026-01-07 21:38:28] Resultado guardado: clipboard_1767843445.png + clipboard_1767843469.png (1012 chars, 35.57s, riesgo=bajo)
 [2026-01-07 21:38:32] Drive: subido HADES_OCR_20260107_213828.csv (1lliwDsjT0O4gU7ZMSnlktqKFP-N08NPT) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2026-01-09 11:00:34] Análisis forense - Score: 37 - ⚠️ No se detectó nombre válido | ⚠️ No se identificó fecha de nacimiento | ⚠️ No se detectó vigencia válida
+[2026-01-09 11:00:34] Resultado guardado: Screenshot 2025-03-12 103732.png (45 chars, 0.02s, riesgo=medio)
+[2026-01-09 11:00:50] Drive: subido HADES_OCR_20260109_110038.csv (1T5LjDWN9id622es-w2D_lUz1LiUln7qM) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2026-01-09 11:01:49] Análisis forense - Score: 37 - ⚠️ No se detectó nombre válido | ⚠️ No se identificó fecha de nacimiento | ⚠️ No se detectó vigencia válida
+[2026-01-09 11:01:49] Resultado guardado: Screenshot 2025-03-12 103732.png + Screenshot 2025-03-12 103019.png (91 chars, 0.01s, riesgo=medio)
+[2026-01-09 11:02:06] Drive: subido HADES_OCR_20260109_110149.csv (1VTUA5MCpFsIp5GFg2WXdsldJ0mLDnz5T) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
