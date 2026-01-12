@@ -52,7 +52,15 @@ except Exception:
 
 
 # ====== HADES: Detección de país / normalización de fechas / vigencia ======
-_MONTHS_ES = {"enero":1,"febrero":2,"marzo":3,"abril":4,"mayo":5,"junio":6,"julio":7,"agosto":8,"septiembre":9,"setiembre":9,"octubre":10,"noviembre":11,"diciembre":12}
+# Diccionario expandido con nombres completos y abreviados de meses en español
+_MONTHS_ES = {
+    # Nombres completos
+    "enero":1, "febrero":2, "marzo":3, "abril":4, "mayo":5, "junio":6,
+    "julio":7, "agosto":8, "septiembre":9, "setiembre":9, "octubre":10, "noviembre":11, "diciembre":12,
+    # Abreviaciones de 3 letras
+    "ene":1, "feb":2, "mar":3, "abr":4, "may":5, "jun":6,
+    "jul":7, "ago":8, "sep":9, "oct":10, "nov":11, "dic":12
+}
 _MONTHS_EN = {"january":1,"february":2,"march":3,"april":4,"may":5,"june":6,"july":7,"august":8,"september":9,"october":10,"november":11,"december":12,
              "jan":1,"feb":2,"mar":3,"apr":4,"jun":6,"jul":7,"aug":8,"sep":9,"sept":9,"oct":10,"nov":11,"dec":12,
              "ene":1, "feb":2, "mar":3, "abr":4, "may":5, "jun":6, "jul":7, "ago":8, "sep":9, "oct":10, "nov":11, "dic":12} # Añadido para 3 letras Español/Inglés
@@ -102,14 +110,14 @@ _DATE_RE_TXT_EN_MDY = re.compile(r'\b([A-Za-z]{3,})\s+(\d{1,2})\s+(\d{2,4})\b', 
 _DATE_RE_TXT_EN = re.compile(r'\b([A-Za-z]+)\s+(\d{1,2}),\s*(\d{2,4})\b', re.IGNORECASE)
 _DATE_RE_NUM_A = re.compile(r'\b(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})\b')
 _DATE_RE_ISO = re.compile(r'\b(\d{4})[/-](\d{1,2})[/-](\d{1,2})\b')
-_DATE_RE_DMY_H = re.compile(r'\b(\d{1,2})-(\d{1,2})-(\d{4})\b')
+_DATE_RE_DMY_H = re.compile(r'\b(\d{1,2})-(\d{1,2})-(\d{2,4})\b')  # 🆕 FASE 4: Cambiado a 2-4 dígitos
 
 # --- Patrones extra: "MES-DD-YYYY" y "DD-MES-YYYY"
 _DATE_RE_EN_MON_DD_YYYY_H = re.compile(r'\b([A-Za-z]{3,})[-/](\d{1,2})[-/](\d{2,4})\b', re.IGNORECASE)
 _DATE_RE_EN_DD_MON_YYYY_H = re.compile(r'\b(\d{1,2})[-/]([A-Za-z]{3,})[-/](\d{2,4})\b', re.IGNORECASE)
 
 # Patrón para DD MM YYYY (separado por espacios, como el Pasaporte MX)
-_DATE_RE_DD_MM_YYYY_SPACE = re.compile(r'\b(\d{1,2})\s+(\d{1,2})\s+(\d{4})\b')
+_DATE_RE_DD_MM_YYYY_SPACE = re.compile(r'\b(\d{1,2})\s+(\d{1,2})\s+(\d{2,4})\b')  # 🆕 FASE 4: Cambiado a 2-4 dígitos
 
 # Patrón para Pasaportes (DD MON / MON YY) - e.g., 30 NOV / NOV 86
 _DATE_RE_TXT_PASSPORT = re.compile(r'\b(\d{1,2})\s+([A-Za-z]{3,})\s+/\s+[A-Za-z]{3,}\s+(\d{2,4})\b', re.IGNORECASE)
@@ -125,6 +133,16 @@ _DATE_RE_YEAR_RANGE = re.compile(r'(\d{4})\s*[-\u2013]\s*(\d{4})')
 
 # 🆕 Patrón para año solo (Matrículas Consulares - fecha de vencimiento)
 _DATE_RE_YEAR_ONLY = re.compile(r'\b(20\d{2})\b')  # Solo años 2000-2099
+
+# 🆕 FASE 1: Nuevos patrones para mejorar detección de fechas
+# Patrón para MM/YYYY (ej. 03/2027 - Venezuela)
+_DATE_RE_MM_YYYY = re.compile(r'\b(\d{1,2})/(\d{4})\b')
+
+# Patrón para DD.MM.YYYY (ej. 30.10.2000, 18.10.2030 - Costa Rica)
+_DATE_RE_DD_MM_YYYY_DOT = re.compile(r'\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b')
+
+# Patrón mejorado para fechas textuales en español con guiones (ej. 31-ago-2027, 15 agosto 1994)
+_DATE_RE_TXT_ES_FULL = re.compile(r'\b(\d{1,2})[-\s]+([a-záéíóúñ]+)[-\s]+(\d{2,4})\b', re.IGNORECASE)
 
 
 def _clean_ocr_output(texto: str) -> str:
@@ -170,6 +188,35 @@ def _normalize_date_to_mdy_ctx(s: str, country_ctx: str|None, lang_ctx: str|None
     # REGLA: Si sólo incluye año, devuélveme mes 12, día 31 y año correspondiente (YYYY -> 12/31/YYYY)
     if re.fullmatch(r'\b\d{4}\b', st): return f"12/31/{st}"
 
+    # 🆕 FASE 1.1: MM/YYYY -> MM/01/YYYY (ej. 03/2027 -> 03/01/2027)
+    m = _DATE_RE_MM_YYYY.search(st)
+    if m:
+        mm, y = m.groups()
+        mm_int = int(mm)
+        # Validar que el mes esté en rango válido (1-12)
+        if 1 <= mm_int <= 12:
+            return f"{mm_int:02d}/01/{int(y):04d}"
+
+    # 🆕 FASE 1.2: DD.MM.YYYY -> MM/DD/YYYY (ej. 30.10.2000 -> 10/30/2000)
+    m = _DATE_RE_DD_MM_YYYY_DOT.search(st)
+    if m:
+        d, mm, y = m.groups()
+        try:
+            d_int, mm_int, y_int = int(d), int(mm), int(y)
+            # Validar rangos
+            if 1 <= d_int <= 31 and 1 <= mm_int <= 12:
+                return f"{mm_int:02d}/{d_int:02d}/{y_int:04d}"
+        except ValueError:
+            pass
+
+    # 🆕 FASE 1.3: Fecha textual en español COMPLETA con guiones o espacios (ej. 31-ago-2027, 15 agosto 1994)
+    m = _DATE_RE_TXT_ES_FULL.search(st)
+    if m:
+        da, mon, y = m.groups()
+        mo = _MONTHS_ES.get(mon.lower())
+        if mo:
+            return f"{int(mo):02d}/{int(da):02d}/{_coerce_year(int(y)):04d}"
+
     # 1. Fecha textual en español (DD de MES de YYYY)
     m = _DATE_RE_TXT_ES.search(st)
     if m:
@@ -198,6 +245,8 @@ def _normalize_date_to_mdy_ctx(s: str, country_ctx: str|None, lang_ctx: str|None
         d, m_, y = m.groups()
         try:
             d_int, m_int, y_int = int(d), int(m_), int(y)
+            # 🆕 FASE 4: Aplicar _coerce_year() para convertir años de 2 dígitos
+            y_int = _coerce_year(y_int)
             return f"{m_int:02d}/{d_int:02d}/{y_int:04d}"
         except ValueError:
             pass
@@ -241,6 +290,8 @@ def _normalize_date_to_mdy_ctx(s: str, country_ctx: str|None, lang_ctx: str|None
                 y, mo, da = parts
             else:
                 da, mo, y = parts
+            # 🆕 FASE 4: Aplicar _coerce_year() para convertir años de 2 dígitos
+            y = _coerce_year(y)
             return f"{mo:02d}/{da:02d}/{y:04d}"
 
     # 7. Ambiguo numérico (d/m/y o m/d/y)
@@ -265,7 +316,11 @@ def _extract_all_dates(text: str):
     # Incluimos un patrón para DDMMMYYYY (como 24JUN2019)
     custom_ddmmyyyy = re.compile(r'\b(\d{1,2})([A-Z]{3})(\d{4})\b', re.IGNORECASE) 
 
-    for rx in (_DATE_RE_TXT_ES, _DATE_RE_TXT_EN, _DATE_RE_TXT_EN_DMY, _DATE_RE_TXT_EN_MDY, _DATE_RE_EN_MON_DD_YYYY_H, _DATE_RE_EN_DD_MON_YYYY_H, _DATE_RE_ISO, _DATE_RE_DMY_H, _DATE_RE_NUM_A, _DATE_RE_DD_MM_YYYY_SPACE, _DATE_RE_TXT_PASSPORT, _DATE_RE_YEAR_RANGE, _DATE_RE_DMMMYYYY, custom_ddmmyyyy):
+    # 🆕 FASE 1: Agregamos los nuevos patrones
+    for rx in (_DATE_RE_TXT_ES, _DATE_RE_TXT_ES_FULL, _DATE_RE_TXT_EN, _DATE_RE_TXT_EN_DMY, _DATE_RE_TXT_EN_MDY, 
+               _DATE_RE_EN_MON_DD_YYYY_H, _DATE_RE_EN_DD_MON_YYYY_H, _DATE_RE_ISO, _DATE_RE_DMY_H, 
+               _DATE_RE_DD_MM_YYYY_DOT, _DATE_RE_NUM_A, _DATE_RE_DD_MM_YYYY_SPACE, _DATE_RE_TXT_PASSPORT, 
+               _DATE_RE_YEAR_RANGE, _DATE_RE_MM_YYYY, _DATE_RE_DMMMYYYY, custom_ddmmyyyy):
         for m in rx.finditer(text):
             hits.append((m.group(0), m.start()))
     
@@ -373,11 +428,12 @@ def _process_all_dates_by_type(texto: str) -> Dict[str, Optional[str]]:
             if "tipo" in key and ("documento" in key or "tarjeta" in key) and not results.get("tipo_identificacion"):
                 results["tipo_identificacion"] = value
 
-            all_regexes = (_DATE_RE_NUM_A, _DATE_RE_ISO, _DATE_RE_DMY_H,
+            # 🆕 FASE 1: Agregamos los nuevos patrones a all_regexes
+            all_regexes = (_DATE_RE_NUM_A, _DATE_RE_ISO, _DATE_RE_DMY_H, _DATE_RE_DD_MM_YYYY_DOT,
                            _DATE_RE_EN_MON_DD_YYYY_H, _DATE_RE_EN_DD_MON_YYYY_H,
-                           _DATE_RE_TXT_EN_MDY, _DATE_RE_TXT_EN_DMY, _DATE_RE_TXT_ES,
+                           _DATE_RE_TXT_EN_MDY, _DATE_RE_TXT_EN_DMY, _DATE_RE_TXT_ES, _DATE_RE_TXT_ES_FULL,
                            _DATE_RE_DD_MM_YYYY_SPACE, _DATE_RE_TXT_PASSPORT, _DATE_RE_YEAR_RANGE, 
-                           _DATE_RE_DMMMYYYY, _DATE_RE_DD_MON_YYYY)
+                           _DATE_RE_MM_YYYY, _DATE_RE_DMMMYYYY, _DATE_RE_DD_MON_YYYY)
 
             original_date_match = None
             for rx in all_regexes:
@@ -469,6 +525,59 @@ def _extract_id_number(texto: str, doc_pais: str | None) -> str | None:
     # Normalizamos el texto (espacios internos y saltos de línea para búsqueda de claves)
     t_searchable = texto.upper().replace('\n', ' ')
     t_clean = t_searchable.replace(' ', '').replace('-', '')
+    
+    # 🆕 FASE 3: Detección específica por país (antes de keywords genéricos)
+    
+    # Colombia: NUIP (10 dígitos)
+    if doc_pais == "CO":
+        # Buscar "NUIP" o "NÚMERO ÚNICO DE IDENTIFICACIÓN PERSONAL" seguido de 10 dígitos
+        nuip_match = re.search(r'(?:NUIP|NUMERO\s*UNICO|IDENTIFICACION\s*PERSONAL)[:\s-]*(\d{10})\b', t_searchable)
+        if nuip_match:
+            return nuip_match.group(1)
+        # Fallback: buscar cualquier secuencia de 10 dígitos
+        nuip_fallback = re.search(r'\b(\d{10})\b', t_clean)
+        if nuip_fallback:
+            return nuip_fallback.group(1)
+    
+    # Ecuador: NUI/Cédula (10 dígitos)
+    if doc_pais == "EC":
+        # Buscar "NUI" o "CÉDULA" seguido de 10 dígitos
+        nui_match = re.search(r'(?:NUI|CEDULA|IDENTIFICACION)[:\s-]*(\d{10})\b', t_searchable)
+        if nui_match:
+            return nui_match.group(1)
+        # Fallback: buscar cualquier secuencia de 10 dígitos
+        nui_fallback = re.search(r'\b(\d{10})\b', t_clean)
+        if nui_fallback:
+            return nui_fallback.group(1)
+    
+    # Bolivia: Cédula de Identidad (7-8 dígitos + extensión opcional)
+    if doc_pais == "BO":
+        # Buscar "CÉDULA" o "CI" seguido de 7-8 dígitos
+        bo_match = re.search(r'(?:CEDULA|CI|IDENTIDAD)[:\s-]*(\d{7,8}(?:-?\d{1,2})?)\b', t_searchable)
+        if bo_match:
+            return bo_match.group(1).replace('-', '')
+        # Fallback: buscar secuencia de 7-8 dígitos
+        bo_fallback = re.search(r'\b(\d{7,8})\b', t_clean)
+        if bo_fallback:
+            return bo_fallback.group(1)
+    
+    # Brasil: CPF (11 dígitos) o RG (7-9 dígitos)
+    if doc_pais == "BR":
+        # Buscar CPF (formato: XXX.XXX.XXX-XX o 11 dígitos)
+        cpf_match = re.search(r'(?:CPF)[:\s-]*(\d{3}\.?\d{3}\.?\d{3}-?\d{2})\b', t_searchable)
+        if cpf_match:
+            return cpf_match.group(1).replace('.', '').replace('-', '')
+        # Buscar RG
+        rg_match = re.search(r'(?:RG|REGISTRO\s*GERAL)[:\s-]*(\d{7,9})\b', t_searchable)
+        if rg_match:
+            return rg_match.group(1)
+        # Fallback: buscar 11 dígitos (CPF) o 7-9 dígitos (RG)
+        br_fallback = re.search(r'\b(\d{11})\b', t_clean)
+        if br_fallback:
+            return br_fallback.group(1)
+        br_rg_fallback = re.search(r'\b(\d{7,9})\b', t_clean)
+        if br_rg_fallback:
+            return br_rg_fallback.group(1)
     
     # Prioridad 1: Claves específicas de identificación
     keywords_num = [
@@ -631,9 +740,11 @@ def _find_first_date_after_keyword(texto: str, hints: list[str]) -> tuple[str|No
     for kw in hints:
         for m in re.finditer(kw, texto, flags=re.IGNORECASE):
             window = texto[m.end(): m.end()+span]
-            for rx in (_DATE_RE_NUM_A,_DATE_RE_ISO,_DATE_RE_DMY_H,_DATE_RE_TXT_ES,
-                       _DATE_RE_TXT_EN,_DATE_RE_TXT_EN_DMY,_DATE_RE_TXT_EN_MDY,
-                       _DATE_RE_EN_MON_DD_YYYY_H,_DATE_RE_EN_DD_MON_YYYY_H, _DATE_RE_TXT_PASSPORT, _DATE_RE_DMMMYYYY):
+            # 🆕 FASE 1: Agregamos los nuevos patrones
+            for rx in (_DATE_RE_NUM_A,_DATE_RE_ISO,_DATE_RE_DMY_H,_DATE_RE_DD_MM_YYYY_DOT,
+                       _DATE_RE_TXT_ES,_DATE_RE_TXT_ES_FULL,_DATE_RE_TXT_EN,_DATE_RE_TXT_EN_DMY,_DATE_RE_TXT_EN_MDY,
+                       _DATE_RE_EN_MON_DD_YYYY_H,_DATE_RE_EN_DD_MON_YYYY_H, _DATE_RE_TXT_PASSPORT, 
+                       _DATE_RE_MM_YYYY, _DATE_RE_DMMMYYYY):
                 mm = rx.search(window)
                 if mm:
                     original = mm.group(0).strip()
