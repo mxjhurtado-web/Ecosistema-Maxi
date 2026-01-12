@@ -155,3 +155,8 @@
 [2026-01-09 11:01:49] Análisis forense - Score: 37 - ⚠️ No se detectó nombre válido | ⚠️ No se identificó fecha de nacimiento | ⚠️ No se detectó vigencia válida
 [2026-01-09 11:01:49] Resultado guardado: Screenshot 2025-03-12 103732.png + Screenshot 2025-03-12 103019.png (91 chars, 0.01s, riesgo=medio)
 [2026-01-09 11:02:06] Drive: subido HADES_OCR_20260109_110149.csv (1VTUA5MCpFsIp5GFg2WXdsldJ0mLDnz5T) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt
+[2026-01-12 16:02:43] Análisis forense - Score: 51 - ⚠️ No se detectó nombre válido | ⚠️ No se identificó fecha de nacimiento | ⚠️ No se detectó vigencia válida
+[2026-01-12 16:02:43] Resultado guardado: Screenshot 2025-03-12 104414.png (520 chars, 22.42s, riesgo=alto)
+[2026-01-12 16:03:00] Análisis forense - Score: 23 - ⚠️ No se detectó nombre válido | ⚠️ No se detectó vigencia válida
+[2026-01-12 16:03:00] Resultado guardado: Screenshot 2025-03-12 104225.png (413 chars, 17.17s, riesgo=medio)
+[2026-01-12 16:03:07] Drive: subido HADES_OCR_20260112_160304.csv (1VMn7b1NVHlqeilFtaBZBUmedpKiN2_Fx) a 1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt

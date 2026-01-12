@@ -2610,8 +2610,17 @@ def _export_drive_only():
         print("[HADES] No hay resultados para exportar a Drive.")
         return
 
+    # 🆕 Obtener el correo del usuario autenticado
+    usuario_correo = "Sin autenticar"
+    if keycloak_auth_instance and keycloak_auth_instance.is_authenticated():
+        usuario_correo = keycloak_auth_instance.get_user_email() or "Sin correo"
+    
+    # Agregar el correo del usuario a todas las filas
+    resumen_df['usuario_correo'] = usuario_correo
+
     # Columnas preferidas para el CSV
-    preferred_order = ['archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado',
+    # 🆕 Agregada 'usuario_correo' como primera columna
+    preferred_order = ['usuario_correo','archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado',
                       'fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final',
                       'fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy',
                       'autenticidad_riesgo','autenticidad_detalles']
@@ -2628,7 +2637,7 @@ def _export_drive_only():
     if ok:
         # Se extrae el ID de la respuesta para el log
         file_id = info.split('id=')[-1].split(')')[0]
-        print(f"[HADES] CSV subido a Drive (id={file_id})")
+        print(f"[HADES] CSV subido a Drive (id={file_id}) - Usuario: {usuario_correo}")
     else:
         print("[HADES] No se pudo subir a Drive: " + " | ".join(info_msgs))
 
@@ -2644,13 +2653,23 @@ def _do_export(destino_carpeta_local: str):
     if resumen_df.empty:
         messagebox.showinfo("Exportación", "No hay resultados para exportar localmente."); return
 
+    # 🆕 Obtener el correo del usuario autenticado
+    usuario_correo = "Sin autenticar"
+    if keycloak_auth_instance and keycloak_auth_instance.is_authenticated():
+        usuario_correo = keycloak_auth_instance.get_user_email() or "Sin correo"
+    
+    # Agregar el correo del usuario a todas las filas
+    resumen_df['usuario_correo'] = usuario_correo
+
     # Usar las nuevas columnas finales para exportar los datos procesados
-    cols = [c for c in ['archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final'] if c in resumen_df.columns]
+    # 🆕 Agregada 'usuario_correo' a las columnas exportadas
+    cols = [c for c in ['usuario_correo','archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado','fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final'] if c in resumen_df.columns]
     out_df = resumen_df[cols].copy() if cols else resumen_df.copy()
     out_df.to_csv(csv_path, index=False, encoding="utf-8-sig")
 
     with open(txt_path, 'w', encoding='utf-8') as f:
         for _, row in out_df.iterrows():
+            f.write(f"Usuario: {row.get('usuario_correo','')}\n")
             f.write(f"Archivo: {row.get('archivo','')}\n")
             f.write(f"Duración (s): {row.get('duracion_s','')}\n")
             f.write(f"Tipo: {row.get('tipo','')}\n")
