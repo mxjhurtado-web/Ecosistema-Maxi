@@ -19,6 +19,16 @@ from typing import Optional, Tuple, List, Dict
 import webbrowser  # Para abrir hipervínculos
 # pandas se importará con lazy loading en las funciones que lo usan
 
+# ===== POLICY TEMPLATES (Compliance 2025) =====
+try:
+    from policy_templates import classify_document, policy_score_adjustment
+    _POLICY_TEMPLATES_OK = True
+except Exception as e:
+    print(f"[HADES] Advertencia: No se pudo cargar policy_templates: {e}")
+    _POLICY_TEMPLATES_OK = False
+    classify_document = None
+    policy_score_adjustment = None
+
 # ===== KEYCLOAK SSO =====
 _KEYCLOAK_OK = False
 keycloak_auth_instance = None
@@ -1568,7 +1578,7 @@ def registrar_changelog(evento: str):
         log.write(f"[{ts}] {evento}\n")
 
 def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
-                         datos_esenciales: dict = None, riesgo: str = "", detalles: list = None):
+                         datos_esenciales: dict = None, riesgo: str = "", detalles: list = None, policy_data: dict = None):
     """Guarda resultados y métricas de forma consolidada."""
     # Inicialización
     r = next((res for res in resultados if res['archivo'] == nombre), None)
@@ -1613,6 +1623,26 @@ def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
         r['autenticidad_riesgo'] = riesgo
         r['autenticidad_detalles'] = ' | '.join(detalles or [])
         r['todas_las_fechas_sugeridas_mdy'] = fechas_mdy
+        
+        # 🆕 Policy Templates (Compliance 2025)
+        if policy_data:
+            r['policy_doc_country'] = policy_data.get('doc_country', '')
+            r['policy_doc_type'] = policy_data.get('doc_type', '')
+            r['policy_acceptance'] = policy_data.get('acceptance', '')
+            r['policy_reason'] = policy_data.get('policy_reason', '')
+            r['policy_evidence'] = '|'.join(policy_data.get('policy_evidence', []))
+            r['policy_is_expired'] = 'Sí' if policy_data.get('is_expired', False) else 'No'
+            r['policy_expiration_date'] = policy_data.get('expiration_date', '')
+            r['policy_expiration_reason'] = policy_data.get('expiration_reason', '')
+        else:
+            r['policy_doc_country'] = ''
+            r['policy_doc_type'] = ''
+            r['policy_acceptance'] = ''
+            r['policy_reason'] = ''
+            r['policy_evidence'] = ''
+            r['policy_is_expired'] = ''
+            r['policy_expiration_date'] = ''
+            r['policy_expiration_reason'] = ''
         
     except Exception as e:
         print(f"[HADES] Error al calcular metadata de resultado: {e}")
@@ -2305,11 +2335,22 @@ def analizar_actual():
     }
     # NOTA: Se pasa el texto original a _authenticity_score para que use la detección de país
     riesgo, detalles, emoji, color = _authenticity_score(texto, p)
+    
+    # 🆕 Policy Templates (Compliance 2025)
+    policy_data = None
+    if _POLICY_TEMPLATES_OK and classify_document:
+        policy_data = classify_document(texto)
+        # Ajustar score con policy
+        policy_adj, policy_adj_reason = policy_score_adjustment(policy_data['acceptance'])
+        # Agregar ajuste a detalles
+        if policy_adj > 0:
+            detalles.append(policy_adj_reason)
+    
     dt = round(time.time() - t0, 2)
 
     # 3. Guardar resultados
     # Usamos el texto original para que el exportador trabaje con el output de Gemini
-    _guardar_resultado(Path(p).name, texto, "actual", dt, datos_esenciales, riesgo, detalles)
+    _guardar_resultado(Path(p).name, texto, "actual", dt, datos_esenciales, riesgo, detalles, policy_data)
     
     # 4. Mostrar en el panel
     ocr_text.delete("1.0", "end") # Limpiamos antes de mostrar
@@ -2609,82 +2650,37 @@ def analizar_identificacion():
 
 # Función de exportación directa a Drive (sin feedback)
 def _export_drive_only():
-    """Exporta resultados a Drive automáticamente en segundo plano."""
     import pandas as pd  # Lazy import
-    
-    try:
-        print("[HADES] Iniciando exportación automática a Drive...")
-        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        resumen_df = pd.DataFrame(resultados)
-        
-        if resumen_df.empty:
-            print("[HADES] No hay resultados para exportar a Drive.")
-            return
+    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    resumen_df = pd.DataFrame(resultados)
+    if resumen_df.empty:
+        print("[HADES] No hay resultados para exportar a Drive.")
+        return
 
-        # El correo ya está en los resultados (agregado en _guardar_resultado)
-        # Verificar si hay correo
-        if 'usuario_correo' in resumen_df.columns:
-            usuario_correo = resumen_df['usuario_correo'].iloc[0] if len(resumen_df) > 0 else "Sin autenticar"
-            print(f"[HADES] Usuario detectado: {usuario_correo}")
-        else:
-            print("[HADES] Advertencia: No se encontró usuario_correo en los resultados")
+    # El correo ya está en los resultados (agregado en _guardar_resultado)
+    # Columnas preferidas para el CSV (🆕 agregadas columnas de policy y expiración)
+    preferred_order = ['usuario_correo','archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado',
+                      'fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final',
+                      'fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy',
+                      'autenticidad_riesgo','autenticidad_detalles',
+                      'policy_doc_country','policy_doc_type','policy_acceptance','policy_reason','policy_evidence',
+                      'policy_is_expired','policy_expiration_date','policy_expiration_reason']
+    final_cols = [c for c in preferred_order if c in resumen_df.columns] + [c for c in resumen_df.columns if c not in preferred_order]
+    resumen_df = resumen_df[final_cols]
 
-        # Columnas preferidas para el CSV
-        # usuario_correo ya está en los resultados, solo definimos el orden
-        preferred_order = ['usuario_correo','archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado',
-                          'fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final',
-                          'fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy',
-                          'autenticidad_riesgo','autenticidad_detalles']
-        final_cols = [c for c in preferred_order if c in resumen_df.columns] + [c for c in resumen_df.columns if c not in preferred_order]
-        resumen_df = resumen_df[final_cols]
+    tmp_dir = tempfile.gettempdir()
+    drive_tmp_csv = os.path.join(tmp_dir, f"HADES_OCR_{ts}.csv")
+    resumen_df.to_csv(drive_tmp_csv, index=False, encoding="utf-8-sig")
 
-        tmp_dir = tempfile.gettempdir()
-        drive_tmp_csv = os.path.join(tmp_dir, f"HADES_OCR_{ts}.csv")
-        resumen_df.to_csv(drive_tmp_csv, index=False, encoding="utf-8-sig")
-        
-        print(f"[HADES] CSV temporal creado: {drive_tmp_csv}")
-        print(f"[HADES] Tamaño del archivo: {os.path.getsize(drive_tmp_csv)} bytes")
-        print(f"[HADES] Número de filas: {len(resumen_df)}")
-
-        remote_name = f"HADES_OCR_{ts}.csv"
-        print(f"[HADES] Intentando subir a Drive como: {remote_name}")
-        
-        ok, info = _subir_a_drive(drive_tmp_csv, remote_name, "text/csv")
-        
-        if ok:
-            # Se extrae el ID de la respuesta para el log
-            file_id = info.split('id=')[-1].split(')')[0]
-            success_msg = f"✅ CSV subido a Drive exitosamente\nID: {file_id}\nArchivo: {remote_name}"
-            print(f"[HADES] {success_msg}")
-            registrar_changelog(f"Drive upload exitoso: {remote_name}")
-            
-            # Mostrar notificación al usuario
-            status.config(text=f"✅ Resultados enviados a Drive ({len(resumen_df)} registros)")
-        else:
-            error_msg = f"❌ Error al subir a Drive:\n{info}"
-            print(f"[HADES] {error_msg}")
-            registrar_changelog(f"Drive upload falló: {info}")
-            
-            # Mostrar error al usuario
-            status.config(text="⚠️ Error al enviar a Drive (ver logs)")
-            
-            # Mostrar popup con el error para que el usuario lo vea
-            root.after(100, lambda: messagebox.showwarning(
-                "Error de Drive",
-                f"No se pudo subir el archivo a Google Drive.\n\n{info}\n\nRevisa los logs para más detalles."
-            ))
-            
-    except Exception as e:
-        error_detail = f"Error inesperado en _export_drive_only: {str(e)}"
-        print(f"[HADES] {error_detail}")
-        registrar_changelog(error_detail)
-        status.config(text="⚠️ Error al exportar a Drive")
-        
-        # Mostrar error al usuario
-        root.after(100, lambda: messagebox.showerror(
-            "Error de Exportación",
-            f"Error al exportar a Drive:\n\n{str(e)}"
-        ))
+    remote_name = f"HADES_OCR_{ts}.csv"
+    info_msgs = []
+    ok, info = _subir_a_drive(drive_tmp_csv, remote_name, "text/csv"); info_msgs.append(info)
+    if ok:
+        # Se extrae el ID de la respuesta para el log
+        file_id = info.split('id=')[-1].split(')')[0]
+        print(f"[HADES] CSV subido a Drive (id={file_id})")
+    else:
+        print("[HADES] No se pudo subir a Drive: " + " | ".join(info_msgs))
 
 
 def _do_export(destino_carpeta_local: str):
