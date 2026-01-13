@@ -1578,6 +1578,12 @@ def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
     else:
         r.update({'texto': texto, 'tipo': tipo, 'duracion_s': duracion_s})
 
+    # 🆕 Agregar el correo del usuario autenticado
+    usuario_correo = "Sin autenticar"
+    if keycloak_auth_instance and keycloak_auth_instance.is_authenticated():
+        usuario_correo = keycloak_auth_instance.get_user_email() or "Sin correo"
+    r['usuario_correo'] = usuario_correo
+
     # Campos extra (País, Fechas, Vigencia)
     try:
         date_results = _process_all_dates_by_type(texto)
@@ -1612,7 +1618,7 @@ def _guardar_resultado(nombre: str, texto: str, tipo: str, duracion_s: float,
         print(f"[HADES] Error al calcular metadata de resultado: {e}")
 
     # Registro de changelog
-    registrar_changelog(f"Resultado guardado: {nombre} ({len(texto)} chars, {duracion_s:.2f}s, riesgo={riesgo})")
+    registrar_changelog(f"Resultado guardado: {nombre} ({len(texto)} chars, {duracion_s:.2f}s, riesgo={riesgo}, usuario={usuario_correo})")
 
 
 # ====== Drive upload (PATCHED) ======
@@ -2603,43 +2609,82 @@ def analizar_identificacion():
 
 # Función de exportación directa a Drive (sin feedback)
 def _export_drive_only():
+    """Exporta resultados a Drive automáticamente en segundo plano."""
     import pandas as pd  # Lazy import
-    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    resumen_df = pd.DataFrame(resultados)
-    if resumen_df.empty:
-        print("[HADES] No hay resultados para exportar a Drive.")
-        return
-
-    # 🆕 Obtener el correo del usuario autenticado
-    usuario_correo = "Sin autenticar"
-    if keycloak_auth_instance and keycloak_auth_instance.is_authenticated():
-        usuario_correo = keycloak_auth_instance.get_user_email() or "Sin correo"
     
-    # Agregar el correo del usuario a todas las filas
-    resumen_df['usuario_correo'] = usuario_correo
+    try:
+        print("[HADES] Iniciando exportación automática a Drive...")
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        resumen_df = pd.DataFrame(resultados)
+        
+        if resumen_df.empty:
+            print("[HADES] No hay resultados para exportar a Drive.")
+            return
 
-    # Columnas preferidas para el CSV
-    # 🆕 Agregada 'usuario_correo' como primera columna
-    preferred_order = ['usuario_correo','archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado',
-                      'fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final',
-                      'fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy',
-                      'autenticidad_riesgo','autenticidad_detalles']
-    final_cols = [c for c in preferred_order if c in resumen_df.columns] + [c for c in resumen_df.columns if c not in preferred_order]
-    resumen_df = resumen_df[final_cols]
+        # El correo ya está en los resultados (agregado en _guardar_resultado)
+        # Verificar si hay correo
+        if 'usuario_correo' in resumen_df.columns:
+            usuario_correo = resumen_df['usuario_correo'].iloc[0] if len(resumen_df) > 0 else "Sin autenticar"
+            print(f"[HADES] Usuario detectado: {usuario_correo}")
+        else:
+            print("[HADES] Advertencia: No se encontró usuario_correo en los resultados")
 
-    tmp_dir = tempfile.gettempdir()
-    drive_tmp_csv = os.path.join(tmp_dir, f"HADES_OCR_{ts}.csv")
-    resumen_df.to_csv(drive_tmp_csv, index=False, encoding="utf-8-sig")
+        # Columnas preferidas para el CSV
+        # usuario_correo ya está en los resultados, solo definimos el orden
+        preferred_order = ['usuario_correo','archivo','texto','duracion_s','tipo','doc_pais','formato_fecha_detectado',
+                          'fecha_expedicion_final','vigencia_final','fecha_nacimiento_final','otras_fechas_final',
+                          'fechas_mdy','incluye_vigencia','vigencia_mdy','vigencia_sugerida_mdy',
+                          'autenticidad_riesgo','autenticidad_detalles']
+        final_cols = [c for c in preferred_order if c in resumen_df.columns] + [c for c in resumen_df.columns if c not in preferred_order]
+        resumen_df = resumen_df[final_cols]
 
-    remote_name = f"HADES_OCR_{ts}.csv"
-    info_msgs = []
-    ok, info = _subir_a_drive(drive_tmp_csv, remote_name, "text/csv"); info_msgs.append(info)
-    if ok:
-        # Se extrae el ID de la respuesta para el log
-        file_id = info.split('id=')[-1].split(')')[0]
-        print(f"[HADES] CSV subido a Drive (id={file_id}) - Usuario: {usuario_correo}")
-    else:
-        print("[HADES] No se pudo subir a Drive: " + " | ".join(info_msgs))
+        tmp_dir = tempfile.gettempdir()
+        drive_tmp_csv = os.path.join(tmp_dir, f"HADES_OCR_{ts}.csv")
+        resumen_df.to_csv(drive_tmp_csv, index=False, encoding="utf-8-sig")
+        
+        print(f"[HADES] CSV temporal creado: {drive_tmp_csv}")
+        print(f"[HADES] Tamaño del archivo: {os.path.getsize(drive_tmp_csv)} bytes")
+        print(f"[HADES] Número de filas: {len(resumen_df)}")
+
+        remote_name = f"HADES_OCR_{ts}.csv"
+        print(f"[HADES] Intentando subir a Drive como: {remote_name}")
+        
+        ok, info = _subir_a_drive(drive_tmp_csv, remote_name, "text/csv")
+        
+        if ok:
+            # Se extrae el ID de la respuesta para el log
+            file_id = info.split('id=')[-1].split(')')[0]
+            success_msg = f"✅ CSV subido a Drive exitosamente\nID: {file_id}\nArchivo: {remote_name}"
+            print(f"[HADES] {success_msg}")
+            registrar_changelog(f"Drive upload exitoso: {remote_name}")
+            
+            # Mostrar notificación al usuario
+            status.config(text=f"✅ Resultados enviados a Drive ({len(resumen_df)} registros)")
+        else:
+            error_msg = f"❌ Error al subir a Drive:\n{info}"
+            print(f"[HADES] {error_msg}")
+            registrar_changelog(f"Drive upload falló: {info}")
+            
+            # Mostrar error al usuario
+            status.config(text="⚠️ Error al enviar a Drive (ver logs)")
+            
+            # Mostrar popup con el error para que el usuario lo vea
+            root.after(100, lambda: messagebox.showwarning(
+                "Error de Drive",
+                f"No se pudo subir el archivo a Google Drive.\n\n{info}\n\nRevisa los logs para más detalles."
+            ))
+            
+    except Exception as e:
+        error_detail = f"Error inesperado en _export_drive_only: {str(e)}"
+        print(f"[HADES] {error_detail}")
+        registrar_changelog(error_detail)
+        status.config(text="⚠️ Error al exportar a Drive")
+        
+        # Mostrar error al usuario
+        root.after(100, lambda: messagebox.showerror(
+            "Error de Exportación",
+            f"Error al exportar a Drive:\n\n{str(e)}"
+        ))
 
 
 def _do_export(destino_carpeta_local: str):
