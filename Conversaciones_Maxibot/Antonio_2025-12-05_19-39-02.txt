@@ -1,2 +1,0 @@
-Antonio: Hola
-MaxiBot: Hola, soy MaxiBot. El Proyecto de ChatBot de Lab IA Maxi, espero aprender mucho para apoyarlos.
