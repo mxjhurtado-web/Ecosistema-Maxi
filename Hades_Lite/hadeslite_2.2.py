@@ -1685,6 +1685,9 @@ def _validate_folder(service, folder_id: str):
         return False, f"No se pudo leer la carpeta (¿ID o permisos?): {e}"
 
 def _subir_a_drive(ruta_archivo: str, nombre_remoto: str, mimetype: str):
+    """Sube un archivo a Google Drive en la carpeta configurada."""
+    from googleapiclient.http import MediaFileUpload  # Import necesario
+    
     if "PEGA_AQUI" in DRIVE_FOLDER_ID or not DRIVE_FOLDER_ID:
         return False, "Configura DRIVE_FOLDER_ID en el código."
 
@@ -2393,7 +2396,7 @@ def analizar_actual():
     root.update_idletasks() # Forzar el despliegue
     
     # Exportar directamente a Drive sin pedir feedback
-    root.after(500, _export_drive_only)
+    root.after(0, safe_export_drive)
 
 def analizar_carrusel():
     """Analiza TODAS las imágenes y muestra cada resultado en el panel conforme avanza."""
@@ -2497,7 +2500,7 @@ def analizar_carrusel():
 
     # Un solo feedback al finalizar todo el carrusel (y export a Drive)
     # Exportar directamente a Drive sin pedir feedback
-    root.after(500, _export_drive_only)
+    root.after(0, safe_export_drive)
 
 def analizar_identificacion():
     """
@@ -2646,11 +2649,14 @@ def analizar_identificacion():
 
     # Feedback + export a Drive al final
     # Exportar directamente a Drive sin pedir feedback
-    root.after(500, _export_drive_only)
+    root.after(0, safe_export_drive)
 
 # Función de exportación directa a Drive (sin feedback)
 def _export_drive_only():
+    """Exporta resultados a Drive automáticamente en segundo plano."""
     import pandas as pd  # Lazy import
+    import traceback
+    
     ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     resumen_df = pd.DataFrame(resultados)
     if resumen_df.empty:
@@ -2670,17 +2676,108 @@ def _export_drive_only():
 
     tmp_dir = tempfile.gettempdir()
     drive_tmp_csv = os.path.join(tmp_dir, f"HADES_OCR_{ts}.csv")
-    resumen_df.to_csv(drive_tmp_csv, index=False, encoding="utf-8-sig")
+    
+    try:
+        # Crear CSV
+        resumen_df.to_csv(drive_tmp_csv, index=False, encoding="utf-8-sig")
+        
+        # Validar que el CSV existe y no está vacío
+        if not os.path.exists(drive_tmp_csv):
+            error_msg = f"Error: El archivo CSV no se creó correctamente: {drive_tmp_csv}"
+            print(f"[HADES] {error_msg}")
+            messagebox.showerror("Error de Exportación", error_msg)
+            return
+        
+        if os.path.getsize(drive_tmp_csv) == 0:
+            error_msg = f"Error: El archivo CSV está vacío: {drive_tmp_csv}"
+            print(f"[HADES] {error_msg}")
+            messagebox.showerror("Error de Exportación", error_msg)
+            return
+        
+        print(f"[HADES] CSV creado exitosamente: {drive_tmp_csv} ({os.path.getsize(drive_tmp_csv)} bytes)")
+        
+        # Subir a Drive
+        remote_name = f"HADES_OCR_{ts}.csv"
+        info_msgs = []
+        ok, info = _subir_a_drive(drive_tmp_csv, remote_name, "text/csv")
+        info_msgs.append(info)
+        
+        if ok:
+            # Se extrae el ID de la respuesta para el log
+            file_id = info.split('id=')[-1].split(')')[0]
+            success_msg = f"CSV subido a Drive exitosamente (id={file_id})"
+            print(f"[HADES] {success_msg}")
+            registrar_changelog(f"Drive upload exitoso: {remote_name}")
+            # Mostrar confirmación en status bar
+            status.config(text=f"✅ Enviado a Drive: {len(resumen_df)} registros")
+        else:
+            error_msg = "No se pudo subir a Drive:\n" + " | ".join(info_msgs)
+            print(f"[HADES] {error_msg}")
+            registrar_changelog(f"Drive upload falló: {info}")
+            # Mostrar error al usuario
+            messagebox.showerror(
+                "Error de Google Drive",
+                f"No se pudo subir el archivo a Google Drive.\n\n{info}\n\nVerifica:\n"
+                f"• Conexión a internet\n"
+                f"• Permisos de la cuenta de servicio\n"
+                f"• ID de carpeta: {DRIVE_FOLDER_ID}"
+            )
+    
+    except Exception as e:
+        error_detail = f"Error inesperado al exportar a Drive: {str(e)}"
+        print(f"[HADES] {error_detail}")
+        print(f"[HADES] Traceback:\n{traceback.format_exc()}")
+        registrar_changelog(f"Drive upload error: {error_detail}")
+        # Mostrar error al usuario
+        messagebox.showerror(
+            "Error de Exportación",
+            f"Error al exportar a Drive:\n\n{str(e)}\n\nRevisa los logs para más detalles."
+        )
 
-    remote_name = f"HADES_OCR_{ts}.csv"
-    info_msgs = []
-    ok, info = _subir_a_drive(drive_tmp_csv, remote_name, "text/csv"); info_msgs.append(info)
-    if ok:
-        # Se extrae el ID de la respuesta para el log
-        file_id = info.split('id=')[-1].split(')')[0]
-        print(f"[HADES] CSV subido a Drive (id={file_id})")
-    else:
-        print("[HADES] No se pudo subir a Drive: " + " | ".join(info_msgs))
+
+def safe_export_drive():
+    """
+    Wrapper seguro para _export_drive_only que garantiza:
+    1. Ejecución en el hilo principal de Tkinter
+    2. Manejo de excepciones visible al usuario
+    3. Validación de estado antes de exportar
+    """
+    try:
+        # Verificar que tenemos resultados
+        if not resultados:
+            print("[HADES] No hay resultados para exportar (lista vacía)")
+            return
+        
+        # Verificar que estamos en el hilo principal
+        import threading
+        if threading.current_thread() != threading.main_thread():
+            print("[HADES] ADVERTENCIA: safe_export_drive llamado desde thread secundario")
+            # Re-agendar en el hilo principal
+            root.after(0, safe_export_drive)
+            return
+        
+        print(f"[HADES] Iniciando exportación segura a Drive ({len(resultados)} resultados)")
+        _export_drive_only()
+        
+    except Exception as e:
+        import traceback
+        error_msg = f"Error crítico en safe_export_drive: {str(e)}"
+        print(f"[HADES] {error_msg}")
+        print(f"[HADES] Traceback:\n{traceback.format_exc()}")
+        registrar_changelog(f"safe_export_drive error: {error_msg}")
+        
+        # Mostrar error al usuario
+        try:
+            messagebox.showerror(
+                "Error Crítico de Exportación",
+                f"Error al intentar exportar a Drive:\n\n{str(e)}\n\n"
+                f"El análisis se completó pero no se pudo subir a Drive.\n"
+                f"Revisa los logs para más detalles."
+            )
+        except:
+            # Si incluso el messagebox falla, al menos lo tenemos en logs
+            print("[HADES] No se pudo mostrar messagebox de error")
+
 
 
 def _do_export(destino_carpeta_local: str):
