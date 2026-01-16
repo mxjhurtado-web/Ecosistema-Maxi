@@ -1,0 +1,81 @@
+﻿python : Traceback (most 
+recent call last):
+At line:1 char:1
++ python -c "import fitz; 
+doc = fitz.open('Formato 
+Temis.pdf'); print(f ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (Traceba  
+  ck (most recent call las   
+ t)::String) [], RemoteEx    
+ception
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+  File "<string>", line 1, 
+in <module>
+    import fitz; doc = 
+fitz.open('Formato 
+Temis.pdf'); print(f'Pages: 
+{len(doc)}'); [print(f'\n=== 
+PAGE {i+1} 
+===\n{doc[i].get_text()}') 
+for i in range(min(3, 
+len(doc)))]
+                             
+                             
+                           ~~
+~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData
+\Local\Programs\Python\Python
+313\Lib\encodings\cp1252.py",
+ line 19, in encode
+    return codecs.charmap_enc
+ode(input,self.errors,encodin
+g_table)[0]
+           ~~~~~~~~~~~~~~~~~~
+~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^
+UnicodeEncodeError: 
+'charmap' codec can't encode 
+character '\u25cf' in 
+position 474: character maps 
+to <undefined>
+Pages: 11
+
+=== PAGE 1 ===
+Plantilla maestra de gesti¾n de proyecto 
+Max
+Proyecto: 
+Fecha de Inicio: 
+Estado: 
+1. Definici¾n de roles y gobernanza
+Una persona puede asumir varios roles si cumple con las responsabilidades.
+Rol
+Asignado a 
+(Nombre)
+Responsabilidad Principal
+Sponsor del 
+Proyecto
+Asegurar alineaci¾n estratÚgica y 
+patrocinio ejecutivo.
+Project Lead
+Gesti¾n integral del proyecto (plan 
+operativo detallado).
+Product Owner 
+(PO)
+Maximizar valor del producto (direcci¾n 
+de producto).
+Project 
+Manager/Agile 
+Lead
+Asegurar trabajo efectivo, adaptable y 
+eliminar impedimentos. 
+Developers
+Dise±ar, construir y validar la soluci¾n 
+(Tech + UX/UI).
+

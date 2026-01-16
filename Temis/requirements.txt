@@ -1,0 +1,64 @@
+# ========================================
+# TEMIS - Requirements.txt
+# Complete dependencies for TEMIS project
+# ========================================
+
+# ============ BACKEND ============
+
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Database
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.13.0
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+cryptography==41.0.7
+
+# Data Validation
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# HTTP & API
+requests==2.31.0
+httpx==0.25.2
+python-multipart==0.0.6
+
+# Google APIs
+google-auth==2.25.2
+google-auth-oauthlib==1.1.0
+google-auth-httplib2==0.1.1
+google-api-python-client==2.108.0
+
+# Gemini AI (2.5 Flash)
+google-generativeai==0.3.2
+
+# Utilities
+python-dotenv==1.0.0
+python-dateutil==2.8.2
+
+# ============ DESKTOP ============
+
+# HTTP Client (Desktop)
+requests==2.31.0
+
+# ============ DOCUMENT PROCESSING ============
+
+# PDF Processing
+PyPDF2==3.0.1
+
+# Word Documents
+python-docx==1.1.0
+
+# Excel Files
+openpyxl==3.1.2
+
+# Images
+Pillow==10.1.0
+
+# ============ NOTES ============
+# tkinter is included with Python (no need to install)
+# Standard library modules (json, os, sys, etc.) are built-in

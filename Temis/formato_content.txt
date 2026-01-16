@@ -1,0 +1,34 @@
+﻿Total de pßginas: 11
+
+================================================================================
+
+================================================================================
+P┴GINA 1
+================================================================================
+Plantilla maestra de gesti¾n de proyecto
+Max
+Proyecto:
+Fecha de Inicio:
+Estado:
+1. Definici¾n de roles y gobernanza
+Una persona puede asumir varios roles si cumple con las responsabilidades.
+Rol Asignado a Responsabilidad Principal
+(Nombre)
+Sponsor del Asegurar alineaci¾n estratÚgica y
+Proyecto patrocinio ejecutivo.
+Project Lead Gesti¾n integral del proyecto (plan
+operativo detallado).
+Product Owner Maximizar valor del producto (direcci¾n
+(PO) de producto).
+Project Asegurar trabajo efectivo, adaptable y
+Manager/Agile eliminar impedimentos.
+Lead
+Developers Dise±ar, construir y validar la soluci¾n
+(Tech + UX/UI).
+
+[Encontradas 1 tabla(s) en esta pßgina]
+
+================================================================================
+P┴GINA 2
+================================================================================
+Error: 'charmap' codec can't encode character '\u25cf' in position 446: character maps to <undefined>
