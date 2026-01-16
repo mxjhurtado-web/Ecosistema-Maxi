@@ -33,10 +33,13 @@ class SettingsWindow:
         y = (self.window.winfo_screenheight() // 2) - (400 // 2)
         self.window.geometry(f"600x400+{x}+{y}")
 
-        # Colors
-        bg_color = "#F9FAFB"
-        primary_color = "#1E3A8A"
-        secondary_color = "#3B82F6"
+        # Get theme colors
+        from desktop.ui.ui_helpers import get_theme_colors
+        colors = get_theme_colors()
+        
+        bg_color = colors["bg"]
+        primary_color = colors["primary"]
+        secondary_color = colors["secondary"]
 
         self.window.configure(bg=bg_color)
 
@@ -121,7 +124,78 @@ class SettingsWindow:
             bg=bg_color,
             fg="#6B7280"
         )
-        model_label.pack(anchor='w', pady=(5, 20))
+        model_label.pack(anchor='w', pady=(5, 30))
+        
+        # Theme section
+        theme_label = tk.Label(
+            main_frame,
+            text="APARIENCIA",
+            font=("Arial", 12, "bold"),
+            bg=bg_color,
+            fg=primary_color
+        )
+        theme_label.pack(anchor='w', pady=(0, 10))
+        
+        # Theme selection
+        from desktop.core.theme_manager import ThemeManager
+        
+        theme_frame = tk.Frame(main_frame, bg=bg_color)
+        theme_frame.pack(fill='x', pady=10)
+        
+        theme_desc_label = tk.Label(
+            theme_frame,
+            text="Tema:",
+            font=("Arial", 10),
+            bg=bg_color,
+            fg="#374151"
+        )
+        theme_desc_label.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Current theme
+        current_theme = ThemeManager.get_current_theme()
+        self.theme_var = tk.StringVar(value=current_theme)
+        
+        # Light mode button
+        light_btn = tk.Radiobutton(
+            theme_frame,
+            text="☀️ Claro",
+            variable=self.theme_var,
+            value="light",
+            font=("Arial", 10),
+            bg=bg_color,
+            fg="#374151",
+            selectcolor=bg_color,
+            activebackground=bg_color,
+            cursor="hand2",
+            command=self.preview_theme
+        )
+        light_btn.pack(side=tk.LEFT, padx=10)
+        
+        # Dark mode button
+        dark_btn = tk.Radiobutton(
+            theme_frame,
+            text="🌙 Oscuro",
+            variable=self.theme_var,
+            value="dark",
+            font=("Arial", 10),
+            bg=bg_color,
+            fg="#374151",
+            selectcolor=bg_color,
+            activebackground=bg_color,
+            cursor="hand2",
+            command=self.preview_theme
+        )
+        dark_btn.pack(side=tk.LEFT, padx=10)
+        
+        # Theme info
+        theme_info_label = tk.Label(
+            main_frame,
+            text="💡 El tema se aplicará al reiniciar TEMIS",
+            font=("Arial", 9),
+            bg=bg_color,
+            fg="#6B7280"
+        )
+        theme_info_label.pack(anchor='w', pady=(5, 20))
 
         # Save button
         save_btn = tk.Button(
@@ -156,6 +230,13 @@ class SettingsWindow:
             self.api_key_entry.config(show='')
         else:
             self.api_key_entry.config(show='*')
+    
+    def preview_theme(self):
+        """Preview theme selection"""
+        # Just show a message for now
+        theme = self.theme_var.get()
+        theme_name = "Claro" if theme == "light" else "Oscuro"
+        # Could add visual preview here in the future
 
     def save_config(self):
         """Save configuration"""
@@ -165,8 +246,24 @@ class SettingsWindow:
             messagebox.showwarning("Advertencia", "Por favor ingresa una API key")
             return
 
-        if GeminiConfig.save_api_key(api_key):
-            messagebox.showinfo("Éxito", "Configuración guardada correctamente")
+        # Save API key
+        api_saved = GeminiConfig.save_api_key(api_key)
+        
+        # Save theme
+        from desktop.core.theme_manager import ThemeManager
+        theme = self.theme_var.get()
+        theme_saved = ThemeManager.set_theme(theme)
+        
+        if api_saved and theme_saved:
+            messagebox.showinfo(
+                "Éxito", 
+                "✅ Configuración guardada correctamente\n\n💡 Reinicia TEMIS para aplicar el tema"
+            )
             self.window.destroy()
+        elif api_saved:
+            messagebox.showinfo(
+                "Parcialmente Guardado",
+                "API key guardada, pero hubo un error al guardar el tema"
+            )
         else:
             messagebox.showerror("Error", "No se pudo guardar la configuración")

@@ -50,10 +50,13 @@ class PhaseWizard:
         self.window.title(f"TEMIS - Wizard de Fases: {self.project['name']}")
         self.window.geometry("1000x700")
 
-        # Colors
-        bg_color = "#F9FAFB"
-        primary_color = "#1E3A8A"
-        secondary_color = "#3B82F6"
+        # Get theme colors
+        from desktop.ui.ui_helpers import get_theme_colors
+        colors = get_theme_colors()
+        
+        bg_color = colors["bg"]
+        primary_color = colors["primary"]
+        secondary_color = colors["secondary"]
 
         self.window.configure(bg=bg_color)
 

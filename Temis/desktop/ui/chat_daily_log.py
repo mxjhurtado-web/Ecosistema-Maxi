@@ -38,11 +38,14 @@ class ChatDailyLog:
         self.window.title(f"TEMIS - Chat Diario: {self.project['name']}")
         self.window.geometry("1100x750")
 
-        # Colors
-        bg_color = "#F9FAFB"
-        primary_color = "#3B82F6"
-        temis_bubble = "#FFFFFF"
-        user_bubble = "#DBEAFE"
+        # Get theme colors
+        from desktop.ui.ui_helpers import get_theme_colors
+        colors = get_theme_colors()
+        
+        bg_color = colors["bg"]
+        primary_color = colors["secondary"]
+        temis_bubble = colors["bg_secondary"]
+        user_bubble = colors["info"] if colors["bg"] == "#F9FAFB" else colors["bg_tertiary"]
 
         self.window.configure(bg=bg_color)
 

@@ -35,8 +35,12 @@ class AIAssistedProjectForm:
     
     def _create_ui(self):
         """Create the form UI"""
+        # Get theme colors
+        from desktop.ui.ui_helpers import get_theme_colors
+        colors = get_theme_colors()
+        
         # Header
-        header = tk.Frame(self.window, bg="#1E3A8A", height=70)
+        header = tk.Frame(self.window, bg=colors["primary"], height=70)
         header.pack(fill='x')
         header.pack_propagate(False)
         
@@ -44,7 +48,7 @@ class AIAssistedProjectForm:
             header,
             text="🤖 Asistente IA para Crear Proyecto",
             font=("Arial", 16, "bold"),
-            bg="#1E3A8A",
+            bg=colors["primary"],
             fg="white"
         ).pack(pady=20)
         
