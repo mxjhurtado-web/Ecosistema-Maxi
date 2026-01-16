@@ -30,19 +30,6 @@ from desktop.core.eod_scheduler import EODScheduler
 def main():
     """Main entry point"""
     try:
-        # Auto-start backend
-        from desktop.core.backend_launcher import start_backend, stop_backend
-        
-        print("[TEMIS] Iniciando TEMIS...")
-        if not start_backend():
-            import tkinter.messagebox as mb
-            mb.showerror(
-                "Error de Inicio",
-                "No se pudo iniciar el backend de TEMIS.\n\n"
-                "Verifica que el puerto 8000 esté disponible."
-            )
-            return
-        
         # Create root window (hidden initially)
         root = tk.Tk()
         root.withdraw()  # Hide main window
@@ -78,10 +65,6 @@ def on_closing(root, scheduler, auth_manager):
     """Handle application closing"""
     # Stop scheduler
     scheduler.stop()
-    
-    # Stop backend
-    from desktop.core.backend_launcher import stop_backend
-    stop_backend()
     
     # TODO: Check if there are unprocessed messages today
     # If yes, ask user if they want to process EOD before closing
