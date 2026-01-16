@@ -24,14 +24,14 @@ class SettingsWindow:
         """Create settings window"""
         self.window = tk.Toplevel(self.parent)
         self.window.title("TEMIS - Configuración")
-        self.window.geometry("600x400")
+        self.window.geometry("600x550")  # Increased height to show all content
         self.window.resizable(False, False)
 
         # Center window
         self.window.update_idletasks()
         x = (self.window.winfo_screenwidth() // 2) - (600 // 2)
-        y = (self.window.winfo_screenheight() // 2) - (400 // 2)
-        self.window.geometry(f"600x400+{x}+{y}")
+        y = (self.window.winfo_screenheight() // 2) - (550 // 2)  # Updated for new height
+        self.window.geometry(f"600x550+{x}+{y}")
 
         # Get theme colors
         from desktop.ui.ui_helpers import get_theme_colors
@@ -196,6 +196,117 @@ class SettingsWindow:
             fg="#6B7280"
         )
         theme_info_label.pack(anchor='w', pady=(5, 20))
+        
+        # Separator
+        separator2 = tk.Frame(main_frame, height=2, bg="#E5E7EB")
+        separator2.pack(fill=tk.X, pady=20)
+        
+        # SHARED DATABASE MODE Section
+        shared_mode_label = tk.Label(
+            main_frame,
+            text="MODO DE TRABAJO",
+            font=("Arial", 11, "bold"),
+            bg=bg_color,
+            fg=text_color
+        )
+        shared_mode_label.pack(anchor='w', pady=(0, 10))
+        
+        # Mode selection
+        mode_frame = tk.Frame(main_frame, bg=bg_color)
+        mode_frame.pack(fill=tk.X, pady=5)
+        
+        self.shared_mode_var = tk.StringVar(value="local")
+        
+        # Get current status
+        try:
+            status = self.api_client.get_shared_mode_status()
+            self.shared_mode_var.set(status.get('mode', 'local'))
+        except:
+            pass
+        
+        local_radio = tk.Radiobutton(
+            mode_frame,
+            text="🖥️ Local (solo yo)",
+            variable=self.shared_mode_var,
+            value="local",
+            font=("Arial", 10),
+            bg=bg_color,
+            fg=text_color,
+            selectcolor=bg_color,
+            activebackground=bg_color,
+            command=self.on_mode_change
+        )
+        local_radio.pack(anchor='w', pady=2)
+        
+        shared_radio = tk.Radiobutton(
+            mode_frame,
+            text="☁️ Compartido (equipo en Drive)",
+            variable=self.shared_mode_var,
+            value="shared",
+            font=("Arial", 10),
+            bg=bg_color,
+            fg=text_color,
+            selectcolor=bg_color,
+            activebackground=bg_color,
+            command=self.on_mode_change
+        )
+        shared_radio.pack(anchor='w', pady=2)
+        
+        # Status indicator
+        self.status_label = tk.Label(
+            main_frame,
+            text="Estado: Local",
+            font=("Arial", 9),
+            bg=bg_color,
+            fg="#6B7280"
+        )
+        self.status_label.pack(anchor='w', pady=(10, 5))
+        
+        # Sync button (only visible in shared mode)
+        self.sync_btn = tk.Button(
+            main_frame,
+            text="🔄 Sincronizar Ahora",
+            font=("Arial", 9),
+            bg="#10B981",
+            fg="white",
+            activebackground="#059669",
+            relief=tk.FLAT,
+            cursor="hand2",
+            command=self.manual_sync,
+            padx=15,
+            pady=5
+        )
+        if self.shared_mode_var.get() == "shared":
+            self.sync_btn.pack(anchor='w', pady=5)
+        
+        # Backups button (only visible in shared mode)
+        self.backups_btn = tk.Button(
+            main_frame,
+            text="📦 Ver Backups",
+            font=("Arial", 9),
+            bg="#6366F1",
+            fg="white",
+            activebackground="#4F46E5",
+            relief=tk.FLAT,
+            cursor="hand2",
+            command=self.view_backups,
+            padx=15,
+            pady=5
+        )
+        if self.shared_mode_var.get() == "shared":
+            self.backups_btn.pack(anchor='w', pady=5)
+        
+        # Shared mode info
+        shared_info_label = tk.Label(
+            main_frame,
+            text="💡 Modo compartido: Todos trabajan en la misma base de datos en Drive\n"
+                 "   Sincronización automática cada 5 minutos con backups automáticos",
+            font=("Arial", 8),
+            bg=bg_color,
+            fg="#6B7280",
+            justify=tk.LEFT
+        )
+        shared_info_label.pack(anchor='w', pady=(5, 20))
 
         # Save button
         save_btn = tk.Button(
@@ -267,3 +378,142 @@ class SettingsWindow:
             )
         else:
             messagebox.showerror("Error", "No se pudo guardar la configuración")
+    
+    def on_mode_change(self):
+        """Handle mode change"""
+        mode = self.shared_mode_var.get()
+        
+        # Show/hide buttons based on mode
+        if mode == "shared":
+            self.sync_btn.pack(anchor='w', pady=5)
+            self.backups_btn.pack(anchor='w', pady=5)
+            self.status_label.config(text="Estado: Activando modo compartido...")
+        else:
+            self.sync_btn.pack_forget()
+            self.backups_btn.pack_forget()
+            self.status_label.config(text="Estado: Local")
+        
+        # Enable/disable shared mode
+        try:
+            user_email = self.auth_manager.user_info.get('email', 'unknown')
+            result = self.api_client.toggle_shared_mode(mode == "shared", user_email)
+            
+            if result.get('status') == 'success':
+                self.status_label.config(text=f"Estado: {result.get('mode').title()}")
+                messagebox.showinfo("Éxito", result.get('message'))
+            else:
+                messagebox.showerror("Error", "No se pudo cambiar el modo")
+                # Revert selection
+                self.shared_mode_var.set("local" if mode == "shared" else "shared")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cambiar modo: {str(e)}")
+            self.shared_mode_var.set("local" if mode == "shared" else "shared")
+    
+    def manual_sync(self):
+        """Manually sync database"""
+        try:
+            user_email = self.auth_manager.user_info.get('email', 'unknown')
+            self.status_label.config(text="Estado: Sincronizando...")
+            
+            result = self.api_client.sync_database(user_email)
+            
+            if result.get('status') == 'success':
+                action = result.get('action', 'synced')
+                message = result.get('message', 'Sincronizado')
+                self.status_label.config(text=f"Estado: ✓ {message}")
+                messagebox.showinfo("Sincronización", message)
+            else:
+                self.status_label.config(text="Estado: Error en sync")
+                messagebox.showerror("Error", "No se pudo sincronizar")
+        except Exception as e:
+            self.status_label.config(text="Estado: Error")
+            messagebox.showerror("Error", f"Error al sincronizar: {str(e)}")
+    
+    def view_backups(self):
+        """View and manage backups"""
+        try:
+            backups = self.api_client.list_backups()
+            
+            if not backups.get('backups'):
+                messagebox.showinfo("Backups", "No hay backups disponibles")
+                return
+            
+            # Create backups window
+            backups_window = tk.Toplevel(self.window)
+            backups_window.title("Backups Disponibles")
+            backups_window.geometry("600x400")
+            
+            # Header
+            header = tk.Label(
+                backups_window,
+                text="📦 Backups de Base de Datos",
+                font=("Arial", 14, "bold"),
+                bg="#3B82F6",
+                fg="white",
+                pady=15
+            )
+            header.pack(fill=tk.X)
+            
+            # Listbox with scrollbar
+            list_frame = tk.Frame(backups_window)
+            list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+            
+            scrollbar = tk.Scrollbar(list_frame)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            
+            backup_list = tk.Listbox(
+                list_frame,
+                font=("Arial", 10),
+                yscrollcommand=scrollbar.set
+            )
+            backup_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.config(command=backup_list.yview)
+            
+            # Populate list
+            backup_data = []
+            for backup in backups['backups']:
+                name = backup['name']
+                created = backup.get('created', 'Unknown')
+                backup_list.insert(tk.END, f"{name} - {created}")
+                backup_data.append(backup)
+            
+            # Restore button
+            def restore_selected():
+                selection = backup_list.curselection()
+                if not selection:
+                    messagebox.showwarning("Selección", "Por favor selecciona un backup")
+                    return
+                
+                backup = backup_data[selection[0]]
+                
+                confirm = messagebox.askyesno(
+                    "Confirmar Restauración",
+                    f"¿Estás seguro de restaurar este backup?\n\n{backup['name']}\n\n"
+                    "Esto reemplazará la base de datos actual."
+                )
+                
+                if confirm:
+                    try:
+                        result = self.api_client.restore_backup(backup['id'])
+                        if result.get('status') == 'success':
+                            messagebox.showinfo("Éxito", "Backup restaurado. Reinicia TEMIS para ver los cambios.")
+                            backups_window.destroy()
+                        else:
+                            messagebox.showerror("Error", "No se pudo restaurar el backup")
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Error al restaurar: {str(e)}")
+            
+            restore_btn = tk.Button(
+                backups_window,
+                text="🔄 Restaurar Seleccionado",
+                command=restore_selected,
+                bg="#10B981",
+                fg="white",
+                font=("Arial", 10, "bold"),
+                padx=20,
+                pady=10
+            )
+            restore_btn.pack(pady=10)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar backups: {str(e)}")

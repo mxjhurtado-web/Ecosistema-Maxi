@@ -50,3 +50,5 @@ htmlcov/
 temp/
 tmp/
 *.tmp
+TEMIS_v1.0_Portable.zip
+*.zip

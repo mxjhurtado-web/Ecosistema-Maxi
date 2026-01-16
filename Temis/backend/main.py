@@ -21,8 +21,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from backend.database import engine, Base, get_db
-from backend.routers import auth, projects, groups, daily_log, eod, deliverables, phases, proyecto_max, members, chat, wizard
-from backend.models import user, group, project, phase, daily_log as daily_log_model, task, risk, decision, deliverable, chat_message
+from backend.routers import auth, projects, groups, daily_log, eod, phases, members, chat, wizard, shared_db
+from backend.models import user, group, project, phase, daily_log as daily_log_model, chat_message
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -49,12 +49,11 @@ app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 app.include_router(groups.router, prefix="/api/groups", tags=["groups"])
 app.include_router(daily_log.router, prefix="/api/daily-log", tags=["daily-log"])
 app.include_router(eod.router, prefix="/api/eod", tags=["eod"])
-app.include_router(deliverables.router, prefix="/api/deliverables", tags=["deliverables"])
 app.include_router(phases.router, prefix="/api/phases", tags=["phases"])
-app.include_router(proyecto_max.router, prefix="/api/proyecto-max", tags=["proyecto-max"])
 app.include_router(members.router, prefix="/api/members", tags=["members"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(wizard.router)  # Wizard has its own prefix
+app.include_router(shared_db.router, prefix="/api/shared-db", tags=["shared-db"])
 
 
 @app.get("/")

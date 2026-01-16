@@ -29,9 +29,11 @@ if __name__ == "__main__":
     print("[TEMIS Backend] URL: http://127.0.0.1:8000")
     print("[TEMIS Backend] Docs: http://127.0.0.1:8000/docs")
     
+    # Configure uvicorn to work in executable environment
     uvicorn.run(
         app,
         host="127.0.0.1",
         port=8000,
-        log_level="info"
+        log_config=None,  # Disable default logging config to avoid TTY errors
+        access_log=False   # Disable access log
     )

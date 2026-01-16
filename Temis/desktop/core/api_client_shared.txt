@@ -1,0 +1,52 @@
+﻿    
+    # Shared Database Methods
+    
+    def toggle_shared_mode(self, enable, user_email):
+        try:
+            response = requests.post(f"{self.base_url}/api/shared-db/shared-mode", headers=self.headers, json={"enable": enable, "user_email": user_email})
+            if response.status_code == 200:
+                return response.json()
+            raise Exception(f"Error: {response.status_code}")
+        except Exception as e:
+            print(f"Error toggling shared mode: {e}")
+            raise
+    
+    def get_shared_mode_status(self):
+        try:
+            response = requests.get(f"{self.base_url}/api/shared-db/shared-mode/status", headers=self.headers)
+            if response.status_code == 200:
+                return response.json()
+            return {"mode": "local"}
+        except Exception as e:
+            print(f"Error getting shared mode status: {e}")
+            return {"mode": "local"}
+    
+    def sync_database(self, user_email):
+        try:
+            response = requests.post(f"{self.base_url}/api/shared-db/shared-mode/sync", headers=self.headers, json={"user_email": user_email})
+            if response.status_code == 200:
+                return response.json()
+            raise Exception(f"Error: {response.status_code}")
+        except Exception as e:
+            print(f"Error syncing database: {e}")
+            raise
+    
+    def list_backups(self):
+        try:
+            response = requests.get(f"{self.base_url}/api/shared-db/shared-mode/backups", headers=self.headers)
+            if response.status_code == 200:
+                return response.json()
+            return {"backups": []}
+        except Exception as e:
+            print(f"Error listing backups: {e}")
+            return {"backups": []}
+    
+    def restore_backup(self, backup_id):
+        try:
+            response = requests.post(f"{self.base_url}/api/shared-db/shared-mode/restore", headers=self.headers, json={"backup_id": backup_id})
+            if response.status_code == 200:
+                return response.json()
+            raise Exception(f"Error: {response.status_code}")
+        except Exception as e:
+            print(f"Error restoring backup: {e}")
+            raise

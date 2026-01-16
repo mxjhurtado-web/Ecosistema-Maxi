@@ -14,9 +14,7 @@ from datetime import datetime, date
 from backend.database import get_db
 from backend.models.user import User
 from backend.models.daily_log import DailyLog
-from backend.models.task import Task, TaskStatus, TaskPriority, TaskSource
-from backend.models.risk import Risk, RiskImpact, RiskProbability, RiskStatus, RiskSource
-from backend.models.decision import Decision, DecisionSource
+from backend.models.chat_message import ChatMessage
 from backend.services.gemini_service import GeminiService
 
 router = APIRouter()

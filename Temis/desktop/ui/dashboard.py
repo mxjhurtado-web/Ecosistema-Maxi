@@ -591,9 +591,8 @@ class DashboardWindow:
         ChatDailyLog(self.parent, self.auth_manager, project)
 
     def open_management(self, project):
-        """Open project management"""
-        from desktop.ui.project_management import ProjectManagement
-        ProjectManagement(self.parent, self.auth_manager, project)
+        """Open project management (same as project detail)"""
+        self.open_project(project)
 
     def process_eod(self, project):
         """Process End of Day"""
