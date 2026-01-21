@@ -1511,14 +1511,15 @@ def gemini_vision_extract_text(image_path: str) -> str:
         mime = "image/png"
 
         # --- Prompt estilo 'clave-valor' ---
-        ## PULIDO: NUEVO PROMPT CLAVE-VALOR (Idiomas originales para mejor detección)
-        prompt = ("Eres un experto en OCR. Extrae TODO el texto visible de esta imagen de documento oficial. "
+        ## PULIDO: NUEVO PROMPT CLAVE-VALOR (FORZAR ESPAÑOL)
+        prompt = ("Eres un experto en OCR y traducción. Extrae TODO el texto visible de esta imagen de documento oficial. "
                   "Organiza la información como pares CLAVE: VALOR. "
-                  "IMPORTANTE: Utiliza los nombres de campos en el IDIOMA ORIGINAL del documento (ej: 'Name' si es inglés, 'Nombre' si es español). "
-                  "Ejemplo: Name: JOHN DOE, Date of Birth: 01/01/1980. "
+                  "IMPORTANTE: Traduce ABSOLUTAMENTE TODO al español (etiquetas y valores). "
+                  "Si el documento está en un idioma extranjero (como inglés, urdu, árabe), tradúcelo completamente al español. "
+                  "Ejemplo: Nombre: MIRIAN RAMIREZ, Fecha de Nacimiento: 05/06/1993, País: Pakistán. "
                   "Incluye TODOS los números, series, claves, fechas y texto que veas. "
                   "Mantén la puntuación original. "
-                  "Responde SOLO el texto extraído en formato clave-valor. "
+                  "Responde SOLO el texto extraído en formato clave-valor en español. "
                   "NO agregues comentarios, introducciones ni explicaciones.")
         temp = 0.3
 

@@ -36,8 +36,9 @@ def detect_language(text: str, api_key: str, model: str = "gemini-2.0-flash-exp"
     # Usar solo una muestra del texto para detección rápida
     sample = text[:500] if len(text) > 500 else text
     
-    prompt = f"""Analyze the following text from an identity document and detect its primary language. 
-Ignore structural labels if they are in Spanish (e.g., 'Nombre:', 'Género:') and focus on the actual values.
+    prompt = f"""Analyze the following text from an identity document. 
+If the text is already primarily in Spanish (check labels and values), respond with 'es'.
+If the values (names, addresses) are in another language or script, respond with that language code.
 
 Text to analyze:
 ---
@@ -45,7 +46,7 @@ Text to analyze:
 ---
 
 Respond ONLY with the ISO 639-1 language code (e.g., 'en', 'es', 'pt', 'fr', 'ur', 'ar').
-If you detect multiple languages, provide the code for the one that represents the values/content.
+Language code:"""
 
 Language code:"""
     
