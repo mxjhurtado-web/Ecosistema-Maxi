@@ -1,0 +1,6 @@
+google-generativeai
+requests
+Pillow
+pandas
+tkinterdnd2
+PyJWT
