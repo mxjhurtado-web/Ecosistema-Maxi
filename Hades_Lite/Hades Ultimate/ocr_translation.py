@@ -108,7 +108,8 @@ def get_language_display_name(lang_code: str) -> str:
         'sv': 'Sueco',
         'no': 'Noruego',
         'da': 'Danés',
-        'fi': 'Finlandés'
+        'fi': 'Finlandés',
+        'ur': 'Urdu'
     }
     
     return lang_names.get(lang_code.lower()[:2], lang_code.upper())

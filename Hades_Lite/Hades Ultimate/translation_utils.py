@@ -36,10 +36,16 @@ def detect_language(text: str, api_key: str, model: str = "gemini-2.0-flash-exp"
     # Usar solo una muestra del texto para detección rápida
     sample = text[:500] if len(text) > 500 else text
     
-    prompt = f"""Detect the language of the following text. Respond ONLY with the ISO 639-1 language code (e.g., 'en', 'es', 'pt', 'fr').
+    prompt = f"""Analyze the following text from an identity document and detect its primary language. 
+Ignore structural labels if they are in Spanish (e.g., 'Nombre:', 'Género:') and focus on the actual values.
 
-Text:
+Text to analyze:
+---
 {sample}
+---
+
+Respond ONLY with the ISO 639-1 language code (e.g., 'en', 'es', 'pt', 'fr', 'ur', 'ar').
+If you detect multiple languages, provide the code for the one that represents the values/content.
 
 Language code:"""
     
@@ -69,13 +75,13 @@ Language code:"""
             result = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip().lower()
             
             # Limpiar resultado (puede venir con comillas o espacios)
-            result = result.replace('"', '').replace("'", '').strip()
+            result = result.replace('"', '').replace("'", '').replace('.', '').strip()
             
-            # Validar que sea un código de idioma válido
+            # Validar que sea un código de idioma válido (2 letras)
             if len(result) == 2 and result.isalpha():
                 return result, 0.9
             
-            # Si no es válido, intentar extraer código
+            # Mapeos comunes si el modelo responde el nombre del idioma
             if 'es' in result or 'spanish' in result or 'español' in result:
                 return 'es', 0.8
             elif 'en' in result or 'english' in result or 'inglés' in result:
@@ -84,6 +90,14 @@ Language code:"""
                 return 'pt', 0.8
             elif 'fr' in result or 'french' in result or 'français' in result:
                 return 'fr', 0.8
+            elif 'ur' in result or 'urdu' in result:
+                return 'ur', 0.8
+            elif 'ar' in result or 'arabic' in result or 'árabe' in result:
+                return 'ar', 0.8
+            
+            # Si tiene un código más largo (ej: zh-CN), tomar los primeros 2
+            if len(result) > 2 and result[2] == '-' and len(result[:2]) == 2:
+                return result[:2], 0.7
         
     except requests.Timeout:
         print("[Translation] Timeout detecting language")
@@ -92,7 +106,7 @@ Language code:"""
     except Exception as e:
         print(f"[Translation] Error detecting language: {e}")
     
-    # Fallback: asumir español
+    # Fallback: asumir español si no se detectó nada claro
     return 'es', 0.5
 
 
