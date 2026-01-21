@@ -13,8 +13,28 @@ except:
     _TRANSLATION_OK = False
     print("[OCR Translation] Módulo translation_utils no disponible")
 
+def is_content_mostly_spanish(text: str) -> bool:
+    """
+    Verifica de forma local y extremadamente rápida si el texto ya parece estar en español.
+    Esto evita llamadas innecesarias a la API para documentos que ya son legibles.
+    """
+    if not text:
+        return True
+    
+    # Palabras clave muy comunes en documentos de identidad en español
+    spanish_hints = [
+        "nombre", "apellido", "nacimiento", "identidad", "documento", 
+        "nacionalidad", "vencimiento", "expedición", "sexo", "estado", 
+        "vigencia", "fécha", "número", "paterno", "materno"
+    ]
+    
+    text_lower = text.lower()
+    matches = sum(1 for hint in spanish_hints if hint in text_lower)
+    
+    # Si encontramos 3 o más palabras clave, asumimos que ya está en español o al menos es legible
+    return matches >= 3
 
-def process_ocr_with_translation(ocr_text: str, api_key: str) -> Tuple[str, dict]:
+def process_ocr_with_translation(ocr_text: str, api_key: str, force: bool = False) -> Tuple[str, dict]:
     """
     Procesa texto OCR y lo traduce al español si es necesario.
     
@@ -39,6 +59,16 @@ def process_ocr_with_translation(ocr_text: str, api_key: str) -> Tuple[str, dict
             'fue_traducido': False,
             'texto_original': None,
             'confianza': 0.0
+        }
+    
+    # --- OPTIMIZACIÓN: Verificación local rápida ---
+    if not force and is_content_mostly_spanish(ocr_text):
+        return ocr_text, {
+            'idioma_detectado': 'es',
+            'fue_traducido': False,
+            'texto_original': None,
+            'confianza': 1.0,
+            'mettodo': 'local_fast_detect'
         }
     
     try:
