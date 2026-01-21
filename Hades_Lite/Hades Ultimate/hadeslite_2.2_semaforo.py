@@ -1,8 +1,8 @@
 # hades_1.6_integrado_full_v4_patched_limpio_final_corregido_v3.py
 # ------------------------------------------------------------------
-# HADES 1.6 — Integrado (FULL v4, Drive patched, Normalización Estricta Final o ya no se que version va jajajaja :) ups)
+# HADES 1.6 — Integrado (FULL v4, Drive patched, Normalización Estricta Final)
 # • VERIFICACIÓN: Corregida normalización de fechas DD MM YYYY (Pasaporte MX).
-# • OCR con Gemini Visión (REST): Analizar actual / Analizar carrusel.
+# • OCR con Gemini Visión (REST) y Traducción Automática al Español.
 # • EXPORTACIÓN: Salida de OCR forzada a usar fechas normalizadas en la UI.
 # ------------------------------------------------------------------
 
@@ -19,46 +19,18 @@ from typing import Optional, Tuple, List, Dict
 import webbrowser  # Para abrir hipervínculos
 # pandas se importará con lazy loading en las funciones que lo usan
 
-# ===== POLICY TEMPLATES (Compliance 2025) =====
-try:
-    from policy_templates import classify_document, policy_score_adjustment
-    _POLICY_TEMPLATES_OK = True
-except Exception as e:
-    print(f"[HADES] Advertencia: No se pudo cargar policy_templates: {e}")
-    _POLICY_TEMPLATES_OK = False
-    classify_document = None
-    policy_score_adjustment = None
-
-# ===== INTERNACIONALIZACIÓN (i18n) =====
-try:
-    from i18n_strings import (
-        get_text, 
-        set_language, 
-        get_current_language,
-        get_language_name,
-        load_language_preference
-    )
-    _I18N_OK = True
-except Exception as e:
-    print(f"[HADES] Advertencia: No se pudo cargar i18n_strings: {e}")
-    _I18N_OK = False
-    # Fallbacks
-    get_text = lambda key, **kwargs: key
-    set_language = lambda lang: None
-    get_current_language = lambda: 'es'
-    get_language_name = lambda code: code.upper()
-    load_language_preference = lambda: 'es'
-
 # ===== TRADUCCIÓN AUTOMÁTICA =====
 try:
-    from translation_utils import detect_language, translate_to_target, should_translate
-    _TRANSLATION_OK = True
+    from ocr_translation import process_ocr_with_translation, get_language_display_name
+    _OCR_TRANSLATION_OK = True
 except Exception as e:
-    print(f"[HADES] Advertencia: No se pudo cargar translation_utils: {e}")
-    _TRANSLATION_OK = False
-    detect_language = None
-    translate_to_target = None
-    should_translate = None
+    print(f"[HADES] Advertencia: No se pudo cargar ocr_translation: {e}")
+    _OCR_TRANSLATION_OK = False
+    process_ocr_with_translation = lambda t, k: (t, {"fue_traducido": False, "idioma_detectado": "es"})
+    get_language_display_name = lambda l: l.upper()
+
+
+
 
 # ===== KEYCLOAK SSO =====
 _KEYCLOAK_OK = False
@@ -1951,131 +1923,51 @@ except Exception as e:
     # print(f"[HADES] No se pudo cargar flama2.png: {e}")
     pass
 
-# Header label (guardamos referencia para i18n)
-header_label = tk.Label(header, text=get_text('app_title') if _I18N_OK else "HADES: El Guardián de tu Información",
-                       bg=COLOR_BG, fg=COLOR_MUTED, font=("Segoe UI", 16, "bold"))
-header_label.pack(side="left", padx=6)
+tk.Label(header, text="HADES: El Guardián de tu Información", bg=COLOR_BG, fg=COLOR_MUTED,
+         font=("Segoe UI", 16, "bold")).pack(side="left", padx=6)
 
 # Barra superior
 bar = tk.Frame(root, bg=COLOR_PANEL); bar.pack(fill="x", pady=(6,0))
 
 def configurar_api_keys():
-    """Gestor de API Key para Gemini con selector de idioma"""
+    """Gestor de API Key para Gemini con hipervínculo"""
     global GEMINI_API_KEY
     
     if not usuario_actual["correo"]:
-        messagebox.showinfo(
-            get_text('api_config') if _I18N_OK else "API Keys",
-            get_text('verify_email_first') if _I18N_OK else "Primero verifica tu correo (se hace al iniciar)."
-        )
+        messagebox.showinfo("API Keys", "Primero verifica tu correo (se hace al iniciar).")
         return
     
     # Crear ventana
     win = tk.Toplevel(root)
-    win.title(get_text('api_window_title') if _I18N_OK else "Configurar API Key")
+    win.title("Configurar API Key")
     win.configure(bg=COLOR_CARD)
     win.transient(root)
     win.grab_set()
-    win.geometry("500x350")  # Aumentado para selector de idioma
+    win.geometry("500x250")
     
     # Título
-    title_label = tk.Label(win, text=get_text('api_window_header') if _I18N_OK else "🔑 Configuración de API Keys",
-                          bg=COLOR_CARD, fg=COLOR_TEXT,
-                          font=("Segoe UI", 13, "bold"))
-    title_label.pack(pady=(16, 10))
+    tk.Label(win, text="🔑 Configuración de API Keys", bg=COLOR_CARD, fg=COLOR_TEXT,
+             font=("Segoe UI", 13, "bold")).pack(pady=(16, 10))
     
     # Frame principal
     main_frame = tk.Frame(win, bg=COLOR_CARD)
     main_frame.pack(fill="both", expand=True, padx=20, pady=10)
     
-    # ===== SELECTOR DE IDIOMA =====
-    lang_label = tk.Label(main_frame, text=get_text('language_label') if _I18N_OK else "🌐 Idioma / Language:",
-                         bg=COLOR_CARD, fg=COLOR_TEXT,
-                         font=("Segoe UI", 10, "bold"))
-    lang_label.grid(row=0, column=0, sticky="w", pady=(0, 5))
-    
-    lang_frame = tk.Frame(main_frame, bg=COLOR_CARD)
-    lang_frame.grid(row=1, column=0, sticky="w", pady=(0, 15))
-    
-    selected_lang = tk.StringVar(value=get_current_language() if _I18N_OK else 'es')
-    
-    # Referencias a widgets para actualización
-    window_widgets = {
-        'title': title_label,
-        'lang_label': lang_label,
-        'gemini_label': None,
-        'link_gemini': None,
-        'btn_save': None,
-        'btn_cancel': None
-    }
-    
-    def on_lang_change(lang):
-        """Callback para cambio de idioma"""
-        if _I18N_OK:
-            set_language(lang)
-            # Actualizar textos de la ventana
-            update_window_texts()
-            # Actualizar UI principal
-            update_main_ui_texts()
-            # Actualizar status
-            lang_name = get_text('lang_spanish') if lang == 'es' else get_text('lang_english')
-            status.config(text=get_text('language_changed', lang=lang_name))
-    
-    def update_window_texts():
-        """Actualiza todos los textos de la ventana"""
-        if not _I18N_OK:
-            return
-        win.title(get_text('api_window_title'))
-        window_widgets['title'].config(text=get_text('api_window_header'))
-        window_widgets['lang_label'].config(text=get_text('language_label'))
-        window_widgets['gemini_label'].config(text=get_text('gemini_api_label'))
-        window_widgets['link_gemini'].config(text=get_text('get_api_key'))
-        window_widgets['btn_save'].config(text=get_text('save'))
-        window_widgets['btn_cancel'].config(text=get_text('cancel'))
-    
-    btn_es = tk.Radiobutton(lang_frame, text=get_text('lang_spanish') if _I18N_OK else "🇪🇸 Español",
-                           variable=selected_lang, value="es",
-                           bg=COLOR_CARD, fg=COLOR_TEXT,
-                           selectcolor=COLOR_BTN,
-                           activebackground=COLOR_CARD,
-                           activeforeground=COLOR_TEXT,
-                           font=("Segoe UI", 10),
-                           command=lambda: on_lang_change('es'))
-    btn_es.pack(side="left", padx=(0, 10))
-    
-    btn_en = tk.Radiobutton(lang_frame, text=get_text('lang_english') if _I18N_OK else "🇺🇸 English",
-                           variable=selected_lang, value="en",
-                           bg=COLOR_CARD, fg=COLOR_TEXT,
-                           selectcolor=COLOR_BTN,
-                           activebackground=COLOR_CARD,
-                           activeforeground=COLOR_TEXT,
-                           font=("Segoe UI", 10),
-                           command=lambda: on_lang_change('en'))
-    btn_en.pack(side="left")
-    
     # ===== GEMINI API KEY =====
-    gemini_label = tk.Label(main_frame, text=get_text('gemini_api_label') if _I18N_OK else "Gemini API Key (Google):",
-                           bg=COLOR_CARD, fg=COLOR_TEXT,
-                           font=("Segoe UI", 10, "bold"))
-    gemini_label.grid(row=2, column=0, sticky="w", pady=(0, 5))
-    window_widgets['gemini_label'] = gemini_label
+    tk.Label(main_frame, text="Gemini API Key (Google):", bg=COLOR_CARD, fg=COLOR_TEXT,
+             font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w", pady=(0, 5))
     
-    gemini_entry = tk.Entry(main_frame, bg="#1f1440", fg=COLOR_TEXT,
-                           insertbackground=COLOR_TEXT,
-                           highlightbackground=ACCENT_2, relief="flat",
-                           width=45, show="*")
-    gemini_entry.grid(row=3, column=0, sticky="ew", pady=(0, 5))
+    gemini_entry = tk.Entry(main_frame, bg="#1f1440", fg=COLOR_TEXT, insertbackground=COLOR_TEXT,
+                           highlightbackground=ACCENT_2, relief="flat", width=45, show="*")
+    gemini_entry.grid(row=1, column=0, sticky="ew", pady=(0, 5))
     if GEMINI_API_KEY:
         gemini_entry.insert(0, GEMINI_API_KEY)
     
     # Hipervínculo Gemini
-    link_gemini = tk.Label(main_frame, text=get_text('get_api_key') if _I18N_OK else "🔗 Obtener Gemini API Key",
-                          bg=COLOR_CARD, fg=COLOR_BLUE, cursor="hand2",
-                          font=("Segoe UI", 9, "underline"))
-    link_gemini.grid(row=4, column=0, sticky="w", pady=(0, 15))
-    link_gemini.bind("<Button-1>", 
-                    lambda e: webbrowser.open("https://aistudio.google.com/app/apikey"))
-    window_widgets['link_gemini'] = link_gemini
+    link_gemini = tk.Label(main_frame, text="🔗 Obtener Gemini API Key", bg=COLOR_CARD, 
+                          fg=COLOR_BLUE, cursor="hand2", font=("Segoe UI", 9, "underline"))
+    link_gemini.grid(row=2, column=0, sticky="w", pady=(0, 15))
+    link_gemini.bind("<Button-1>", lambda e: webbrowser.open("https://aistudio.google.com/app/apikey"))
     
     main_frame.grid_columnconfigure(0, weight=1)
     
@@ -2089,30 +1981,21 @@ def configurar_api_keys():
         
         if gemini_key:
             GEMINI_API_KEY = gemini_key
-            status.config(text=get_text('api_configured') if _I18N_OK else "✅ API Key configurada: Gemini")
+            status.config(text="✅ API Key configurada: Gemini")
         else:
-            status.config(text=get_text('no_api_configured') if _I18N_OK else "⚠️ No se configuró API Key")
+            status.config(text="⚠️ No se configuró API Key")
         
         win.destroy()
     
-    btn_save = tk.Button(btn_frame, text=get_text('save') if _I18N_OK else "💾 Guardar",
-                        command=guardar,
-                        bg=COLOR_PURPLE, fg="white", relief="flat",
-                        padx=20, pady=10, width=12)
-    btn_save.pack(side="left", padx=5)
-    window_widgets['btn_save'] = btn_save
-    
-    btn_cancel = tk.Button(btn_frame, text=get_text('cancel') if _I18N_OK else "❌ Cancelar",
-                          command=win.destroy,
-                          bg=COLOR_BTN, fg="white", relief="flat",
-                          padx=20, pady=10, width=12)
-    btn_cancel.pack(side="left", padx=5)
-    window_widgets['btn_cancel'] = btn_cancel
+    tk.Button(btn_frame, text="💾 Guardar", command=guardar, bg=COLOR_PURPLE, fg="white",
+             relief="flat", padx=20, pady=10, width=12).pack(side="left", padx=5)
+    tk.Button(btn_frame, text="❌ Cancelar", command=win.destroy, bg=COLOR_BTN, fg="white",
+             relief="flat", padx=20, pady=10, width=12).pack(side="left", padx=5)
     
     # Centrar ventana
     root.update_idletasks()
     x = root.winfo_rootx() + (root.winfo_width()//2 - 250)
-    y = root.winfo_rooty() + (root.winfo_height()//2 - 175)
+    y = root.winfo_rooty() + (root.winfo_height()//2 - 125)
     try:
         win.geometry(f"+{x}+{y}")
     except:
@@ -2245,40 +2128,24 @@ def seleccionar_proveedor():
     except:
         pass
 
-# Botones de la barra (con i18n)
-btn_cargar = tk.Button(bar, text=get_text('load_images') if _I18N_OK else "Cargar imágenes",
-                      bg=COLOR_GREEN, fg="white", relief="flat", padx=10, pady=8,
-                      command=lambda: cargar_imagenes())
-btn_cargar.pack(side="left", padx=8, pady=8)
-
+btn_cargar = tk.Button(bar, text="Cargar imágenes", bg=COLOR_GREEN, fg="white", relief="flat", padx=10, pady=8,
+                       command=lambda: cargar_imagenes()); btn_cargar.pack(side="left", padx=8, pady=8)
 btn_preview = tk.Button(bar, text="Previsualización", bg=COLOR_PURPLE, fg="white", relief="flat", padx=10, pady=8,
-                        command=lambda: abrir_previsualizacion())
-btn_preview.pack(side="left", padx=(0,8), pady=8)
+                        command=lambda: abrir_previsualizacion()); btn_preview.pack(side="left", padx=(0,8), pady=8)
 
-btn_api = tk.Button(bar, text=get_text('api_config') if _I18N_OK else "🔑 Configurar API Keys",
-                   bg=COLOR_PURPLE, fg=COLOR_TEXT, relief="flat", padx=10, pady=8,
-                   command=configurar_api_keys)
-btn_api.pack(side="left", padx=(0,8), pady=8)
-
-btn_pegar = tk.Button(bar, text=get_text('paste_clipboard') if _I18N_OK else "Pegar imagen (Ctrl+V)",
-                     bg=COLOR_GREEN, fg=COLOR_TEXT, relief="flat", padx=10, pady=8,
-                     command=lambda: pegar_imagen_clipboard())
-btn_pegar.pack(side="left", padx=(0,8), pady=8)
+btn_api = tk.Button(bar, text="🔑 Configurar API Keys", bg=COLOR_PURPLE, fg=COLOR_TEXT, relief="flat", padx=10, pady=8,
+                    command=configurar_api_keys); btn_api.pack(side="left", padx=(0,8), pady=8)
+btn_pegar = tk.Button(bar, text="Pegar imagen (Ctrl+V)", bg=COLOR_GREEN, fg=COLOR_TEXT, relief="flat", padx=10, pady=8,
+                      command=lambda: pegar_imagen_clipboard()); btn_pegar.pack(side="left", padx=(0,8), pady=8)
 
 # Layout principal (solo panel derecho + vistas)
 main = tk.Frame(root, bg=COLOR_BG); main.pack(fill="both", expand=True)
 right = tk.Frame(main, bg=COLOR_CARD); right.pack(side="left", fill="both", expand=True)
 
-# Título + status (con i18n)
-title_row = tk.Frame(right, bg=COLOR_CARD)
-title_row.pack(fill="x", pady=(10,0))
-
-title_ocr_label = tk.Label(title_row, text=get_text('result_ocr') if _I18N_OK else "Resultado OCR",
-                          bg=COLOR_CARD, fg=COLOR_TEXT, font=("Segoe UI", 12, "bold"))
-title_ocr_label.pack(side="left", padx=12)
-
-status = tk.Label(title_row, text=get_text('drag_drop_hint') if _I18N_OK else "Arrastra y suelta imágenes aquí, o usa Cargar / Ctrl+V.",
-                 bg=COLOR_CARD, fg=COLOR_MUTED)
+# Título + status (status ahora bajo el título, a la derecha)
+title_row = tk.Frame(right, bg=COLOR_CARD); title_row.pack(fill="x", pady=(10,0))
+tk.Label(title_row, text="Resultado OCR", bg=COLOR_CARD, fg=COLOR_TEXT, font=("Segoe UI", 12, "bold")).pack(side="left", padx=12)
+status = tk.Label(title_row, text="Arrastra y suelta imágenes aquí, o usa Cargar / Ctrl+V.", bg=COLOR_CARD, fg=COLOR_MUTED)
 status.pack(side="right", padx=12)
 
 # --- Contenedor de vistas (solo OCR) ---
@@ -2342,31 +2209,15 @@ def _hide_logo_bg():
 _show_logo_bg()
 
 # --- Pie de página con botones (abajo de todo) ---
-footer = tk.Frame(root, bg=COLOR_PANEL)
-footer.pack(fill="x")
-
-btn_analizar = tk.Button(footer, text=get_text('analyze') if _I18N_OK else "🔍 Analizar",
-                        bg=COLOR_PURPLE, fg="white", relief="flat", padx=12, pady=10,
-                        command=lambda: analizar_carrusel())
-btn_analizar.pack(side="left", padx=8, pady=10)
-
-btn_ident = tk.Button(footer, text=get_text('analyze_id') if _I18N_OK else "🪪 Analizar identificación",
-                     bg=COLOR_PURPLE, fg=COLOR_TEXT, relief="flat", padx=12, pady=10,
-                     command=lambda: analizar_identificacion())
-btn_ident.pack(side="left", padx=8, pady=10)
-
-btn_export = tk.Button(footer, text=get_text('export') if _I18N_OK else "💾 Exportar",
-                      bg=COLOR_GREEN, fg=COLOR_TEXT, relief="flat", padx=12, pady=10,
-                      command=lambda: exportar_resultados())
-btn_export.pack(side="left", padx=8, pady=10)
-
-btn_borrar = tk.Button(footer, text=get_text('clear') if _I18N_OK else "🧹 Borrar",
-                      bg=COLOR_RED, fg="white", relief="flat", padx=12, pady=10,
-                      command=lambda: borrar_todo())
-btn_borrar.pack(side="left", padx=8, pady=10)
-
-# Variable global para botón de toggle (se creará después)
-btn_toggle_original = None
+footer = tk.Frame(root, bg=COLOR_PANEL); footer.pack(fill="x")
+btn_analizar = tk.Button(footer, text="🔍 Analizar", bg=COLOR_PURPLE, fg="white", relief="flat", padx=12, pady=10,
+                         command=lambda: analizar_carrusel()); btn_analizar.pack(side="left", padx=8, pady=10)
+btn_ident = tk.Button(footer, text="🪪 Analizar identificación", bg=COLOR_PURPLE, fg=COLOR_TEXT, relief="flat", padx=12, pady=10,
+                        command=lambda: analizar_identificacion()); btn_ident.pack(side="left", padx=8, pady=10)
+btn_export = tk.Button(footer, text="💾 Exportar", bg=COLOR_GREEN, fg=COLOR_TEXT, relief="flat", padx=12, pady=10,
+                       command=lambda: exportar_resultados()); btn_export.pack(side="left", padx=8, pady=10)
+btn_borrar = tk.Button(footer, text="🧹 Borrar", bg=COLOR_RED, fg="white", relief="flat", padx=12, pady=10,
+                       command=lambda: borrar_todo()); btn_borrar.pack(side="left", padx=8, pady=10)
 
 # ========= TOGGLE VIEW =========
 def _clear_view():
@@ -2605,10 +2456,21 @@ def analizar_actual():
     root.update()  # Actualizar UI inmediatamente
     
     # 1. OCR y Normalización (solo Gemini)
-    texto = gemini_vision_extract_text(p)
+    texto_crudo = gemini_vision_extract_text(p)
+    
+    # --- TRADUCCIÓN AUTOMÁTICA ---
+    texto_final = texto_crudo
+    metadata_trans = {"fue_traducido": False, "idioma_detectado": "es"}
+    if _OCR_TRANSLATION_OK and GEMINI_API_KEY:
+        ocr_text.insert("end", "⏳ Detectando idioma y traduciendo si es necesario...\n", "processing")
+        root.update()
+        texto_final, metadata_trans = process_ocr_with_translation(texto_crudo, GEMINI_API_KEY)
+    
+    texto = texto_final
+    # --- FIN TRADUCCIÓN ---
     
     # Actualizar progreso
-    ocr_text.insert("end", "✓ OCR completado\n⏳ Analizando autenticidad...\n", "processing")
+    ocr_text.insert("end", "✓ OCR y Traducción completados\n⏳ Analizando autenticidad...\n", "processing")
     root.update()  # Mantener UI responsiva
     # Se mantiene la normalización para extraer metadatos de riesgo y exportación
     texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
@@ -2635,7 +2497,7 @@ def analizar_actual():
     if _POLICY_TEMPLATES_OK and classify_document:
         policy_data = classify_document(texto)
         # Ajustar score con policy
-        policy_adj, policy_adj_reason = policy_score_adjustment(policy_data['acceptance'])
+        policy_adj, policy_adj_reason = policy_score_adjustment(policy_data['acceptance'] if policy_data else 'unknown')
         # Agregar ajuste a detalles
         if policy_adj > 0:
             detalles.append(policy_adj_reason)
@@ -2643,7 +2505,7 @@ def analizar_actual():
     dt = round(time.time() - t0, 2)
 
     # 3. Guardar resultados
-    # Usamos el texto original para que el exportador trabaje con el output de Gemini
+    # Usamos el texto final (traducido si fue el caso)
     _guardar_resultado(Path(p).name, texto, "actual", dt, datos_esenciales, riesgo, detalles, policy_data)
     
     # 4. Mostrar en el panel
@@ -2654,8 +2516,13 @@ def analizar_actual():
     ocr_text.insert("end", f"\nRESULTADO 1/1 — {nombre_archivo}\n", "header")
     ocr_text.tag_config("header", font=("Segoe UI", 12, "bold"), foreground=ACCENT_2)
     
-    # Mostrar proveedor usado (siempre Gemini ahora)
-    ocr_text.insert("end", f"Analizado con: Gemini\n", "provider_tag")
+    # Mostrar proveedor y traducción
+    prov_text = "Analizado con: Gemini"
+    if metadata_trans.get("fue_traducido"):
+        lang_name = get_language_display_name(metadata_trans.get("idioma_detectado", "en"))
+        prov_text += f" | 🌐 Traducido del {lang_name}"
+    
+    ocr_text.insert("end", f"{prov_text}\n", "provider_tag")
     ocr_text.tag_config("provider_tag", foreground=COLOR_MUTED, font=("Segoe UI", 9, "italic"))
     
     # Mostrar semáforo de autenticidad
@@ -2670,8 +2537,9 @@ def analizar_actual():
     if detalles:
         ocr_text.insert("end", f"{'; '.join(detalles)}\n", "body_header")
     
-    # Se imprime solo la línea de país limpia
-    ocr_text.insert("end", f"\nTexto Completo (OCR original):\n", "body_header")
+    # Texto Completo
+    lbl_ocr = "Texto Completo (OCR Traducido):" if metadata_trans.get("fue_traducido") else "Texto Completo (OCR original):"
+    ocr_text.insert("end", f"\n{lbl_ocr}\n", "body_header")
     ocr_text.tag_config("body_header", font=("Segoe UI", 10, "bold"), foreground=COLOR_TEXT)
     
     # (Punto 3 - Arreglo [DOCUMENTO])
@@ -2721,7 +2589,17 @@ def analizar_carrusel():
         
         try:
             # 1. OCR y Normalización (solo Gemini)
-            texto = gemini_vision_extract_text(p)
+            texto_crudo = gemini_vision_extract_text(p)
+            
+            # --- TRADUCCIÓN AUTOMÁTICA ---
+            texto_final = texto_crudo
+            metadata_trans = {"fue_traducido": False, "idioma_detectado": "es"}
+            if _OCR_TRANSLATION_OK and GEMINI_API_KEY:
+                texto_final, metadata_trans = process_ocr_with_translation(texto_crudo, GEMINI_API_KEY)
+            
+            texto = texto_final
+            # --- FIN TRADUCCIÓN ---
+            
             texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
             
             # 2. Extracción de datos esenciales y autenticidad (solo para registro)
@@ -2755,8 +2633,13 @@ def analizar_carrusel():
             # Mostrar encabezado de resultado
             ocr_text.insert("end", f"\n\nRESULTADO {i+1}/{total} — {nombre_archivo}\n", "header")
             
-            # Mostrar proveedor usado (siempre Gemini ahora)
-            ocr_text.insert("end", f"Analizado con: Gemini\n", "provider_tag")
+            # Mostrar proveedor y traducción
+            prov_text = "Analizado con: Gemini"
+            if metadata_trans.get("fue_traducido"):
+                lang_name = get_language_display_name(metadata_trans.get("idioma_detectado", "en"))
+                prov_text += f" | 🌐 Traducido del {lang_name}"
+            
+            ocr_text.insert("end", f"{prov_text}\n", "provider_tag")
             ocr_text.tag_config("provider_tag", foreground=COLOR_MUTED, font=("Segoe UI", 9, "italic"))
             
             # Mostrar semáforo de autenticidad (tag único por resultado)
@@ -2844,11 +2727,28 @@ def analizar_identificacion():
 
         try:
             # === 1) OCR de frente y reverso (por separado) solo con Gemini ===
-            texto_frente = gemini_vision_extract_text(frente)
-            texto_reverso = gemini_vision_extract_text(reverso)
+            texto_frente_crudo = gemini_vision_extract_text(frente)
+            texto_reverso_crudo = gemini_vision_extract_text(reverso)
+
+            # --- TRADUCCIÓN AUTOMÁTICA ---
+            metadata_trans = {"fue_traducido": False, "idioma_detectado": "es"}
+            texto_frente = texto_frente_crudo
+            texto_reverso = texto_reverso_crudo
+            
+            if _OCR_TRANSLATION_OK and GEMINI_API_KEY:
+                # Procesar frente
+                texto_frente, meta_f = process_ocr_with_translation(texto_frente_crudo, GEMINI_API_KEY)
+                # Procesar reverso
+                texto_reverso, meta_r = process_ocr_with_translation(texto_reverso_crudo, GEMINI_API_KEY)
+                
+                # Metadata combinada para visualización
+                if meta_f.get("fue_traducido") or meta_r.get("fue_traducido"):
+                    metadata_trans["fue_traducido"] = True
+                    metadata_trans["idioma_detectado"] = meta_f.get("idioma_detectado") or meta_r.get("idioma_detectado")
 
             # Texto combinado (lo que se guarda / exporta)
             texto_total = texto_frente + "\n" + texto_reverso
+            # --- FIN TRADUCCIÓN ---
 
             # === 2) Normalización / metadata usando el texto combinado ===
             _, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto_total)
@@ -2890,6 +2790,15 @@ def analizar_identificacion():
                 f"{Path(frente).name} + {Path(reverso).name} ({dt:.2f}s)\n"
             )
             ocr_text.insert("end", header_line, "header")
+            
+            # Mostrar proveedor y traducción
+            prov_text = "Analizado con: Gemini"
+            if metadata_trans.get("fue_traducido"):
+                lang_name = get_language_display_name(metadata_trans.get("idioma_detectado", "en"))
+                prov_text += f" | 🌐 Traducido del {lang_name}"
+            
+            ocr_text.insert("end", f"{prov_text}\n", "provider_tag")
+            ocr_text.tag_config("provider_tag", foreground=COLOR_MUTED, font=("Segoe UI", 9, "italic"))
             
             # Mostrar semáforo de autenticidad (tag único por ID)
             risk_tag = f"risk_tag_id_{idx_doc}"
