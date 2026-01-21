@@ -1150,29 +1150,27 @@ def _authenticity_score(texto: str, image_path: str|None):
         _add_user("Patrón de identificación no válido")
 
     # 6. ANÁLISIS VISUAL FORENSE (señales fuertes solo si son realmente concluyentes)
-    visual_score = 0
+    # (Nota: visual_score y visual_details ya vienen del flujo unificado si se pasa None en image_path)
+    # Pero aquí mantenemos la estructura por si se llama individualmente.
     if image_path and os.path.exists(image_path):
         visual_score, visual_details_internal = gemini_vision_auth_check(image_path)
-
+        
         # Peso optimizado para el score general (máximo 20 puntos)
         visual_score_aplicado = min(visual_score, 20)
         score += visual_score_aplicado
 
         if visual_score > 0:
-            _add_internal(f"Análisis visual: {visual_score} pts (aplicados: {visual_score_aplicado} pts)")
-            _add_internal(visual_details_internal[:1][0] if visual_details_internal else "")
+            _add_internal(f"Análisis visual: {visual_score} pts")
+            _add_internal(visual_details_internal[0] if visual_details_internal else "")
 
         # Clasificación por severidad visual
-        # >=45: anomalías muy serias (evidencia fuerte)
         if visual_score >= 45:
             hard_fail = True
             _add_user("Análisis visual detectó anomalías significativas")
-        # 30-44: sospecha fuerte (no concluyente por sí sola)
         elif visual_score >= 30:
             suspect = True
             strong_flags += 1
             _add_user("Análisis visual requiere verificación")
-        # 20-29: sospecha leve (mantener en MEDIO si hay otros indicios)
         elif visual_score >= 20:
             suspect = True
 
@@ -1493,87 +1491,100 @@ def verificar_correo_online(correo: str):
 
 # ====== OCR con Gemini Visión (REST) ======
 
-def gemini_vision_extract_text(image_path: str) -> str:
+def gemini_unified_analysis(image_path: str) -> dict:
     """
-    Extrae texto con Gemini Visión.
-    ## PULIDO: Se modifica el prompt para exigir formato de clave-valor.
+    ANÁLISIS UNIFICADO (OCR + FORENSE): Una sola llamada para reducir latencia.
+    Incluye compresión proactiva de imagen.
+    Retorna dict: {"ocr_text": str, "riesgo": str, "detalles_forenses": list, "color": str}
     """
     if not GEMINI_API_KEY:
-        return "⚠️ Configura GEMINI_API_KEY para usar Visión."
+        return {"ocr_text": "⚠️ Configura GEMINI_API_KEY.", "riesgo": "DESCONOCIDO", "detalles_forenses": [], "color": "gray"}
+    
     try:
         from PIL import Image, ImageOps
-        # --- Pre-proceso de imagen ---
+        import json
+        # --- Pre-proceso y Compresión Extrema ---
         im = Image.open(image_path)
-        im = ImageOps.exif_transpose(im) # auto-rotación por EXIF
+        im = ImageOps.exif_transpose(im)
+        
+        # Redimensionar si es muy grande (max 1600px)
+        if max(im.size) > 1600:
+            im.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
+            
         bio = io.BytesIO()
-        im.save(bio, format="PNG") # normalizamos a PNG
-        bio.seek(0)
-        mime = "image/png"
+        # Usamos JPEG 85% para reducir el tamaño de subida drásticamente (~10x más ligero que PNG)
+        if im.mode in ("RGBA", "P"):
+            im = im.convert("RGB")
+        im.save(bio, format="JPEG", quality=85, optimize=True)
+        img_data = bio.getvalue()
+        im.close()
 
-        # --- Prompt estilo 'clave-valor' ---
-        ## PULIDO: NUEVO PROMPT CLAVE-VALOR (FORZAR ESPAÑOL)
-        prompt = ("Eres un experto en OCR y traducción. Extrae TODO el texto visible de esta imagen de documento oficial. "
-                  "Organiza la información como pares CLAVE: VALOR. "
-                  "IMPORTANTE: Traduce ABSOLUTAMENTE TODO al español (etiquetas y valores). "
-                  "Si el documento está en un idioma extranjero (como inglés, urdu, árabe), tradúcelo completamente al español. "
-                  "Ejemplo: Nombre: MIRIAN RAMIREZ, Fecha de Nacimiento: 05/06/1993, País: Pakistán. "
-                  "Incluye TODOS los números, series, claves, fechas y texto que veas. "
-                  "Mantén la puntuación original. "
-                  "Responde SOLO el texto extraído en formato clave-valor en español. "
-                  "NO agregues comentarios, introducciones ni explicaciones.")
-        temp = 0.3
+        # Prompt Maestro Unificado
+        prompt = (
+            "Eres un experto en OCR y analista forense de documentos. Analiza esta imagen y responde ESTRICTAMENTE en formato JSON.\n\n"
+            "INSTRUCCIONES:\n"
+            "1. OCR: Extrae todo el texto en formato CLAVE: VALOR. TRADUCE TODO AL ESPAÑOL.\n"
+            "2. FORENSE: Evalúa autenticidad (hologramas, tipografía, marcas de agua, manipulación digital).\n"
+            "3. RIESGO: Asigna un nivel (BAJO, MEDIO, ALTO) basado en hallazgos.\n\n"
+            "RESPONDE SOLO EL JSON CON ESTA ESTRUCTURA:\n"
+            "{\n"
+            "  \"ocr_text\": \"Texto extraído traducido...\",\n"
+            "  \"riesgo\": \"BAJO/MEDIO/ALTO\",\n"
+            "  \"detalles\": [\"lista de hallazgos forenses técnicos\"],\n"
+            "  \"color\": \"green/yellow/red\"\n"
+            "}"
+        )
 
-        # --- SDK preferente ---
+        # --- SDK ---
+        res_json = None
         if genai is not None:
             try:
                 genai.configure(api_key=GEMINI_API_KEY)
                 model = genai.GenerativeModel(GEMINI_MODEL)
                 resp = model.generate_content(
-                    [{"mime_type": mime, "data": bio.getvalue()}, {"text": prompt}],
-                    generation_config={"temperature": temp, "top_p": 0.95, "max_output_tokens": 4096},
-                    request_options={"timeout": GEMINI_TIMEOUT_SHORT}  # Timeout más corto
+                    [{"mime_type": "image/jpeg", "data": img_data}, {"text": prompt}],
+                    generation_config={"temperature": 0.1, "response_mime_type": "application/json"},
+                    request_options={"timeout": GEMINI_TIMEOUT_LONG}
                 )
-                texto = getattr(resp, "text", "") or ""
-                if texto.strip():
-                    im.close()  # Liberar imagen
-                    gc.collect()  # Liberar memoria
-                    return texto
+                res_json = json.loads(resp.text)
             except Exception:
-                pass  # fallback a REST
+                pass
 
-        # --- Fallback REST (mismo prompt/config) ---
-        try:
-            b64 = base64.b64encode(bio.getvalue()).decode("utf-8")
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+        # --- Fallback REST ---
+        if not res_json:
+            b64 = base64.b64encode(img_data).decode("utf-8")
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
             payload = {
-                "contents": [{
-                    "parts": [
-                        {"inline_data": {"mime_type": mime, "data": b64}},
-                        {"text": prompt}
-                    ]
-                }],
-                "generationConfig": {"temperature": temp, "topP": 0.95, "maxOutputTokens": 4096}
+                "contents": [{"parts": [
+                    {"inline_data": {"mime_type": "image/jpeg", "data": b64}},
+                    {"text": prompt}
+                ]}],
+                "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"}
             }
-            headers = {"Content-Type": "application/json"}
-            r = requests.post(f"{url}?key={GEMINI_API_KEY}", headers=headers, json=payload, 
-                             timeout=GEMINI_TIMEOUT_SHORT)  # Timeout más corto
+            r = requests.post(url, json=payload, timeout=GEMINI_TIMEOUT_LONG)
             data = r.json()
-            texto = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "") or ""
-            
-            # Liberar recursos
-            im.close()
-            gc.collect()
-            return texto
+            raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "{}")
+            res_json = json.loads(raw_text)
 
-        except requests.Timeout:
-            return "⚠️ Timeout: Gemini tardó demasiado. Intenta con una imagen más pequeña."
-        except requests.ConnectionError:
-            return "⚠️ Sin conexión a internet. Verifica tu red."
-        except Exception as e2:
-            registrar_changelog(f"ERROR en gemini_vision_extract_text: {str(e2)[:200]}")
-            return f"⚠️ Error al extraer texto: {str(e2)[:100]}"
+        gc.collect()
+        return {
+            "ocr_text": res_json.get("ocr_text", "Error en OCR"),
+            "riesgo": res_json.get("riesgo", "MEDIO"),
+            "detalles_forenses": res_json.get("detalles", []),
+            "color": res_json.get("color", "yellow")
+        }
+
     except Exception as e:
-        return f"❌ Error en Visión: {e}"
+        registrar_changelog(f"Error en unified_analysis: {e}")
+        return {"ocr_text": f"Error: {e}", "riesgo": "ERROR", "detalles_forenses": [str(e)], "color": "red"}
+
+
+def gemini_vision_extract_text(image_path: str) -> str:
+    """
+    (Mantenido por retrocompatibilidad, pero llamar a gemini_unified_analysis para velocidad)
+    """
+    res = gemini_unified_analysis(image_path)
+    return res["ocr_text"]
 
 
 
@@ -2455,34 +2466,36 @@ def analizar_actual():
     ocr_text.delete("1.0", "end")
     ocr_text.insert("end", "⏳ Procesando imagen con Gemini Vision...\n", "processing")
     ocr_text.tag_config("processing", font=("Segoe UI", 11, "italic"), foreground=ACCENT)
-    root.update()  # Actualizar UI inmediatamente
+    # 1. ANÁLISIS UNIFICADO (OCR + FORENSE + COMPRESIÓN)
+    res_unificado = gemini_unified_analysis(p)
+    texto_crudo = res_unificado["ocr_text"]
+    riesgo_visual = res_unificado["riesgo"]
+    detalles_visuales = res_unificado["detalles_forenses"]
+    color_visual = res_unificado["color"]
     
-    # 1. OCR y Normalización (solo Gemini)
-    texto_crudo = gemini_vision_extract_text(p)
-    
-    # --- TRADUCCIÓN AUTOMÁTICA ---
+    # --- TRADUCCIÓN AUTOMÁTICA (Bypass si ya es español) ---
     texto_final = texto_crudo
     metadata_trans = {"fue_traducido": False, "idioma_detectado": "es"}
+    # Solo intentamos traducción extra si detectamos que NO es español localmente
+    # (El Unified Call ya intenta traducir, pero mantenemos esto por documentos difíciles)
     if _OCR_TRANSLATION_OK and GEMINI_API_KEY:
-        ocr_text.insert("end", "⏳ Detectando idioma y traduciendo si es necesario...\n", "processing")
-        root.update()
-        texto_final, metadata_trans = process_ocr_with_translation(texto_crudo, GEMINI_API_KEY)
+        from ocr_translation import is_content_mostly_spanish
+        if not is_content_mostly_spanish(texto_crudo):
+            texto_final, metadata_trans = process_ocr_with_translation(texto_crudo, GEMINI_API_KEY)
     
     texto = texto_final
     # --- FIN TRADUCCIÓN ---
     
     # Actualizar progreso
-    ocr_text.insert("end", "✓ OCR y Traducción completados\n⏳ Analizando autenticidad...\n", "processing")
-    root.update()  # Mantener UI responsiva
-    # Se mantiene la normalización para extraer metadatos de riesgo y exportación
+    ocr_text.insert("end", "✓ Análisis Unificado completado\n", "processing")
+    root.update()
+    
     texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
     
-    # 2. Extracción de datos esenciales y autenticidad
+    # 2. Extracción de datos esenciales y lógica de autenticidad híbrida
     date_results = _process_all_dates_by_type(texto)
     vigencia_final = date_results.get("fecha_vigencia_final")
     nombre_completo = _extract_name(texto)
-    tipo_id = _extract_id_type(texto, doc_pais)
-    num_id = _extract_id_number(texto, doc_pais)
     
     datos_esenciales = {
         "nombre": nombre_completo,
@@ -2491,8 +2504,17 @@ def analizar_actual():
         "vigencia_original": texto,
         "vigencia_sugerida_mdy": vigencia_final,
     }
-    # NOTA: Se pasa el texto original a _authenticity_score para que use la detección de país
-    riesgo, detalles, emoji, color = _authenticity_score(texto, p)
+    
+    # Lógica de autenticidad: Iniciar con el resultado de Gemini
+    riesgo = riesgo_visual
+    detalles = detalles_visuales
+    color = color_visual
+    emoji = "🟢" if color == "green" else "🟡" if color == "yellow" else "🔴"
+    
+    # Refinar con heurísticas locales (opcional pero mantiene consistencia)
+    r_h, d_h, e_h, c_h = _authenticity_score(texto, None) # None para no llamar a Forense de nuevo
+    if c_h == "red" or c_h == "yellow" and color == "green":
+        riesgo, detalles, emoji, color = r_h, d_h, e_h, c_h
     
     # 🆕 Policy Templates (Compliance 2025)
     policy_data = None
@@ -2590,25 +2612,27 @@ def analizar_carrusel():
         root.update()  # Mantener UI responsiva
         
         try:
-            # 1. OCR y Normalización (solo Gemini)
-            texto_crudo = gemini_vision_extract_text(p)
+            # 1. ANÁLISIS UNIFICADO (OCR + FORENSE + COMPRESIÓN)
+            res_unificado = gemini_unified_analysis(p)
+            texto_crudo = res_unificado["ocr_text"]
+            riesgo_visual = res_unificado["riesgo"]
+            detalles_visuales = res_unificado["detalles_forenses"]
+            color_visual = res_unificado["color"]
             
             # --- TRADUCCIÓN AUTOMÁTICA ---
             texto_final = texto_crudo
             metadata_trans = {"fue_traducido": False, "idioma_detectado": "es"}
             if _OCR_TRANSLATION_OK and GEMINI_API_KEY:
-                texto_final, metadata_trans = process_ocr_with_translation(texto_crudo, GEMINI_API_KEY)
+                from ocr_translation import is_content_mostly_spanish
+                if not is_content_mostly_spanish(texto_crudo):
+                    texto_final, metadata_trans = process_ocr_with_translation(texto_crudo, GEMINI_API_KEY)
             
             texto = texto_final
             # --- FIN TRADUCCIÓN ---
             
-            texto_normalizado_diag, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto)
-            
-            # 2. Extracción de datos esenciales y autenticidad (solo para registro)
+            # 2. Extracción de datos esenciales y lógica de autenticidad híbrida
             date_results = _process_all_dates_by_type(texto)
             vigencia_final = date_results.get("fecha_vigencia_final")
-            expedicion_final = date_results.get("fecha_expedicion_final")
-            nacimiento_final = date_results.get("fecha_nacimiento_final")
             
             nombre_completo = _extract_name(texto)
             tipo_id = _extract_id_type(texto, doc_pais)
@@ -2617,12 +2641,22 @@ def analizar_carrusel():
             datos_esenciales = {
                 "nombre": nombre_completo,
                 "fecha_nacimiento_original": _extract_dob(texto)[0],
-                "fecha_nacimiento_sugerida_mdy": nacimiento_final,
+                "fecha_nacimiento_sugerida_mdy": date_results.get("fecha_nacimiento_final"),
                 "vigencia_original": texto,
                 "vigencia_sugerida_mdy": vigencia_final,
             }
 
-            riesgo, detalles, emoji, color = _authenticity_score(texto, p)
+            # Lógica de autenticidad: Iniciar con el resultado de Gemini
+            riesgo = riesgo_visual
+            detalles = detalles_visuales
+            color = color_visual
+            emoji = "🟢" if color == "green" else "🟡" if color == "yellow" else "🔴"
+
+            # Refinar con heurísticas locales (opcional)
+            r_h, d_h, e_h, c_h = _authenticity_score(texto, None)
+            if c_h == "red" or c_h == "yellow" and color == "green":
+                riesgo, detalles, emoji, color = r_h, d_h, e_h, c_h
+
             dt = round(time.time() - t0, 2)
 
             # 3. Guardar resultados
@@ -2728,38 +2762,44 @@ def analizar_identificacion():
         root.update()  # Mantener UI responsiva
 
         try:
-            # === 1) OCR de frente y reverso (por separado) solo con Gemini ===
-            texto_frente_crudo = gemini_vision_extract_text(frente)
-            texto_reverso_crudo = gemini_vision_extract_text(reverso)
+            # === 1) ANÁLISIS UNIFICADO de frente y reverso ===
+            res_f = gemini_unified_analysis(frente)
+            res_r = gemini_unified_analysis(reverso)
+            
+            texto_frente_crudo = res_f["ocr_text"]
+            texto_reverso_crudo = res_r["ocr_text"]
 
-            # --- TRADUCCIÓN AUTOMÁTICA ---
+            # --- TRADUCCIÓN AUTOMÁTICA (Bypass si ya es español) ---
             metadata_trans = {"fue_traducido": False, "idioma_detectado": "es"}
             texto_frente = texto_frente_crudo
             texto_reverso = texto_reverso_crudo
             
             if _OCR_TRANSLATION_OK and GEMINI_API_KEY:
-                # Procesar frente
-                texto_frente, meta_f = process_ocr_with_translation(texto_frente_crudo, GEMINI_API_KEY)
-                # Procesar reverso
-                texto_reverso, meta_r = process_ocr_with_translation(texto_reverso_crudo, GEMINI_API_KEY)
+                from ocr_translation import is_content_mostly_spanish
+                # Procesar frente si no parece español
+                if not is_content_mostly_spanish(texto_frente_crudo):
+                    texto_frente, meta_f = process_ocr_with_translation(texto_frente_crudo, GEMINI_API_KEY)
+                    if meta_f.get("fue_traducido"):
+                        metadata_trans["fue_traducido"] = True
+                        metadata_trans["idioma_detectado"] = meta_f.get("idioma_detectado")
                 
-                # Metadata combinada para visualización
-                if meta_f.get("fue_traducido") or meta_r.get("fue_traducido"):
-                    metadata_trans["fue_traducido"] = True
-                    metadata_trans["idioma_detectado"] = meta_f.get("idioma_detectado") or meta_r.get("idioma_detectado")
+                # Procesar reverso si no parece español
+                if not is_content_mostly_spanish(texto_reverso_crudo):
+                    texto_reverso, meta_r = process_ocr_with_translation(texto_reverso_crudo, GEMINI_API_KEY)
+                    if meta_r.get("fue_traducido"):
+                        metadata_trans["fue_traducido"] = True
+                        if not metadata_trans["idioma_detectado"]:
+                            metadata_trans["idioma_detectado"] = meta_r.get("idioma_detectado")
 
             # Texto combinado (lo que se guarda / exporta)
             texto_total = texto_frente + "\n" + texto_reverso
             # --- FIN TRADUCCIÓN ---
 
-            # === 2) Normalización / metadata usando el texto combinado ===
-            _, _pairs, doc_pais, fmt = _normalize_all_dates_with_pairs(texto_total)
+            # === 2) Extracción de datos y Riesgo Híbrido ===
             date_results = _process_all_dates_by_type(texto_total)
             vigencia_final = date_results.get("fecha_vigencia_final")
             nacimiento_final = date_results.get("fecha_nacimiento_final")
             nombre_completo = _extract_name(texto_total)
-            tipo_id = _extract_id_type(texto_total, doc_pais)
-            num_id = _extract_id_number(texto_total, doc_pais)
 
             datos_esenciales = {
                 "nombre": nombre_completo,
@@ -2769,7 +2809,23 @@ def analizar_identificacion():
                 "vigencia_sugerida_mdy": vigencia_final,
             }
 
-            riesgo, detalles, emoji, color = _authenticity_score(texto_total, frente)
+            # Lógica de Riesgo Combinada (Frente + Reverso + Heurísticas)
+            # Tomamos el riesgo más alto detectado visualmente
+            c_f = res_f["color"]; c_r = res_r["color"]
+            if c_f == "red" or c_r == "red":
+                color = "red"; riesgo = "ALTO"; emoji = "🔴"
+            elif c_f == "yellow" or c_r == "yellow":
+                color = "yellow"; riesgo = "MEDIO"; emoji = "🟡"
+            else:
+                color = "green"; riesgo = "BAJO"; emoji = "🟢"
+            
+            detalles = list(set(res_f["detalles_forenses"] + res_r["detalles_forenses"]))
+
+            # Refinar con heurísticas (pasamos None para omitir forense visual extra)
+            r_h, d_h, e_h, c_h = _authenticity_score(texto_total, None)
+            if c_h == "red" or (c_h == "yellow" and color == "green"):
+                riesgo, detalles, emoji, color = r_h, d_h, e_h, c_h
+
             dt = round(time.time() - t0, 2)
 
             # Nombre lógico para exportar (frente + reverso)
