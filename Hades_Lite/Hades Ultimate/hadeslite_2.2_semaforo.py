@@ -2635,8 +2635,6 @@ def analizar_carrusel():
             vigencia_final = date_results.get("fecha_vigencia_final")
             
             nombre_completo = _extract_name(texto)
-            tipo_id = _extract_id_type(texto, doc_pais)
-            num_id = _extract_id_number(texto, doc_pais)
             
             datos_esenciales = {
                 "nombre": nombre_completo,
