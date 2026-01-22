@@ -1519,18 +1519,22 @@ def gemini_unified_analysis(image_path: str) -> dict:
         img_data = bio.getvalue()
         im.close()
 
-        # Prompt Maestro Unificado
+        # Prompt Maestro Unificado - REFORZADO PARA FORMATO
         prompt = (
             "Eres un experto en OCR y analista forense de documentos. Analiza esta imagen y responde ESTRICTAMENTE en formato JSON.\n\n"
-            "INSTRUCCIONES:\n"
-            "1. OCR: Extrae todo el texto en formato CLAVE: VALOR. TRADUCE TODO AL ESPAÑOL.\n"
+            "INSTRUCCIONES CRÍTICAS:\n"
+            "1. OCR: Extrae todo el texto en formato 'CLAVE: VALOR'.\n"
+            "   - IMPORTANTE: Usa un salto de línea (\\n) entre cada par clave-valor.\n"
+            "   - TRADUCE TODO AL ESPAÑOL (etiquetas y valores).\n"
+            "   - Ejemplo: \"Nombre: JUAN PEREZ\\nFecha de Nacimiento: 01/01/1990\\n...\"\n"
             "2. FORENSE: Evalúa autenticidad (hologramas, tipografía, marcas de agua, manipulación digital).\n"
-            "3. RIESGO: Asigna un nivel (BAJO, MEDIO, ALTO) basado en hallazgos.\n\n"
+            "   - Responde en puntos cortos y técnicos (máximo 12 palabras por punto).\n"
+            "3. RIESGO: Asigna un nivel (BAJO, MEDIO, ALTO) y un color (green, yellow, red).\n\n"
             "RESPONDE SOLO EL JSON CON ESTA ESTRUCTURA:\n"
             "{\n"
-            "  \"ocr_text\": \"Texto extraído traducido...\",\n"
+            "  \"ocr_text\": \"Texto extraído con saltos de línea...\",\n"
             "  \"riesgo\": \"BAJO/MEDIO/ALTO\",\n"
-            "  \"detalles\": [\"lista de hallazgos forenses técnicos\"],\n"
+            "  \"detalles\": [\"punto corto 1\", \"punto corto 2\"],\n"
             "  \"color\": \"green/yellow/red\"\n"
             "}"
         )
@@ -2557,20 +2561,20 @@ def analizar_actual():
         ocr_text.tag_config("risk_tag", foreground="#FFD700", font=("Segoe UI", 11, "bold"))
     else:
         ocr_text.tag_config("risk_tag", foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
-    # Mostrar solo mensajes genéricos al usuario
+    # Mostrar mensajes genéricos al usuario
     if detalles:
-        ocr_text.insert("end", f"{'; '.join(detalles)}\n", "body_header")
+        detalles_limpios = [d.strip() for d in detalles if d.strip()]
+        if detalles_limpios:
+            ocr_text.insert("end", f"{'. '.join(detalles_limpios)}.\n", "body_header")
     
-    # Texto Completo
-    lbl_ocr = "Texto Completo (OCR Traducido):" if metadata_trans.get("fue_traducido") else "Texto Completo (OCR original):"
-    ocr_text.insert("end", f"\n{lbl_ocr}\n", "body_header")
-    ocr_text.tag_config("body_header", font=("Segoe UI", 10, "bold"), foreground=COLOR_TEXT)
+    # --- SEPARADOR VISUAL PARA OCR ---
+    ocr_text.insert("end", "\n" + "—"*50 + "\n", "provider_tag")
+    ocr_text.insert("end", "   DATOS DEL DOCUMENTO (TRADUCIDOS)\n", "essential_header")
+    ocr_text.insert("end", "—"*50 + "\n", "provider_tag")
+    ocr_text.tag_config("essential_header", font=("Segoe UI", 11, "bold"), foreground=ACCENT)
     
-    # (Punto 3 - Arreglo [DOCUMENTO])
-    #if doc_pais:
-        #ocr_text.insert("end", f"país: {doc_pais}\n", "essential_value")
-    
-    # Mostrar el texto OCR, sustituyendo las fechas por las procesadas (LLAMADA A LA FUNCIÓN CORREGIDA)
+    # Mostrar el texto OCR, sustituyendo las fechas por las procesadas
+    ocr_text.insert("end", "\n")
     ocr_text.tag_config("value_bold", font=("Segoe UI", 10, "bold"), foreground=COLOR_TEXT)
     texto_listo = texto.replace('\\n', '\n')
     _format_ocr_text_with_normalized_dates(texto_listo, date_results)
@@ -2685,15 +2689,19 @@ def analizar_carrusel():
                 ocr_text.tag_config(risk_tag, foreground="#FFD700", font=("Segoe UI", 11, "bold"))
             else:
                 ocr_text.tag_config(risk_tag, foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
-            # Mostrar solo mensajes genéricos al usuario
+            # Mostrar mensajes genéricos de análisis forense
             if detalles:
-                ocr_text.insert("end", f"{'; '.join(detalles)}\n", "body_header")
+                detalles_limpios = [d.strip() for d in detalles if d.strip()]
+                if detalles_limpios:
+                    ocr_text.insert("end", f"{'. '.join(detalles_limpios)}.\n", "body_header")
 
-            # (Punto 3 - Arreglo [DOCUMENTO])
-            #if doc_pais_actual:
-                #ocr_text.insert("end", f"país: {doc_pais_actual}\n", "essential_value")
+            # --- SEPARADOR VISUAL PARA OCR ---
+            ocr_text.insert("end", "\n" + "—"*50 + "\n", "provider_tag")
+            ocr_text.insert("end", "   DATOS DEL DOCUMENTO (TRADUCIDOS)\n", "essential_header")
+            ocr_text.insert("end", "—"*50 + "\n", "provider_tag")
 
             # Mostrar texto OCR con negritas en valores
+            ocr_text.insert("end", "\n")
             texto_listo = texto.replace('\\n', '\n')
             _format_ocr_text_with_normalized_dates(texto_listo, date_results)
             
@@ -2865,9 +2873,17 @@ def analizar_identificacion():
                 ocr_text.tag_config(risk_tag, foreground="#FFD700", font=("Segoe UI", 11, "bold"))
             else:
                 ocr_text.tag_config(risk_tag, foreground=COLOR_RED, font=("Segoe UI", 11, "bold"))
-            # Mostrar solo mensajes genéricos al usuario
+            # Mostrar mensajes genéricos de análisis forense
             if detalles:
-                ocr_text.insert("end", f"{'; '.join(detalles)}\n", "body_header")
+                detalles_limpios = [d.strip() for d in detalles if d.strip()]
+                if detalles_limpios:
+                    ocr_text.insert("end", f"{'. '.join(detalles_limpios)}.\n", "body_header")
+
+            # --- SEPARADOR VISUAL PARA OCR ---
+            ocr_text.insert("end", "\n" + "—"*50 + "\n", "provider_tag")
+            ocr_text.insert("end", "   DATOS DEL DOCUMENTO (TRADUCIDOS)\n", "essential_header")
+            ocr_text.insert("end", "—"*50 + "\n", "provider_tag")
+            ocr_text.insert("end", "\n")
 
             # País (una sola vez por ID)
             #if doc_pais:
