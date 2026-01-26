@@ -1,50 +1,51 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
 import sys
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, collect_all
 
 block_cipher = None
 
 # Obtener la ruta base del proyecto
 project_dir = os.path.abspath('.')
 
-# Recolectar archivos de datos de tkinterdnd2
-datas = collect_data_files('tkinterdnd2')
+# Recolectar TODO de las librerías pesadas/críticas
+datas = []
+binaries = []
+hiddenimports = [
+    'google.generativeai',
+    'requests',
+    'PIL.Image',
+    'PIL.ImageTk',
+    'pandas',
+    'tkinterdnd2',
+    'jwt',
+    'google.auth',
+    'google_auth_oauthlib',
+    'googleapiclient.discovery',
+    'google.api_core',
+    'certifi'
+]
 
-# Agregar archivos estáticos del proyecto
+# Librerías que suelen dar problemas en el empaquetado
+for lib in ['tkinterdnd2', 'google.generativeai', 'pandas', 'google.api_core', 'googleapiclient']:
+    tmp_ret = collect_all(lib)
+    datas += tmp_ret[0]
+    binaries += tmp_ret[1]
+    hiddenimports += tmp_ret[2]
+
+# Agregar archivos estáticos del proyecto manualmente
 datas += [
     ('Logo_Hades.png', '.'), 
     ('flama2.png', '.'),
     ('Hades_ico.ico', '.')
 ]
 
-# Definir archivos del proyecto que deben incluirse
-added_files = [
-    'i18n_strings.py',
-    'keycloak_auth.py',
-    'keycloak_config.py',
-    'ocr_translation.py',
-    'policy_templates.py',
-    'translation_utils.py'
-]
-
 a = Analysis(
     ['hadeslite_2.2_semaforo.py'],
     pathex=[project_dir],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
-    hiddenimports=[
-        'google.generativeai',
-        'requests',
-        'PIL.Image',
-        'PIL.ImageTk',
-        'pandas',
-        'tkinterdnd2',
-        'jwt',
-        'google.auth',
-        'google_auth_oauthlib',
-        'googleapiclient.discovery'
-    ],
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -68,7 +69,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False, # DESACTIVADO para mayor compatibilidad y peso real
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,

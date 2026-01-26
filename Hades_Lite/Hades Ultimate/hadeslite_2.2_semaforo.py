@@ -1556,23 +1556,36 @@ def gemini_unified_analysis(image_path: str) -> dict:
 
         # --- Fallback REST ---
         if not res_json:
-            b64 = base64.b64encode(img_data).decode("utf-8")
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-            payload = {
-                "contents": [{"parts": [
-                    {"inline_data": {"mime_type": "image/jpeg", "data": b64}},
-                    {"text": prompt}
-                ]}],
-                "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"}
-            }
-            r = requests.post(url, json=payload, timeout=GEMINI_TIMEOUT_LONG)
-            data = r.json()
-            raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "{}")
-            res_json = json.loads(raw_text)
+            try:
+                b64 = base64.b64encode(img_data).decode("utf-8")
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+                payload = {
+                    "contents": [{"parts": [
+                        {"inline_data": {"mime_type": "image/jpeg", "data": b64}},
+                        {"text": prompt}
+                    ]}],
+                    "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"}
+                }
+                r = requests.post(url, json=payload, timeout=GEMINI_TIMEOUT_LONG)
+                
+                if r.status_code != 200:
+                    status_err = f"Error API Gemini (Status {r.status_code})"
+                    if r.status_code == 400: status_err += ": Solicitud incorrecta"
+                    elif r.status_code == 403: status_err += ": API Key inválida o bloqueada"
+                    elif r.status_code == 429: status_err += ": Cuota excedida"
+                    return {"ocr_text": status_err, "riesgo": "ERROR", "detalles_forenses": [r.text], "color": "red"}
+                
+                data = r.json()
+                raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "{}")
+                res_json = json.loads(raw_text)
+            except requests.exceptions.ConnectionError:
+                 return {"ocr_text": "Error: Sin conexión a Internet", "riesgo": "ERROR", "detalles_forenses": ["No se pudo conectar con el servidor de Google Gemini."], "color": "red"}
+            except Exception as e:
+                 return {"ocr_text": f"Error en REST: {str(e)}", "riesgo": "ERROR", "detalles_forenses": [str(e)], "color": "red"}
 
         gc.collect()
         return {
-            "ocr_text": res_json.get("ocr_text", "Error en OCR"),
+            "ocr_text": res_json.get("ocr_text", "Formato JSON inválido de Gemini"),
             "riesgo": res_json.get("riesgo", "MEDIO"),
             "detalles_forenses": res_json.get("detalles", []),
             "color": res_json.get("color", "yellow")
@@ -1580,7 +1593,9 @@ def gemini_unified_analysis(image_path: str) -> dict:
 
     except Exception as e:
         registrar_changelog(f"Error en unified_analysis: {e}")
-        return {"ocr_text": f"Error: {e}", "riesgo": "ERROR", "detalles_forenses": [str(e)], "color": "red"}
+        err_msg = str(e)
+        if "API_KEY" in err_msg: err_msg = "Falta configurar la API Key"
+        return {"ocr_text": f"Error: {err_msg}", "riesgo": "ERROR", "detalles_forenses": [str(e)], "color": "red"}
 
 
 def gemini_vision_extract_text(image_path: str) -> str:
