@@ -23,11 +23,13 @@ hiddenimports = [
     'google_auth_oauthlib',
     'googleapiclient.discovery',
     'google.api_core',
-    'certifi'
+    'google_auth_httplib2',
+    'certifi',
+    'httplib2'
 ]
 
 # Librerías que suelen dar problemas en el empaquetado
-for lib in ['tkinterdnd2', 'google.generativeai', 'pandas', 'google.api_core', 'googleapiclient']:
+for lib in ['tkinterdnd2', 'google.generativeai', 'pandas', 'google.api_core', 'googleapiclient', 'google_auth_httplib2']:
     tmp_ret = collect_all(lib)
     datas += tmp_ret[0]
     binaries += tmp_ret[1]
