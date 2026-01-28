@@ -23,11 +23,11 @@ class DevOpsMCP:
         Inicializa el cliente DevOps MCP.
         
         Args:
-            url: URL del servidor MCP (default: https://mcp.mylabs.mx/tools/operations/mcp/)
+            url: URL del servidor MCP (default: https://mcp.maxiagentes.net/mcp)
             keycloak_token: Token de Keycloak para autenticación
             gemini_api_key: API Key de Gemini para consultas
         """
-        self.url = url or os.getenv("DEVOPS_MCP_URL", "https://mcp.mylabs.mx/tools/operations/mcp/")
+        self.url = url or os.getenv("DEVOPS_MCP_URL", "https://mcp.maxiagentes.net/mcp")
         self.keycloak_token = keycloak_token or os.getenv("KEYCLOAK_TOKEN")
         self.gemini_api_key = gemini_api_key or os.getenv("GEMINI_API_KEY")
         

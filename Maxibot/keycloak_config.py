@@ -14,16 +14,16 @@ import os
 # Puedes usar variables de entorno o valores hardcoded
 
 # URL del servidor Keycloak (sin / al final)
-KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "https://sso.maxilabs.net/auth")
+KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "https://sso.maxiagentes.net/auth")
 
 # Nombre del Realm en Keycloak
-REALM = os.getenv("KEYCLOAK_REALM", "zeusDev")
+REALM = os.getenv("KEYCLOAK_REALM", "ssoCorp")
 
 # Client ID configurado en Keycloak
-CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID", "maxi-business-ai")
+CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID", "maxibot-client")
 
 # Client Secret (obtenerlo de Keycloak -> Clients -> Credentials)
-CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET", "mOLonfMkGYnhq3M4CSnzY4p7fFakNciu")
+CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET", "QeXwDi50TYiJqdxisc6hFfyk9HrrgHMX")
 
 # URI de redirección (debe estar configurada en Keycloak)
 REDIRECT_URI = os.getenv("KEYCLOAK_REDIRECT_URI", "http://localhost:8080/callback")
