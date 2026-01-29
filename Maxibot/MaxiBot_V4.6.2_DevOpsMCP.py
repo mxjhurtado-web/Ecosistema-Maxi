@@ -10,6 +10,10 @@ from datetime import datetime
 import io, base64, json, re, time
 import webbrowser  # ✅ Para abrir links en el navegador
 from api_key_manager import get_api_key_manager  # ✅ Sistema de rotación de API Keys
+from dotenv import load_dotenv
+
+# Cargar variables de entorno al inicio (crucial para el .exe)
+load_dotenv()
 
 # ====== imports extra para loader avanzado ======
 try:
@@ -48,8 +52,20 @@ try:
 except Exception:
     _PIL_OK = False
 
+import sys
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+
+    return os.path.join(base_path, relative_path)
+
 ASSETS_DIR = os.path.dirname(os.path.abspath(__file__))
-LOGO_PATH = os.path.join(ASSETS_DIR, "Logo_MaxiBot.png")
+LOGO_PATH = resource_path("Logo_MaxiBot.png")
 _logo_cache = {}
 
 def get_logo(size=48):
@@ -2299,7 +2315,10 @@ def mostrar_operaciones():
     
     # Indicador de estado del MCP
     try:
-        devops = get_devops_mcp()
+        # Intentar obtener el token actual para refrescar el estado del MCP
+        token = keycloak_auth_instance.get_access_token() if keycloak_auth_instance else None
+        devops = get_devops_mcp(keycloak_token=token, gemini_api_key=GEMINI_API_KEY)
+        
         if devops and devops.available():
             status_text = "🟢 Conectado"
             status_color = "#10b981"
@@ -2429,11 +2448,16 @@ def responder_operaciones():
         return
     
     try:
-        devops = get_devops_mcp()
+        # Asegurar que el token esté fresco antes de cada consulta
+        token = keycloak_auth_instance.get_access_token() if keycloak_auth_instance else None
+        
+        # Sincronizar con la instancia singleton
+        devops = get_devops_mcp(keycloak_token=token, gemini_api_key=GEMINI_API_KEY)
+        
         if not devops or not devops.available():
             add_message(
                 "MaxiBot",
-                "❌ DevOps MCP no está conectado. Verifica tu token de Keycloak.",
+                "❌ DevOps MCP no está conectado o la sesión SSO ha expirado. Por favor, reinicia sesión.",
                 kind="bot"
             )
             return
@@ -2497,11 +2521,13 @@ def mostrar_herramientas_mcp():
         return
     
     try:
-        devops = get_devops_mcp()
+        token = keycloak_auth_instance.get_access_token() if keycloak_auth_instance else None
+        devops = get_devops_mcp(keycloak_token=token, gemini_api_key=GEMINI_API_KEY)
+        
         if not devops or not devops.available():
             messagebox.showwarning(
                 "Herramientas MCP",
-                "DevOps MCP no está conectado."
+                "DevOps MCP no está conectado o la sesión SSO ha expirado."
             )
             return
         

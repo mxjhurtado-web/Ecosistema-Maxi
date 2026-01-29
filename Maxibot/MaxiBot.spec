@@ -1,88 +1,35 @@
-# MaxiBot.spec
-# Actualizado para MaxiBot_V4.6.2_DevOpsMCP.py
+# -*- mode: python ; coding: utf-8 -*-
 
 block_cipher = None
 
-import certifi  # ✅ Para incluir certificados SSL
-from PyInstaller.utils.hooks import copy_metadata
-from PyInstaller.building.build_main import Analysis, PYZ, EXE, COLLECT
-
-datas_meta = []
-try:
-    datas_meta += copy_metadata('google-api-python-client')
-except Exception:
-    pass
+# Lista de archivos adicionales (assets, etc.)
+added_files = [
+    ('Logo_MaxiBot.png', '.'), 
+    ('MaxiBot.ico', '.'),
+    ('.env.example', '.'), # Opcional: incluir ejemplo de env
+]
 
 a = Analysis(
-    ['MaxiBot_V4.6.2_DevOpsMCP.py'],  # ✅ Actualizado al nuevo archivo
-    pathex=['.'],
+    ['MaxiBot_V4.6.2_DevOpsMCP.py'],
+    pathex=[],
     binaries=[],
-    datas=[
-        # Archivos que tu app usa en tiempo de ejecución:
-        ('Logo_MaxiBot.png', '.'),
-
-        # Opcional: incluir también el propio .ico junto al exe
-        ('MaxiBot.ico', '.'),
-
-        # ✅ Certificados SSL para requests/HTTPS (CRÍTICO para DevOps MCP)
-        (certifi.where(), 'certifi'),
-
-        # Si quieres cargar un .env desde el exe, descomenta:
-        # ('.env', '.'),
-    ] + datas_meta,
+    datas=added_files,
     hiddenimports=[
-        # Google APIs
-        'googleapiclient',
-        'googleapiclient.discovery',
-        'googleapiclient.http',
-        'google.oauth2.service_account',
-        
-        # Document parsers
-        'PyPDF2',
-        'docx',
-        'openpyxl',
-        
-        # Image handling
-        'PIL',
-        'PIL.Image',
-        'PIL.ImageTk',
-        
-        # MCP
-        'mcp',
-        
-        # ✅ Módulos nuevos de MaxiBot V4.6.2
-        'devops_mcp',
-        'weather_direct',
-        'news_direct',
-        'operaciones_tab',
-        'registro',
-        'registro_adapter',
+        'PIL._tkinter_finder',
         'keycloak_auth',
         'keycloak_config',
-        'api_key_manager',  # ✅ Sistema de rotación de API Keys
-        
-        # Dependencias adicionales
+        'devops_mcp',
+        'api_key_manager',
+        'operaciones_tab',
+        'googleapiclient',
+        'google.auth',
+        'google.generativeai',
+        'mcp',
+        'dotenv',
         'pandas',
-        'requests',
-        
-        # ✅ SSL/HTTPS support (CRÍTICO para DevOps MCP)
-        'certifi',
-        'urllib3',
-        'urllib3.util',
-        'urllib3.util.ssl_',
-        'urllib3.util.retry',
-        'urllib3.contrib',
-        'urllib3.contrib.pyopenssl',
-        'charset_normalizer',
-        'charset_normalizer.md',
-        
-        # ✅ Requests library dependencies
-        'requests.adapters',
-        'requests.auth',
-        'requests.models',
-        'requests.sessions',
-        'requests.packages',
-        'requests.packages.urllib3',
+        'openpyxl',
+        'PyPDF2',
+        'docx',
     ],
     hookspath=[],
     hooksconfig={},
@@ -90,36 +37,31 @@ a = Analysis(
     excludes=[],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
+    cipher=block_cipher,
     noarchive=False,
 )
 
-pyz = PYZ(
-    a.pure,
-    a.zipped_data,
-    cipher=block_cipher,
-)
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
     [],
-    exclude_binaries=True,
-    name='MaxiBot',
+    name='MaxiBot_V4.6.2',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,          # sin consola negra
-    icon='MaxiBot.ico',     # 👈 aquí usamos tu ícono
-)
-
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=True,
     upx_exclude=[],
-    name='MaxiBot',
+    runtime_tmpdir=None,
+    console=False,  # Cambiar a True si se desea ver la terminal de depuración
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon='MaxiBot.ico'
 )

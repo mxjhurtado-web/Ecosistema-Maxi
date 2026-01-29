@@ -52,7 +52,10 @@ def mostrar_operaciones():
     
     # Indicador de estado del MCP
     try:
-        devops = get_devops_mcp()
+        # Refrescar token antes de verificar estado
+        token = keycloak_auth_instance.get_access_token() if keycloak_auth_instance else None
+        devops = get_devops_mcp(keycloak_token=token)
+        
         if devops and devops.available():
             status_text = "🟢 Conectado"
             status_color = "#10b981"
@@ -182,11 +185,16 @@ def responder_operaciones():
         return
     
     try:
-        devops = get_devops_mcp()
+        # Asegurar que el token esté fresco antes de cada consulta
+        token = keycloak_auth_instance.get_access_token() if keycloak_auth_instance else None
+        
+        # Sincronizar con la instancia singleton
+        devops = get_devops_mcp(keycloak_token=token)
+        
         if not devops or not devops.available():
             add_message(
                 "MaxiBot",
-                "❌ DevOps MCP no está conectado. Verifica tu token de Keycloak.",
+                "❌ DevOps MCP no está conectado o la sesión SSO ha expirado. Por favor, reinicia sesión.",
                 kind="bot"
             )
             return

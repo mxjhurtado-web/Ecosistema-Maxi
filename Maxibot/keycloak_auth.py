@@ -374,5 +374,22 @@ class KeycloakAuth:
             return False, f"Error: {str(e)}"
 
     def get_access_token(self) -> Optional[str]:
-        """Obtiene el access token actual para uso con servicios externos (ej. DevOps MCP)"""
+        """
+        Obtiene el access token actual para uso con servicios externos (ej. DevOps MCP).
+        Intenta refrescarlo automáticamente si detecta que podría estar caducado.
+        """
+        if not self.access_token:
+            return None
+            
+        # Intentamos un refresco proactivo si tenemos el refresh_token
+        # Esto previene errores 401 en servicios externos
+        if self.refresh_token:
+            # Nota: Podríamos verificar la expiración con JWT, 
+            # pero un refresco simple es más robusto si el servidor lo permite.
+            success, msg = self.refresh_access_token()
+            if success:
+                print(f"✅ Token de acceso refrescado proactivamente")
+            else:
+                print(f"⚠️ Aviso: No se pudo refrescar el token: {msg}")
+                
         return self.access_token
