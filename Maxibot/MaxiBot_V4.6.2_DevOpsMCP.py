@@ -145,6 +145,13 @@ GEMINI_API_KEY = ""
 
 usuario_actual = {"correo": None, "nombre": None, "alias": None, "sso": False}
 
+# Caché para respuestas de Google Sheets (evita llamadas repetitivas)
+_kb_cache = {"data": None, "timestamp": 0}
+_KB_CACHE_TTL = 1800  # 30 minutos
+
+# Memoria de chat para Agencias (MCP)
+agencias_memory = []
+
 # ===========================
 # 🔐 Keycloak (SSO opcional)
 # ===========================
@@ -318,19 +325,38 @@ def _append_row(sheet_id: str, title: str, values: list[list]):
     ).execute()
 
 def cargar_todas_las_respuestas():
-    # Lee todas las pestañas del Sheet de Contenido con columnas Pregunta/Respuesta
+    """Lee todas las pestañas del Sheet de Contenido con caché para mejorar rendimiento."""
+    global _kb_cache
+    
+    # Verificar si el caché es válido
+    current_time = time.time()
+    if _kb_cache["data"] is not None and (current_time - _kb_cache["timestamp"]) < _KB_CACHE_TTL:
+        return _kb_cache["data"]
+    
+    # Cargar datos frescos
     respuestas_por_hoja = {}
     try:
         for title in _sheet_titles(GS_KB_SHEET_ID):
             m = _rows_to_mapping(_get_rows(GS_KB_SHEET_ID, title))
             if m:
                 respuestas_por_hoja[title] = m
+        
+        # Actualizar caché
+        _kb_cache["data"] = respuestas_por_hoja
+        _kb_cache["timestamp"] = current_time
+        
     except Exception as e:
         try:
             messagebox.showerror("Error", f"No pude leer el Sheet de contenido: {e}")
         except Exception:
             print("No pude leer el Sheet de contenido:", e)
+        
+        # Si hay error pero tenemos caché antiguo, usarlo
+        if _kb_cache["data"] is not None:
+            return _kb_cache["data"]
+            
     return respuestas_por_hoja
+
 
 def verificar_correo_online(correo):
     try:
@@ -1142,8 +1168,111 @@ def mostrar_avisos_ui():
 # 🖼️  UI HELPERS
 # ===========================
 def ensure_scroll_to_bottom():
+    """Asegura que el scroll baje hasta el final de forma confiable."""
+    def _scroll():
+        chat_canvas.update_idletasks()
+        chat_canvas.yview_moveto(1.0)
+    
+    # Doble actualización para asegurar que el scroll funcione
     chat_canvas.update_idletasks()
     chat_canvas.yview_moveto(1.0)
+    # Programar otra actualización después de 50ms para casos donde el contenido aún se está renderizando
+    chat_canvas.after(50, _scroll)
+
+
+def create_wrapping_button_bar(parent, buttons_config, bg_color):
+    """
+    Crea una barra de botones que se envuelve automáticamente en ventanas pequeñas.
+    
+    Args:
+        parent: Frame padre
+        buttons_config: Lista de diccionarios con configuración de botones
+            Cada dict debe tener: text, command, bg, fg (opcional), side (opcional: 'left' o 'right')
+        bg_color: Color de fondo del frame
+    """
+    container = tk.Frame(parent, bg=bg_color)
+    container.pack(fill="x", padx=12, pady=(0, 12))
+    
+    # Separar botones izquierdos y derechos
+    left_buttons = [b for b in buttons_config if b.get('side', 'left') == 'left']
+    right_buttons = [b for b in buttons_config if b.get('side') == 'right']
+    
+    # Frame para botones izquierdos
+    if left_buttons:
+        left_frame = tk.Frame(container, bg=bg_color)
+        left_frame.pack(side="left", fill="x", expand=True)
+        
+        for btn_config in left_buttons:
+            tk.Button(
+                left_frame,
+                text=btn_config['text'],
+                command=btn_config['command'],
+                bg=btn_config['bg'],
+                fg=btn_config.get('fg', COLORS["text_primary"]),
+                relief="flat", bd=0, padx=8, pady=4,
+                font=FONT["btn_small"]
+            ).pack(side="left", padx=(0, 4))
+    
+    # Frame para botones derechos
+    if right_buttons:
+        right_frame = tk.Frame(container, bg=bg_color)
+        right_frame.pack(side="right")
+        
+        for btn_config in right_buttons:
+            tk.Button(
+                right_frame,
+                text=btn_config['text'],
+                command=btn_config['command'],
+                bg=btn_config['bg'],
+                fg=btn_config.get('fg', COLORS["text_primary"]),
+                relief="flat", bd=0, padx=8, pady=4,
+                font=FONT["btn_small"]
+            ).pack(side="left", padx=(4, 0))
+    
+    return container
+
+
+def mask_sensitive_data(text):
+    """
+    Enmascara datos sensibles en el texto (emails y direcciones).
+    Mantiene formato parcialmente visible para contexto.
+    """
+    import re
+    
+    # Patrón para emails
+    email_pattern = r'\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b'
+    
+    def mask_email(match):
+        email = match.group(0)
+        parts = email.split('@')
+        if len(parts) == 2:
+            user, domain = parts
+            domain_parts = domain.split('.')
+            # Mostrar primera letra del usuario y primera del dominio
+            masked_user = user[0] + '***' if len(user) > 1 else '***'
+            masked_domain = domain_parts[0][0] + '***' if len(domain_parts[0]) > 1 else '***'
+            return f"{masked_user}@{masked_domain}.{'.'.join(domain_parts[1:])}"
+        return '***@***.***'
+    
+    # Reemplazar emails
+    text = re.sub(email_pattern, mask_email, text)
+    
+    # Patrón para direcciones comunes (Calle/Avenida/Carrera + número)
+    address_pattern = r'\b(Calle|Avenida|Carrera|Av\.|Cr\.|Cl\.)\s+([\w\s]+?)(?=\s*[,\n]|\s+\d{5}|$)'
+    
+    def mask_address(match):
+        prefix = match.group(1)
+        address = match.group(2).strip()
+        # Mantener solo primera letra de cada palabra
+        words = address.split()
+        masked = ' '.join([w[0] + '***' if len(w) > 1 else w for w in words])
+        return f"{prefix} {masked}"
+    
+    # Reemplazar direcciones
+    text = re.sub(address_pattern, mask_address, text)
+    
+    return text
+
 
 def draw_horizontal_gradient(canvas, x1, y1, x2, y2, color1, color2, steps=120):
     r1, g1, b1 = canvas.winfo_rgb(color1)  # 0..65535
@@ -1335,26 +1464,63 @@ def _crear_botones_feedback(parent, idx):
 
     def marcar(valor):
         registro_sesion[idx]["feedback"] = valor
-        btn_up.config(font=FONT["btn_small"] if registro_sesion[idx]["feedback"] != "positiva" else ("Segoe UI", 9, "bold"))
-        btn_down.config(font=FONT["btn_small"] if registro_sesion[idx]["feedback"] != "negativa" else ("Segoe UI", 9, "bold"))
+        actualizar_botones()
+    
+    def actualizar_botones():
+        estado = registro_sesion[idx].get("feedback", "neutral")
+        
+        if estado == "positiva":
+            btn_up.config(
+                bg="#10b981",  # Verde
+                fg="white",
+                font=("Segoe UI", 10, "bold")
+            )
+            btn_down.config(
+                bg=COLORS["card_bg"],
+                fg=COLORS["text_primary"],
+                font=FONT["btn_small"]
+            )
+        elif estado == "negativa":
+            btn_up.config(
+                bg=COLORS["card_bg"],
+                fg=COLORS["text_primary"],
+                font=FONT["btn_small"]
+            )
+            btn_down.config(
+                bg="#ef4444",  # Rojo
+                fg="white",
+                font=("Segoe UI", 10, "bold")
+            )
+        else:
+            btn_up.config(
+                bg=COLORS["card_bg"],
+                fg=COLORS["text_primary"],
+                font=FONT["btn_small"]
+            )
+            btn_down.config(
+                bg=COLORS["card_bg"],
+                fg=COLORS["text_primary"],
+                font=FONT["btn_small"]
+            )
 
     btn_up = tk.Button(
         wrap, text="👍", command=lambda: marcar("positiva"),
         bg=COLORS["card_bg"], fg=COLORS["text_primary"],
-        relief="flat", bd=0, padx=6, pady=2, font=FONT["btn_small"]
+        relief="flat", bd=0, padx=8, pady=4, font=FONT["btn_small"],
+        cursor="hand2"
     )
     btn_down = tk.Button(
         wrap, text="👎", command=lambda: marcar("negativa"),
         bg=COLORS["card_bg"], fg=COLORS["text_primary"],
-        relief="flat", bd=0, padx=6, pady=2, font=FONT["btn_small"]
+        relief="flat", bd=0, padx=8, pady=4, font=FONT["btn_small"],
+        cursor="hand2"
     )
     btn_up.pack(side="left")
     btn_down.pack(side="left", padx=(6, 0))
 
-    if estado_actual == "positiva":
-        btn_up.config(font=("Segoe UI", 9, "bold"))
-    elif estado_actual == "negativa":
-        btn_down.config(font=("Segoe UI", 9, "bold"))
+    # Aplicar estado inicial
+    actualizar_botones()
+
 
 # ===========================
 # PANTALLAS
@@ -1407,6 +1573,9 @@ def header_card(root, show_chips=True):
             ("En línea", COLORS["chip_ok_bg"]),
             ("Modelo v4.6.2 DevOpsMCP", COLORS["chip_bg"]),
         ]
+        spacing = 8
+        x = w - 20
+        y = 18
         spacing = 8
         x = w - 20
         y = 18
@@ -1479,7 +1648,7 @@ def mostrar_verificacion():
 
         tk.Button(
             form,
-            text="Iniciar sesión con SSO (Keycloak)",
+            text="Iniciar sesión con cuenta Maxi (Google)",
             command=_sso_login,
             bg=COLORS["accent"], fg="#fff",
             activebackground=COLORS["accent_dark"],
@@ -1487,63 +1656,16 @@ def mostrar_verificacion():
             relief="flat", bd=0, padx=16, pady=10,
             font=FONT["btn"]
         ).pack(pady=(0, 10), anchor="w")
-
+    else:
+        # Si Keycloak no está disponible, mostrar mensaje de error
         tk.Label(
             form,
-            text="— o usa tu correo autorizado —",
-            font=FONT["meta"],
+            text="❌ SSO no está disponible. Contacta al administrador.",
+            font=FONT["body"],
             bg=COLORS["card_bg"],
-            fg=COLORS["text_secondary"]
-        ).pack(pady=(0, 10), anchor="w")
+            fg="#ef4444"
+        ).pack(pady=(4, 6), anchor="w")
 
-    # ===========================
-    # 2) Verificación clásica por correo (Sheet)
-    # ===========================
-    tk.Label(
-        form,
-        text="Ingresa tu correo registrado:",
-        font=FONT["body"],
-        bg=COLORS["card_bg"],
-        fg=COLORS["text_primary"]
-    ).pack(pady=(0, 8), anchor="w")
-
-    entrada_correo = tk.Entry(
-        form, font=FONT["body"], width=40, bd=0,
-        highlightthickness=1, highlightbackground=COLORS["divider"],
-        relief="flat"
-    )
-    entrada_correo.pack(pady=(0, 10), anchor="w")
-
-    def verificar():
-        correo = entrada_correo.get().strip()
-        if not correo:
-            messagebox.showwarning("Correo requerido", "Por favor, ingresa tu correo.")
-            return
-
-        valido, nombre = verificar_correo_online(correo)
-        if valido:
-            usuario_actual["correo"] = correo
-            usuario_actual["nombre"] = nombre
-            usuario_actual["sso"] = False
-            registrar_ingreso(correo, nombre, "v4.6.2")
-            mostrar_alias(nombre)
-        else:
-            messagebox.showerror(
-                "Acceso denegado",
-                "Este correo no está autorizado para usar MaxiBot."
-            )
-
-    tk.Button(
-        form,
-        text="Verificar",
-        command=verificar,
-        bg=COLORS["accent"],
-        fg="#fff",
-        activebackground=COLORS["accent_dark"],
-        activeforeground="#fff",
-        relief="flat", bd=0, padx=16, pady=10,
-        font=FONT["btn"]
-    ).pack(pady=6, anchor="w")
 
 
 
@@ -1776,9 +1898,8 @@ def responder():
                 try:
                     devops = get_devops_mcp()
                     if devops and devops.available():
-                        # Mostrar mensaje de carga
+                        # Mostrar mensaje de carga (sin bloquear UI con app.update())
                         temp_row, temp_meta = add_message("MaxiBot", "🔍 Consultando DevOps MCP...", kind="bot")
-                        app.update()
                         
                         respuesta_devops = devops.query_sync(pregunta)
                         
@@ -2212,33 +2333,33 @@ def mostrar_chat():
     tk.Button(
         btn_row, text="Actualizar base", command=actualizar_base,
         bg="#e6f2ff", fg=COLORS["text_primary"],
-        relief="flat", bd=0, padx=12, pady=6,
+        relief="flat", bd=0, padx=8, pady=4,
         font=FONT["btn_small"]
-    ).pack(side="left", padx=(0, 8))
+    ).pack(side="left", padx=(0, 4))
 
     tk.Button(
         btn_row, text="Borrar memoria", command=lambda: borrar_memoria(auto=False),
         bg="#ffecec", fg=COLORS["text_primary"],
-        relief="flat", bd=0, padx=12, pady=6,
+        relief="flat", bd=0, padx=8, pady=4,
         font=FONT["btn_small"]
-    ).pack(side="left", padx=(0, 8))
+    ).pack(side="left", padx=(0, 4))
 
     tk.Button(
         btn_row, text="Avisos", command=mostrar_avisos_ui,
         bg="#fff4d6", fg=COLORS["text_primary"],
-        relief="flat", bd=0, padx=12, pady=6,
+        relief="flat", bd=0, padx=8, pady=4,
         font=FONT["btn_small"]
-    ).pack(side="left", padx=(0, 8))
+    ).pack(side="left", padx=(0, 4))
 
-    # Botón de Operaciones (DevOps MCP)
+    # Botón de Agencias (DevOps MCP)
     if _DEVOPS_MCP_OK and usuario_actual.get("sso"):
         tk.Button(
-            btn_row, text="🔧 Operaciones",
+            btn_row, text="🏛️ Agencias",
             command=mostrar_operaciones,
             bg="#dcfce7", fg=COLORS["text_primary"],
-            relief="flat", bd=0, padx=12, pady=6,
+            relief="flat", bd=0, padx=8, pady=4,
             font=FONT["btn_small"]
-        ).pack(side="left", padx=(0, 8))
+        ).pack(side="left", padx=(0, 4))
 
     def _logout():
         # Si vienes de SSO, cerramos también en Keycloak
@@ -2257,9 +2378,9 @@ def mostrar_chat():
         btn_row, text="Cerrar sesión",
         command=_logout,
         bg="#ffe4e6", fg=COLORS["text_primary"],
-        relief="flat", bd=0, padx=12, pady=6,
+        relief="flat", bd=0, padx=8, pady=4,
         font=FONT["btn_small"]
-    ).pack(side="right", padx=(8, 0))
+    ).pack(side="right", padx=(4, 0))
 
 
 # ===========================
@@ -2268,23 +2389,37 @@ def mostrar_chat():
 
 def mostrar_operaciones():
     """
-    Muestra la pestaña de Operaciones con chat dedicado para DevOps MCP.
+    Muestra la pestaña de Agencias con chat dedicado para DevOps MCP.
     Todas las consultas en esta pestaña van exclusivamente al DevOps MCP.
+    Auto-actualiza la API del MCP al abrir la pestaña.
     """
     global chat_canvas, chat_inner, chat_inner_id, entrada_pregunta
+    
+    # Auto-actualizar MCP con la API key actual del archivo
+    try:
+        from api_key_manager import load_api_key
+        api_key = load_api_key(usuario_actual.get("correo", ""))
+        if api_key:
+            token = keycloak_auth_instance.get_access_token() if keycloak_auth_instance else None
+            devops = get_devops_mcp(keycloak_token=token, gemini_api_key=api_key)
+            print(f"DEBUG: MCP actualizado al abrir Agencias con API key del usuario")
+        else:
+            print(f"DEBUG: No se encontró API key para el usuario")
+    except Exception as e:
+        print(f"DEBUG: Error al actualizar MCP: {e}")
     
     # Verificar que el usuario esté autenticado con SSO
     if not usuario_actual.get("sso") or not keycloak_auth_instance:
         messagebox.showwarning(
-            "Operaciones",
-            "Debes iniciar sesión con SSO para acceder a Operaciones."
+            "Agencias",
+            "Debes iniciar sesión con SSO para acceder a Agencias."
         )
         return
     
     # Verificar que DevOps MCP esté disponible
     if not _DEVOPS_MCP_OK:
         messagebox.showerror(
-            "Operaciones",
+            "Agencias",
             "DevOps MCP no está disponible. Verifica las dependencias."
         )
         return
@@ -2308,7 +2443,7 @@ def mostrar_operaciones():
     title_bar.pack(fill="x", padx=16, pady=(12, 0))
     
     tk.Label(
-        title_bar, text="🔧 Operaciones (DevOps MCP)", 
+        title_bar, text="🏛️ Agencias (DevOps MCP)", 
         font=("Segoe UI", 11, "bold"),
         bg=COLORS["card_bg"], fg=COLORS["text_primary"]
     ).pack(side="left")
@@ -2360,9 +2495,9 @@ def mostrar_operaciones():
     # Mensaje de bienvenida
     add_message(
         "MaxiBot", 
-        "¡Bienvenido a Operaciones! 🔧\n\n"
+        "¡Bienvenido a Agencias! 🏛️\n\n"
         "Aquí puedes consultar información sobre agencias, sistemas y servicios.\n"
-        "Todas tus consultas serán procesadas por el DevOps MCP.",
+        "Todas tus consultas serán procesadas por el DevOps MCP con memoria de contexto.",
         kind="bot"
     )
     
@@ -2386,25 +2521,8 @@ def mostrar_operaciones():
         font=FONT["btn"]
     ).pack(side="left")
     
-    # Botones de acción
-    btn_row = tk.Frame(chat_card, bg=COLORS["card_bg"])
-    btn_row.pack(fill="x", padx=12, pady=(0, 12))
-    
-    tk.Button(
-        btn_row, text="← Volver al Chat", command=mostrar_chat,
-        bg="#e6f2ff", fg=COLORS["text_primary"],
-        relief="flat", bd=0, padx=12, pady=6,
-        font=FONT["btn_small"]
-    ).pack(side="left", padx=(0, 8))
-    
-    tk.Button(
-        btn_row, text="Herramientas MCP", command=mostrar_herramientas_mcp,
-        bg="#f0fdf4", fg=COLORS["text_primary"],
-        relief="flat", bd=0, padx=12, pady=6,
-        font=FONT["btn_small"]
-    ).pack(side="left", padx=(0, 8))
-    
-    def _logout():
+    # Botones de acción con layout responsive
+    def _logout_agencias():
         if usuario_actual.get("sso"):
             cerrar_sesion_keycloak()
         else:
@@ -2412,24 +2530,25 @@ def mostrar_operaciones():
             usuario_actual["nombre"] = None
             usuario_actual["alias"] = None
             usuario_actual["sso"] = False
-        
         borrar_memoria(auto=True)
         mostrar_verificacion()
     
-    tk.Button(
-        btn_row, text="Cerrar sesión",
-        command=_logout,
-        bg="#ffe4e6", fg=COLORS["text_primary"],
-        relief="flat", bd=0, padx=12, pady=6,
-        font=FONT["btn_small"]
-    ).pack(side="right", padx=(8, 0))
+    buttons_config = [
+        {'text': '← Volver al Chat', 'command': mostrar_chat, 'bg': '#e6f2ff', 'side': 'left'},
+        {'text': 'Herramientas MCP', 'command': mostrar_herramientas_mcp, 'bg': '#f0fdf4', 'side': 'left'},
+        {'text': 'Cerrar sesión', 'command': _logout_agencias, 'bg': '#ffe4e6', 'side': 'right'},
+    ]
+    create_wrapping_button_bar(chat_card, buttons_config, COLORS["card_bg"])
+
 
 
 def responder_operaciones():
     """
-    Maneja las respuestas en la pestaña de Operaciones.
-    Todas las consultas van directo al DevOps MCP.
+    Maneja las respuestas en la pestaña de Agencias.
+    Todas las consultas van directo al DevOps MCP con memoria de contexto.
     """
+    global agencias_memory
+    
     pregunta = entrada_pregunta.get().strip()
     if not pregunta:
         return
@@ -2437,6 +2556,9 @@ def responder_operaciones():
     alias = usuario_actual["alias"] or "Usuario"
     add_message(alias, pregunta, kind="user")
     entrada_pregunta.delete(0, tk.END)
+    
+    # Agregar pregunta a la memoria
+    agencias_memory.append(("user", pregunta))
     
     # Verificar que DevOps MCP esté disponible
     if not _DEVOPS_MCP_OK:
@@ -2462,16 +2584,26 @@ def responder_operaciones():
             )
             return
         
+        # Construir prompt con contexto de memoria (hasta 5 interacciones previas)
+        prompt_con_contexto = pregunta
+        if len(agencias_memory) > 1:  # Si hay más que solo la pregunta actual
+            # Tomar hasta las últimas 10 entradas (5 pares pregunta-respuesta)
+            contexto_previo = agencias_memory[-11:-1] if len(agencias_memory) > 11 else agencias_memory[:-1]
+            if contexto_previo:
+                contexto_texto = "\n".join([
+                    f"{role.upper()}: {msg}" for role, msg in contexto_previo
+                ])
+                prompt_con_contexto = f"Contexto de conversación previa:\n{contexto_texto}\n\nPregunta actual: {pregunta}"
+        
         # Mostrar mensaje de carga
         temp_row, temp_meta = add_message(
             "MaxiBot", 
             "🔍 Consultando DevOps MCP...",
             kind="bot"
         )
-        app.update()
         
-        # Consultar DevOps MCP
-        respuesta_devops = devops.query_sync(pregunta)
+        # Consultar DevOps MCP con contexto
+        respuesta_devops = devops.query_sync(prompt_con_contexto)
         
         # Remover mensaje temporal
         try:
@@ -2479,18 +2611,27 @@ def responder_operaciones():
         except:
             pass
         
-        # Mostrar respuesta
+        # Aplicar filtro de privacidad a la respuesta
         if respuesta_devops and not respuesta_devops.startswith("Error"):
-            registrar_consulta(usuario_actual["correo"], "operaciones", pregunta)
-            row, meta = add_message("MaxiBot", respuesta_devops, kind="bot")
+            respuesta_masked = mask_sensitive_data(respuesta_devops)
+            
+            # Agregar respuesta a la memoria (sin enmascarar para contexto futuro)
+            agencias_memory.append(("bot", respuesta_devops))
+            
+            # Mantener memoria limitada (máximo 20 entradas = 10 pares)
+            if len(agencias_memory) > 20:
+                agencias_memory = agencias_memory[-20:]
+            
+            registrar_consulta(usuario_actual["correo"], "agencias", pregunta)
+            row, meta = add_message("MaxiBot", respuesta_masked, kind="bot")
             
             registro_sesion.append({
                 "timestamp": datetime.now().isoformat(timespec='seconds'),
                 "usuario": usuario_actual["alias"],
                 "correo": usuario_actual["correo"],
                 "pregunta": pregunta,
-                "respuesta": respuesta_devops,
-                "origen": "OPERACIONES",
+                "respuesta": respuesta_devops,  # Guardar sin enmascarar en registro
+                "origen": "AGENCIAS",
                 "hoja": None,
                 "feedback": "neutral",
             })
@@ -2509,6 +2650,7 @@ def responder_operaciones():
             kind="bot"
         )
         print(f"Error en responder_operaciones: {e}")
+
 
 
 def mostrar_herramientas_mcp():
@@ -2639,6 +2781,7 @@ registro_sesion = []
 app = tk.Tk()
 app.title("MaxiBot v4.6.2 DevOpsMCP – Asistente cálido y modular")
 app.geometry("880x640")
+app.minsize(700, 500)  # Tamaño mínimo para evitar que se corten los botones
 app.configure(bg=COLORS["app_bg"])
 app.protocol("WM_DELETE_WINDOW", lambda: cerrar_app())
 
