@@ -1,3 +1,4 @@
-google-generativeai>=0.3.0
-Pillow>=10.0.0
-python-dateutil>=2.8.0
+google-generativeai>=0.8.3
+Pillow>=10.1.0
+python-dateutil>=2.8.2
+pycountry>=23.12.11

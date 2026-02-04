@@ -87,8 +87,8 @@ Formato de salida:
 """
     
     try:
-        # Usar Gemini Vision
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # Usar Gemini 2.5 Flash (modelo más reciente)
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         response = model.generate_content(
             [prompt, image],

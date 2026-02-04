@@ -4,12 +4,18 @@ Configuración de la aplicación Hades API.
 Variables de entorno y configuración general.
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 
 class Settings(BaseSettings):
     """Configuración de la aplicación"""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore"
+    )
     
     # App
     APP_NAME: str = "Hades API"
@@ -28,11 +34,11 @@ class Settings(BaseSettings):
     KEYCLOAK_CLIENT_ID: str
     KEYCLOAK_CLIENT_SECRET: str
     
-    # Gemini
-    GEMINI_API_KEY: str
+    # Gemini (opcional - se puede configurar desde UI)
+    GEMINI_API_KEY: Optional[str] = None
     
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
     
     # Upload
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
@@ -40,9 +46,10 @@ class Settings(BaseSettings):
     # Async Processing (Toggle)
     ASYNC_PROCESSING: bool = False  # True = Celery, False = Sync
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Parse CORS origins from comma-separated string"""
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
 
 
 settings = Settings()

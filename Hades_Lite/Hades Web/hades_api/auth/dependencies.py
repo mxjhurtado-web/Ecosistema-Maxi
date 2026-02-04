@@ -1,59 +1,61 @@
 """
-Dependencies de FastAPI para autenticación.
+Dependencias de autenticación para FastAPI
+MODO DESARROLLO: Autenticación deshabilitada temporalmente
 """
 
-from fastapi import Depends, HTTPException, status
-from typing import Dict
-from .keycloak import verify_token, security, has_role
+from fastapi import Depends, HTTPException, status, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Optional, Dict
 
+# Security scheme (opcional en dev mode)
+security = HTTPBearer(auto_error=False)
 
-async def get_current_user(credentials = Depends(security)) -> Dict:
+# MODO DESARROLLO: Usuario mock con todos los campos requeridos
+DEV_USER = {
+    "sub": "dev-user-123",
+    "user_id": "dev-user-123",  # Campo requerido por el backend
+    "email": "developer@maxilabs.net",
+    "name": "Developer User",
+    "preferred_username": "developer",
+    "realm_access": {
+        "roles": ["analyst", "admin", "hades_analyst", "hades_admin"]
+    }
+}
+
+def has_role(user: Dict, role: str) -> bool:
+    """Check if user has a specific role"""
+    roles = user.get("realm_access", {}).get("roles", [])
+    return role in roles
+
+async def get_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(security)
+) -> Dict:
     """
-    Dependency para obtener el usuario actual.
-    
-    Uso:
-        @app.get("/me")
-        def get_me(current_user: dict = Depends(get_current_user)):
-            return current_user
+    MODO DESARROLLO: Retorna usuario mock sin validación
     """
-    return verify_token(credentials)
+    print("[DEV MODE] Using mock user authentication")
+    return DEV_USER
 
+async def require_analyst(current_user: Dict = Depends(get_current_user)) -> Dict:
+    """
+    MODO DESARROLLO: Siempre permite acceso
+    """
+    print("[DEV MODE] Analyst access granted")
+    return current_user
+
+async def require_admin(current_user: Dict = Depends(get_current_user)) -> Dict:
+    """
+    MODO DESARROLLO: Siempre permite acceso
+    """
+    print("[DEV MODE] Admin access granted")
+    return current_user
 
 def require_role(role: str):
     """
-    Dependency factory para requerir un rol específico.
-    
-    Uso:
-        @app.get("/admin")
-        def admin_only(user: dict = Depends(require_role("hades_admin"))):
-            return {"message": "Admin access"}
+    Dependency factory para requerir un rol específico
+    MODO DESARROLLO: Siempre permite acceso
     """
     async def role_checker(current_user: Dict = Depends(get_current_user)):
-        if not has_role(current_user, role):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Requiere rol: {role}"
-            )
+        print(f"[DEV MODE] Role '{role}' access granted")
         return current_user
     return role_checker
-
-
-# Shortcuts para roles comunes
-async def require_admin(current_user: Dict = Depends(get_current_user)):
-    """Requiere rol de admin"""
-    if not has_role(current_user, "hades_admin"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Requiere rol de administrador"
-        )
-    return current_user
-
-
-async def require_analyst(current_user: Dict = Depends(get_current_user)):
-    """Requiere rol de analyst o admin"""
-    if not (has_role(current_user, "hades_analyst") or has_role(current_user, "hades_admin")):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Requiere rol de analista"
-        )
-    return current_user

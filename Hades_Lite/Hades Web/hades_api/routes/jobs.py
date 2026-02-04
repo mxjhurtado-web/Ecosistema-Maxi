@@ -2,7 +2,7 @@
 Endpoints para gestión de jobs.
 """
 
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Query
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Query, Header
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
@@ -28,7 +28,8 @@ async def create_job(
     image: UploadFile = File(..., description="Imagen del documento"),
     auto_export: bool = Query(default=True, description="Exportar automáticamente a Drive"),
     current_user: dict = Depends(require_analyst),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    gemini_api_key: Optional[str] = Header(None, alias="X-Gemini-API-Key")
 ):
     """
     Crea un nuevo job de análisis.
@@ -108,12 +109,29 @@ async def create_job(
             job.started_at = datetime.utcnow()
             db.commit()
             
-            # Analizar imagen
+            # DEBUG: Log API key status
+            print(f"[DEBUG] Gemini API Key from header: {'YES' if gemini_api_key else 'NO'}")
+            print(f"[DEBUG] Gemini API Key from settings: {'YES' if settings.GEMINI_API_KEY else 'NO'}")
+            
+            # Analizar imagen (usar API key del header o del .env)
+            api_key_to_use = gemini_api_key or settings.GEMINI_API_KEY
+            if not api_key_to_use:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Gemini API Key no configurada. Por favor configúrala en Configuración."
+                )
+            
+            print(f"[DEBUG] Using API key (first 10 chars): {api_key_to_use[:10]}...")
+            print(f"[DEBUG] Starting image analysis...")
+            
             result = analyze_image(
                 contents,
-                gemini_api_key=settings.GEMINI_API_KEY,
+                gemini_api_key=api_key_to_use,
                 config={"auto_translate": True}
             )
+            
+            print(f"[DEBUG] Analysis completed. Country: {result.country_code}, Name: {result.name}")
+
             
             # Convertir a dict
             result_dict = result.to_dict()
