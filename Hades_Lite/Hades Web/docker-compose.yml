@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: hades_postgres
+    environment:
+      POSTGRES_USER: hades
+      POSTGRES_PASSWORD: hades_dev
+      POSTGRES_DB: hades_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U hades" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis (for Celery)
+  redis:
+    image: redis:7-alpine
+    container_name: hades_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # FastAPI Backend
+  api:
+    build:
+      context: .
+      dockerfile: hades_api/Dockerfile
+    container_name: hades_api
+    command: uvicorn hades_api.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./hades_api:/app/hades_api
+      - ./hades_core:/app/hades_core
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://hades:hades_dev@postgres:5432/hades_db
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Celery Worker
+  worker:
+    build:
+      context: .
+      dockerfile: hades_worker/Dockerfile
+    container_name: hades_worker
+    command: celery -A hades_worker.celery_app worker --loglevel=info --concurrency=4
+    volumes:
+      - ./hades_worker:/app/hades_worker
+      - ./hades_core:/app/hades_core
+      - ./hades_api:/app/hades_api
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://hades:hades_dev@postgres:5432/hades_db
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Flower (Celery Monitoring)
+  flower:
+    build:
+      context: .
+      dockerfile: hades_worker/Dockerfile
+    container_name: hades_flower
+    command: celery -A hades_worker.celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - redis
+      - worker
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
