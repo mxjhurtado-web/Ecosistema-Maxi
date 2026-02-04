@@ -1,0 +1,107 @@
+# Production docker-compose (without mock MCP)
+version: '3.8'
+
+services:
+  # Redis - for configuration and telemetry
+  redis:
+    image: redis:7-alpine
+    container_name: respondio_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - respondio_network
+    restart: unless-stopped
+
+  # Middleware API
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    container_name: respondio_api
+    ports:
+      - "8000:8000"
+    environment:
+      # API Settings
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_VERSION=1.0.0
+
+      # MCP Settings (point to your real MCP server)
+      - MCP_URL=${MCP_URL}
+      - MCP_TIMEOUT=${MCP_TIMEOUT:-5}
+      - MCP_MAX_RETRIES=${MCP_MAX_RETRIES:-3}
+      - MCP_RETRY_DELAY=${MCP_RETRY_DELAY:-1}
+
+      # Security
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-100}
+
+      # Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+
+      # Cache
+      - CACHE_ENABLED=${CACHE_ENABLED:-true}
+      - CACHE_TTL=${CACHE_TTL:-300}
+      - CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-1000}
+
+      # Circuit Breaker
+      - CIRCUIT_BREAKER_ENABLED=${CIRCUIT_BREAKER_ENABLED:-true}
+      - CIRCUIT_FAILURE_THRESHOLD=${CIRCUIT_FAILURE_THRESHOLD:-5}
+      - CIRCUIT_TIMEOUT=${CIRCUIT_TIMEOUT:-60}
+
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+
+      # Dashboard
+      - DASHBOARD_USERNAME=${DASHBOARD_USERNAME}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - respondio_network
+    restart: unless-stopped
+
+  # Streamlit Dashboard
+  dashboard:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.dashboard
+    container_name: respondio_dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+      - DASHBOARD_USERNAME=${DASHBOARD_USERNAME}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - respondio_network
+    restart: unless-stopped
+
+networks:
+  respondio_network:
+    driver: bridge
+
+volumes:
+  redis_data:
+    driver: local

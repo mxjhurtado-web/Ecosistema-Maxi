@@ -1,0 +1,229 @@
+/* ORBIT Dashboard Custom Styles */
+
+/* Main container styling */
+.main {
+    background: linear-gradient(135deg, #0F1117 0%, #1A1D29 100%);
+}
+
+/* Sidebar styling */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #1A1D29 0%, #0F1117 100%);
+    border-right: 2px solid #00D9FF;
+}
+
+/* Header styling */
+h1 {
+    color: #FFFFFF;
+    font-weight: 700;
+    background: linear-gradient(90deg, #00D9FF 0%, #0066FF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+h2,
+h3 {
+    color: #00D9FF;
+    font-weight: 600;
+}
+
+/* Metric cards */
+div[data-testid="stMetric"] {
+    background: linear-gradient(135deg, #1A1D29 0%, #0F1117 100%);
+    border: 1px solid #00D9FF;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0, 217, 255, 0.1);
+}
+
+div[data-testid="stMetric"] label {
+    color: #00D9FF !important;
+    font-weight: 600;
+}
+
+div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+    color: #FFFFFF !important;
+    font-size: 2rem !important;
+    font-weight: 700;
+}
+
+/* Buttons */
+button[kind="primary"] {
+    background: linear-gradient(90deg, #00D9FF 0%, #0066FF 100%);
+    border: none;
+    color: #FFFFFF;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+button[kind="primary"]:hover {
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+button[kind="secondary"] {
+    background: transparent;
+    border: 2px solid #00D9FF;
+    color: #00D9FF;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+button[kind="secondary"]:hover {
+    background: rgba(0, 217, 255, 0.1);
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.3);
+}
+
+/* Input fields */
+input,
+textarea,
+select {
+    background: #1A1D29 !important;
+    border: 1px solid #00D9FF !important;
+    color: #FFFFFF !important;
+    border-radius: 8px;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: #0066FF !important;
+    box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+}
+
+/* Dataframe/Table styling */
+div[data-testid="stDataFrame"] {
+    border: 1px solid #00D9FF;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Expander styling */
+div[data-testid="stExpander"] {
+    background: #1A1D29;
+    border: 1px solid #00D9FF;
+    border-radius: 10px;
+}
+
+div[data-testid="stExpander"] summary {
+    color: #00D9FF;
+    font-weight: 600;
+}
+
+/* Success/Info/Warning/Error boxes */
+div[data-baseweb="notification"] {
+    border-radius: 10px;
+    border-left: 4px solid #00D9FF;
+}
+
+/* Tabs */
+button[data-baseweb="tab"] {
+    color: #00D9FF;
+    border-bottom: 2px solid transparent;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+    color: #FFFFFF;
+    border-bottom: 2px solid #00D9FF;
+    background: linear-gradient(90deg, rgba(0, 217, 255, 0.1) 0%, rgba(0, 102, 255, 0.1) 100%);
+}
+
+/* Charts */
+.js-plotly-plot {
+    border-radius: 10px;
+    border: 1px solid #00D9FF;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0F1117;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #00D9FF 0%, #0066FF 100%);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #00D9FF;
+}
+
+/* Status indicators */
+.status-healthy {
+    color: #00FF88;
+    font-weight: 600;
+}
+
+.status-degraded {
+    color: #FFB800;
+    font-weight: 600;
+}
+
+.status-error {
+    color: #FF4444;
+    font-weight: 600;
+}
+
+/* Card containers */
+.orbit-card {
+    background: linear-gradient(135deg, #1A1D29 0%, #0F1117 100%);
+    border: 1px solid #00D9FF;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 10px 0;
+    box-shadow: 0 4px 6px rgba(0, 217, 255, 0.1);
+}
+
+/* Logo glow effect */
+.orbit-logo {
+    filter: drop-shadow(0 0 10px rgba(0, 217, 255, 0.5));
+}
+
+/* Gradient text */
+.gradient-text {
+    background: linear-gradient(90deg, #00D9FF 0%, #0066FF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+/* Animated border */
+@keyframes orbit-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px rgba(0, 217, 255, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(0, 217, 255, 0.6);
+    }
+}
+
+.orbit-glow {
+    animation: orbit-glow 3s ease-in-out infinite;
+}
+
+/* Chat messages */
+div[data-testid="stChatMessage"] {
+    background: #1A1D29;
+    border: 1px solid #00D9FF;
+    border-radius: 10px;
+    margin: 5px 0;
+}
+
+/* Download button */
+button[kind="download"] {
+    background: linear-gradient(90deg, #00D9FF 0%, #0066FF 100%);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+}

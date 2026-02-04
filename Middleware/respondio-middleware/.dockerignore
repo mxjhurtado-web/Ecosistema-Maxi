@@ -1,0 +1,8 @@
+# Docker
+__pycache__/
+*.pyc
+.env
+
+# Build artifacts
+*.tar.gz
+*.zip
