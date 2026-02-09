@@ -13,10 +13,20 @@ class AdminAPIClient:
     
     def __init__(self):
         # Prioritize Streamlit Secrets (for Cloud) over environment variables
-        self.base_url = st.secrets.get("API_URL") or os.getenv("API_URL", "http://localhost:8000")
-        self.username = st.secrets.get("DASHBOARD_USERNAME") or os.getenv("DASHBOARD_USERNAME", "admin")
-        self.password = st.secrets.get("DASHBOARD_PASSWORD") or os.getenv("DASHBOARD_PASSWORD", "change-me-in-production")
-        self.params = {"username": self.username, "password": self.password}
+        self.default_base_url = st.secrets.get("API_URL") or os.getenv("API_URL", "http://localhost:8000")
+        self.default_username = st.secrets.get("DASHBOARD_USERNAME") or os.getenv("DASHBOARD_USERNAME", "admin")
+        self.default_password = st.secrets.get("DASHBOARD_PASSWORD") or os.getenv("DASHBOARD_PASSWORD", "change-me-in-production")
+
+    @property
+    def base_url(self):
+        return self.default_base_url
+
+    @property
+    def params(self):
+        # Use session credentials if available, otherwise use defaults
+        username = st.session_state.get("username", self.default_username)
+        password = st.session_state.get("password", self.default_password)
+        return {"username": username, "password": password}
     
     def _get(self, endpoint: str) -> Optional[Dict]:
         """GET request"""
@@ -151,8 +161,31 @@ class AdminAPIClient:
     
     def reset_circuit_breaker(self) -> bool:
         """Reset circuit breaker"""
-        result = self._post("/admin/maintenance/circuit-breaker/reset")
+        result = self._post("/admin/circuit-breaker/reset")
         return result is not None
+
+    # ============================================================
+    # User Management
+    # ============================================================
+
+    def get_users(self) -> List[Dict]:
+        """Get all dashboard users"""
+        result = self._get("/admin/users")
+        return result if result else []
+
+    def add_user(self, user_data: Dict) -> bool:
+        """Add or update a dashboard user"""
+        result = self._post("/admin/users", user_data)
+        return result is not None
+
+    def delete_user(self, username: str) -> bool:
+        """Delete a dashboard user"""
+        result = requests.delete(
+            f"{self.base_url}/admin/users/{username}",
+            params=self.params,
+            timeout=10
+        )
+        return result.status_code == 200
 
 
 # Singleton instance

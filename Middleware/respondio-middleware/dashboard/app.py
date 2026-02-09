@@ -61,6 +61,21 @@ def load_css():
     </style>
     """, unsafe_allow_html=True)
 
+    # RBAC: Hide pages from sidebar for non-admins
+    if st.session_state.get("authenticated") and st.session_state.get("role") == "supervisor":
+        st.markdown("""
+        <style>
+            /* Hide Logs, Config, Maintenance, Chat from sidebar */
+            div[data-testid="stSidebarNav"] li:nth-child(3), /* Logs */
+            div[data-testid="stSidebarNav"] li:nth-child(4), /* Config */
+            div[data-testid="stSidebarNav"] li:nth-child(5), /* Maintenance */
+            div[data-testid="stSidebarNav"] li:nth-child(6)  /* Chat */
+            {
+                display: none !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
 load_css()
 
 # Import auth
@@ -84,16 +99,23 @@ with st.sidebar:
     st.markdown("---")
     
     # Navigation info
-    st.markdown("""
-    ### 📑 Pages
+    st.markdown("### 📑 Pages")
     
-    - **📊 KPIs & Analytics** - Metrics and trends
-    - **📜 History** - Request history
-    - **🔍 Logs** - Live logs viewer
-    - **⚙️ Configuration** - System config
-    - **🔧 Maintenance** - Admin tools
-    - **💬 Chat** - Test MCP in real-time
-    """)
+    role = st.session_state.get('role', 'admin')
+    if role == 'admin':
+        st.markdown("""
+        - **📊 KPIs & Analytics** - Metrics and trends
+        - **📜 History** - Request history
+        - **🔍 Logs** - Live logs viewer
+        - **⚙️ Configuration** - System config
+        - **🔧 Maintenance** - Admin tools
+        - **💬 Chat** - Test MCP
+        """)
+    else:
+        st.markdown("""
+        - **📊 KPIs & Analytics** - Basic Metrics
+        - **📜 History** - Request History
+        """)
     
     st.markdown("---")
     

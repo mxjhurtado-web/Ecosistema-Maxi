@@ -20,6 +20,11 @@ setup_page("Configuration", "⚙️")
 # Require authentication
 require_auth()
 
+if st.session_state.get("role") == "supervisor":
+    st.warning("⚠️ Access Denied: Supervisors cannot modify system configuration.")
+    st.switch_page("pages/1_📊_kpis.py")
+    st.stop()
+
 # Tabs for different config sections
 tab1, tab2, tab3, tab4 = st.tabs(["🔌 MCP Settings", "💾 Cache Settings", "🔐 Security", "🤖 AI Integration"])
 

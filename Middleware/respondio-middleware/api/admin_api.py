@@ -8,12 +8,12 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 
 from .models import (
-    MCPConfig,
-    CacheConfig,
     SecurityConfig,
     RequestLog,
     ResponseStatus,
-    HealthResponse
+    HealthResponse,
+    DashboardUser,
+    UserRole
 )
 from .config import settings
 from .config_manager import config_manager
@@ -34,11 +34,32 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 async def verify_admin_credentials(
     username: str = Query(...),
     password: str = Query(...)
+) -> DashboardUser:
+    """Verify credentials against dynamic user list"""
+    users = await config_manager.get_users()
+    
+    for user in users:
+        if user.username == username and user.password == password:
+            return user
+            
+    # Fallback to default if Redis is empty or no match (safety during setup)
+    if username == settings.DASHBOARD_USERNAME and password == settings.DASHBOARD_PASSWORD:
+        return DashboardUser(
+            username=username,
+            password=password,
+            role=UserRole.ADMIN
+        )
+        
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+
+async def require_admin_role(
+    user: DashboardUser = Depends(verify_admin_credentials)
 ):
-    """Verify admin credentials"""
-    if username != settings.DASHBOARD_USERNAME or password != settings.DASHBOARD_PASSWORD:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    return True
+    """Ensure user has admin role"""
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Permission denied: Admin role required")
+    return user
 
 
 # ============================================================
@@ -47,7 +68,7 @@ async def verify_admin_credentials(
 
 @router.get("/config/mcp", response_model=MCPConfig)
 async def get_mcp_config(
-    _: bool = Depends(verify_admin_credentials)
+    _: DashboardUser = Depends(verify_admin_credentials)
 ):
     """Get current MCP configuration"""
     return await config_manager.get_mcp_config()
@@ -56,7 +77,7 @@ async def get_mcp_config(
 @router.put("/config/mcp")
 async def update_mcp_config(
     config: MCPConfig,
-    _: bool = Depends(verify_admin_credentials)
+    _: DashboardUser = Depends(require_admin_role)
 ):
     """Update MCP configuration"""
     success = await config_manager.update_mcp_config(config)
@@ -110,7 +131,7 @@ async def update_cache_config(
 
 @router.get("/config/security", response_model=SecurityConfig)
 async def get_security_config(
-    _: bool = Depends(verify_admin_credentials)
+    _: DashboardUser = Depends(verify_admin_credentials)
 ):
     """Get current security configuration"""
     return await config_manager.get_security_config()
@@ -131,6 +152,62 @@ async def update_security_config(
 
 
 # ============================================================
+# User Management Endpoints
+# ============================================================
+
+@router.get("/users", response_model=List[DashboardUser])
+async def get_dashboard_users(
+    _: bool = Depends(verify_admin_credentials)
+):
+    """Get all dashboard users"""
+    return await config_manager.get_users()
+
+
+@router.post("/users")
+async def add_dashboard_user(
+    user: DashboardUser,
+    _: bool = Depends(verify_admin_credentials)
+):
+    """Add or update a dashboard user with limit checks"""
+    existing_users = await config_manager.get_users()
+    
+    # Check if we are updating or creating
+    is_update = any(u.username == user.username for u in existing_users)
+    
+    if not is_update:
+        # Enforce limits: Max 3 of each role
+        admins = [u for u in existing_users if u.role == UserRole.ADMIN]
+        supervisors = [u for u in existing_users if u.role == UserRole.SUPERVISOR]
+        
+        if user.role == UserRole.ADMIN and len(admins) >= 3:
+            raise HTTPException(status_code=400, detail="Limit reached: Maximum 3 administrators allowed")
+        
+        if user.role == UserRole.SUPERVISOR and len(supervisors) >= 3:
+            raise HTTPException(status_code=400, detail="Limit reached: Maximum 3 supervisors allowed")
+            
+    success = await config_manager.add_user(user)
+    
+    if success:
+        return {"status": "ok", "message": f"User {user.username} {'updated' if is_update else 'created'}"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to save user")
+
+
+@router.delete("/users/{username}")
+async def delete_dashboard_user(
+    username: str,
+    _: bool = Depends(verify_admin_credentials)
+):
+    """Delete a dashboard user"""
+    success = await config_manager.delete_user(username)
+    
+    if success:
+        return {"status": "ok", "message": f"User {username} deleted"}
+    else:
+        raise HTTPException(status_code=400, detail=f"Cannot delete user {username}")
+
+
+# ============================================================
 # Telemetry Endpoints
 # ============================================================
 
@@ -138,7 +215,7 @@ async def update_security_config(
 async def get_recent_requests(
     limit: int = Query(default=100, le=1000),
     status: Optional[ResponseStatus] = None,
-    _: bool = Depends(verify_admin_credentials)
+    _: DashboardUser = Depends(verify_admin_credentials)
 ):
     """Get recent requests"""
     return await telemetry_service.get_recent_requests(limit, status)
@@ -161,7 +238,7 @@ async def get_request_by_trace_id(
 @router.get("/telemetry/stats")
 async def get_stats(
     hours: int = Query(default=24, le=168),  # Max 7 days
-    _: bool = Depends(verify_admin_credentials)
+    _: DashboardUser = Depends(verify_admin_credentials)
 ):
     """Get hourly statistics"""
     return await telemetry_service.get_hourly_stats(hours)
@@ -169,7 +246,7 @@ async def get_stats(
 
 @router.get("/telemetry/summary")
 async def get_summary(
-    _: bool = Depends(verify_admin_credentials)
+    _: DashboardUser = Depends(verify_admin_credentials)
 ):
     """Get summary statistics for today"""
     try:
@@ -220,7 +297,7 @@ async def get_summary(
 
 @router.post("/maintenance/reload-config")
 async def reload_config(
-    _: bool = Depends(verify_admin_credentials)
+    _: DashboardUser = Depends(require_admin_role)
 ):
     """Reload configuration from Redis"""
     success = await config_manager.reload_config()
@@ -233,7 +310,7 @@ async def reload_config(
 
 @router.post("/maintenance/clear-cache")
 async def clear_cache(
-    _: bool = Depends(verify_admin_credentials)
+    _: DashboardUser = Depends(require_admin_role)
 ):
     """Clear all cached data"""
     success = await config_manager.clear_cache()

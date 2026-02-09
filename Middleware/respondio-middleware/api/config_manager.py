@@ -2,8 +2,9 @@
 Configuration manager for dynamic config updates via Redis.
 """
 
-from typing import Optional
-from .models import MCPConfig, CacheConfig, SecurityConfig
+from typing import Optional, List
+import json
+from .models import MCPConfig, CacheConfig, SecurityConfig, DashboardUser, UserRole
 from .config import settings
 import logging
 
@@ -204,6 +205,74 @@ class ConfigManager:
             return True
         except Exception as e:
             logger.error(f"Failed to update security config: {str(e)}")
+            return False
+
+    # ============================================================
+    # User Management
+    # ============================================================
+
+    async def get_users(self) -> List[DashboardUser]:
+        """Get all dashboard users"""
+        if not self.enabled:
+            # Return default admin from settings if no Redis
+            return [DashboardUser(
+                username=settings.DASHBOARD_USERNAME,
+                password=settings.DASHBOARD_PASSWORD,
+                role=UserRole.ADMIN
+            )]
+        
+        try:
+            # Get users from Redis (stored as a hash)
+            user_keys = await self.redis.keys("config:users:*")
+            users = []
+            
+            # If no users in Redis, add the default one
+            if not user_keys:
+                default_user = DashboardUser(
+                    username=settings.DASHBOARD_USERNAME,
+                    password=settings.DASHBOARD_PASSWORD,
+                    role=UserRole.ADMIN
+                )
+                await self.add_user(default_user)
+                return [default_user]
+
+            for key in user_keys:
+                user_data = await self.redis.get(key)
+                if user_data:
+                    users.append(DashboardUser.model_validate_json(user_data))
+            
+            return users
+        except Exception as e:
+            logger.error(f"Failed to get users: {str(e)}")
+            return []
+
+    async def add_user(self, user: DashboardUser) -> bool:
+        """Add or update a user"""
+        if not self.enabled:
+            return False
+            
+        try:
+            await self.redis.set(f"config:users:{user.username}", user.model_dump_json())
+            return True
+        except Exception as e:
+            logger.error(f"Failed to add user: {str(e)}")
+            return False
+
+    async def delete_user(self, username: str) -> bool:
+        """Delete a user"""
+        if not self.enabled:
+            return False
+            
+        try:
+            # Don't delete the last admin or the default admin if possible (safety)
+            if username == settings.DASHBOARD_USERNAME:
+                logger.warning(f"Prevented deletion of default admin: {username}")
+                return False
+                
+            await self.redis.delete(f"config:users:{username}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete user: {str(e)}")
             return False
     
     # ============================================================

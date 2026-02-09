@@ -20,6 +20,11 @@ setup_page("Chat Interface", "💬")
 # Require authentication
 require_auth()
 
+if st.session_state.get("role") == "supervisor":
+    st.warning("⚠️ Access Denied: Supervisors do not have access to the test chat.")
+    st.switch_page("pages/1_📊_kpis.py")
+    st.stop()
+
 # Initialize chat history in session state
 if "chat_messages" not in st.session_state:
     st.session_state.chat_messages = []

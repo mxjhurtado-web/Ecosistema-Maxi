@@ -20,6 +20,11 @@ setup_page("Logs Viewer", "🔍")
 # Require authentication
 require_auth()
 
+if st.session_state.get("role") == "supervisor":
+    st.warning("⚠️ Access Denied: Supervisors cannot view live logs.")
+    st.switch_page("pages/1_📊_kpis.py")
+    st.stop()
+
 # Controls
 col1, col2, col3 = st.columns([2, 2, 1])
 

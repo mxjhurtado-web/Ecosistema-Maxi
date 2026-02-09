@@ -23,14 +23,40 @@ def login_form():
         submit = st.form_submit_button("Login")
         
         if submit:
-            # Get credentials from Secrets (Cloud) or environment
+            from .api_client import api_client
             import os
-            correct_username = st.secrets.get("DASHBOARD_USERNAME") or os.getenv("DASHBOARD_USERNAME", "admin")
-            correct_password = st.secrets.get("DASHBOARD_PASSWORD") or os.getenv("DASHBOARD_PASSWORD", "change-me-in-production")
             
-            if username == correct_username and password == correct_password:
+            # Fetch users from API (using default credentials for the call initially)
+            try:
+                users = api_client.get_users()
+            except Exception:
+                users = []
+            
+            # Check if any user matches
+            authenticated_user = None
+            for user in users:
+                if user.get("username") == username and user.get("password") == password:
+                    authenticated_user = user
+                    break
+            
+            # Fallback to default admin if no matches and no Redis users
+            if not authenticated_user:
+                correct_username = st.secrets.get("DASHBOARD_USERNAME") or os.getenv("DASHBOARD_USERNAME", "admin")
+                correct_password = st.secrets.get("DASHBOARD_PASSWORD") or os.getenv("DASHBOARD_PASSWORD", "change-me-in-production")
+                
+                if username == correct_username and password == correct_password:
+                    authenticated_user = {
+                        "username": username,
+                        "password": password,
+                        "role": "admin"
+                    }
+            
+            if authenticated_user:
                 st.session_state.authenticated = True
                 st.session_state.username = username
+                st.session_state.password = password  # Store temporarily for API calls
+                st.session_state.role = authenticated_user.get("role", "admin")
+                st.success(f"✅ Logged in as {username} ({st.session_state.role})")
                 st.rerun()
             else:
                 st.error("❌ Invalid credentials")

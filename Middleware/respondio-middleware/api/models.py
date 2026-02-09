@@ -15,6 +15,20 @@ class ResponseStatus(str, Enum):
     ERROR = "error"
 
 
+class UserRole(str, Enum):
+    """Roles de usuario para el dashboard"""
+    ADMIN = "admin"
+    SUPERVISOR = "supervisor"
+
+
+class DashboardUser(BaseModel):
+    """Usuario del dashboard"""
+    username: str
+    password: str # Encriptado en producción, texto plano para MVP/Redis simple
+    role: UserRole
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 # ============================================================
 # Request desde Respond.io
 # ============================================================
