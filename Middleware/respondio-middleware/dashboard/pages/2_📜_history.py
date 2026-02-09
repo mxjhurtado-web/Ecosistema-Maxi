@@ -4,17 +4,7 @@
 
 import streamlit as st
 import pandas as pd
-from datetime import datetime
-import sys
-import os
-import json
-
-# Add parent directory to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from components.auth import require_auth
-from components.api_client import api_client
-from components.page_setup import setup_page, create_status_badge
+from datetime import datetime, timedelta
 
 # Setup page with ORBIT theme
 setup_page("Request History", "📜")
@@ -22,8 +12,16 @@ setup_page("Request History", "📜")
 # Require authentication
 require_auth()
 
+# Initialize session state for filters if not present
+if "filter_start_date" not in st.session_state:
+    st.session_state.filter_start_date = (datetime.now() - timedelta(days=7)).date()
+if "filter_end_date" not in st.session_state:
+    st.session_state.filter_end_date = datetime.now().date()
+if "filter_status" not in st.session_state:
+    st.session_state.filter_status = "All"
+
 # Filters
-col1, col2, col3 = st.columns([2, 2, 1])
+col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
 
 with col1:
     limit = st.selectbox(
@@ -36,11 +34,23 @@ with col2:
     status_filter = st.selectbox(
         "Status Filter",
         ["All", "ok", "degraded", "error"],
-        index=0
+        key="filter_status"
     )
 
 with col3:
+    # Date Range Filter
+    start_date = st.date_input("Start Date", key="filter_start_date")
+    end_date = st.date_input("End Date", key="filter_end_date")
+
+with col4:
+    st.write("") # Spacer
+    st.write("") # Spacer
     if st.button("🔄 Refresh", use_container_width=True):
+        st.rerun()
+    if st.button("🧹 Clear", use_container_width=True):
+        st.session_state.filter_start_date = (datetime.now() - timedelta(days=7)).date()
+        st.session_state.filter_end_date = datetime.now().date()
+        st.session_state.filter_status = "All"
         st.rerun()
 
 # Search
@@ -52,11 +62,26 @@ search_query = st.text_input(
 st.markdown("---")
 
 # Fetch requests
+from datetime import timedelta # Ensure timedelta is available
 with st.spinner("Loading requests..."):
     status_param = None if status_filter == "All" else status_filter
     requests = api_client.get_recent_requests(limit=limit, status=status_param)
 
 if requests:
+    # Filter by Date
+    filtered_requests = []
+    for r in requests:
+        try:
+            # Parse timestamp (assuming format 'YYYY-MM-DD HH:MM:SS')
+            req_date = datetime.strptime(r.get('timestamp', '').split(' ')[0], '%Y-%m-%d').date()
+            if start_date <= req_date <= end_date:
+                filtered_requests.append(r)
+        except Exception:
+            # Fallback for requests without proper timestamp
+            filtered_requests.append(r)
+    
+    requests = filtered_requests
+
     # Filter by search query
     if search_query:
         requests = [

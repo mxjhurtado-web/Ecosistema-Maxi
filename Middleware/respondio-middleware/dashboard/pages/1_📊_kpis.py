@@ -96,8 +96,31 @@ if summary:
             f"{summary.get('error_count', 0):,}",
             help="Total number of errors"
         )
-else:
-    st.warning("⚠️ Unable to fetch summary data")
+st.markdown("---")
+
+# ============================================================
+# Export Summary
+# ============================================================
+if summary:
+    summary_data = {
+        "Metric": ["Total Requests", "Success Rate", "Avg Latency (ms)", "Error Count"],
+        "Value": [
+            summary.get("total_requests", 0),
+            f"{summary.get('success_rate', 0):.2f}%",
+            summary.get("avg_latency_ms", 0),
+            summary.get("error_count", 0)
+        ]
+    }
+    summary_df = pd.DataFrame(summary_data)
+    csv_summary = summary_df.to_csv(index=False)
+    
+    st.download_button(
+        label="📥 Download Today's Summary Report (CSV)",
+        data=csv_summary,
+        file_name=f"orbit_kpi_summary_{datetime.now().strftime('%Y%m%d')}.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
 
 st.markdown("---")
 
@@ -163,6 +186,54 @@ if recent_requests:
         st.info("No latency data available")
 else:
     st.warning("⚠️ Unable to fetch request data")
+
+st.markdown("---")
+
+# ============================================================
+# Latency Trend
+# ============================================================
+
+st.subheader("📈 Latency Trend Over Time")
+
+if stats:
+    df = create_stats_dataframe(stats)
+    
+    if not df.empty:
+        df['hour_display'] = df['hour'].dt.strftime('%m-%d %H:%M')
+        
+        fig = go.Figure()
+        
+        # Average Latency
+        fig.add_trace(go.Scatter(
+            x=df['hour_display'], 
+            y=df['avg_latency_ms'],
+            name='Avg Latency',
+            line=dict(color='#00D9FF', width=3),
+            mode='lines+markers'
+        ))
+        
+        # P95 Latency (Tail latency)
+        fig.add_trace(go.Scatter(
+            x=df['hour_display'], 
+            y=df['p95_latency_ms'],
+            name='P95 Latency',
+            line=dict(color='#FFCC00', width=2, dash='dot'),
+            mode='lines'
+        ))
+        
+        fig.update_layout(
+            title=f'Performance Trend ({time_range})',
+            xaxis_title="Time",
+            yaxis_title="ms",
+            hovermode='x unified',
+            height=400,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No trend data available")
+else:
+    st.warning("⚠️ Unable to fetch statistics")
 
 st.markdown("---")
 

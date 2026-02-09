@@ -119,18 +119,47 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Status
+    # Monitoring & Health
+    st.markdown("### 📊 Proactive Monitoring")
+    
     from components.api_client import api_client
     health = api_client.get_health()
+    cb_status = api_client.get_circuit_breaker_status()
     
     if health:
-        redis_status = health.get("redis_status", "unknown")
-        if redis_status == "healthy":
-            st.success("✅ Redis: Connected")
+        # API Status
+        api_status = health.get('status', 'unknown')
+        if api_status == 'healthy':
+            st.success("🟢 API: Online")
         else:
-            st.warning("⚠️ Redis: Disabled")
+            st.error("🔴 API: Issues Detected")
+            
+        # MCP Status
+        mcp_status = health.get('mcp_status', 'unknown')
+        if mcp_status == 'healthy':
+            st.success("🟢 MCP: Connected")
+        else:
+            st.error("🔴 MCP: Disconnected")
+            
+        # Redis Status
+        redis_status = health.get('redis_status', 'unknown')
+        if redis_status == 'healthy':
+            st.success("🟢 Redis: Healthy")
+        elif redis_status == 'disabled':
+            st.warning("🟡 Redis: Disabled")
+        else:
+            st.error("🔴 Redis: Error")
     else:
-        st.error("❌ Cannot connect to API")
+        st.error("🔴 API: Unreachable")
+        
+    # Circuit Breaker Status
+    if cb_status:
+        if cb_status.get('is_open'):
+            st.error("🚨 Circuit Breaker: OPEN")
+        else:
+            st.success("🛡️ Circuit Breaker: OK")
+    
+    st.markdown("---")
 
 # Main content
 st.markdown('<div class="logo-container">', unsafe_allow_html=True)
