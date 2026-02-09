@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     # Upload
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
     
+    # Google Drive (opcional en .env, se puede usar st.secrets)
+    GOOGLE_SA_JSON_B64: Optional[str] = None
+    GOOGLE_DRIVE_FOLDER_ID: Optional[str] = "1eexrVXQYRZLk9hnJwLVYJp5PkYnjx2bt"
+    
     # Async Processing (Toggle)
     ASYNC_PROCESSING: bool = False  # True = Celery, False = Sync
     
