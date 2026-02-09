@@ -26,7 +26,7 @@ if st.session_state.get("role") == "supervisor":
     st.stop()
 
 # Tabs for different config sections
-tab1, tab2, tab3, tab4 = st.tabs(["🔌 MCP Settings", "💾 Cache Settings", "🔐 Security", "🤖 AI Integration"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["🔌 MCP Settings", "💾 Cache Settings", "🔐 Security", "🤖 AI Integration", "🚨 Email Alerts"])
 
 # ============================================================
 # MCP Configuration
@@ -350,6 +350,115 @@ with tab4:
                     st.error("❌ Failed to update configuration")
     else:
         st.error("❌ Unable to fetch configuration")
+
+# ============================================================
+# Email Alerts Configuration
+# ============================================================
+
+with tab5:
+    st.subheader("🚨 Email Alerting System")
+    st.info("Proactively notify administrators via email about critical system events.")
+    
+    # Fetch current config
+    email_config = api_client.get_email_config()
+    
+    if email_config:
+        with st.form("email_config_form"):
+            st.markdown("### 🛠️ SMTP Configuration")
+            
+            enabled = st.toggle(
+                "Enable Email Alerts",
+                value=email_config.get('enabled', False),
+                help="Set to ON to allow the system to send alert emails"
+            )
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                smtp_server = st.text_input(
+                    "SMTP Server",
+                    value=email_config.get('smtp_server', 'smtp.gmail.com'),
+                    help="Outgoing mail server (e.g., smtp.gmail.com)"
+                )
+                smtp_port = st.number_input(
+                    "SMTP Port",
+                    min_value=1,
+                    max_value=65535,
+                    value=email_config.get('smtp_port', 587),
+                    help="Common ports: 587 (TLS), 465 (SSL)"
+                )
+            
+            with col2:
+                smtp_user = st.text_input(
+                    "SMTP Username",
+                    value=email_config.get('smtp_user', ''),
+                    help="Your email address (e.g., alerts@gmail.com)"
+                )
+                smtp_password = st.text_input(
+                    "SMTP App Password",
+                    value=email_config.get('smtp_password', ''),
+                    type="password",
+                    help="Gmail users: Use an 'App Password', NOT your main account password"
+                )
+                
+            recipient_email = st.text_input(
+                "Recipient Email Address",
+                value=email_config.get('recipient_email', ''),
+                help="Where alert notifications will be sent"
+            )
+            
+            st.markdown("---")
+            st.markdown("### 🔔 Alert Triggers")
+            
+            col_t1, col_t2 = st.columns(2)
+            
+            with col_t1:
+                alert_mcp = st.checkbox(
+                    "Alert on MCP Connection Error",
+                    value=email_config.get('alert_on_mcp_error', True),
+                    help="Send email if MCP cannot be reached"
+                )
+            
+            with col_t2:
+                alert_cb = st.checkbox(
+                    "Alert on Circuit Breaker Activation",
+                    value=email_config.get('alert_on_circuit_breaker', True),
+                    help="Send email if safety circuit opens"
+                )
+            
+            st.markdown("---")
+            
+            submit_email = st.form_submit_button("💾 Save Email Configuration", use_container_width=True)
+            
+            if submit_email:
+                new_email_config = {
+                    "enabled": enabled,
+                    "smtp_server": smtp_server,
+                    "smtp_port": smtp_port,
+                    "smtp_user": smtp_user,
+                    "smtp_password": smtp_password,
+                    "recipient_email": recipient_email,
+                    "alert_on_mcp_error": alert_mcp,
+                    "alert_on_circuit_breaker": alert_cb
+                }
+                
+                with st.spinner("Updating email configuration..."):
+                    success = api_client.update_email_config(new_email_config)
+                
+                if success:
+                    st.success("✅ Email alert configuration updated successfully!")
+                    st.toast("Settings saved and reloaded", icon="📧")
+                else:
+                    st.error("❌ Failed to update email configuration")
+                    
+        # Help Alert
+        st.markdown("""
+        > [!TIP]
+        > **Gmail Users**: To use this service, you must enable **2-Step Verification** in your Google Account and create an **App Password**. 
+        > Standard passwords will fail due to security protections.
+        """)
+    else:
+        st.error("❌ Unable to fetch email alert configuration")
 
 # Footer
 st.markdown("---")

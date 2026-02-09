@@ -69,7 +69,8 @@ def load_css():
             div[data-testid="stSidebarNav"] li:nth-child(3), /* Logs */
             div[data-testid="stSidebarNav"] li:nth-child(4), /* Config */
             div[data-testid="stSidebarNav"] li:nth-child(5), /* Maintenance */
-            div[data-testid="stSidebarNav"] li:nth-child(6)  /* Chat */
+            div[data-testid="stSidebarNav"] li:nth-child(6), /* Chat */
+            div[data-testid="stSidebarNav"] li:nth-child(7)  /* Auditoria */
             {
                 display: none !important;
             }
@@ -110,6 +111,7 @@ with st.sidebar:
         - **⚙️ Configuration** - System config
         - **🔧 Maintenance** - Admin tools
         - **💬 Chat** - Test MCP
+        - **🛡️ Auditoría** - Admin tracking
         """)
     else:
         st.markdown("""

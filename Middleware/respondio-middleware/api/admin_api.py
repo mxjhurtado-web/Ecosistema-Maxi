@@ -83,6 +83,14 @@ async def update_mcp_config(
     success = await config_manager.update_mcp_config(config)
     
     if success:
+        # Audit log
+        await config_manager.log_audit_action(AuditLogEntry(
+            username=user.username,
+            role=user.role,
+            action=AuditAction.CONFIG_CHANGE,
+            details=f"Updated MCP configuration: {config.url}"
+        ))
+        
         # Update MCP client with new config
         mcp_client.url = config.url
         mcp_client.timeout = config.timeout
@@ -151,6 +159,43 @@ async def update_security_config(
         raise HTTPException(status_code=500, detail="Failed to update config")
 
 
+@router.get("/config/email", response_model=EmailAlertConfig)
+async def get_email_config(_: DashboardUser = Depends(verify_admin_credentials)):
+    """Get current email alert configuration"""
+    return await config_manager.get_email_config()
+
+
+@router.put("/config/email")
+async def update_email_config(
+    config: EmailAlertConfig,
+    user: DashboardUser = Depends(require_admin_role)
+):
+    """Update email alert configuration"""
+    success = await config_manager.update_email_config(config)
+    
+    if success:
+        # Update email service instance settings if needed
+        from .email_service import email_service
+        email_service.enabled = config.enabled
+        email_service.host = config.smtp_server
+        email_service.port = config.smtp_port
+        email_service.user = config.smtp_user
+        email_service.password = config.smtp_password
+        email_service.recipient = config.recipient_email
+        
+        # Audit log
+        await config_manager.log_audit_action(AuditLogEntry(
+            username=user.username,
+            role=user.role,
+            action=AuditAction.CONFIG_CHANGE,
+            details="Updated email alerting configuration"
+        ))
+        
+        return {"status": "ok", "message": "Email config updated"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to update config")
+
+
 # ============================================================
 # User Management Endpoints
 # ============================================================
@@ -188,6 +233,13 @@ async def add_dashboard_user(
     success = await config_manager.add_user(user)
     
     if success:
+        # Audit log
+        await config_manager.log_audit_action(AuditLogEntry(
+            username=admin.username,
+            role=admin.role,
+            action=AuditAction.USER_MANAGEMENT,
+            details=f"{'Updated' if is_update else 'Created'} user: {user.username} as {user.role}"
+        ))
         return {"status": "ok", "message": f"User {user.username} {'updated' if is_update else 'created'}"}
     else:
         raise HTTPException(status_code=500, detail="Failed to save user")
@@ -196,15 +248,52 @@ async def add_dashboard_user(
 @router.delete("/users/{username}")
 async def delete_dashboard_user(
     username: str,
-    _: bool = Depends(verify_admin_credentials)
+    admin: DashboardUser = Depends(require_admin_role)
 ):
     """Delete a dashboard user"""
     success = await config_manager.delete_user(username)
     
     if success:
+        # Audit log
+        await config_manager.log_audit_action(AuditLogEntry(
+            username=admin.username,
+            role=admin.role,
+            action=AuditAction.USER_MANAGEMENT,
+            details=f"Deleted user: {username}"
+        ))
         return {"status": "ok", "message": f"User {username} deleted"}
     else:
         raise HTTPException(status_code=400, detail=f"Cannot delete user {username}")
+
+
+# ============================================================
+# Audit Log Endpoints
+# ============================================================
+
+@router.get("/audit/logs", response_model=List[AuditLogEntry])
+async def get_audit_logs(
+    limit: int = 100,
+    _: DashboardUser = Depends(verify_admin_credentials)
+):
+    """Get recent audit logs"""
+    return await config_manager.get_audit_logs(limit)
+
+
+@router.post("/audit/log")
+async def log_audit_generic(
+    action: AuditAction,
+    details: str,
+    user: DashboardUser = Depends(verify_admin_credentials)
+):
+    """Log a generic audit action from the frontend"""
+    entry = AuditLogEntry(
+        username=user.username,
+        role=user.role,
+        action=action,
+        details=details
+    )
+    await config_manager.log_audit_action(entry)
+    return {"status": "ok"}
 
 
 # ============================================================
@@ -297,12 +386,18 @@ async def get_summary(
 
 @router.post("/maintenance/reload-config")
 async def reload_config(
-    _: DashboardUser = Depends(require_admin_role)
+    user: DashboardUser = Depends(require_admin_role)
 ):
     """Reload configuration from Redis"""
     success = await config_manager.reload_config()
     
     if success:
+        await config_manager.log_audit_action(AuditLogEntry(
+            username=user.username,
+            role=user.role,
+            action=AuditAction.SYSTEM_MAINTENANCE,
+            details="Reloaded system configuration from Redis"
+        ))
         return {"status": "ok", "message": "Configuration reloaded"}
     else:
         raise HTTPException(status_code=500, detail="Failed to reload config")
@@ -310,12 +405,18 @@ async def reload_config(
 
 @router.post("/maintenance/clear-cache")
 async def clear_cache(
-    _: DashboardUser = Depends(require_admin_role)
+    user: DashboardUser = Depends(require_admin_role)
 ):
     """Clear all cached data"""
     success = await config_manager.clear_cache()
     
     if success:
+        await config_manager.log_audit_action(AuditLogEntry(
+            username=user.username,
+            role=user.role,
+            action=AuditAction.CACHE_CLEAR,
+            details="Cleared all system cache"
+        ))
         return {"status": "ok", "message": "Cache cleared"}
     else:
         raise HTTPException(status_code=500, detail="Failed to clear cache")
@@ -447,13 +548,21 @@ async def get_circuit_breaker_status(
 
 @router.post("/maintenance/circuit-breaker/reset")
 async def reset_circuit_breaker(
-    _: bool = Depends(verify_admin_credentials)
+    user: DashboardUser = Depends(require_admin_role)
 ):
     """Reset circuit breaker"""
     mcp_client.circuit_open = False
     mcp_client.failure_count = 0
     
-    logger.info("Circuit breaker manually reset")
+    # Audit log
+    await config_manager.log_audit_action(AuditLogEntry(
+        username=user.username,
+        role=user.role,
+        action=AuditAction.CIRCUIT_RESET,
+        details="Manually reset system circuit breaker"
+    ))
+    
+    logger.info(f"Circuit breaker manually reset by {user.username}")
     
     return {
         "status": "ok",

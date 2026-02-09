@@ -103,6 +103,15 @@ class AdminAPIClient:
         result = self._put("/admin/config/security", config)
         return result is not None
     
+    def get_email_config(self) -> Optional[Dict]:
+        """Get email configuration"""
+        return self._get("/admin/config/email")
+    
+    def update_email_config(self, config: Dict) -> bool:
+        """Update email configuration"""
+        result = self._put("/admin/config/email", config)
+        return result is not None
+    
     # ============================================================
     # Telemetry
     # ============================================================
@@ -186,6 +195,20 @@ class AdminAPIClient:
             timeout=10
         )
         return result.status_code == 200
+
+    # ============================================================
+    # Audit Log
+    # ============================================================
+
+    def get_audit_logs(self, limit: int = 100) -> List[Dict]:
+        """Get recent audit logs"""
+        result = self._get(f"/admin/audit/logs?limit={limit}")
+        return result if result else []
+
+    def log_audit(self, action: str, details: str) -> bool:
+        """Log an audit action from the frontend"""
+        result = self._post(f"/admin/audit/log?action={action}&details={details}")
+        return result is not None
 
 
 # Singleton instance

@@ -4,7 +4,15 @@ Configuration manager for dynamic config updates via Redis.
 
 from typing import Optional, List
 import json
-from .models import MCPConfig, CacheConfig, SecurityConfig, DashboardUser, UserRole
+from .models import (
+    MCPConfig, 
+    CacheConfig, 
+    SecurityConfig, 
+    DashboardUser, 
+    UserRole,
+    AuditLogEntry,
+    AuditAction
+)
 from .config import settings
 import logging
 
@@ -192,7 +200,7 @@ class ConfigManager:
                 rate_limit=settings.RATE_LIMIT_PER_MINUTE
             )
     
-    async def update_security_config(self, config: SecurityConfig):
+    async def update_security_config(self, config: SecurityConfig) -> bool:
         """Update security configuration"""
         if not self.enabled:
             return False
@@ -205,6 +213,66 @@ class ConfigManager:
             return True
         except Exception as e:
             logger.error(f"Failed to update security config: {str(e)}")
+            return False
+
+    # ============================================================
+    # Email Alerts Configuration
+    # ============================================================
+
+    async def get_email_config(self) -> EmailAlertConfig:
+        """Get current email alert configuration"""
+        if not self.enabled:
+            return EmailAlertConfig(
+                smtp_server=settings.SMTP_SERVER,
+                smtp_port=settings.SMTP_PORT,
+                smtp_user=settings.SMTP_USER or "",
+                smtp_password=settings.SMTP_PASSWORD or "",
+                recipient_email=settings.ALERT_EMAIL_RECIPIENT or ""
+            )
+            
+        try:
+            enabled = await self.redis.get("config:email:enabled")
+            smtp_server = await self.redis.get("config:email:smtp_server")
+            smtp_port = await self.redis.get("config:email:smtp_port")
+            smtp_user = await self.redis.get("config:email:smtp_user")
+            smtp_password = await self.redis.get("config:email:smtp_password")
+            recipient_email = await self.redis.get("config:email:recipient_email")
+            alert_mcp = await self.redis.get("config:email:alert_on_mcp_error")
+            alert_cb = await self.redis.get("config:email:alert_on_circuit_breaker")
+            
+            return EmailAlertConfig(
+                enabled=enabled.decode() == "true" if enabled else False,
+                smtp_server=smtp_server.decode() if smtp_server else settings.SMTP_SERVER,
+                smtp_port=int(smtp_port) if smtp_port else settings.SMTP_PORT,
+                smtp_user=smtp_user.decode() if smtp_user else (settings.SMTP_USER or ""),
+                smtp_password=smtp_password.decode() if smtp_password else (settings.SMTP_PASSWORD or ""),
+                recipient_email=recipient_email.decode() if recipient_email else (settings.ALERT_EMAIL_RECIPIENT or ""),
+                alert_on_mcp_error=alert_mcp.decode() == "true" if alert_mcp else True,
+                alert_on_circuit_breaker=alert_cb.decode() == "true" if alert_cb else True
+            )
+        except Exception as e:
+            logger.error(f"Failed to get email config: {str(e)}")
+            return EmailAlertConfig()
+
+    async def update_email_config(self, config: EmailAlertConfig) -> bool:
+        """Update email alert configuration"""
+        if not self.enabled:
+            return False
+            
+        try:
+            await self.redis.set("config:email:enabled", "true" if config.enabled else "false")
+            await self.redis.set("config:email:smtp_server", config.smtp_server)
+            await self.redis.set("config:email:smtp_port", config.smtp_port)
+            await self.redis.set("config:email:smtp_user", config.smtp_user)
+            await self.redis.set("config:email:smtp_password", config.smtp_password)
+            await self.redis.set("config:email:recipient_email", config.recipient_email)
+            await self.redis.set("config:email:alert_on_mcp_error", "true" if config.alert_on_mcp_error else "false")
+            await self.redis.set("config:email:alert_on_circuit_breaker", "true" if config.alert_on_circuit_breaker else "false")
+            
+            logger.info("Email alert config updated")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update email config: {str(e)}")
             return False
 
     # ============================================================
@@ -274,6 +342,49 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Failed to delete user: {str(e)}")
             return False
+
+    # ============================================================
+    # Audit Log Management
+    # ============================================================
+
+    async def log_audit_action(self, entry: AuditLogEntry) -> bool:
+        """Log an administrative action to Redis"""
+        if not self.enabled:
+            return False
+            
+        try:
+            key = "config:audit_log"
+            # Push to the head of the list
+            await self.redis.lpush(key, entry.model_dump_json())
+            # Keep only the last 1000 entries
+            await self.redis.ltrim(key, 0, 999)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to log audit action: {str(e)}")
+            return False
+
+    async def get_audit_logs(self, limit: int = 100) -> List[AuditLogEntry]:
+        """Retrieve recent audit log entries"""
+        if not self.enabled:
+            return []
+            
+        try:
+            key = "config:audit_log"
+            # Limit to 1000 max for safety
+            limit = min(limit, 1000)
+            logs_data = await self.redis.lrange(key, 0, limit - 1)
+            
+            logs = []
+            for item in logs_data:
+                try:
+                    logs.append(AuditLogEntry.model_validate_json(item))
+                except Exception as ve:
+                    logger.error(f"Value error parsing audit log entry: {str(ve)}")
+                    
+            return logs
+        except Exception as e:
+            logger.error(f"Failed to get audit logs: {str(e)}")
+            return []
     
     # ============================================================
     # Utilities

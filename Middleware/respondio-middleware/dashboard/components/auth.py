@@ -56,6 +56,13 @@ def login_form():
                 st.session_state.username = username
                 st.session_state.password = password  # Store temporarily for API calls
                 st.session_state.role = authenticated_user.get("role", "admin")
+                
+                # Audit log for login
+                try:
+                    api_client.log_audit("login", f"Successful login from dashboard ({st.session_state.role})")
+                except Exception:
+                    pass
+                    
                 st.success(f"✅ Logged in as {username} ({st.session_state.role})")
                 st.rerun()
             else:

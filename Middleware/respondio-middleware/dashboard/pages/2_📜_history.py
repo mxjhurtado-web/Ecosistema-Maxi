@@ -166,26 +166,28 @@ if requests:
             df = pd.DataFrame(requests)
             csv = df.to_csv(index=False)
             
-            st.download_button(
+            if st.download_button(
                 label="📄 Download CSV",
                 data=csv,
                 file_name=f"requests_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
                 use_container_width=True
-            )
+            ):
+                api_client.log_export(f"Downloaded Request History as CSV ({len(requests)} records)")
     
     with col2:
         # Export as JSON
         if requests:
             json_str = json.dumps(requests, indent=2)
             
-            st.download_button(
+            if st.download_button(
                 label="📋 Download JSON",
                 data=json_str,
                 file_name=f"requests_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json",
                 use_container_width=True
-            )
+            ):
+                api_client.log_export(f"Downloaded Request History as JSON ({len(requests)} records)")
 
 else:
     st.warning("⚠️ No requests found")

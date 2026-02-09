@@ -114,13 +114,14 @@ if summary:
     summary_df = pd.DataFrame(summary_data)
     csv_summary = summary_df.to_csv(index=False)
     
-    st.download_button(
+    if st.download_button(
         label="📥 Download Today's Summary Report (CSV)",
         data=csv_summary,
         file_name=f"orbit_kpi_summary_{datetime.now().strftime('%Y%m%d')}.csv",
         mime="text/csv",
         use_container_width=True
-    )
+    ):
+        api_client.log_export("Downloaded Today's KPI Summary Report (CSV)")
 
 st.markdown("---")
 

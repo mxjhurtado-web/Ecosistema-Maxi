@@ -21,12 +21,33 @@ class UserRole(str, Enum):
     SUPERVISOR = "supervisor"
 
 
+class AuditAction(str, Enum):
+    """Acciones auditables en el dashboard"""
+    LOGIN = "login"
+    CONFIG_CHANGE = "config_change"
+    USER_MANAGEMENT = "user_management"
+    EXPORT_DATA = "export_data"
+    CACHE_CLEAR = "cache_clear"
+    CIRCUIT_RESET = "circuit_reset"
+    SYSTEM_MAINTENANCE = "system_maintenance"
+
+
 class DashboardUser(BaseModel):
     """Usuario del dashboard"""
     username: str
     password: str # Encriptado en producción, texto plano para MVP/Redis simple
     role: UserRole
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AuditLogEntry(BaseModel):
+    """Entrada en el registro de auditoría"""
+    username: str
+    role: UserRole
+    action: AuditAction
+    details: str
+    ip_address: Optional[str] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
 # ============================================================
@@ -186,6 +207,18 @@ class SecurityConfig(BaseModel):
     """Configuración de seguridad"""
     webhook_secret: str = Field(..., description="Secret para validar webhooks")
     rate_limit: int = Field(default=100, description="Rate limit (req/min)")
+
+
+class EmailAlertConfig(BaseModel):
+    """Configuración de alertas por correo"""
+    enabled: bool = Field(default=False, description="Habilitar alertas por correo")
+    smtp_server: str = Field(default="smtp.gmail.com", description="Servidor SMTP")
+    smtp_port: int = Field(default=587, description="Puerto SMTP")
+    smtp_user: str = Field(default="", description="Usuario SMTP")
+    smtp_password: str = Field(default="", description="Contraseña SMTP")
+    recipient_email: str = Field(default="", description="Email destinatario de alertas")
+    alert_on_mcp_error: bool = Field(default=True, description="Alertar en error de MCP")
+    alert_on_circuit_breaker: bool = Field(default=True, description="Alertar en apertura de Circuit Breaker")
 
 
 # ============================================================

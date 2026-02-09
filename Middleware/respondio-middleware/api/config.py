@@ -57,6 +57,13 @@ class Settings(BaseSettings):
     DASHBOARD_USERNAME: str = "admin"
     DASHBOARD_PASSWORD: str = "change-me-in-production"
     
+    # SMTP / Alerts
+    SMTP_SERVER: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    ALERT_EMAIL_RECIPIENT: Optional[str] = None
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
