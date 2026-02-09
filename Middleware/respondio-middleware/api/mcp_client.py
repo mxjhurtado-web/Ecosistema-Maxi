@@ -8,6 +8,7 @@ import asyncio
 from typing import Optional, Tuple
 from .models import MCPRequest, MCPResponse, ResponseStatus
 from .config import settings
+from .auth import KeycloakAuthService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,16 @@ class MCPClient:
         self.retry_delay = settings.MCP_RETRY_DELAY
         self.mcp_token = settings.MCP_TOKEN
         self.gemini_api_key = None
+        
+        # Keycloak Auth Service
+        self.kc_auth = None
+        if settings.KC_USE_AUTH and settings.KC_SERVER_URL:
+            self.kc_auth = KeycloakAuthService(
+                server_url=settings.KC_SERVER_URL,
+                realm=settings.KC_REALM,
+                client_id=settings.KC_CLIENT_ID,
+                client_secret=settings.KC_CLIENT_SECRET
+            )
         
         # Circuit breaker state
         self.failure_count = 0
@@ -106,8 +117,16 @@ class MCPClient:
                 
                 # Set headers for MCP authentication
                 headers = {}
-                if self.mcp_token:
-                    headers["Authorization"] = f"Bearer {self.mcp_token}"
+                
+                # Priority: Keycloak Service Account > Manual Token
+                auth_token = self.mcp_token
+                if self.kc_auth:
+                    kc_token = await self.kc_auth.get_access_token()
+                    if kc_token:
+                        auth_token = kc_token
+                
+                if auth_token:
+                    headers["Authorization"] = f"Bearer {auth_token}"
                 
                 async with httpx.AsyncClient() as client:
                     response = await client.post(

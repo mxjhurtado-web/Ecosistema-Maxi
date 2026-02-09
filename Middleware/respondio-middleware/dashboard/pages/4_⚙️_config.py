@@ -72,14 +72,46 @@ with tab1:
             )
             
             st.markdown("---")
-            st.markdown("### 🔐 MCP Security Settings")
+            st.markdown("### 🔐 MCP Security & Keycloak")
             
-            mcp_token = st.text_input(
-                "MCP Authentication Token",
-                value=mcp_config.get('mcp_token', '') or '',
-                type="password",
-                help="Token de seguridad para autenticarse con el servidor MCP (Bearer Token)"
-            )
+            # Use columns for layout
+            col_a, col_b = st.columns(2)
+            
+            with col_a:
+                auth_mode = st.radio(
+                    "Authentication Mode",
+                    ["Manual Token", "Keycloak Service Account"],
+                    index=1 if mcp_config.get('use_keycloak') else 0,
+                    help="Choose how ORBIT authenticates with the MCP server"
+                )
+                use_keycloak = (auth_mode == "Keycloak Service Account")
+
+            if not use_keycloak:
+                mcp_token = st.text_input(
+                    "Manual Auth Token",
+                    value=mcp_config.get('mcp_token', '') or '',
+                    type="password",
+                    help="Token de seguridad manual (Bearer Token)"
+                )
+            else:
+                st.info("ℹ️ **Keycloak Mode**: ORBIT will automatically fetch and rotate tokens.")
+                kc_server = st.text_input(
+                    "Keycloak Server URL",
+                    value=mcp_config.get('kc_server_url', '') or '',
+                    placeholder="https://sso.maxilabs.net/auth"
+                )
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    kc_realm = st.text_input("Realm", value=mcp_config.get('kc_realm', '') or '')
+                with col2:
+                    kc_client_id = st.text_input("Client ID", value=mcp_config.get('kc_client_id', '') or '')
+                    
+                kc_secret = st.text_input(
+                    "Client Secret",
+                    value=mcp_config.get('kc_client_secret', '') or '',
+                    type="password"
+                )
             
             st.markdown("---")
             
@@ -98,8 +130,13 @@ with tab1:
                     "timeout": timeout,
                     "max_retries": max_retries,
                     "retry_delay": retry_delay,
-                    "mcp_token": mcp_token,
-                    "gemini_api_key": mcp_config.get('gemini_api_key')
+                    "mcp_token": mcp_token if not use_keycloak else None,
+                    "gemini_api_key": mcp_config.get('gemini_api_key'),
+                    "use_keycloak": use_keycloak,
+                    "kc_server_url": kc_server if use_keycloak else None,
+                    "kc_realm": kc_realm if use_keycloak else None,
+                    "kc_client_id": kc_client_id if use_keycloak else None,
+                    "kc_client_secret": kc_secret if use_keycloak else None
                 }
                 
                 with st.spinner("Updating configuration..."):

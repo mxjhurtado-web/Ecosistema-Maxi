@@ -66,9 +66,20 @@ async def update_mcp_config(
         mcp_client.url = config.url
         mcp_client.timeout = config.timeout
         mcp_client.max_retries = config.max_retries
-        mcp_client.retry_delay = config.retry_delay
         mcp_client.mcp_token = config.mcp_token
         mcp_client.gemini_api_key = config.gemini_api_key
+        
+        # Update Keycloak Auth
+        if config.use_keycloak and config.kc_server_url:
+            from .auth import KeycloakAuthService
+            mcp_client.kc_auth = KeycloakAuthService(
+                server_url=config.kc_server_url,
+                realm=config.kc_realm,
+                client_id=config.kc_client_id,
+                client_secret=config.kc_client_secret
+            )
+        else:
+            mcp_client.kc_auth = None
         
         return {"status": "ok", "message": "MCP config updated"}
     else:

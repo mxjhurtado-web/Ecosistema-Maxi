@@ -31,6 +31,11 @@ class ConfigManager:
                 max_retries=settings.MCP_MAX_RETRIES,
                 retry_delay=settings.MCP_RETRY_DELAY,
                 mcp_token=settings.MCP_TOKEN,
+                use_keycloak=settings.KC_USE_AUTH,
+                kc_server_url=settings.KC_SERVER_URL,
+                kc_realm=settings.KC_REALM,
+                kc_client_id=settings.KC_CLIENT_ID,
+                kc_client_secret=settings.KC_CLIENT_SECRET,
                 gemini_api_key=None
             )
         
@@ -41,6 +46,11 @@ class ConfigManager:
             max_retries = await self.redis.get("config:mcp:max_retries")
             retry_delay = await self.redis.get("config:mcp:retry_delay")
             mcp_token = await self.redis.get("config:mcp:mcp_token")
+            use_keycloak = await self.redis.get("config:mcp:use_keycloak")
+            kc_server_url = await self.redis.get("config:mcp:kc_server_url")
+            kc_realm = await self.redis.get("config:mcp:kc_realm")
+            kc_client_id = await self.redis.get("config:mcp:kc_client_id")
+            kc_client_secret = await self.redis.get("config:mcp:kc_client_secret")
             gemini_api_key = await self.redis.get("config:mcp:gemini_api_key")
             
             return MCPConfig(
@@ -49,6 +59,11 @@ class ConfigManager:
                 max_retries=int(max_retries) if max_retries else settings.MCP_MAX_RETRIES,
                 retry_delay=int(retry_delay) if retry_delay else settings.MCP_RETRY_DELAY,
                 mcp_token=mcp_token.decode() if mcp_token else settings.MCP_TOKEN,
+                use_keycloak=use_keycloak.decode() == 'true' if use_keycloak else settings.KC_USE_AUTH,
+                kc_server_url=kc_server_url.decode() if kc_server_url else settings.KC_SERVER_URL,
+                kc_realm=kc_realm.decode() if kc_realm else settings.KC_REALM,
+                kc_client_id=kc_client_id.decode() if kc_client_id else settings.KC_CLIENT_ID,
+                kc_client_secret=kc_client_secret.decode() if kc_client_secret else settings.KC_CLIENT_SECRET,
                 gemini_api_key=gemini_api_key.decode() if gemini_api_key else None
             )
         except Exception as e:
@@ -60,6 +75,11 @@ class ConfigManager:
                 max_retries=settings.MCP_MAX_RETRIES,
                 retry_delay=settings.MCP_RETRY_DELAY,
                 mcp_token=settings.MCP_TOKEN,
+                use_keycloak=settings.KC_USE_AUTH,
+                kc_server_url=settings.KC_SERVER_URL,
+                kc_realm=settings.KC_REALM,
+                kc_client_id=settings.KC_CLIENT_ID,
+                kc_client_secret=settings.KC_CLIENT_SECRET,
                 gemini_api_key=None
             )
     
@@ -79,6 +99,12 @@ class ConfigManager:
                 await self.redis.set("config:mcp:mcp_token", config.mcp_token)
             else:
                 await self.redis.delete("config:mcp:mcp_token")
+
+            await self.redis.set("config:mcp:use_keycloak", "true" if config.use_keycloak else "false")
+            if config.kc_server_url: await self.redis.set("config:mcp:kc_server_url", config.kc_server_url)
+            if config.kc_realm: await self.redis.set("config:mcp:kc_realm", config.kc_realm)
+            if config.kc_client_id: await self.redis.set("config:mcp:kc_client_id", config.kc_client_id)
+            if config.kc_client_secret: await self.redis.set("config:mcp:kc_client_secret", config.kc_client_secret)
             
             if config.gemini_api_key:
                 await self.redis.set("config:mcp:gemini_api_key", config.gemini_api_key)

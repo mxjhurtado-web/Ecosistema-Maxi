@@ -20,8 +20,14 @@ class Settings(BaseSettings):
     MCP_URL: str = "http://localhost:8080/query"
     MCP_TIMEOUT: int = 5
     MCP_MAX_RETRIES: int = 3
-    MCP_RETRY_DELAY: int = 1
     MCP_TOKEN: Optional[str] = None
+    
+    # Keycloak Settings
+    KC_SERVER_URL: Optional[str] = None
+    KC_REALM: Optional[str] = None
+    KC_CLIENT_ID: Optional[str] = None
+    KC_CLIENT_SECRET: Optional[str] = None
+    KC_USE_AUTH: bool = False
     
     # Security
     WEBHOOK_SECRET: str = "change-me-in-production"

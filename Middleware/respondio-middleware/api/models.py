@@ -151,8 +151,14 @@ class MCPConfig(BaseModel):
     timeout: int = Field(default=5, description="Timeout en segundos")
     max_retries: int = Field(default=3, description="Número máximo de reintentos")
     retry_delay: int = Field(default=1, description="Delay entre reintentos (segundos)")
-    mcp_token: Optional[str] = Field(None, description="Token de autenticación para el MCP")
+    mcp_token: Optional[str] = Field(None, description="Token de autenticación manual")
     gemini_api_key: Optional[str] = Field(None, description="Gemini API Key")
+    # Keycloak Auth (for Service Account)
+    use_keycloak: bool = Field(default=False, description="Usar Keycloak para autenticación")
+    kc_server_url: Optional[str] = Field(None, description="Keycloak Server URL")
+    kc_realm: Optional[str] = Field(None, description="Keycloak Realm")
+    kc_client_id: Optional[str] = Field(None, description="Keycloak Client ID")
+    kc_client_secret: Optional[str] = Field(None, description="Keycloak Client Secret")
 
 
 class CacheConfig(BaseModel):
