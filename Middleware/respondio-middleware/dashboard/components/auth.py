@@ -23,10 +23,10 @@ def login_form():
         submit = st.form_submit_button("Login")
         
         if submit:
-            # Get credentials from environment or use defaults
+            # Get credentials from Secrets (Cloud) or environment
             import os
-            correct_username = os.getenv("DASHBOARD_USERNAME", "admin")
-            correct_password = os.getenv("DASHBOARD_PASSWORD", "change-me-in-production")
+            correct_username = st.secrets.get("DASHBOARD_USERNAME") or os.getenv("DASHBOARD_USERNAME", "admin")
+            correct_password = st.secrets.get("DASHBOARD_PASSWORD") or os.getenv("DASHBOARD_PASSWORD", "change-me-in-production")
             
             if username == correct_username and password == correct_password:
                 st.session_state.authenticated = True

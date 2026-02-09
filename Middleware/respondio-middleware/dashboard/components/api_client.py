@@ -4,6 +4,7 @@ API client for communicating with Admin API.
 
 import requests
 import os
+import streamlit as st
 from typing import Optional, List, Dict, Any
 
 
@@ -11,9 +12,10 @@ class AdminAPIClient:
     """Client for Admin API"""
     
     def __init__(self):
-        self.base_url = os.getenv("API_URL", "http://localhost:8000")
-        self.username = os.getenv("DASHBOARD_USERNAME", "admin")
-        self.password = os.getenv("DASHBOARD_PASSWORD", "change-me-in-production")
+        # Prioritize Streamlit Secrets (for Cloud) over environment variables
+        self.base_url = st.secrets.get("API_URL") or os.getenv("API_URL", "http://localhost:8000")
+        self.username = st.secrets.get("DASHBOARD_USERNAME") or os.getenv("DASHBOARD_USERNAME", "admin")
+        self.password = st.secrets.get("DASHBOARD_PASSWORD") or os.getenv("DASHBOARD_PASSWORD", "change-me-in-production")
         self.params = {"username": self.username, "password": self.password}
     
     def _get(self, endpoint: str) -> Optional[Dict]:
