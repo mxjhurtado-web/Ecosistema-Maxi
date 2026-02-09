@@ -21,6 +21,7 @@ class MCPClient:
         self.timeout = settings.MCP_TIMEOUT
         self.max_retries = settings.MCP_MAX_RETRIES
         self.retry_delay = settings.MCP_RETRY_DELAY
+        self.mcp_token = settings.MCP_TOKEN
         self.gemini_api_key = None
         
         # Circuit breaker state
@@ -103,10 +104,16 @@ class MCPClient:
             try:
                 start_time = time.time()
                 
+                # Set headers for MCP authentication
+                headers = {}
+                if self.mcp_token:
+                    headers["Authorization"] = f"Bearer {self.mcp_token}"
+                
                 async with httpx.AsyncClient() as client:
                     response = await client.post(
                         self.url,
                         json=mcp_request.model_dump(),
+                        headers=headers,
                         timeout=self.timeout
                     )
                     response.raise_for_status()

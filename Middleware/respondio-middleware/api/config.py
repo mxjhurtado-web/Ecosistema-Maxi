@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     MCP_TIMEOUT: int = 5
     MCP_MAX_RETRIES: int = 3
     MCP_RETRY_DELAY: int = 1
+    MCP_TOKEN: Optional[str] = None
     
     # Security
     WEBHOOK_SECRET: str = "change-me-in-production"

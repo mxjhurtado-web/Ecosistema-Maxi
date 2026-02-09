@@ -67,6 +67,7 @@ async def update_mcp_config(
         mcp_client.timeout = config.timeout
         mcp_client.max_retries = config.max_retries
         mcp_client.retry_delay = config.retry_delay
+        mcp_client.mcp_token = config.mcp_token
         mcp_client.gemini_api_key = config.gemini_api_key
         
         return {"status": "ok", "message": "MCP config updated"}

@@ -30,6 +30,7 @@ class ConfigManager:
                 timeout=settings.MCP_TIMEOUT,
                 max_retries=settings.MCP_MAX_RETRIES,
                 retry_delay=settings.MCP_RETRY_DELAY,
+                mcp_token=settings.MCP_TOKEN,
                 gemini_api_key=None
             )
         
@@ -39,6 +40,7 @@ class ConfigManager:
             timeout = await self.redis.get("config:mcp:timeout")
             max_retries = await self.redis.get("config:mcp:max_retries")
             retry_delay = await self.redis.get("config:mcp:retry_delay")
+            mcp_token = await self.redis.get("config:mcp:mcp_token")
             gemini_api_key = await self.redis.get("config:mcp:gemini_api_key")
             
             return MCPConfig(
@@ -46,6 +48,7 @@ class ConfigManager:
                 timeout=int(timeout) if timeout else settings.MCP_TIMEOUT,
                 max_retries=int(max_retries) if max_retries else settings.MCP_MAX_RETRIES,
                 retry_delay=int(retry_delay) if retry_delay else settings.MCP_RETRY_DELAY,
+                mcp_token=mcp_token.decode() if mcp_token else settings.MCP_TOKEN,
                 gemini_api_key=gemini_api_key.decode() if gemini_api_key else None
             )
         except Exception as e:
@@ -56,6 +59,7 @@ class ConfigManager:
                 timeout=settings.MCP_TIMEOUT,
                 max_retries=settings.MCP_MAX_RETRIES,
                 retry_delay=settings.MCP_RETRY_DELAY,
+                mcp_token=settings.MCP_TOKEN,
                 gemini_api_key=None
             )
     
@@ -70,6 +74,12 @@ class ConfigManager:
             await self.redis.set("config:mcp:timeout", config.timeout)
             await self.redis.set("config:mcp:max_retries", config.max_retries)
             await self.redis.set("config:mcp:retry_delay", config.retry_delay)
+            
+            if config.mcp_token:
+                await self.redis.set("config:mcp:mcp_token", config.mcp_token)
+            else:
+                await self.redis.delete("config:mcp:mcp_token")
+            
             if config.gemini_api_key:
                 await self.redis.set("config:mcp:gemini_api_key", config.gemini_api_key)
             else:

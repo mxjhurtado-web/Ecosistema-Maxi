@@ -72,6 +72,16 @@ with tab1:
             )
             
             st.markdown("---")
+            st.markdown("### 🔐 MCP Security Settings")
+            
+            mcp_token = st.text_input(
+                "MCP Authentication Token",
+                value=mcp_config.get('mcp_token', '') or '',
+                type="password",
+                help="Token de seguridad para autenticarse con el servidor MCP (Bearer Token)"
+            )
+            
+            st.markdown("---")
             
             col1, col2 = st.columns(2)
             
@@ -88,6 +98,7 @@ with tab1:
                     "timeout": timeout,
                     "max_retries": max_retries,
                     "retry_delay": retry_delay,
+                    "mcp_token": mcp_token,
                     "gemini_api_key": mcp_config.get('gemini_api_key')
                 }
                 

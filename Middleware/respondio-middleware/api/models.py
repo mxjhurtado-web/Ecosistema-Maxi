@@ -151,6 +151,7 @@ class MCPConfig(BaseModel):
     timeout: int = Field(default=5, description="Timeout en segundos")
     max_retries: int = Field(default=3, description="Número máximo de reintentos")
     retry_delay: int = Field(default=1, description="Delay entre reintentos (segundos)")
+    mcp_token: Optional[str] = Field(None, description="Token de autenticación para el MCP")
     gemini_api_key: Optional[str] = Field(None, description="Gemini API Key")
 
 
