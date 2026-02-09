@@ -69,5 +69,8 @@ class Job(Base):
     # Celery task ID (para tracking asíncrono)
     celery_task_id = Column(String, nullable=True)
     
+    # Metadata corporativa para integraciones (ej: Corpo)
+    corpo_metadata = Column(JSON, nullable=True)
+    
     def __repr__(self):
         return f"<Job {self.id} - {self.status}>"
