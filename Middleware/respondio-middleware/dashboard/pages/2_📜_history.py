@@ -5,6 +5,17 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+import sys
+import os
+
+# Add project root to path with high priority
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from components.auth import require_auth
+from components.api_client import api_client
+from components.page_setup import setup_page
 
 # Setup page with ORBIT theme
 setup_page("Request History", "📜")
