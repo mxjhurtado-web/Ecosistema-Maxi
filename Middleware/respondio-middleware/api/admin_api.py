@@ -207,7 +207,7 @@ async def update_email_config(
 
 @router.get("/users", response_model=List[DashboardUser])
 async def get_dashboard_users(
-    _: bool = Depends(verify_admin_credentials)
+    _: DashboardUser = Depends(verify_admin_credentials)
 ):
     """Get all dashboard users"""
     return await config_manager.get_users()
@@ -215,27 +215,27 @@ async def get_dashboard_users(
 
 @router.post("/users")
 async def add_dashboard_user(
-    user: DashboardUser,
-    _: bool = Depends(verify_admin_credentials)
+    new_user: DashboardUser,
+    admin: DashboardUser = Depends(require_admin_role)
 ):
     """Add or update a dashboard user with limit checks"""
     existing_users = await config_manager.get_users()
     
     # Check if we are updating or creating
-    is_update = any(u.username == user.username for u in existing_users)
+    is_update = any(u.username == new_user.username for u in existing_users)
     
     if not is_update:
         # Enforce limits: Max 3 of each role
         admins = [u for u in existing_users if u.role == UserRole.ADMIN]
         supervisors = [u for u in existing_users if u.role == UserRole.SUPERVISOR]
         
-        if user.role == UserRole.ADMIN and len(admins) >= 3:
+        if new_user.role == UserRole.ADMIN and len(admins) >= 3:
             raise HTTPException(status_code=400, detail="Limit reached: Maximum 3 administrators allowed")
         
-        if user.role == UserRole.SUPERVISOR and len(supervisors) >= 3:
+        if new_user.role == UserRole.SUPERVISOR and len(supervisors) >= 3:
             raise HTTPException(status_code=400, detail="Limit reached: Maximum 3 supervisors allowed")
             
-    success = await config_manager.add_user(user)
+    success = await config_manager.add_user(new_user)
     
     if success:
         # Audit log
@@ -243,9 +243,9 @@ async def add_dashboard_user(
             username=admin.username,
             role=admin.role,
             action=AuditAction.USER_MANAGEMENT,
-            details=f"{'Updated' if is_update else 'Created'} user: {user.username} as {user.role}"
+            details=f"{'Updated' if is_update else 'Created'} user: {new_user.username} as {new_user.role}"
         ))
-        return {"status": "ok", "message": f"User {user.username} {'updated' if is_update else 'created'}"}
+        return {"status": "ok", "message": f"User {new_user.username} {'updated' if is_update else 'created'}"}
     else:
         raise HTTPException(status_code=500, detail="Failed to save user")
 
