@@ -37,21 +37,21 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 # ============================================================
 
 async def verify_admin_credentials(
-    username: str = Query(...),
-    password: str = Query(...)
+    auth_username: str = Query(..., alias="username"),
+    auth_password: str = Query(..., alias="password")
 ) -> DashboardUser:
     """Verify credentials against dynamic user list"""
     users = await config_manager.get_users()
     
     for user in users:
-        if user.username == username and user.password == password:
+        if user.username == auth_username and user.password == auth_password:
             return user
             
     # Fallback to default if Redis is empty or no match (safety during setup)
-    if username == settings.DASHBOARD_USERNAME and password == settings.DASHBOARD_PASSWORD:
+    if auth_username == settings.DASHBOARD_USERNAME and auth_password == settings.DASHBOARD_PASSWORD:
         return DashboardUser(
-            username=username,
-            password=password,
+            username=auth_username,
+            password=auth_password,
             role=UserRole.ADMIN
         )
         
