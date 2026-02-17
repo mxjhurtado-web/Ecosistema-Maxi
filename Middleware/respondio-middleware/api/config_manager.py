@@ -26,6 +26,10 @@ class ConfigManager:
     def __init__(self, redis_client=None):
         self.redis = redis_client
         self.enabled = redis_client is not None
+        # In-memory fallback for when Redis is disabled
+        self._memory_config = {}
+        if not self.enabled:
+            logger.warning("Redis is disabled. ConfigManager will use In-Memory storage (not persistent).")
     
     # ============================================================
     # MCP Configuration
@@ -34,9 +38,9 @@ class ConfigManager:
     async def get_mcp_config(self) -> MCPConfig:
         """Get current MCP configuration"""
         if not self.enabled:
-            # Return default from settings
+            # Return default from settings BUT include memory fallback for Gemini
             return MCPConfig(
-                url=settings.MCP_URL,
+                url=self._memory_config.get("url", settings.MCP_URL),
                 timeout=settings.MCP_TIMEOUT,
                 max_retries=settings.MCP_MAX_RETRIES,
                 retry_delay=settings.MCP_RETRY_DELAY,
@@ -46,7 +50,7 @@ class ConfigManager:
                 kc_realm=settings.KC_REALM,
                 kc_client_id=settings.KC_CLIENT_ID,
                 kc_client_secret=settings.KC_CLIENT_SECRET,
-                gemini_api_key=None
+                gemini_api_key=self._memory_config.get("gemini_api_key")
             )
         
         try:
@@ -78,9 +82,9 @@ class ConfigManager:
             )
         except Exception as e:
             logger.error(f"Failed to get MCP config from Redis: {str(e)}")
-            # Fallback to settings
+            # Fallback to settings + memory
             return MCPConfig(
-                url=settings.MCP_URL,
+                url=self._memory_config.get("url", settings.MCP_URL),
                 timeout=settings.MCP_TIMEOUT,
                 max_retries=settings.MCP_MAX_RETRIES,
                 retry_delay=settings.MCP_RETRY_DELAY,
@@ -90,14 +94,17 @@ class ConfigManager:
                 kc_realm=settings.KC_REALM,
                 kc_client_id=settings.KC_CLIENT_ID,
                 kc_client_secret=settings.KC_CLIENT_SECRET,
-                gemini_api_key=None
+                gemini_api_key=self._memory_config.get("gemini_api_key")
             )
     
     async def update_mcp_config(self, config: MCPConfig):
         """Update MCP configuration"""
         if not self.enabled:
-            logger.warning("Cannot update config: Redis not available")
-            return False
+            logger.warning("Updating config in MEMORY (not persistent)")
+            self._memory_config["url"] = config.url
+            self._memory_config["gemini_api_key"] = config.gemini_api_key
+            # ... other fields could be added here if needed, but these are the critical ones for Gemini
+            return True
         
         try:
             await self.redis.set("config:mcp:url", config.url)

@@ -103,6 +103,15 @@ class MCPClient:
         Returns:
             Tuple of (response_text, status, latency_ms, retry_count)
         """
+        # Fetch latest config from manager (handles Redis or In-Memory)
+        from .config_manager import config_manager
+        curr_config = await config_manager.get_mcp_config()
+        
+        # Update client attributes with latest dynamic config
+        self.url = curr_config.url
+        self.gemini_api_key = curr_config.gemini_api_key
+        # ... could update timeouts/retries too if needed
+        
         # Check circuit breaker
         if self._check_circuit():
             logger.warning("Circuit breaker is open, returning fallback")
