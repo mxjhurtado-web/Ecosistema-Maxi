@@ -184,6 +184,8 @@ with tabs[3]:
     st.subheader("📚 Knowledge Base & FAQ")
     st.markdown("Acceso rápido a guías y resolución de dudas comunes.")
     
+    knowledge = api_client.get_knowledge()
+    
     # Show the direct link for easy copying
     knowledge_url = f"{api_client.base_url}/knowledge"
     st.info("🔗 **Public Knowledge URL (JSON)**")
