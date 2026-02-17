@@ -82,7 +82,7 @@ async def get_mcp_config(
 @router.put("/config/mcp")
 async def update_mcp_config(
     config: MCPConfig,
-    _: DashboardUser = Depends(require_admin_role)
+    admin: DashboardUser = Depends(require_admin_role)
 ):
     """Update MCP configuration"""
     success = await config_manager.update_mcp_config(config)
@@ -90,8 +90,8 @@ async def update_mcp_config(
     if success:
         # Audit log
         await config_manager.log_audit_action(AuditLogEntry(
-            username=user.username,
-            role=user.role,
+            username=admin.username,
+            role=admin.role,
             action=AuditAction.CONFIG_CHANGE,
             details=f"Updated MCP configuration: {config.url}"
         ))
