@@ -11,7 +11,8 @@ from .models import (
     DashboardUser, 
     UserRole,
     AuditLogEntry,
-    AuditAction
+    AuditAction,
+    EmailAlertConfig
 )
 from .config import settings
 import logging
