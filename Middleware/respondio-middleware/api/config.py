@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     MCP_MAX_RETRIES: int = 3
     MCP_RETRY_DELAY: int = 1
     MCP_TOKEN: Optional[str] = None
+    GEMINI_API_KEY: Optional[str] = None
     
     # Keycloak Settings
     KC_SERVER_URL: Optional[str] = None
