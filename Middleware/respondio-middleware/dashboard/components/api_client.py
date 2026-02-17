@@ -31,15 +31,18 @@ class AdminAPIClient:
     def _get(self, endpoint: str) -> Optional[Dict]:
         """GET request"""
         try:
+            url = f"{self.base_url}{endpoint}"
+            print(f"DEBUG: GET {url}")
             response = requests.get(
-                f"{self.base_url}{endpoint}",
+                url,
                 params=self.params,
                 timeout=10
             )
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            print(f"GET error: {str(e)}")
+            print(f"DEBUG: GET error for {endpoint}: {str(e)}")
+            st.error(f"Error connecting to backend: {str(e)}")
             return None
     
     def _post(self, endpoint: str, data: Optional[Dict] = None) -> Optional[Dict]:

@@ -7,8 +7,8 @@ from datetime import datetime
 import sys
 import os
 
-# Add parent directory to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add project root to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from components.auth import require_auth
 from components.api_client import api_client
