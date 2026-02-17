@@ -35,7 +35,7 @@ st.title("🔧 System Maintenance")
 st.markdown("---")
 
 # Navigation Tabs
-tabs = st.tabs(["🚀 Diagnostics", "👥 User Management", "⚙️ System Controls"])
+tabs = st.tabs(["🚀 Diagnostics", "👥 User Management", "⚙️ System Controls", "📚 Knowledge Base"])
 
 # ============================================================
 # TAB 1: Diagnostics
@@ -176,6 +176,41 @@ with tabs[2]:
             if st.button("🔄 Reset Circuit Breaker"):
                 api_client.reset_circuit_breaker()
                 st.rerun()
+
+# ============================================================
+# TAB 4: Knowledge Base
+# ============================================================
+with tabs[3]:
+    st.subheader("📚 Knowledge Base & FAQ")
+    st.markdown("Acceso rápido a guías y resolución de dudas comunes.")
+    
+    # Show the direct link for easy copying
+    knowledge_url = f"{api_client.base_url}/knowledge"
+    st.info("🔗 **Public Knowledge URL (JSON)**")
+    st.code(knowledge_url, language="text")
+    st.caption("Esta es la liga que puedes compartir o usar en integraciones externas.")
+    
+    st.markdown("---")
+    
+    if knowledge:
+        faq = knowledge.get('faq', [])
+        for item in faq:
+            with st.expander(f"❓ {item.get('question')}"):
+                st.write(item.get('answer'))
+        
+        st.markdown("---")
+        st.subheader("🔗 Enlaces Útiles")
+        links = knowledge.get('links', [])
+        cols = st.columns(len(links) if links else 1)
+        for i, link in enumerate(links):
+            with cols[i]:
+                # Build absolute URL if it's a relative path
+                url = link.get('url')
+                if url.startswith('/'):
+                    url = f"{api_client.base_url}{url}"
+                st.link_button(link.get('name'), url, use_container_width=True)
+    else:
+        st.info("💡 La base de conocimientos no está disponible en este momento.")
 
 # Footer
 st.markdown("---")

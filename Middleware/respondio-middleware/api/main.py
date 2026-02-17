@@ -266,6 +266,39 @@ async def root():
 
 
 # ============================================================
+# Knowledge Base Endpoint
+# ============================================================
+
+@app.get("/knowledge")
+async def get_knowledge():
+    """Knowledge Base / FAQ endpoint"""
+    return {
+        "faq": [
+            {
+                "question": "¿Qué significa transferencia pendiente?",
+                "answer": "Significa que la operación está en proceso de validación y pronto será procesada por el sistema bancario."
+            },
+            {
+                "question": "¿Cómo configurar el MCP?",
+                "answer": "Accede a la pestaña 'Configuración' en el dashboard y asegúrate de que la URL del servidor MCP y el Token sean correctos."
+            },
+            {
+                "question": "¿Por qué el estado aparece como Degraded?",
+                "answer": "Esto sucede si el servidor MCP o Redis no responden. Verifica las conexiones en la pestaña de Mantenimiento."
+            },
+            {
+                "question": "¿Qué es el Circuit Breaker?",
+                "answer": "Es un mecanismo de seguridad que detiene las peticiones al MCP si este falla repetidamente, protegiendo al sistema de sobrecargas."
+            }
+        ],
+        "links": [
+            {"name": "Documentación API", "url": "/docs"},
+            {"name": "Panel de Control Render", "url": "https://dashboard.render.com"}
+        ]
+    }
+
+
+# ============================================================
 # Error Handlers
 # ============================================================
 

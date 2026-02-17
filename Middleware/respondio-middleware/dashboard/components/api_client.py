@@ -228,5 +228,22 @@ class AdminAPIClient:
         return result is not None
 
 
+    # ============================================================
+    # Knowledge Base
+    # ============================================================
+
+    def get_knowledge(self) -> Optional[Dict]:
+        """Get knowledge base / FAQ data"""
+        # This is a public endpoint
+        try:
+            url = f"{self.base_url}/knowledge"
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"Knowledge API error: {str(e)}")
+            return None
+
+
 # Singleton instance
 api_client = AdminAPIClient()

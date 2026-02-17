@@ -162,6 +162,13 @@ with st.sidebar:
             st.success("🛡️ Circuit Breaker: OK")
     
     st.markdown("---")
+    st.markdown("### 📖 Knowledge Base")
+    # Build the full URL for the knowledge endpoint
+    knowledge_url = f"{api_client.base_url}/knowledge"
+    st.info(f"🔗 [API Knowledge Link]({knowledge_url})")
+    st.caption("Share this URL with users or integration partners.")
+    
+    st.markdown("---")
 
 # Main content
 st.markdown('<div class="logo-container">', unsafe_allow_html=True)
