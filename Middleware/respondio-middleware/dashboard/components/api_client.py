@@ -13,7 +13,21 @@ class AdminAPIClient:
     
     def __init__(self):
         # Prioritize Streamlit Secrets (for Cloud) over environment variables
-        self.default_base_url = st.secrets.get("API_URL") or os.getenv("API_URL", "http://localhost:8000")
+        self.default_base_url = st.secrets.get("API_URL")
+        
+        # If not in secrets, try environment variable
+        if not self.default_base_url:
+            self.default_base_url = os.getenv("API_URL")
+            
+        # If still not found, use default but warn
+        if not self.default_base_url:
+            self.default_base_url = "http://localhost:8000"
+            print("WARNING: API_URL not found in secrets or environment. Using localhost:8000")
+        
+        # Ensure URL doesn't end with a slash to avoid double slashes
+        self.default_base_url = self.default_base_url.rstrip('/')
+
+        # Credentials
         self.default_username = st.secrets.get("DASHBOARD_USERNAME") or os.getenv("DASHBOARD_USERNAME", "admin")
         self.default_password = st.secrets.get("DASHBOARD_PASSWORD") or os.getenv("DASHBOARD_PASSWORD", "change-me-in-production")
 
