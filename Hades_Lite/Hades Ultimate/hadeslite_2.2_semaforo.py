@@ -29,6 +29,17 @@ except Exception as e:
     process_ocr_with_translation = lambda t, k: (t, {"fue_traducido": False, "idioma_detectado": "es"})
     get_language_display_name = lambda l: l.upper()
 
+# ===== POLICY TEMPLATES (Compliance 2025) =====
+try:
+    from policy_templates import classify_document, policy_score_adjustment
+    _POLICY_TEMPLATES_OK = True
+    print("[HADES] Policy Templates cargado exitosamente.")
+except Exception as e:
+    print(f"[HADES] Advertencia: No se pudo cargar policy_templates: {e}")
+    _POLICY_TEMPLATES_OK = False
+    classify_document = None
+    policy_score_adjustment = None
+
 
 
 
@@ -324,7 +335,9 @@ def _normalize_date_to_mdy_ctx(s: str, country_ctx: str|None, lang_ctx: str|None
     if m:
         a, b, y = m.groups()
         a = int(a); b = int(b); y = _coerce_year(int(y))
-        prefer_dmy = (country_ctx not in {"US"} or lang_ctx == "ES")
+        # REGLA ORO USA: Si el país es USA, ignoramos el idioma y preferimos MDY
+        prefer_dmy = (country_ctx != "US")
+        
         day, month = None, None
         if a > 12 and b <= 12: day, month = a, b
         elif b > 12 and a <= 12: month, day = a, b
@@ -412,8 +425,8 @@ def _process_all_dates_by_type(texto: str) -> Dict[str, Optional[str]]:
         is_already_mdy = False
         if original: # Asegurarse de que 'original' no sea None
             # re.fullmatch comprueba si TODA la cadena coincide con el patrón
-            # Patrón: (1-2 dígitos)[/-](1-2 dígitos)[/-](4 dígitos)
-            if re.fullmatch(r'\d{1,2}[/-]\d{1,2}[/-]\d{4}', original.strip()):
+            # Patrón: (1-2 dígitos)[/-](1-2 dígitos)[/-](2 o 4 dígitos)
+            if re.fullmatch(r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}', original.strip()):
                 is_already_mdy = True
 
         # 2. Aplicamos la nueva regla
@@ -584,6 +597,22 @@ def _process_all_dates_by_type(texto: str) -> Dict[str, Optional[str]]:
                 results["fecha_vigencia_final"] = sugerida_str
             except ValueError:
                 pass
+
+    # AGREGADO: Integración de Policy Templates (Compliance 2025)
+    if _POLICY_TEMPLATES_OK and classify_document:
+        try:
+            policy_result = classify_document(texto)
+            results["policy_acceptance"] = policy_result.get("acceptance", "REVIEW")
+            results["policy_reason"] = policy_result.get("policy_reason", "")
+            results["policy_evidence"] = policy_result.get("policy_evidence", [])
+            results["doc_type_compliance"] = policy_result.get("doc_type", "UNKNOWN")
+            
+            # Ajuste de score basado en política
+            score_adj, adj_reason = policy_score_adjustment(results["policy_acceptance"])
+            results["policy_score_adjustment"] = score_adj
+            results["policy_adjustment_reason"] = adj_reason
+        except Exception as e:
+            print(f"[HADES] Error en validación de políticas: {e}")
 
     del results["exp_date_mdy_for_sug"]
     results["kv_map"] = kv_map
@@ -966,20 +995,12 @@ def gemini_vision_auth_check(image_path: str) -> tuple[int, list[str]]:
         # Red flags expandidos con pesos ajustados
         red_flags = {
             # Manipulación digital (peso alto)
-            "manipulación": 30,
-            "manipulacion": 30,
-            "editado": 30,
-            "photoshop": 40,
-            "clonación": 40,
-            "clonacion": 40,
-            "alterado": 30,
-            "retocado": 25,
+            "manipulación": 30, "manipulacion": 30, "editado": 30,
+            "photoshop": 40, "clonación": 40, "clonacion": 40,
+            "alterado": 30, "retocado": 25,
             
             # Falsificación directa (peso muy alto)
             "falso": 45,
-            "falsificación": 45,
-            "falsificacion": 45,
-            "no auténtico": 40,
             "fraudulento": 45,
             
             # Inconsistencias (peso medio-alto)
@@ -1483,8 +1504,6 @@ def verificar_correo_online(correo: str):
             f"No se pudo acceder a la lista de autorizados (Sheets API). \n"
             f"Verifica el permiso del Service Account y la clave Base64. Detalle: {e}")
         return False, None
-    except Exception as e:
-        # Captura otros errores de API o conexión.
         messagebox.showerror("Error de Conexión", f"Error inesperado de conexión a Sheets: {e}")
         return False, None
 
@@ -2463,14 +2482,31 @@ def _format_ocr_text_with_normalized_dates(t: str, results: Dict[str, Optional[s
                 is_essential = any(kw in key_clean for kw in essential_keywords_clean)
                 
                 tag = "essential_value" if is_essential else "value_bold"
-                
-                ocr_text.insert("end", f"{key}: ")
-                ocr_text.insert("end", f"{value_to_show}\n", tag)
-            else:
-                ocr_text.insert("end", line + "\n")
+                # Mostrar en color
+            ocr_text.insert("end", f"{key}: ", "essential_key" if is_essential else None)
+            ocr_text.insert("end", f"{value_to_show}\n", "essential_value" if is_essential else None)
         else:
-            ocr_text.insert("end", line + "\n")
+            ocr_text.insert("end", f"{line}\n")
 
+    # AGREGADO: Mostrar resultados de Cumplimiento 2025 al final del OCR
+    if "policy_acceptance" in results:
+        acc = results["policy_acceptance"]
+        reason = results.get("policy_reason", "")
+        adj = results.get("policy_score_adjustment", 0)
+        
+        ocr_text.insert("end", "\n" + "="*30 + "\n", "policy_header")
+        ocr_text.insert("end", "🛡️ CUMPLIMIENTO 2025\n", "policy_header")
+        ocr_text.insert("end", "="*30 + "\n")
+        
+        status_color = "#10b981" if acc == "ACCEPTED" else ("#f59e0b" if "LIMITED" in acc else "#ef4444")
+        ocr_text.tag_config(f"policy_status_{acc}", foreground=status_color, font=("Segoe UI", 10, "bold"))
+        
+        ocr_text.insert("end", f"ESTATUS: ", "essential_key")
+        ocr_text.insert("end", f"{acc}\n", f"policy_status_{acc}")
+        ocr_text.insert("end", f"DETALLE: {reason}\n")
+        if adj > 0:
+            ocr_text.insert("end", f"RIESGO POLÍTICA: +{adj} pts\n", "essential_value")
+        
 def analizar_actual():
     global idx
     if not rutas:
@@ -2665,14 +2701,23 @@ def analizar_carrusel():
 
             # Lógica de autenticidad: Iniciar con el resultado de Gemini
             riesgo = riesgo_visual
-            detalles = detalles_visuales
+            detalles = list(detalles_visuales) # Copia para poder añadir
             color = color_visual
+
+            # Sumar ajuste de política (Compliance 2025)
+            if date_results.get("policy_score_adjustment", 0) > 0:
+                # Si el ajuste es alto, podemos forzar el color
+                adj = date_results["policy_score_adjustment"]
+                detalles.append(f"POLÍTICA: {date_results.get('policy_adjustment_reason')} (+{adj} pts)")
+                if adj >= 25: color = "red"; riesgo = "ALTO"
+                elif adj >= 10 and color == "green": color = "yellow"; riesgo = "MEDIO"
+
             emoji = "🟢" if color == "green" else "🟡" if color == "yellow" else "🔴"
 
             # Refinar con heurísticas locales (opcional)
             r_h, d_h, e_h, c_h = _authenticity_score(texto, None)
-            if c_h == "red" or c_h == "yellow" and color == "green":
-                riesgo, detalles, emoji, color = r_h, d_h, e_h, c_h
+            if c_h == "red" or (c_h == "yellow" and color == "green"):
+                riesgo, detalles, emoji, color = r_h, list(set(detalles + d_h)), e_h, c_h
 
             dt = round(time.time() - t0, 2)
 
@@ -2842,10 +2887,19 @@ def analizar_identificacion():
             
             detalles = list(set(res_f["detalles_forenses"] + res_r["detalles_forenses"]))
 
+            # Sumar ajuste de política (Compliance 2025)
+            if date_results.get("policy_score_adjustment", 0) > 0:
+                adj = date_results["policy_score_adjustment"]
+                detalles.append(f"POLÍTICA: {date_results.get('policy_adjustment_reason')} (+{adj} pts)")
+                if adj >= 25: color = "red"; riesgo = "ALTO"
+                elif adj >= 10 and color == "green": color = "yellow"; riesgo = "MEDIO"
+            
+            emoji = "🟢" if color == "green" else "🟡" if color == "yellow" else "🔴"
+
             # Refinar con heurísticas (pasamos None para omitir forense visual extra)
             r_h, d_h, e_h, c_h = _authenticity_score(texto_total, None)
             if c_h == "red" or (c_h == "yellow" and color == "green"):
-                riesgo, detalles, emoji, color = r_h, d_h, e_h, c_h
+                riesgo, detalles, emoji, color = r_h, list(set(detalles + d_h)), e_h, c_h
 
             dt = round(time.time() - t0, 2)
 
