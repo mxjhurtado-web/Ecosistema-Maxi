@@ -1,39 +1,39 @@
-# MaxiBot v4.6.2 DevOpsMCP
+﻿# MaxiBot v4.6.2 DevOpsMCP
 
-## 🆕 Nueva Versión
+## ðŸ†• Nueva VersiÃ³n
 
-Esta es una versión especializada de MaxiBot que incluye integración con DevOps MCP para consultas de operaciones.
+Esta es una versiÃ³n especializada de MaxiBot que incluye integraciÃ³n con DevOps MCP para consultas de operaciones.
 
-## 📋 Cambios vs v4.6.1
+## ðŸ“‹ Cambios vs v4.6.1
 
-### ✨ Nuevas Funcionalidades
+### âœ¨ Nuevas Funcionalidades
 
-1. **Pestaña de Operaciones** 🔧
+1. **PestaÃ±a de Operaciones** ðŸ”§
    - Chat dedicado exclusivamente para DevOps MCP
    - Consultas sobre agencias, sistemas y servicios
-   - Indicador de estado en tiempo real (🟢 Conectado / 🔴 Desconectado)
-   - Botón "Herramientas MCP" para ver tools disponibles
+   - Indicador de estado en tiempo real (ðŸŸ¢ Conectado / ðŸ”´ Desconectado)
+   - BotÃ³n "Herramientas MCP" para ver tools disponibles
 
-2. **Integración DevOps MCP**
-   - Cliente completo con autenticación Keycloak
-   - Usa Gemini 2.5 Flash (`gemini-2.5-flash`)
-   - Reinicialización automática al ingresar API key
+2. **IntegraciÃ³n DevOps MCP**
+   - Cliente completo con autenticaciÃ³n Keycloak
+   - Usa Gemini 2.5 Flash (`gemini-3-flash`)
+   - ReinicializaciÃ³n automÃ¡tica al ingresar API key
    - Soporte para consultas async y sync
 
-3. **Módulo `devops_mcp.py`**
+3. **MÃ³dulo `devops_mcp.py`**
    - Cliente standalone para DevOps MCP
    - Interfaz async y sync
-   - Gestión automática de sesiones
+   - GestiÃ³n automÃ¡tica de sesiones
    - Manejo de errores robusto
 
-### 🔧 Mejoras Técnicas
+### ðŸ”§ Mejoras TÃ©cnicas
 
-- **Modelo Gemini**: Actualizado a `gemini-2.5-flash` en todos los componentes
-- **Autenticación**: Integración mejorada con Keycloak
+- **Modelo Gemini**: Actualizado a `gemini-3-flash` en todos los componentes
+- **AutenticaciÃ³n**: IntegraciÃ³n mejorada con Keycloak
 - **UX**: Indicadores visuales de estado del MCP
-- **Logging**: Mensajes informativos de inicialización
+- **Logging**: Mensajes informativos de inicializaciÃ³n
 
-## 🚀 Uso
+## ðŸš€ Uso
 
 ### Iniciar MaxiBot v4.6.2
 
@@ -46,18 +46,18 @@ cd "d:\zyzen 3\Documents\Ecosistema-Maxi\Maxibot"
 
 1. **Login con SSO** (Keycloak)
 2. **Ingresar API Key** de Gemini
-3. **Hacer clic** en el botón "🔧 Operaciones"
-4. **Consultar** información de DevOps
+3. **Hacer clic** en el botÃ³n "ðŸ”§ Operaciones"
+4. **Consultar** informaciÃ³n de DevOps
 
 ### Ejemplos de Consultas
 
 ```
 Dame el status de la agencia NM-238
-¿Por qué está deshabilitada la agencia NM-150?
-Muéstrame el estado de los servicios en producción
+Â¿Por quÃ© estÃ¡ deshabilitada la agencia NM-150?
+MuÃ©strame el estado de los servicios en producciÃ³n
 ```
 
-## 📦 Dependencias Nuevas
+## ðŸ“¦ Dependencias Nuevas
 
 ```
 google-genai>=0.2.0
@@ -69,62 +69,62 @@ mcp>=1.0.0
 pip install -r requirements.txt
 ```
 
-## 🔑 Configuración
+## ðŸ”‘ ConfiguraciÃ³n
 
 ### Variables de Entorno
 
-El sistema configura automáticamente:
-- `KEYCLOAK_TOKEN`: Token de autenticación SSO
+El sistema configura automÃ¡ticamente:
+- `KEYCLOAK_TOKEN`: Token de autenticaciÃ³n SSO
 - `GEMINI_API_KEY`: API key ingresada por el usuario
 
-### Configuración DevOps MCP
+### ConfiguraciÃ³n DevOps MCP
 
 - **URL**: `https://mcp.mylabs.mx/tools/operations/mcp/`
-- **Modelo**: `gemini-2.5-flash`
-- **Temperatura**: 0 (determinístico)
+- **Modelo**: `gemini-3-flash`
+- **Temperatura**: 0 (determinÃ­stico)
 
-## 📊 Arquitectura
+## ðŸ“Š Arquitectura
 
 ```
 MaxiBot v4.6.2
-├── Chat Principal (gemini-2.5-flash)
-│   ├── Excel/KB
-│   ├── DOCS
-│   ├── WEATHER
-│   ├── NEWS
-│   ├── MCP
-│   └── WEB
-│
-└── Pestaña Operaciones (DevOps MCP)
-    └── DevOps MCP (gemini-2.5-flash)
-        ├── Autenticación Keycloak
-        ├── Consultas directas
-        └── Sin cascada de búsqueda
+â”œâ”€â”€ Chat Principal (gemini-3-flash)
+â”‚   â”œâ”€â”€ Excel/KB
+â”‚   â”œâ”€â”€ DOCS
+â”‚   â”œâ”€â”€ WEATHER
+â”‚   â”œâ”€â”€ NEWS
+â”‚   â”œâ”€â”€ MCP
+â”‚   â””â”€â”€ WEB
+â”‚
+â””â”€â”€ PestaÃ±a Operaciones (DevOps MCP)
+    â””â”€â”€ DevOps MCP (gemini-3-flash)
+        â”œâ”€â”€ AutenticaciÃ³n Keycloak
+        â”œâ”€â”€ Consultas directas
+        â””â”€â”€ Sin cascada de bÃºsqueda
 ```
 
-## 🆚 Diferencias con v4.6.1
+## ðŸ†š Diferencias con v4.6.1
 
-| Característica | v4.6.1 | v4.6.2 DevOpsMCP |
+| CaracterÃ­stica | v4.6.1 | v4.6.2 DevOpsMCP |
 |----------------|--------|------------------|
-| Chat Principal | ✅ | ✅ |
-| Keycloak SSO | ✅ | ✅ |
-| Modelo Gemini | gemini-2.5-flash | gemini-2.5-flash |
-| **Pestaña Operaciones** | ❌ | ✅ |
-| **DevOps MCP** | ❌ | ✅ |
-| **Indicador Estado MCP** | ❌ | ✅ |
+| Chat Principal | âœ… | âœ… |
+| Keycloak SSO | âœ… | âœ… |
+| Modelo Gemini | gemini-3-flash | gemini-3-flash |
+| **PestaÃ±a Operaciones** | âŒ | âœ… |
+| **DevOps MCP** | âŒ | âœ… |
+| **Indicador Estado MCP** | âŒ | âœ… |
 
-## 🔒 Seguridad
+## ðŸ”’ Seguridad
 
-- ✅ Autenticación SSO con Keycloak
-- ✅ Tokens no persistidos en archivos
-- ✅ API keys solo en memoria
-- ✅ Validación de roles de usuario
+- âœ… AutenticaciÃ³n SSO con Keycloak
+- âœ… Tokens no persistidos en archivos
+- âœ… API keys solo en memoria
+- âœ… ValidaciÃ³n de roles de usuario
 
-## 📝 Notas para Desarrollo
+## ðŸ“ Notas para Desarrollo
 
 ### Evitar Conflictos
 
-Esta versión (`v4.6.2`) fue creada para evitar conflictos con otros desarrolladores trabajando en `v4.6.1`. 
+Esta versiÃ³n (`v4.6.2`) fue creada para evitar conflictos con otros desarrolladores trabajando en `v4.6.1`. 
 
 **Recomendaciones**:
 - Usar `MaxiBot_V4.6.2_DevOpsMCP.py` para desarrollo con DevOps MCP
@@ -134,39 +134,41 @@ Esta versión (`v4.6.2`) fue creada para evitar conflictos con otros desarrollad
 ### Archivos Relacionados
 
 - `devops_mcp.py` - Cliente DevOps MCP
-- `keycloak_auth.py` - Autenticación Keycloak
+- `keycloak_auth.py` - AutenticaciÃ³n Keycloak
 - `requirements.txt` - Dependencias
-- `operaciones_tab.py` - Código de referencia (no usado directamente)
+- `operaciones_tab.py` - CÃ³digo de referencia (no usado directamente)
 
-## 🐛 Troubleshooting
+## ðŸ› Troubleshooting
 
-### Error: "DevOps MCP no está conectado"
+### Error: "DevOps MCP no estÃ¡ conectado"
 
 **Causa**: Falta API key de Gemini o token de Keycloak
 
-**Solución**:
-1. Asegúrate de hacer login con SSO
+**SoluciÃ³n**:
+1. AsegÃºrate de hacer login con SSO
 2. Ingresa tu API key de Gemini
-3. Verifica el mensaje: "✅ DevOps MCP reinicializado con API Key"
+3. Verifica el mensaje: "âœ… DevOps MCP reinicializado con API Key"
 
 ### Error: "Model not found"
 
-**Causa**: Modelo incorrecto en configuración
+**Causa**: Modelo incorrecto en configuraciÃ³n
 
-**Solución**: Verificar que `devops_mcp.py` use `gemini-2.5-flash`
+**SoluciÃ³n**: Verificar que `devops_mcp.py` use `gemini-3-flash`
 
-## 📚 Documentación Adicional
+## ðŸ“š DocumentaciÃ³n Adicional
 
-- [Plan de Implementación](devops_mcp_plan.md)
+- [Plan de ImplementaciÃ³n](devops_mcp_plan.md)
 - [Walkthrough DevOps MCP](devops_mcp_walkthrough.md)
-- [Verificación de Modelos](gemini_model_verification.md)
+- [VerificaciÃ³n de Modelos](gemini_model_verification.md)
 
-## 👥 Créditos
+## ðŸ‘¥ CrÃ©ditos
 
-**Versión**: 4.6.2 DevOpsMCP  
+**VersiÃ³n**: 4.6.2 DevOpsMCP  
 **Fecha**: 2025-12-10  
-**Cambios**: Integración DevOps MCP + Pestaña Operaciones
+**Cambios**: IntegraciÃ³n DevOps MCP + PestaÃ±a Operaciones
 
 ---
 
-**¿Preguntas?** Revisa la documentación en los artifacts o consulta los logs de consola.
+**Â¿Preguntas?** Revisa la documentaciÃ³n en los artifacts o consulta los logs de consola.
+
+

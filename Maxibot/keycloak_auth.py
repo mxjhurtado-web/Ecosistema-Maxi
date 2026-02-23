@@ -375,21 +375,38 @@ class KeycloakAuth:
 
     def get_access_token(self) -> Optional[str]:
         """
-        Obtiene el access token actual para uso con servicios externos (ej. DevOps MCP).
-        Intenta refrescarlo automáticamente si detecta que podría estar caducado.
+        Obtiene el access token actual. Refresca automaticamente si detecta
+        que esta proximo a expirar o ya expiro (verificacion via JWT exp claim).
+        Retorna None si el token no se puede refrescar (sesion expirada).
         """
         if not self.access_token:
             return None
-            
-        # Intentamos un refresco proactivo si tenemos el refresh_token
-        # Esto previene errores 401 en servicios externos
-        if self.refresh_token:
-            # Nota: Podríamos verificar la expiración con JWT, 
-            # pero un refresco simple es más robusto si el servidor lo permite.
+
+        # Verificar expiracion via JWT (sin verificar firma)
+        import time as _time
+        token_expira_pronto = False
+        try:
+            import base64, json as _json
+            parts = self.access_token.split('.')
+            if len(parts) == 3:
+                payload_b64 = parts[1] + '=' * (4 - len(parts[1]) % 4)
+                payload = _json.loads(base64.urlsafe_b64decode(payload_b64))
+                exp = payload.get('exp', 0)
+                # Refrescar si expira en menos de 60 segundos
+                token_expira_pronto = (exp - _time.time()) < 60
+        except Exception:
+            # Si no podemos leer el JWT, refrescar por precaucion
+            token_expira_pronto = True
+
+        if token_expira_pronto and self.refresh_token:
             success, msg = self.refresh_access_token()
             if success:
-                print(f"✅ Token de acceso refrescado proactivamente")
+                print("✅ Token de acceso refrescado automaticamente")
             else:
-                print(f"⚠️ Aviso: No se pudo refrescar el token: {msg}")
-                
+                print(f"⚠️ No se pudo refrescar el token: {msg}. Sesion expirada.")
+                # Token expirado e imposible de refrescar → retornar None
+                # El llamador debera pedir re-login
+                return None
+
         return self.access_token
+

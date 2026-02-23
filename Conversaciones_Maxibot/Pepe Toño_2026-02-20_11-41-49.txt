@@ -1,0 +1,2 @@
+Pepe Toño: hola
+MaxiBot: Error en respuesta de Gemini: {'code': 403, 'message': 'Your API key was reported as leaked. Please use another API key.', 'status': 'PERMISSION_DENIED'}

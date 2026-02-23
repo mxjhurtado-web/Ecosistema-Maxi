@@ -1,12 +1,14 @@
 from registro import crear_base, registrar_ingreso, registrar_consulta
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import ttk
 import pandas as pd
 import os
 import unicodedata
 import difflib
 import requests
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP, ROUND_CEILING
 import io, base64, json, re, time
 import webbrowser  # ✅ Para abrir links en el navegador
 from api_key_manager import get_api_key_manager  # ✅ Sistema de rotación de API Keys
@@ -483,7 +485,8 @@ def _difflib_ratio(a, b):
     return SequenceMatcher(None, _normalize_for_match(a), _normalize_for_match(b)).ratio()
 
 def _composite_score(user_q, kb_q):
-    w_dl, w_jac, w_sub = 0.55, 0.35, 0.10
+    # 🧠 FLEXIBILIDAD: Más peso a tokens (Jaccard) y fragmentos (substring)
+    w_dl, w_jac, w_sub = 0.35, 0.50, 0.15
     return (w_dl * _difflib_ratio(user_q, kb_q)
             + w_jac * _token_jaccard(user_q, kb_q)
             + w_sub * _substring_score(user_q, kb_q))
@@ -497,7 +500,7 @@ def _kb_collect_entries(respuestas_por_hoja):
             idx += 1
     return entries
 
-def _preselect_candidates(user_q, entries, top_k=15):
+def _preselect_candidates(user_q, entries, top_k=30):
     scored = []
     for e in entries:
         s = _composite_score(user_q, e["pregunta"])
@@ -510,19 +513,31 @@ def _gemini_select_from_candidates(user_q, candidates):
         if not candidates:
             return None
         lines = []
-        lines.append("Eres un motor de búsqueda. Elige el ID de la pregunta del KB que MEJOR responde a la consulta del usuario.")
-        lines.append("Si ninguna coincide claramente, responde SOLO con: NONE")
-        lines.append("Responde ÚNICAMENTE con el ID exacto (ej. K3) o NONE. No agregues texto adicional.")
+        lines.append("Eres un motor de busqueda inteligente para un call center.")
+        lines.append("Tu objetivo es encontrar la pregunta del KB que mejor coincida con la INTENCION del usuario.")
+        lines.append("INSTRUCCIONES DE FLEXIBILIDAD:")
+        lines.append("- No busques palabras exactas; busca el SIGNIFICADO o CONCEPTO detras de la pregunta.")
+        lines.append("- Si la pregunta del usuario es una forma diferente de preguntar algo que esta en el KB, seleccionala.")
+        lines.append("- Solo responde NONE si la consulta no tiene absolutamente nada que ver con los candidatos presentados.")
+        lines.append("- Responde UNICAMENTE con el ID (ej. K3) o NONE.")
         lines.append("Consulta del usuario:")
         lines.append(user_q.strip())
-        lines.append("Candidatos:")
+        lines.append("Posibles coincidencias (Candidatos):")
         for e in candidates:
             q = e["pregunta"].strip().replace("\n", " ")
-            if len(q) > 300: q = q[:300] + "…"
+            if len(q) > 300: q = q[:300] + "..."
             lines.append(f"- {e['id']}: {q}")
         prompt = "\n".join(lines)
 
         ans = buscar_con_gemini(prompt).strip()
+
+        # Detectar si Gemini devolvio un error en lugar de un ID
+        _ERROR_PREFIXES = ("Error", "error", "No hay", "Timeout", "502", "503", "504",
+                           "No candidates", "No se pudo", "conexion", "connection")
+        if any(ans.startswith(p) for p in _ERROR_PREFIXES) or ans.startswith("\u274c") or ans.startswith("\u23f1"):
+            print(f"[KB] Gemini devolvio error en seleccion: {ans[:80]}")
+            return None
+
         ids = {e["id"].upper(): e for e in candidates}
         ans_first = ans.splitlines()[0].strip().upper()
         if ans_first in ids:
@@ -532,22 +547,31 @@ def _gemini_select_from_candidates(user_q, candidates):
             return ids[m.group(1).upper()]
         if "NONE" in ans_first:
             return None
-        # fallback: si Gemini no siguió instrucción, toma top-1 local
-        return candidates[0]
-    except Exception:
-        return candidates[0] if candidates else None
+        # Gemini no devolvio ID reconocible -> no asumir nada
+        print(f"[KB] Gemini no devolvio ID reconocible: {ans[:80]!r}")
+        return None
+    except Exception as exc:
+        print(f"[KB] Error en seleccion Gemini: {exc}")
+        return None  # Nunca forzar candidato arbitrario
+
+_cached_kb_entries = None
 
 def buscar_en_excel_completo(pregunta_usuario, respuestas_por_hoja):
     """
     Usa Gemini para seleccionar la mejor pregunta del KB (sobre un shortlist local).
-    Si encuentra match, devuelve la RESPUESTA EXACTA del KB.
-    Si no, deja que la UI pregunte si se busca en la web.
     """
-    entries = _kb_collect_entries(respuestas_por_hoja)
+    global _cached_kb_entries
+    
+    # ⚡ OPTIMIZACIÓN: Caché de entradas del KB
+    if _cached_kb_entries is None:
+        print("[KB] Generando caché de entradas...")
+        _cached_kb_entries = _kb_collect_entries(respuestas_por_hoja)
+        
+    entries = _cached_kb_entries
     if not entries:
         return None, None, None, pregunta_usuario, None
 
-    shortlist = _preselect_candidates(pregunta_usuario, entries, top_k=15)
+    shortlist = _preselect_candidates(pregunta_usuario, entries, top_k=30)
     elegido = _gemini_select_from_candidates(pregunta_usuario, shortlist)
 
     if elegido is not None:
@@ -1165,6 +1189,222 @@ def mostrar_avisos_ui():
             )
 
 # ===========================
+# 🧮 Calculadora de envíos (C4/C5 → C7/C8/C9/C11)
+# ===========================
+def mostrar_calculadora_envios():
+    """Calculadora basada en las fórmulas del Excel:
+    C7 = ROUNDUP(C4/1000,0) * C5
+    C8 = (C4 - C7) / 1.01
+    C9 = C8 * 0.01
+    C11 = C7 + C8 + C9
+    """
+    win = tk.Toplevel(app)
+    win.title("Calculadora de Envíos Dinámica")
+    win.configure(bg="#f5f5f5")
+    win.geometry("700x580")
+    win.minsize(450, 450)  # ✅ Más pequeña permitido
+
+    # Icono
+    try:
+        _ic = get_logo(32)
+        if _ic: win.iconphoto(False, _ic)
+    except Exception: pass
+
+    try:
+        win.transient(app)
+        win.grab_set()
+    except Exception: pass
+
+    # =====================
+    # 📜 SCROLL SYSTEM (Para responsividad)
+    # =====================
+    main_canvas = tk.Canvas(win, bg="#f5f5f5", highlightthickness=0)
+    v_scroll = tk.Scrollbar(win, orient="vertical", command=main_canvas.yview)
+    scrollable_frame = tk.Frame(main_canvas, bg="#f5f5f5")
+
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: main_canvas.configure(scrollregion=main_canvas.bbox("all"))
+    )
+
+    canvas_win = main_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+    def _on_canvas_configure(e):
+        # Ajustar el ancho del frame interno al ancho del canvas
+        main_canvas.itemconfig(canvas_win, width=e.width)
+
+    main_canvas.bind("<Configure>", _on_canvas_configure)
+    v_scroll.pack(side="right", fill="y")
+    main_canvas.pack(side="left", fill="both", expand=True)
+    main_canvas.configure(yscrollcommand=v_scroll.set)
+
+    # Mouse wheel support
+    def _on_mousewheel(event):
+        main_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+    win.bind_all("<MouseWheel>", _on_mousewheel)
+
+    # =====================
+    # Variables
+    # =====================
+    c4_var = tk.StringVar(value="")
+    c5_var = tk.StringVar(value="1")
+    c7_var = tk.StringVar(value="$0.00")
+    c8_var = tk.StringVar(value="$0.00")
+    c9_var = tk.StringVar(value="$0.00")
+    c11_var = tk.StringVar(value="$0.00")
+
+    def _parse_money(s: str):
+        s = (s or "").strip()
+        if not s: return None
+        s = s.replace("$", "").replace(",", "").replace(" ", "")
+        try: return Decimal(s)
+        except Exception: return None
+
+    def _fmt_money(d: Decimal) -> str:
+        try: q = d.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        except Exception: q = Decimal("0.00")
+        return f"${q:,.2f}"
+
+    def _set_zeros():
+        for v in [c7_var, c8_var, c9_var, c11_var]: v.set("$0.00")
+
+    def calcular(show_warning: bool = False):
+        raw = c4_var.get()
+        c4 = _parse_money(raw)
+        if c4 is None:
+            _set_zeros()
+            if show_warning and (raw or "").strip():
+                messagebox.showwarning("Dato inválido", "En C4 ingresa solo números (ej: 250).")
+            return
+        if c4 < 0:
+            _set_zeros()
+            if show_warning:
+                messagebox.showwarning("Dato inválido", "El pago total debe ser >= 0.")
+            return
+
+        try: c5 = Decimal(str(int(c5_var.get())))
+        except Exception: c5 = Decimal("1")
+
+        thousands = (c4 / Decimal("1000")).to_integral_value(rounding=ROUND_CEILING)
+        c7 = thousands * c5
+        c8 = (c4 - c7) / Decimal("1.01")
+        c9 = c8 * Decimal("0.01")
+        c11 = c7 + c8 + c9
+
+        c7_var.set(_fmt_money(c7))
+        c8_var.set(_fmt_money(c8))
+        c9_var.set(_fmt_money(c9))
+        c11_var.set(_fmt_money(c11))
+
+    def limpiar_pantalla():
+        c4_var.set(""); c5_var.set("1"); _set_zeros()
+        try: ent_c4.focus_set()
+        except: pass
+
+    # =====================
+    # UI Interna
+    # =====================
+    header = tk.Frame(scrollable_frame, bg="#2f73b7", height=48)
+    header.pack(fill="x", padx=14, pady=(8, 6))
+    header.pack_propagate(False)
+
+    tk.Label(header, text="CALCULADORA DE ENVÍOS DINÁMICA",
+             font=("Segoe UI", 14, "bold"), bg="#2f73b7", fg="white").pack(expand=True)
+
+    body = tk.Frame(scrollable_frame, bg="#f5f5f5")
+    body.pack(fill="both", expand=True, padx=14, pady=(0, 10))
+
+    form = tk.Frame(body, bg="#f5f5f5")
+    form.pack(fill="x")
+    form.grid_columnconfigure(1, weight=1)
+
+    tk.Label(form, text="1. PAGO TOTAL DEL CLIENTE ($):", font=("Segoe UI", 10, "bold"),
+             bg="#f5f5f5", fg="#0f172a").grid(row=0, column=0, sticky="w", pady=(6, 12))
+
+    ent_c4 = tk.Entry(form, textvariable=c4_var, font=("Segoe UI", 10), relief="solid", bd=1)
+    ent_c4.grid(row=0, column=1, sticky="ew", padx=(14, 10), pady=(6, 12), ipady=2)
+
+    tk.Label(form, text="C4", font=("Segoe UI", 9), bg="#f5f5f5", fg="#64748b").grid(row=0, column=2, sticky="e")
+
+    tk.Label(form, text="2. FACTOR DE TARIFA (Elegir 1-10):", font=("Segoe UI", 10, "bold"),
+             bg="#f5f5f5", fg="#0f172a").grid(row=1, column=0, sticky="w", pady=(0, 10))
+
+    cb_c5 = ttk.Combobox(form, textvariable=c5_var, values=[str(i) for i in range(1, 11)],
+                         state="readonly", width=6, justify="center")
+    cb_c5.grid(row=1, column=1, sticky="w", padx=(14, 10), pady=(0, 10), ipady=1)
+
+    tk.Label(form, text="C5", font=("Segoe UI", 9), bg="#f5f5f5", fg="#64748b").grid(row=1, column=2, sticky="e")
+
+    tk.Frame(body, bg="#d1d5db", height=1).pack(fill="x", pady=(4, 12))
+
+    out = tk.Frame(body, bg="#f5f5f5")
+    out.pack(fill="x")
+    out.grid_columnconfigure(1, weight=1)
+
+    def _out_row(r, label, var, bg):
+        lbl = tk.Label(out, text=label, font=("Segoe UI", 10, "bold"),
+                 bg="#f5f5f5", fg="#0f172a", wraplength=200, justify="left")
+        lbl.grid(row=r, column=0, sticky="w", pady=6)
+        
+        # ✅ Responsividad para el label de salida
+        def _cfg_lbl(e, l=lbl): l.configure(wraplength=e.width/2.5)
+        # win.bind("<Configure>", _cfg_lbl, add="+") # Comentado para evitar exceso de bindings
+
+        box = tk.Frame(out, bg=bg, highlightthickness=1, highlightbackground="#111827")
+        box.grid(row=r, column=1, sticky="ew", padx=(14, 0), pady=6)
+        tk.Label(box, textvariable=var, font=("Segoe UI", 11, "bold"),
+                 bg=bg, fg="#0f172a", anchor="e", padx=12, pady=8).pack(fill="x")
+
+    _out_row(0, "TARIFA CALCULADA:", c7_var, "#fff4d6")
+    _out_row(1, "MONTO PARA BENEFICIARIO (NETO):", c8_var, "#d1fae5")
+    _out_row(2, "IMPUESTO FEDERAL (1%):", c9_var, "#d1fae5")
+    _out_row(3, "VERIFICACIÓN (SUMA TOTAL):", c11_var, "#d1fae5")
+
+    bottom = tk.Frame(body, bg="#f5f5f5")
+    bottom.pack(fill="x", pady=(10, 8))
+
+    tk.Button(bottom, text="Limpiar pantalla", command=limpiar_pantalla, font=("Segoe UI", 9),
+              bg="#e0f2fe", relief="solid", bd=1, padx=12, pady=6).pack(side="left")
+    tk.Button(bottom, text="Cerrar", command=win.destroy, font=("Segoe UI", 9),
+              bg="#ffecec", relief="solid", bd=1, padx=12, pady=6).pack(side="right")
+
+    tk.Label(body, text="INSTRUCCIONES:", font=("Segoe UI", 10, "bold"),
+             bg="#f5f5f5", fg="#0f172a").pack(anchor="w", pady=(10, 2))
+
+    instr_labels = []
+    instrucciones = [
+        "• Celda C4: Ingresa el pago total del cliente.",
+        "• Celda C5: Elige el factor. Haz clic en la flechita y selecciona la tarifa base.",
+        "• El sistema ajusta todo para que el total sume exacto lo que el cliente pagó.",
+    ]
+    for ln in instrucciones:
+        l = tk.Label(body, text=ln, font=("Segoe UI", 9), bg="#f5f5f5", fg="#334155",
+                     wraplength=600, justify="left")
+        l.pack(anchor="w", pady=(1, 0))
+        instr_labels.append(l)
+
+    # ✅ RESPONSIVIDAD DINÁMICA (Ajustar wraplength al cambiar tamaño)
+    def _update_wraplength(event):
+        # Evitar actualizaciones infinitas
+        if event.widget == win:
+            new_wrap = event.width - 60
+            for l in instr_labels:
+                try: l.configure(wraplength=new_wrap)
+                except: pass
+    win.bind("<Configure>", _update_wraplength, add="+")
+
+    # =====================
+    # Eventos
+    # =====================
+    ent_c4.bind("<KeyRelease>", lambda e: calcular(False))
+    ent_c4.bind("<Return>", lambda e: calcular(True))
+    c5_var.trace_add("write", lambda *_: calcular(False))
+    
+    try: ent_c4.focus_set()
+    except: pass
+
+
+# ===========================
 # 🖼️  UI HELPERS
 # ===========================
 def ensure_scroll_to_bottom():
@@ -1633,20 +1873,38 @@ def mostrar_verificacion():
         ).pack(pady=(4, 6), anchor="w")
 
         def _sso_login():
-            ok, msg = autenticar_con_keycloak()
-            if ok:
-                messagebox.showinfo("SSO", msg or "Autenticación correcta.")
-                nombre = (
-                    usuario_actual.get("nombre")
-                    or usuario_actual.get("correo")
-                    or "Invitado"
-                )
-                # Igual que el flujo normal: después del login → Alias → API Key
-                mostrar_alias(nombre)
-            else:
-                messagebox.showerror("SSO", msg or "No se pudo iniciar sesión con SSO.")
+            # Evitar múltiples clicks
+            if btn_sso.cget("text") == "Autenticando...":
+                return
+            
+            btn_sso.config(text="Autenticando...", bg="#94a3b8")
+            
+            def _worker():
+                try:
+                    ok, msg = autenticar_con_keycloak()
+                    
+                    def _ui_result():
+                        if ok:
+                            messagebox.showinfo("SSO", msg or "Autenticación correcta.")
+                            nombre = (
+                                usuario_actual.get("nombre")
+                                or usuario_actual.get("correo")
+                                or "Invitado"
+                            )
+                            mostrar_alias(nombre)
+                        else:
+                            messagebox.showerror("SSO", msg or "No se pudo iniciar sesión con SSO.")
+                            btn_sso.config(text="Iniciar sesión con cuenta Maxi (Google)", bg=COLORS["accent"])
+                    
+                    app.after(0, _ui_result)
+                except Exception as e:
+                    print(f"Error en worker de SSO: {e}")
+                    app.after(0, lambda: btn_sso.config(text="Iniciar sesión con cuenta Maxi (Google)", bg=COLORS["accent"]))
 
-        tk.Button(
+            import threading
+            threading.Thread(target=_worker, daemon=True).start()
+
+        btn_sso = tk.Button(
             form,
             text="Iniciar sesión con cuenta Maxi (Google)",
             command=_sso_login,
@@ -1655,7 +1913,8 @@ def mostrar_verificacion():
             activeforeground="#fff",
             relief="flat", bd=0, padx=16, pady=10,
             font=FONT["btn"]
-        ).pack(pady=(0, 10), anchor="w")
+        )
+        btn_sso.pack(pady=(0, 10), anchor="w")
     else:
         # Si Keycloak no está disponible, mostrar mensaje de error
         tk.Label(
@@ -1695,6 +1954,8 @@ def mostrar_alias(nombre_real):
         relief="flat"
     )
     entrada_alias.pack(pady=(0, 10), anchor="w")
+    entrada_alias.bind("<Return>", lambda e: guardar_alias())
+    entrada_alias.focus_set()
 
     def guardar_alias():
         alias = entrada_alias.get().strip()
@@ -1753,6 +2014,8 @@ def mostrar_api_key():
         relief="flat", show="*"
     )
     entrada_key.pack(pady=(0, 10), anchor="w")
+    entrada_key.bind("<Return>", lambda e: guardar_api_key())
+    entrada_key.focus_set()
 
     # Si ya hubiera una API Key definida (por pruebas), puedes precargarla (opcional):
     # if GEMINI_API_KEY:
@@ -1829,237 +2092,272 @@ def mostrar_bienvenida():
 historial = []
 registro_sesion = []
 
+def _set_btn_chat_state(text, color=None):
+    """Cambia el texto/color del boton de chat de forma segura desde cualquier hilo."""
+    try:
+        btn_enviar_chat.config(
+            text=text,
+            bg=color if color else COLORS["accent"]
+        )
+    except Exception:
+        pass
+
 def responder():
     pregunta = entrada_pregunta.get().strip()
     if not pregunta:
         return
+    # Evitar doble envio si ya esta procesando
+    if btn_enviar_chat.cget("text") == "Pensando...":
+        return
     alias = usuario_actual["alias"] or "Usuario"
     add_message(alias, pregunta, kind="user")
+    entrada_pregunta.delete(0, tk.END)
+    _set_btn_chat_state("Pensando...", "#94a3b8")
 
-    respuesta, origen, hoja, pregunta_web, _ = buscar_respuesta(pregunta, respuestas_por_hoja)
+    import threading
 
-    if origen == "excel":
-        registrar_consulta(usuario_actual["correo"], "excel", pregunta)
-        row, meta_parent = add_message("MaxiBot", respuesta, kind="bot")
-        entrada_pregunta.delete(0, tk.END)
-
-        registro_sesion.append({
-            "timestamp": datetime.now().isoformat(timespec='seconds'),
-            "usuario": usuario_actual["alias"],
-            "correo": usuario_actual["correo"],
-            "pregunta": pregunta,
-            "respuesta": respuesta,
-            "origen": "excel",
-            "hoja": hoja,
-            "feedback": "neutral",
-        })
-        idx = len(registro_sesion) - 1
-        _crear_botones_feedback(meta_parent, idx)
-        guardar_conversacion(alias, pregunta, respuesta)
-
-    elif origen == "no_encontrada":
-        registrar_consulta(usuario_actual["correo"], "no_encontrada", pregunta)
-
-        # DOCS (Loader) primero
+    def _worker():
         try:
-            doc_hits = docs_tool.search(pregunta, top_k=3)
-        except Exception:
-            doc_hits = []
-        if doc_hits:
-            best = max(doc_hits, key=lambda h: float(h.get("score", 0.0)))
-            snippet = (best.get("summary") or best.get("content") or "").strip() or "No encontré un pasaje claro en Documentos."
-            rowd, metad = add_message("MaxiBot", snippet, kind="bot")
-            registro_sesion.append({
-                "timestamp": datetime.now().isoformat(timespec='seconds'),
-                "usuario": usuario_actual["alias"],
-                "correo": usuario_actual["correo"],
-                "pregunta": pregunta,
-                "respuesta": snippet,
-                "origen": "DOCS",
-                "hoja": None,
-                "feedback": "neutral",
-            })
-            _crear_botones_feedback(metad, len(registro_sesion)-1)
-            entrada_pregunta.delete(0, tk.END)
-            return
+            respuesta, origen, hoja, pregunta_web, _ = buscar_respuesta(pregunta, respuestas_por_hoja)
 
-        # DEVOPS MCP (si está disponible y la pregunta es relevante)
-        if _DEVOPS_MCP_OK:
-            # Detectar si la pregunta es relevante para DevOps
-            keywords_devops = [
-                "agencia", "agencias", "nm-", "status", "deshabilitada",
-                "operaciones", "sistema", "servicio", "servidor",
-                "deployment", "deploy", "producción", "staging", "infraestructura"
-            ]
-            pregunta_lower = pregunta.lower()
-            is_devops_query = any(kw in pregunta_lower for kw in keywords_devops)
-            
-            if is_devops_query:
+            if origen == "excel":
+                # ⚡ OPTIMIZACIÓN: Logs en segundo plano (dentro del worker)
                 try:
-                    devops = get_devops_mcp()
-                    if devops and devops.available():
-                        # Mostrar mensaje de carga (sin bloquear UI con app.update())
-                        temp_row, temp_meta = add_message("MaxiBot", "🔍 Consultando DevOps MCP...", kind="bot")
-                        
-                        respuesta_devops = devops.query_sync(pregunta)
-                        
-                        # Remover mensaje temporal
+                    registrar_consulta(usuario_actual["correo"], "excel", pregunta)
+                    guardar_conversacion(alias, pregunta, respuesta)
+                except Exception as e:
+                    print(f"Error guardando logs excel: {e}")
+
+                def _ui_excel():
+                    row, meta_parent = add_message("MaxiBot", respuesta, kind="bot")
+                    registro_sesion.append({
+                        "timestamp": datetime.now().isoformat(timespec='seconds'),
+                        "usuario": usuario_actual["alias"],
+                        "correo": usuario_actual["correo"],
+                        "pregunta": pregunta,
+                        "respuesta": respuesta,
+                        "origen": "excel",
+                        "hoja": hoja,
+                        "feedback": "neutral",
+                    })
+                    _crear_botones_feedback(meta_parent, len(registro_sesion) - 1)
+                    _set_btn_chat_state("Responder")
+                app.after(0, _ui_excel)
+
+            elif origen == "no_encontrada":
+                try:
+                    registrar_consulta(usuario_actual["correo"], "no_encontrada", pregunta)
+                except Exception as e:
+                    print(f"Error log no_encontrada: {e}")
+
+                # DOCS (Loader) primero
+                try:
+                    doc_hits = docs_tool.search(pregunta, top_k=3)
+                except Exception:
+                    doc_hits = []
+                if doc_hits:
+                    best = max(doc_hits, key=lambda h: float(h.get("score", 0.0)))
+                    snippet = (best.get("summary") or best.get("content") or "").strip() or "No encontré un pasaje claro en Documentos."
+                    def _ui_docs(snip=snippet):
+                        rowd, metad = add_message("MaxiBot", snip, kind="bot")
+                        registro_sesion.append({
+                            "timestamp": datetime.now().isoformat(timespec='seconds'),
+                            "usuario": usuario_actual["alias"],
+                            "correo": usuario_actual["correo"],
+                            "pregunta": pregunta,
+                            "respuesta": snip,
+                            "origen": "DOCS",
+                            "hoja": None,
+                            "feedback": "neutral",
+                        })
+                        _crear_botones_feedback(metad, len(registro_sesion)-1)
+                        _set_btn_chat_state("Responder")
+                    app.after(0, _ui_docs)
+                    return
+
+                # DEVOPS MCP (si está disponible y la pregunta es relevante)
+                if _DEVOPS_MCP_OK:
+                    keywords_devops = [
+                        "agencia", "agencias", "nm-", "status", "deshabilitada",
+                        "operaciones", "sistema", "servicio", "servidor",
+                        "deployment", "deploy", "produccion", "staging", "infraestructura"
+                    ]
+                    if any(kw in pregunta.lower() for kw in keywords_devops):
                         try:
-                            temp_row.destroy()
-                        except:
-                            pass
-                        
-                        if respuesta_devops and not respuesta_devops.startswith("Error"):
-                            registrar_consulta(usuario_actual["correo"], "devops_mcp", pregunta)
-                            row, meta = add_message("MaxiBot", respuesta_devops, kind="bot")
-                            
+                            devops = get_devops_mcp()
+                            if devops and devops.available():
+                                respuesta_devops = devops.query_sync(pregunta)
+                                if respuesta_devops and not respuesta_devops.startswith("Error"):
+                                    def _ui_devops(rd=respuesta_devops):
+                                        registrar_consulta(usuario_actual["correo"], "devops_mcp", pregunta)
+                                        row, meta = add_message("MaxiBot", rd, kind="bot")
+                                        registro_sesion.append({
+                                            "timestamp": datetime.now().isoformat(timespec='seconds'),
+                                            "usuario": usuario_actual["alias"],
+                                            "correo": usuario_actual["correo"],
+                                            "pregunta": pregunta,
+                                            "respuesta": rd,
+                                            "origen": "DEVOPS_MCP",
+                                            "hoja": None,
+                                            "feedback": "neutral",
+                                        })
+                                        _crear_botones_feedback(meta, len(registro_sesion)-1)
+                                        _set_btn_chat_state("Responder")
+                                    app.after(0, _ui_devops)
+                                    return
+                        except Exception as e:
+                            print(f"Error en DevOps MCP: {e}")
+
+                # WEATHER
+                if _WEATHER_OK and weather_tool and weather_tool.available():
+                    try:
+                        weather_hits = weather_tool.search(pregunta, top_k=3)
+                    except Exception:
+                        weather_hits = []
+                    if weather_hits:
+                        best = max(weather_hits, key=lambda h: float(h.get("score", 0.0)))
+                        snippet = (best.get("content") or "").strip() or "No encontre informacion del clima."
+                        refs = f"\n\nFuente: {best.get('title','Weather')} — {best.get('url')}" if best.get("url") else ""
+                        full = (snippet + refs).strip()
+                        def _ui_weather(s=full):
+                            roww, metaw = add_message("MaxiBot", s, kind="bot")
                             registro_sesion.append({
                                 "timestamp": datetime.now().isoformat(timespec='seconds'),
                                 "usuario": usuario_actual["alias"],
                                 "correo": usuario_actual["correo"],
                                 "pregunta": pregunta,
-                                "respuesta": respuesta_devops,
-                                "origen": "DEVOPS_MCP",
+                                "respuesta": s,
+                                "origen": "WEATHER",
                                 "hoja": None,
                                 "feedback": "neutral",
                             })
-                            _crear_botones_feedback(meta, len(registro_sesion)-1)
-                            entrada_pregunta.delete(0, tk.END)
-                            return
-                except Exception as e:
-                    print(f"Error en DevOps MCP: {e}")
+                            _crear_botones_feedback(metaw, len(registro_sesion)-1)
+                            _set_btn_chat_state("Responder")
+                        
+                        try:
+                            registrar_consulta(usuario_actual["correo"], "weather", pregunta)
+                        except: pass
+                        
+                        app.after(0, _ui_weather)
+                        return
 
-        # WEATHER (API directa) después de Docs
-        if _WEATHER_OK and weather_tool and weather_tool.available():
-            try:
-                weather_hits = weather_tool.search(pregunta, top_k=3)
-            except Exception:
-                weather_hits = []
-            if weather_hits:
-                best = max(weather_hits, key=lambda h: float(h.get("score", 0.0)))
-                snippet = (best.get("content") or "").strip() or "No encontré información del clima."
-                refs = ""
-                if best.get("url"):
-                    refs = f"\n\nFuente: {best.get('title','Weather')} — {best.get('url')}"
-                roww, metaw = add_message("MaxiBot", (snippet + refs).strip(), kind="bot")
-                registro_sesion.append({
-                    "timestamp": datetime.now().isoformat(timespec='seconds'),
-                    "usuario": usuario_actual["alias"],
-                    "correo": usuario_actual["correo"],
-                    "pregunta": pregunta,
-                    "respuesta": (snippet + refs).strip(),
-                    "origen": "WEATHER",
-                    "hoja": None,
-                    "feedback": "neutral",
-                })
-                _crear_botones_feedback(metaw, len(registro_sesion)-1)
-                entrada_pregunta.delete(0, tk.END)
-                return
+                # NEWS
+                if _NEWS_OK and news_tool and news_tool.available():
+                    try:
+                        news_hits = news_tool.search(pregunta, top_k=3)
+                    except Exception:
+                        news_hits = []
+                    if news_hits:
+                        best = news_hits[0]
+                        snippet = (best.get("content") or "").strip() or "No encontre noticias recientes."
+                        refs = f"\n\nFuente: {best.get('title','Google News')} — {best.get('url')}" if best.get("url") else ""
+                        full = (snippet + refs).strip()
+                        def _ui_news(s=full):
+                            rown, metan = add_message("MaxiBot", s, kind="bot")
+                            registro_sesion.append({
+                                "timestamp": datetime.now().isoformat(timespec='seconds'),
+                                "usuario": usuario_actual["alias"],
+                                "correo": usuario_actual["correo"],
+                                "pregunta": pregunta,
+                                "respuesta": s,
+                                "origen": "NEWS",
+                                "hoja": None,
+                                "feedback": "neutral",
+                            })
+                            _crear_botones_feedback(metan, len(registro_sesion)-1)
+                            _set_btn_chat_state("Responder")
+                        app.after(0, _ui_news)
+                        return
 
-        # NEWS (RSS directo) después de Weather
-        if _NEWS_OK and news_tool and news_tool.available():
-            try:
-                news_hits = news_tool.search(pregunta, top_k=3)
-            except Exception:
-                news_hits = []
-            if news_hits:
-                # Tomar el top 1 o formatear varios
-                # Por simplicidad tomamos el 1 con mejor score
-                best = news_hits[0]
-                snippet = (best.get("content") or "").strip() or "No encontré noticias recientes."
-                refs = ""
-                if best.get("url"):
-                    refs = f"\n\nFuente: {best.get('title','Google News')} — {best.get('url')}"
-                rown, metan = add_message("MaxiBot", (snippet + refs).strip(), kind="bot")
-                registro_sesion.append({
-                    "timestamp": datetime.now().isoformat(timespec='seconds'),
-                    "usuario": usuario_actual["alias"],
-                    "correo": usuario_actual["correo"],
-                    "pregunta": pregunta,
-                    "respuesta": (snippet + refs).strip(),
-                    "origen": "NEWS",
-                    "hoja": None,
-                    "feedback": "neutral",
-                })
-                _crear_botones_feedback(metan, len(registro_sesion)-1)
-                entrada_pregunta.delete(0, tk.END)
-                return
+                # MCP genérico
+                if MCP_ENABLED and mcp_tool and mcp_tool.available():
+                    mcp_hits = mcp_tool.search(pregunta, top_k=3)
+                    if mcp_hits:
+                        best = max(mcp_hits, key=lambda h: float(h.get("score", 0.0)))
+                        snippet = (best.get("content") or "").strip() or "No encontre un pasaje claro en MCP."
+                        refs = f"\n\nFuente: {best.get('title','MCP')} — {best.get('url')}" if best.get("url") else ""
+                        full = (snippet + refs).strip()
+                        def _ui_mcp(s=full):
+                            rowm, metam = add_message("MaxiBot", s, kind="bot")
+                            registro_sesion.append({
+                                "timestamp": datetime.now().isoformat(timespec='seconds'),
+                                "usuario": usuario_actual["alias"],
+                                "correo": usuario_actual["correo"],
+                                "pregunta": pregunta,
+                                "respuesta": s,
+                                "origen": "MCP",
+                                "hoja": None,
+                                "feedback": "neutral",
+                            })
+                            _crear_botones_feedback(metam, len(registro_sesion)-1)
+                            _set_btn_chat_state("Responder")
+                        app.after(0, _ui_mcp)
+                        return
 
-        # MCP después
-        if MCP_ENABLED and mcp_tool and mcp_tool.available():
-            mcp_hits = mcp_tool.search(pregunta, top_k=3)
-            if mcp_hits:
-                best = max(mcp_hits, key=lambda h: float(h.get("score", 0.0)))
-                snippet = (best.get("content") or "").strip() or "No encontré un pasaje claro en MCP."
-                refs = ""
-                if best.get("url"):
-                    refs = f"\n\nFuente: {best.get('title','MCP')} — {best.get('url')}"
-                rowm, metam = add_message("MaxiBot", (snippet + refs).strip(), kind="bot")
-                registro_sesion.append({
-                    "timestamp": datetime.now().isoformat(timespec='seconds'),
-                    "usuario": usuario_actual["alias"],
-                    "correo": usuario_actual["correo"],
-                    "pregunta": pregunta,
-                    "respuesta": (snippet + refs).strip(),
-                    "origen": "MCP",
-                    "hoja": None,
-                    "feedback": "neutral",
-                })
-                _crear_botones_feedback(metam, len(registro_sesion)-1)
-                entrada_pregunta.delete(0, tk.END)
-                return
+                # WEB (confirmación al usuario)
+                def _ui_web_confirm():
+                    info = ("No encontre esa respuesta en mi base de conocimiento.\n"
+                            "Quieres que busque en la web?")
+                    row, meta_parent = add_message("MaxiBot", info, kind="bot")
+                    ctrls = tk.Frame(meta_parent, bg=COLORS["card_bg"])
+                    ctrls.pack(anchor="w", pady=(2, 0))
 
-        # WEB (confirmación)
-        info = ("No encontré esa respuesta en mi base de conocimiento.\n"
-                "¿Quieres que busque en la web?")
-        row, meta_parent = add_message("MaxiBot", info, kind="bot")
+                    def _buscar_web():
+                        _set_btn_chat_state("Pensando...", "#94a3b8")
+                        def _web_worker():
+                            prompt = (
+                                "Resume en 5-7 lineas lo mas relevante sobre la consulta. "
+                                "Incluye 2-4 referencias con titulo y URL (si no tienes URLs, usa 'N/A').\n"
+                                f"Consulta: {pregunta}" + ANTI_HALLUCINATION_NOTE
+                            )
+                            rw = buscar_con_gemini(prompt)
+                            def _ui_resp_web(r=rw):
+                                row2, meta2 = add_message("MaxiBot", r, kind="bot")
+                                guardar_en_hoja_aprendida(pregunta, r)
+                                registro_sesion.append({
+                                    "timestamp": datetime.now().isoformat(timespec='seconds'),
+                                    "usuario": usuario_actual["alias"],
+                                    "correo": usuario_actual["correo"],
+                                    "pregunta": pregunta,
+                                    "respuesta": r,
+                                    "origen": "WEB",
+                                    "hoja": None,
+                                    "feedback": "neutral",
+                                })
+                                _crear_botones_feedback(meta2, len(registro_sesion)-1)
+                                for w in ctrls.winfo_children(): w.destroy()
+                                _set_btn_chat_state("Responder")
+                            
+                            try:
+                                registrar_consulta(usuario_actual["correo"], "web", pregunta)
+                                guardar_conversacion(alias, pregunta, rw)
+                            except: pass
+                            
+                            app.after(0, _ui_resp_web)
+                        threading.Thread(target=_web_worker, daemon=True).start()
 
-        ctrls = tk.Frame(meta_parent, bg=COLORS["card_bg"])
-        ctrls.pack(anchor="w", pady=(2, 0))
+                    def _no_buscar():
+                        for w in ctrls.winfo_children(): w.destroy()
+                        _set_btn_chat_state("Responder")
 
-        def _buscar_web():
-            prompt = (
-                "Resume en 5-7 líneas lo más relevante que encontrarías en la web "
-                "sobre la consulta. Incluye 2-4 referencias con título y URL "
-                "(si no tienes URLs, usa 'N/A').\n"
-                f"Consulta: {pregunta}" + ANTI_HALLUCINATION_NOTE
-            )
-            respuesta_web = buscar_con_gemini(prompt)
-            registrar_consulta(usuario_actual["correo"], "web", pregunta)
-            row2, meta2 = add_message("MaxiBot", respuesta_web, kind="bot")
-            guardar_en_hoja_aprendida(pregunta, respuesta_web)
-            registro_sesion.append({
-                "timestamp": datetime.now().isoformat(timespec='seconds'),
-                "usuario": usuario_actual["alias"],
-                "correo": usuario_actual["correo"],
-                "pregunta": pregunta,
-                "respuesta": respuesta_web,
-                "origen": "WEB",
-                "hoja": None,
-                "feedback": "neutral",
-            })
-            idx2 = len(registro_sesion) - 1
-            _crear_botones_feedback(meta2, idx2)
-            guardar_conversacion(alias, pregunta, respuesta_web)
-            for w in ctrls.winfo_children():
-                w.destroy()
+                    tk.Button(
+                        ctrls, text="Buscar en la web", command=_buscar_web,
+                        bg=COLORS["accent"], fg="#fff", relief="flat", bd=0,
+                        padx=10, pady=6, font=FONT["btn_small"]
+                    ).pack(side="left")
+                    tk.Button(
+                        ctrls, text="No, gracias", command=_no_buscar,
+                        bg="#f1f5f9", fg=COLORS["text_primary"], relief="flat", bd=0,
+                        padx=10, pady=6, font=FONT["btn_small"]
+                    ).pack(side="left", padx=(8, 0))
+                    _set_btn_chat_state("Responder")
 
-        def _no_buscar():
-            for w in ctrls.winfo_children():
-                w.destroy()
+                app.after(0, _ui_web_confirm)
+        except Exception as exc:
+            print(f"[responder] error en worker: {exc}")
+            app.after(0, lambda: _set_btn_chat_state("Responder"))
 
-        tk.Button(
-            ctrls, text="Buscar en la web", command=_buscar_web,
-            bg=COLORS["accent"], fg="#fff", relief="flat", bd=0,
-            padx=10, pady=6, font=FONT["btn_small"]
-        ).pack(side="left")
-        tk.Button(
-            ctrls, text="No, gracias", command=_no_buscar,
-            bg="#f1f5f9", fg=COLORS["text_primary"], relief="flat", bd=0,
-            padx=10, pady=6, font=FONT["btn_small"]
-        ).pack(side="left", padx=(8, 0))
-
-        entrada_pregunta.delete(0, tk.END)
+    threading.Thread(target=_worker, daemon=True).start()
 
 # ===========================
 # ⚙️ CONFIGURACIÓN DE API KEYS
@@ -2262,7 +2560,7 @@ def mostrar_configuracion_api():
 
 
 def mostrar_chat():
-    global chat_canvas, chat_inner, chat_inner_id, entrada_pregunta
+    global chat_canvas, chat_inner, chat_inner_id, entrada_pregunta, btn_enviar_chat
     limpiar_pantalla()
     header_card(app)
 
@@ -2317,15 +2615,17 @@ def mostrar_chat():
     )
     entrada_pregunta.pack(side="left", padx=(0, 8), ipady=8, fill="x", expand=True)
     entrada_pregunta.bind("<Return>", lambda e: responder())
+    entrada_pregunta.focus_set()
 
-    tk.Button(
+    btn_enviar_chat = tk.Button(
         input_bar, text="Responder", command=responder,
         bg=COLORS["accent"], fg="#fff",
         activebackground=COLORS["accent_dark"],
         activeforeground="#fff",
         relief="flat", bd=0, padx=16, pady=10,
         font=FONT["btn"]
-    ).pack(side="left")
+    )
+    btn_enviar_chat.pack(side="left")
 
     btn_row = tk.Frame(chat_card, bg=COLORS["card_bg"])
     btn_row.pack(fill="x", padx=12, pady=(0, 12))
@@ -2347,6 +2647,13 @@ def mostrar_chat():
     tk.Button(
         btn_row, text="Avisos", command=mostrar_avisos_ui,
         bg="#fff4d6", fg=COLORS["text_primary"],
+        relief="flat", bd=0, padx=8, pady=4,
+        font=FONT["btn_small"]
+    ).pack(side="left", padx=(0, 4))
+
+    tk.Button(
+        btn_row, text="Calculadora", command=mostrar_calculadora_envios,
+        bg="#F3D9FA", fg=COLORS["text_primary"],
         relief="flat", bd=0, padx=8, pady=4,
         font=FONT["btn_small"]
     ).pack(side="left", padx=(0, 4))
@@ -2393,7 +2700,7 @@ def mostrar_operaciones():
     Todas las consultas en esta pestaña van exclusivamente al DevOps MCP.
     Auto-actualiza la API del MCP al abrir la pestaña.
     """
-    global chat_canvas, chat_inner, chat_inner_id, entrada_pregunta
+    global chat_canvas, chat_inner, chat_inner_id, entrada_pregunta, btn_enviar_agencias
     
     # Auto-actualizar MCP con la API key actual del archivo
     try:
@@ -2511,15 +2818,17 @@ def mostrar_operaciones():
     )
     entrada_pregunta.pack(side="left", padx=(0, 8), ipady=8, fill="x", expand=True)
     entrada_pregunta.bind("<Return>", lambda e: responder_operaciones())
+    entrada_pregunta.focus_set()
     
-    tk.Button(
+    btn_enviar_agencias = tk.Button(
         input_bar, text="Consultar", command=responder_operaciones,
         bg=COLORS["accent"], fg="#fff",
         activebackground=COLORS["accent_dark"],
         activeforeground="#fff",
         relief="flat", bd=0, padx=16, pady=10,
         font=FONT["btn"]
-    ).pack(side="left")
+    )
+    btn_enviar_agencias.pack(side="left")
     
     # Botones de acción con layout responsive
     def _logout_agencias():
@@ -2542,6 +2851,16 @@ def mostrar_operaciones():
 
 
 
+def _set_btn_agencias_state(text, color=None):
+    """Cambia el texto/color del boton de agencias de forma segura."""
+    try:
+        btn_enviar_agencias.config(
+            text=text,
+            bg=color if color else COLORS["accent"]
+        )
+    except Exception:
+        pass
+
 def responder_operaciones():
     """
     Maneja las respuestas en la pestaña de Agencias.
@@ -2553,9 +2872,14 @@ def responder_operaciones():
     if not pregunta:
         return
     
+    # Evitar doble envio
+    if btn_enviar_agencias.cget("text") == "Consultando...":
+        return
+
     alias = usuario_actual["alias"] or "Usuario"
     add_message(alias, pregunta, kind="user")
     entrada_pregunta.delete(0, tk.END)
+    _set_btn_agencias_state("Consultando...", "#94a3b8")
     
     # Agregar pregunta a la memoria
     agencias_memory.append(("user", pregunta))
@@ -2567,89 +2891,81 @@ def responder_operaciones():
             "❌ DevOps MCP no está disponible. Verifica las dependencias.",
             kind="bot"
         )
+        _set_btn_agencias_state("Consultar")
         return
     
-    try:
-        # Asegurar que el token esté fresco antes de cada consulta
-        token = keycloak_auth_instance.get_access_token() if keycloak_auth_instance else None
-        
-        # Sincronizar con la instancia singleton
-        devops = get_devops_mcp(keycloak_token=token, gemini_api_key=GEMINI_API_KEY)
-        
-        if not devops or not devops.available():
-            add_message(
-                "MaxiBot",
-                "❌ DevOps MCP no está conectado o la sesión SSO ha expirado. Por favor, reinicia sesión.",
-                kind="bot"
-            )
-            return
-        
-        # Construir prompt con contexto de memoria (hasta 5 interacciones previas)
-        prompt_con_contexto = pregunta
-        if len(agencias_memory) > 1:  # Si hay más que solo la pregunta actual
-            # Tomar hasta las últimas 10 entradas (5 pares pregunta-respuesta)
-            contexto_previo = agencias_memory[-11:-1] if len(agencias_memory) > 11 else agencias_memory[:-1]
-            if contexto_previo:
-                contexto_texto = "\n".join([
-                    f"{role.upper()}: {msg}" for role, msg in contexto_previo
-                ])
-                prompt_con_contexto = f"Contexto de conversación previa:\n{contexto_texto}\n\nPregunta actual: {pregunta}"
-        
-        # Mostrar mensaje de carga
-        temp_row, temp_meta = add_message(
-            "MaxiBot", 
-            "🔍 Consultando DevOps MCP...",
-            kind="bot"
-        )
-        
-        # Consultar DevOps MCP con contexto
-        respuesta_devops = devops.query_sync(prompt_con_contexto)
-        
-        # Remover mensaje temporal
+    import threading
+
+    def _worker():
+        global agencias_memory
         try:
-            temp_row.destroy()
-        except:
-            pass
-        
-        # Aplicar filtro de privacidad a la respuesta
-        if respuesta_devops and not respuesta_devops.startswith("Error"):
-            respuesta_masked = mask_sensitive_data(respuesta_devops)
+            # Obtener token fresco
+            token = keycloak_auth_instance.get_access_token() if keycloak_auth_instance else None
+
+            if not token:
+                def _ui_expired():
+                    add_message(
+                        "MaxiBot",
+                        "⚠️ Tu sesión SSO ha expirado. Por favor, cierra sesión y vuelve a iniciar sesión para usar Agencias.",
+                        kind="bot"
+                    )
+                    _set_btn_agencias_state("Consultar")
+                app.after(0, _ui_expired)
+                return
+
+            # Sincronizar token fresco
+            devops = get_devops_mcp(keycloak_token=token, gemini_api_key=GEMINI_API_KEY)
+
+            if not devops or not devops.available():
+                def _ui_disc():
+                    add_message("MaxiBot", "❌ DevOps MCP no está conectado. Por favor, reinicia el bot.", kind="bot")
+                    _set_btn_agencias_state("Consultar")
+                app.after(0, _ui_disc)
+                return
             
-            # Agregar respuesta a la memoria (sin enmascarar para contexto futuro)
-            agencias_memory.append(("bot", respuesta_devops))
+            # Construir prompt con contexto
+            prompt_con_contexto = pregunta
+            if len(agencias_memory) > 1:
+                contexto_previo = agencias_memory[-11:-1] if len(agencias_memory) > 11 else agencias_memory[:-1]
+                if contexto_previo:
+                    contexto_texto = "\n".join([f"{role.upper()}: {msg}" for role, msg in contexto_previo])
+                    prompt_con_contexto = f"Contexto de conversación previa:\n{contexto_texto}\n\nPregunta actual: {pregunta}"
             
-            # Mantener memoria limitada (máximo 20 entradas = 10 pares)
-            if len(agencias_memory) > 20:
-                agencias_memory = agencias_memory[-20:]
+            # Consultar DevOps MCP
+            respuesta_devops = devops.query_sync(prompt_con_contexto)
             
-            registrar_consulta(usuario_actual["correo"], "agencias", pregunta)
-            row, meta = add_message("MaxiBot", respuesta_masked, kind="bot")
+            def _ui_resp(rd=respuesta_devops):
+                if rd and not rd.startswith("Error"):
+                    respuesta_masked = mask_sensitive_data(rd)
+                    agencias_memory.append(("bot", rd))
+                    if len(agencias_memory) > 20:
+                        globals()['agencias_memory'] = agencias_memory[-20:]
+                    
+                    registrar_consulta(usuario_actual["correo"], "agencias", pregunta)
+                    row, meta = add_message("MaxiBot", respuesta_masked, kind="bot")
+                    
+                    registro_sesion.append({
+                        "timestamp": datetime.now().isoformat(timespec='seconds'),
+                        "usuario": usuario_actual["alias"],
+                        "correo": usuario_actual["correo"],
+                        "pregunta": pregunta,
+                        "respuesta": rd, 
+                        "origen": "AGENCIAS",
+                        "hoja": None,
+                        "feedback": "neutral",
+                    })
+                    _crear_botones_feedback(meta, len(registro_sesion)-1)
+                else:
+                    add_message("MaxiBot", f"❌ Error al consultar DevOps MCP:\n{rd}", kind="bot")
+                _set_btn_agencias_state("Consultar")
             
-            registro_sesion.append({
-                "timestamp": datetime.now().isoformat(timespec='seconds'),
-                "usuario": usuario_actual["alias"],
-                "correo": usuario_actual["correo"],
-                "pregunta": pregunta,
-                "respuesta": respuesta_devops,  # Guardar sin enmascarar en registro
-                "origen": "AGENCIAS",
-                "hoja": None,
-                "feedback": "neutral",
-            })
-            _crear_botones_feedback(meta, len(registro_sesion)-1)
-        else:
-            add_message(
-                "MaxiBot",
-                f"❌ Error al consultar DevOps MCP:\n{respuesta_devops}",
-                kind="bot"
-            )
-    
-    except Exception as e:
-        add_message(
-            "MaxiBot",
-            f"❌ Error inesperado: {str(e)}",
-            kind="bot"
-        )
-        print(f"Error en responder_operaciones: {e}")
+            app.after(0, _ui_resp)
+
+        except Exception as e:
+            print(f"Error en responder_operaciones (worker): {e}")
+            app.after(0, lambda: _set_btn_agencias_state("Consultar"))
+
+    threading.Thread(target=_worker, daemon=True).start()
 
 
 
