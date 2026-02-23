@@ -38,6 +38,9 @@ a = Analysis(
         'httpcore',
         'h11',
         'h2',
+        # Módulos locales adicionales
+        'registro',
+        'difflib',
         # Otras dependencias
         'dotenv',
         'pandas',
