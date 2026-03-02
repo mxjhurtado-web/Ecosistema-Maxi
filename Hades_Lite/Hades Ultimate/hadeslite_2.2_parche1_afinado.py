@@ -1151,6 +1151,71 @@ def _process_all_dates_by_type(texto: str) -> Dict[str, Optional[str]]:
             except Exception:
                 pass
 
+    # --- 3) Pasada global: convierte TODAS las fechas numéricas DD/MM/AAAA → MM/DD/AAAA ---
+    # Solo aplica a documentos NO-USA. Los documentos USA ya vienen en MM/DD/YYYY.
+    # Se construye un mapa {original: convertida} que el renderizador usa para sustituir
+    # en todo el texto visible, incluyendo líneas sin separador ":" y valores libres.
+    date_substitution_map: Dict[str, str] = {}
+
+    # Regex para capturar fechas numéricas con separador / - .
+    # Captura: DD/MM/YYYY, D/M/YYYY, DD-MM-YYYY, DD.MM.YYYY y variantes con año 2 dígitos.
+    _RE_NUMERIC_DATE_GLOBAL = re.compile(
+        r'\b(\d{1,2})([\\/\-\.])(\d{1,2})\2(\d{2,4})\b'
+    )
+
+    if not is_usa_id:
+        for m_dt in _RE_NUMERIC_DATE_GLOBAL.finditer(texto):
+            original_raw = m_dt.group(0)
+            sep          = m_dt.group(2)
+            part1        = int(m_dt.group(1))   # podría ser DD
+            part2        = int(m_dt.group(3))   # podría ser MM
+            year_raw     = m_dt.group(4)
+
+            # Saltar si ya fue procesada o si es ambigua y ambas partes son ≤ 12
+            # Regla: si part1 > 12 → definitivamente DD (día). Caso contrario asumimos DD/MM
+            # (convención global no-USA).
+            if part1 > 31 or part2 > 12:
+                continue   # valores imposibles, no es fecha válida
+            if part1 < 1 or part2 < 1:
+                continue
+
+            year_int = _coerce_year(year_raw)
+            if not year_int:
+                continue
+
+            # Decidimos: part1 = día, part2 = mes (formato DD/MM/YYYY)
+            dd = part1
+            mm = part2
+
+            # Solo convertir si el resultado difiere del original
+            converted = f"{mm:02d}/{dd:02d}/{year_int:04d}"
+            original_normalizado = f"{dd:02d}{sep}{mm:02d}{sep}{year_raw}"
+
+            # Evitar "convertir" lo que ya está en MM/DD (sería igual en forma)
+            # Si dd > 12 es inequívoco: el primer número ES día → hay que invertir
+            # Si dd <= 12 también invertimos (convención no-USA = DD primero)
+            if converted != original_raw:
+                date_substitution_map[original_raw] = converted
+
+    # Incluir también en kv_map para que _format_ocr_text llegue a ellas por clave
+    # (en líneas con formato "Clave: DD/MM/YYYY" que no hayan sido detectadas antes)
+    for orig_date, conv_date in date_substitution_map.items():
+        # Solo agregar si la fecha original aparece como valor en alguna línea no procesada
+        for line in texto.splitlines():
+            if ":" in line and orig_date in line:
+                parts = line.split(":", 1)
+                key_raw = parts[0].strip().lower()
+                # Si la clave aún no está en kv_map, agregamos la conversión
+                from unicodedata import normalize as _unorm
+                key_clean_local = re.sub(r'\s+', ' ', re.sub(r'[.,:;_\-]+', ' ',
+                    ''.join(c for c in _unorm('NFD', key_raw)
+                             if _unorm('NFC', c) == c or True
+                    ).lower())).strip()
+                if key_clean_local not in kv_map:
+                    kv_map[key_clean_local] = conv_date
+
+    results["date_substitution_map"] = date_substitution_map
+
     # Limpieza + extra
     try:
         del results["exp_date_mdy_for_sug"]
@@ -2076,10 +2141,11 @@ def gemini_vision_extract_text(image_path: str) -> str:
             colon_lines = sum(1 for ln in tt.splitlines() if ":" in ln)
             has_mrz = ("p<" in low) or ("mrz" in low)
 
-            # Palabras típicas de documentos
+            # Palabras típicas de documentos (inglés Y español, ya que la traducción se aplica antes)
             has_doc_words = any(
                 w in low
                 for w in [
+                    # --- Inglés (originales) ---
                     "pasaporte", "passport",
                     "identific", "id", "licencia", "driver",
                     "residen", "resident",
@@ -2087,6 +2153,15 @@ def gemini_vision_extract_text(image_path: str) -> str:
                     "nombre", "surname", "given name",
                     "fecha", "date of birth", "dob",
                     "expir", "expiry", "expires", "emisión", "emision", "issue",
+                    # --- Español (tras traducción) ---
+                    "apellido",                 # surname → Apellido
+                    "vence", "vencimiento",     # expires/expiry → Vence/Vencimiento
+                    "vigencia", "caducidad",    # validity/expiration
+                    "expedicion", "expedición", # issue → Expedición
+                    "nacimiento",               # date of birth → Nacimiento
+                    "conducir",                 # driver → Conducir
+                    "identificacion",           # identification
+                    "numero de",                # number of
                 ]
             )
 
@@ -2986,6 +3061,9 @@ def _format_ocr_text_with_normalized_dates(t: str, results: Dict[str, Optional[s
     except Exception:
         kv_map_clean = {}
 
+    # --- 2b) Mapa de sustitución directa de fechas numéricas (DD/MM/YYYY → MM/DD/YYYY) ---
+    date_sub_map: Dict[str, str] = results.get("date_substitution_map") or {}
+
     inferred_country = (results.get("doc_pais") or "").strip()
 
     # --- 3) Campos esenciales (se resaltan en verde) ---
@@ -3016,9 +3094,19 @@ def _format_ocr_text_with_normalized_dates(t: str, results: Dict[str, Optional[s
     except Exception:
         pass
 
+    def _apply_date_subs(text_fragment: str) -> str:
+        """Sustituye fechas DD/MM/YYYY → MM/DD/YYYY en un fragmento usando date_sub_map."""
+        if not date_sub_map or not text_fragment:
+            return text_fragment
+        result = text_fragment
+        for orig, conv in sorted(date_sub_map.items(), key=lambda x: -len(x[0])):
+            result = result.replace(orig, conv)
+        return result
+
     for line in (t or "").splitlines():
         if ":" not in line:
-            ocr_text.insert("end", line + "\n")
+            # Línea sin ':' → aplicar sustitución directa de fechas
+            ocr_text.insert("end", _apply_date_subs(line) + "\n")
             continue
 
         parts = line.split(":", 1)
@@ -3046,7 +3134,11 @@ def _format_ocr_text_with_normalized_dates(t: str, results: Dict[str, Optional[s
                     normalized_value = (processed_date or "").strip()
                     break
 
-        value_to_show = normalized_value if normalized_value else original_value
+        # 3) Fallback: sustitución directa de fechas en el valor si no se resolvió por clave
+        if normalized_value:
+            value_to_show = normalized_value
+        else:
+            value_to_show = _apply_date_subs(original_value)
 
         # Si el OCR/LLM se equivoca en "País: XX", preferimos el país inferido por HADES.
         if inferred_country and key_clean in ("pais", "country"):
