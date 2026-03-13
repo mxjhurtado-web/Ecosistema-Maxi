@@ -116,6 +116,10 @@ class MCPClient:
         system_prompt = None
         
         # Overwrite with Agent settings if provided
+        agent_rules = {}
+        knowledge_sources = []
+        web_search = False
+        
         if agent_name:
             agent = await config_manager.get_agent(agent_name)
             if agent:
@@ -123,7 +127,10 @@ class MCPClient:
                     self.url = agent.mcp_url
                 readonly = agent.readonly
                 system_prompt = agent.system_prompt
-                logger.info(f"Using agent '{agent_name}' config: readonly={readonly}, url={self.url}")
+                agent_rules = agent.specific_rules or {}
+                knowledge_sources = agent.knowledge_sources
+                web_search = agent.web_search_enabled
+                logger.info(f"Using agent '{agent_name}' config: readonly={readonly}, rules={bool(agent_rules)}, web={web_search}")
             else:
                 logger.warning(f"Agent '{agent_name}' not found, falling back to default config")
         
@@ -137,10 +144,20 @@ class MCPClient:
                 0
             )
         
-        # Prepare request
+        # Prepare context
         full_context = context.copy() if context else {}
         full_context["gemini_api_key"] = self.gemini_api_key
         full_context["readonly"] = readonly
+        full_context["knowledge_sources"] = knowledge_sources
+        full_context["web_search_enabled"] = web_search
+        
+        # Process specific rules into system prompt as JSON
+        if agent_rules:
+            import json
+            rules_json = json.dumps(agent_rules, indent=2, ensure_ascii=False)
+            rules_text = f"\n\nMAPA DE REGLAS ESPECÍFICAS (JSON):\n```json\n{rules_json}\n```"
+            system_prompt = f"{system_prompt or ''}{rules_text}"
+            
         if system_prompt:
             full_context["system_prompt"] = system_prompt
         

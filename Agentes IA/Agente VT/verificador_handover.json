@@ -1,0 +1,38 @@
+{
+  "metadata": {
+    "source": "Agente_VT",
+    "target": "Agente_Verificador",
+    "timestamp": "{{TIMESTAMP}}",
+    "flow_type": "pre_envio_validation"
+  },
+  "payload": {
+    "client_info": {
+      "is_new": "{{IS_NEW_CLIENT}}", 
+      "full_name": "{{CLIENT_NAME}}",
+      "agency_id": "{{AGENCY_ID}}",
+      "phone": "{{CLIENT_PHONE}}",
+      "location": {
+        "zip_code": "{{ZIP_CODE}}",
+        "city": "{{CITY}}",
+        "state": "{{STATE}}"
+      }
+    },
+    "beneficiary_info": {
+      "is_new": "{{IS_NEW_BENEFICIARY}}",
+      "full_name": "{{BENEFICIARY_NAME}}",
+      "phone": "{{BENEFICIARY_PHONE}}",
+      "destination_city": "{{DESTINATION_CITY}}",
+      "preferred_payer": "{{PREFERRED_PAYER}}"
+    },
+    "compliance_check": {
+      "obba_accepted": true,
+      "state_rules_applied": "{{STATE_LOGIC_APPLIED}}",
+      "validation_required": "{{VERIFICATION_NEEDED}}" 
+    },
+    "transaction_details": {
+      "total_paid_usd": "{{TOTAL_PAID_USD}}",
+      "federal_tax_usd": "{{OBBA_TAX_USD}}",
+      "state_tax_usd": "{{STATE_TAX_USD}}"
+    }
+  }
+}

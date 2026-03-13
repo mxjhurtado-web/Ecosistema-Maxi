@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "source": "Agente_VT",
+    "target": "Agente_Generador",
+    "action": "emitir_folio_final",
+    "timestamp": "{{TIMESTAMP}}"
+  },
+  "transaction_details": {
+    "amounts_usd": {
+      "total_paid_by_customer": "{{TOTAL_PAID_USD}}",
+      "service_fee": "{{FEE_USD}}",
+      "federal_tax_1pct": "{{OBBA_TAX_USD}}",
+      "state_tax": "{{STATE_TAX_USD}}",
+      "net_amount_to_send": "{{NET_NET_USD}}"
+    },
+    "exchange_rate_info": {
+      "target_currency": "{{TARGET_CURRENCY}}",
+      "rate": "{{EXCHANGE_RATE}}",
+      "final_amount_to_receive": "{{TOTAL_TO_RECEIVE_FOREIGN}}"
+    },
+    "compliance_summary": {
+      "obba_disclosure": "ACCEPTED",
+      "cancellation_policy_read": "PENDING_AT_DELIVERY",
+      "compliance_status": "APPROVED"
+    }
+  },
+  "delivery_data": {
+    "agency_origin": "{{AGENCY_NAME}}",
+    "beneficiary_name": "{{BENEFICIARY_NAME}}",
+    "payer_location": "{{PAYER_FULL_LOCATION}}"
+  }
+}

@@ -3,7 +3,7 @@ Pydantic models for request/response validation.
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from enum import Enum
 
@@ -203,6 +203,9 @@ class AgentConfig(BaseModel):
     readonly: bool = Field(default=False, description="Modo solo lectura (bloquea escrituras)")
     mcp_url: Optional[str] = Field(None, description="URL del MCP específico para este agente")
     is_orchestrator: bool = Field(default=False, description="Si es un agente orquestador/clasificador")
+    specific_rules: Dict[str, Any] = Field(default_factory=dict, description="Reglas específicas estructuradas en JSON")
+    knowledge_sources: List[str] = Field(default_factory=list, description="Fuentes de conocimiento (IDs de documentos/RAG)")
+    web_search_enabled: bool = Field(default=False, description="Activa la capacidad de búsqueda en internet")
 
     class Config:
         json_schema_extra = {
@@ -211,7 +214,14 @@ class AgentConfig(BaseModel):
                 "system_prompt": "Eres un asistente de ventas profesional...",
                 "readonly": False,
                 "mcp_url": "http://localhost:8080/query",
-                "is_orchestrator": False
+                "is_orchestrator": False,
+                "specific_rules": {
+                    "do": ["Ser amable", "Usar emojis"],
+                    "dont": ["Mencionar precios"],
+                    "internet_policy": "solo_si_necesario"
+                },
+                "knowledge_sources": ["doc_123", "sheet_456"],
+                "web_search_enabled": True
             }
         }
 

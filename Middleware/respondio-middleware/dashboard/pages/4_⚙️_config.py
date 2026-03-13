@@ -42,37 +42,79 @@ with tab1_5:
     agents = api_client.get_agents()
     
     # --- Agent Creation/Edit Form ---
-    with st.expander("➕ Add / Edit Agent", expanded=not agents):
+    edit_mode = "edit_agent" in st.session_state
+    current_edit = st.session_state.get("edit_agent", {})
+    
+    form_label = f"📝 Edit Agent: {current_edit['name']}" if edit_mode else "➕ Add New Agent"
+    
+    with st.expander(form_label, expanded=edit_mode or not agents):
         with st.form("agent_form"):
             col1, col2 = st.columns(2)
             with col1:
-                agent_name = st.text_input("Agent Name", placeholder="e.g., sales_assistant")
-                is_orchestrator = st.checkbox("Is Orchestrator?", help="The entry point agent that classifies requests")
+                agent_name = st.text_input("Agent Name", value=current_edit.get("name", ""), placeholder="e.g., sales_assistant", disabled=edit_mode)
+                is_orchestrator = st.checkbox("Is Orchestrator?", value=current_edit.get("is_orchestrator", False), help="The entry point agent that classifies requests")
             
             with col2:
-                agent_mcp_url = st.text_input("Custom MCP URL (Optional)", placeholder="http://...")
-                readonly = st.toggle("Read-Only Mode", value=False, help="If enabled, this agent cannot perform write operations")
+                agent_mcp_url = st.text_input("Custom MCP URL (Optional)", value=current_edit.get("mcp_url", "") or "", placeholder="http://...")
+                readonly = st.toggle("Read-Only Mode", value=current_edit.get("readonly", False), help="If enabled, this agent cannot perform write operations")
+                web_search = st.toggle("🛡️ Web Search Enabled", value=current_edit.get("web_search_enabled", False), help="Permite al agente buscar en internet si sus reglas lo indican")
             
-            agent_prompt = st.text_area("System Prompt", height=150, placeholder="You are a helpful assistant that...")
+            agent_prompt = st.text_area("System Prompt", height=150, value=current_edit.get("system_prompt", ""), placeholder="You are a helpful assistant that...")
+            
+            # JSON Rules
+            import json
+            rules_val = json.dumps(current_edit.get("specific_rules", {}), indent=2) if edit_mode else '{\n  "do": ["Ser amable"],\n  "dont": ["Mencionar precios"]\n}'
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                agent_rules_raw = st.text_area("Specific Rules (JSON)", height=150, value=rules_val, help="Define el comportamiento en formato JSON")
+            with col_b:
+                st.markdown("**📚 Knowledge Upload**")
+                uploaded_files = st.file_uploader("Upload PDF/Excel/Docx", accept_multiple_files=True, type=['pdf', 'xlsx', 'xls', 'docx', 'doc', 'csv'])
+                knowledge_sources_raw = st.text_area("Additional Source IDs (Manual)", height=68, help="IDs de documentos o carpetas separados por línea")
             
             submit_agent = st.form_submit_button("💾 Save Agent", use_container_width=True)
             
             if submit_agent:
+                import json
+                try:
+                    agent_rules = json.loads(agent_rules_raw)
+                except json.JSONDecodeError:
+                    st.error("Invalid JSON in Specific Rules")
+                    st.stop()
+                
                 if not agent_name or not agent_prompt:
                     st.error("Name and System Prompt are required")
                 else:
+                    knowledge_sources = [k.strip() for k in knowledge_sources_raw.split("\n") if k.strip()]
+                    if uploaded_files:
+                        for uploaded_file in uploaded_files:
+                            # In a real app, you would send this to the API
+                            # For now, we add the names to the sources
+                            knowledge_sources.append(uploaded_file.name)
+                            st.toast(f"File '{uploaded_file.name}' staged for agent.", icon="📎")
+                    
                     new_agent = {
                         "name": agent_name,
                         "system_prompt": agent_prompt,
                         "readonly": readonly,
                         "mcp_url": agent_mcp_url if agent_mcp_url else None,
-                        "is_orchestrator": is_orchestrator
+                        "is_orchestrator": is_orchestrator,
+                        "specific_rules": agent_rules,
+                        "knowledge_sources": knowledge_sources,
+                        "web_search_enabled": web_search
                     }
                     if api_client.add_agent(new_agent):
                         st.success(f"Agent '{agent_name}' saved!")
+                        if edit_mode: del st.session_state["edit_agent"]
                         st.rerun()
                     else:
                         st.error("Failed to save agent")
+            
+            if edit_mode:
+                if st.form_submit_button("❌ Cancel Edit", use_container_width=True):
+                    del st.session_state["edit_agent"]
+                    st.rerun()
 
     # --- List Agents ---
     if agents:
@@ -83,14 +125,36 @@ with tab1_5:
                 with c1:
                     role_icon = "👑" if agent.get('is_orchestrator') else "🤖"
                     st.markdown(f"**{role_icon} {agent['name']}**")
-                    st.caption(f"Prompt: {agent['system_prompt'][:100]}...")
+                    st.caption(f"Prompt: {agent['system_prompt'][:60]}...")
+                    if agent.get('specific_rules'):
+                        st.caption(f"⚖️ Rules: {len(agent['specific_rules'])}")
+                    if agent.get('knowledge_sources'):
+                        st.caption(f"📚 Knowledge: {len(agent['knowledge_sources'])}")
+                    
+                    if st.button("📝 Edit", key=f"edit_btn_{agent['name']}", type="primary", use_container_width=True):
+                        st.session_state["edit_agent"] = agent
+                        st.toast(f"Loading {agent['name']} for editing...", icon="📝")
+                        st.rerun()
                 with c2:
                     mode = "🔒 Read-Only" if agent.get('readonly') else "✍️ Read/Write"
                     st.write(mode)
+                    web_status = "🌐 Web ON" if agent.get('web_search_enabled') else "🚫 Web OFF"
+                    st.caption(web_status)
                     if agent.get('mcp_url'):
-                        st.caption(f"URL: {agent['mcp_url']}")
+                        st.caption(f"🔗 URL: {agent['mcp_url']}")
                 with c3:
-                    if st.button("🗑️ Delete", key=f"del_{agent['name']}", type="secondary"):
+                    import json
+                    rules_json = json.dumps(agent.get('specific_rules', {}), indent=2)
+                    st.download_button(
+                        label="📥 Rules",
+                        data=rules_json,
+                        file_name=f"{agent['name']}_rules.json",
+                        mime="application/json",
+                        key=f"dl_{agent['name']}",
+                        use_container_width=True
+                    )
+                    
+                    if st.button("🗑️ Delete", key=f"del_{agent['name']}", type="secondary", use_container_width=True):
                         if api_client.delete_agent(agent['name']):
                             st.success("Deleted")
                             st.rerun()

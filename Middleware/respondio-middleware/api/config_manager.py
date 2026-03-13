@@ -142,9 +142,9 @@ class ConfigManager:
     async def get_agents(self) -> List[AgentConfig]:
         """Get all dynamic agents"""
         if not self.enabled:
-            # Return an empty list or a default agent if Redis is disabled
-            return []
-        
+            # Memory fallback for evaluation/testing
+            return list(self._memory_config.get("agents", {}).values())
+            
         try:
             agent_keys = await self.redis.keys("config:agents:*")
             agents = []
@@ -176,7 +176,12 @@ class ConfigManager:
     async def update_agent(self, agent: AgentConfig) -> bool:
         """Add or update an agent"""
         if not self.enabled:
-            return False
+            # Memory fallback for evaluation/testing
+            if "agents" not in self._memory_config:
+                self._memory_config["agents"] = {}
+            self._memory_config["agents"][agent.name] = agent
+            logger.info(f"Agent {agent.name} saved to In-Memory storage (Fallback)")
+            return True
             
         try:
             await self.redis.set(f"config:agents:{agent.name}", agent.model_dump_json())
