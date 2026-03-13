@@ -18,14 +18,23 @@ async def get_redis_client() -> redis.Redis:
     
     if _redis_client is None:
         try:
-            _redis_client = redis.Redis(
-                host=settings.REDIS_HOST,
-                port=settings.REDIS_PORT,
-                db=settings.REDIS_DB,
-                password=settings.REDIS_PASSWORD,
-                decode_responses=False,
-                socket_connect_timeout=5
-            )
+            if settings.REDIS_URL:
+                logger.info("Connecting to Redis using URL...")
+                _redis_client = redis.from_url(
+                    settings.REDIS_URL,
+                    decode_responses=False,
+                    socket_connect_timeout=5
+                )
+            else:
+                logger.info(f"Connecting to Redis at {settings.REDIS_HOST}:{settings.REDIS_PORT}...")
+                _redis_client = redis.Redis(
+                    host=settings.REDIS_HOST,
+                    port=settings.REDIS_PORT,
+                    db=settings.REDIS_DB,
+                    password=settings.REDIS_PASSWORD,
+                    decode_responses=False,
+                    socket_connect_timeout=5
+                )
             
             # Test connection
             await _redis_client.ping()

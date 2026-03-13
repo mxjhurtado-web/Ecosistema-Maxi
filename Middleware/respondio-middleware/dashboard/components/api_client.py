@@ -194,7 +194,7 @@ class AdminAPIClient:
     # User Management
     # ============================================================
 
-    def get_users(self) -> List[Dict]:
+    def get_dashboard_users(self) -> List[Dict]:
         """Get all dashboard users"""
         result = self._get("/admin/users")
         return result if result else []
