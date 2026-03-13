@@ -102,7 +102,6 @@ async def update_mcp_config(
         mcp_client.timeout = config.timeout
         mcp_client.gemini_api_key = config.gemini_api_key
         mcp_client.emergency_mode = config.emergency_mode
-        mcp_client.emergency_model = config.emergency_model
         
         # Update Keycloak Auth
         if config.use_keycloak and config.kc_server_url:
