@@ -188,6 +188,7 @@ class MCPConfig(BaseModel):
     retry_delay: int = Field(default=1, description="Delay entre reintentos (segundos)")
     mcp_token: Optional[str] = Field(None, description="Token de autenticación manual")
     gemini_api_key: Optional[str] = Field(None, description="Gemini API Key")
+    emergency_mode: bool = Field(default=False, description="Usa Gemini directo si el MCP está offline")
     # Keycloak Auth (for Service Account)
     use_keycloak: bool = Field(default=False, description="Usar Keycloak para autenticación")
     kc_server_url: Optional[str] = Field(None, description="Keycloak Server URL")

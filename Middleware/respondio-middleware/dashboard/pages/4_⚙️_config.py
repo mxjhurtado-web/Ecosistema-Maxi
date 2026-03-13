@@ -209,6 +209,12 @@ with tab1:
                 help="Delay entre retry attempts"
             )
             
+            emergency_mode = st.toggle(
+                "🚨 Emergency Mode (Direct Gemini Fallback)",
+                value=mcp_config.get('emergency_mode', False),
+                help="If enabled, bypassing MCP and using Gemini directly. Recommended if MCP is offline."
+            )
+            
             st.markdown("---")
             st.markdown("### 🔐 MCP Security & Keycloak")
             
@@ -270,6 +276,7 @@ with tab1:
                     "retry_delay": retry_delay,
                     "mcp_token": mcp_token if not use_keycloak else None,
                     "gemini_api_key": mcp_config.get('gemini_api_key'),
+                    "emergency_mode": emergency_mode,
                     "use_keycloak": use_keycloak,
                     "kc_server_url": kc_server if use_keycloak else None,
                     "kc_realm": kc_realm if use_keycloak else None,

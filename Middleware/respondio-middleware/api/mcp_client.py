@@ -39,6 +39,9 @@ class MCPClient:
         self.failure_count = 0
         self.circuit_open = False
         self.circuit_open_time = None
+        
+        # Mock DB for simulation mode
+        self.mock_db = {}
     
     def _check_circuit(self) -> bool:
         """Check if circuit breaker is open"""
@@ -134,13 +137,32 @@ class MCPClient:
             else:
                 logger.warning(f"Agent '{agent_name}' not found, falling back to default config")
         
-        # Check circuit breaker
-        if self._check_circuit():
+        # Check circuit breaker (skip if emergency mode is active)
+        is_emergency = curr_config.emergency_mode and self.gemini_api_key
+        
+        if not is_emergency and self._check_circuit():
             logger.warning("Circuit breaker is open, returning fallback")
             return (
-                "Lo siento, el servicio está temporalmente no disponible. Por favor intenta más tarde.",
+                "Lo siento, el servicio está temporalmente no disponible (Circuit Breaker Abierto). Por favor intenta más tarde.",
                 ResponseStatus.ERROR,
                 0,
+                0
+            )
+        
+        # --- Emergency Mode / Direct Gemini Support ---
+        if curr_config.emergency_mode and self.gemini_api_key:
+            logger.info("🚨 Emergency Mode Active: Using Direct Gemini Fallback")
+            response_text = await self._query_gemini_direct(user_text, full_context)
+            
+            # Post-processing for simulation logic
+            mock_response = await self._simulate_logic(user_text, context, response_text)
+            if mock_response:
+                response_text = mock_response
+
+            return (
+                response_text,
+                ResponseStatus.OK,
+                100, # Fake latency
                 0
             )
         
@@ -274,6 +296,69 @@ class MCPClient:
             0,
             retry_count
         )
+
+    async def _query_gemini_direct(self, query: str, context: dict) -> str:
+        """Call Gemini API directly via REST (when MCP is offline)"""
+        api_key = context.get("gemini_api_key")
+        if not api_key:
+            return "Error: Gemini API Key no configurada."
+            
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        
+        system_prompt = context.get("system_prompt", "Eres un asistente de IA útil.")
+        prompt_text = f"{system_prompt}\n\nPregunta: {query}"
+        
+        payload = {
+            "contents": [{
+                "parts": [{"text": prompt_text}]
+            }]
+        }
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, json=payload, timeout=20)
+                response.raise_for_status()
+                data = response.json()
+                return data['candidates'][0]['content']['parts'][0]['text']
+        except Exception as e:
+            logger.error(f"Direct Gemini call failed: {str(e)}")
+            return f"Error en conexión directa con Gemini: {str(e)}"
+
+    async def _simulate_logic(self, query: str, context: dict, response: str) -> Optional[str]:
+        """Simulate database logic in memory for testing flows"""
+        contact_id = context.get("contact_id", "default_user")
+        
+        # Detect intent for simulation (simplified)
+        query_lower = query.lower()
+        
+        # 1. New User / Register flow
+        if any(w in query_lower for w in ["envío", "enviar", "mandar"]) and not any(w in query_lower for w in ["estatus", "clima", "noticias"]):
+            import uuid
+            folio = f"MOCK-{uuid.uuid4().hex[:6].upper()}"
+            
+            if contact_id not in self.mock_db:
+                self.mock_db[contact_id] = {"registros": []}
+            
+            self.mock_db[contact_id]["registros"].append({
+                "folio": folio,
+                "timestamp": time.time(),
+                "text": query,
+                "status": "En Proceso"
+            })
+            
+            logger.info(f"💾 MOCK: Registro de envío guardado para {contact_id}. Folio: {folio}")
+            return f"{response}\n\n✅ [MEMORIA TEMPORAL] Se ha simulado el registro de tu envío. Folio: **{folio}**"
+
+        # 2. Status check flow
+        if any(w in query_lower for w in ["estatus", "rastrear", "mi envío", "folio"]):
+            if contact_id in self.mock_db and self.mock_db[contact_id]["registros"]:
+                last_reg = self.mock_db[contact_id]["registros"][-1]
+                logger.info(f"🔍 MOCK: Consulta de estatus para {contact_id}. Encontrado: {last_reg['folio']}")
+                return f"{response}\n\n🔍 [MEMORIA TEMPORAL] Consultando el folio **{last_reg['folio']}**... Estatus: **{last_reg['status']}**."
+            else:
+                return f"{response}\n\nℹ️ [MEMORIA TEMPORAL] No encontré envíos previos en esta sesión simulada."
+
+        return None
     
     async def health_check(self) -> bool:
         """Check if MCP is healthy"""

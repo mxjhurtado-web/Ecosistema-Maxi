@@ -67,6 +67,7 @@ class ConfigManager:
             kc_client_id = await self.redis.get("config:mcp:kc_client_id")
             kc_client_secret = await self.redis.get("config:mcp:kc_client_secret")
             gemini_api_key = await self.redis.get("config:mcp:gemini_api_key")
+            emergency_mode = await self.redis.get("config:mcp:emergency_mode")
             
             return MCPConfig(
                 url=url.decode() if url else settings.MCP_URL,
@@ -79,7 +80,8 @@ class ConfigManager:
                 kc_realm=kc_realm.decode() if kc_realm else settings.KC_REALM,
                 kc_client_id=kc_client_id.decode() if kc_client_id else settings.KC_CLIENT_ID,
                 kc_client_secret=kc_client_secret.decode() if kc_client_secret else settings.KC_CLIENT_SECRET,
-                gemini_api_key=gemini_api_key.decode() if gemini_api_key else None
+                gemini_api_key=gemini_api_key.decode() if gemini_api_key else None,
+                emergency_mode=emergency_mode.decode() == 'true' if emergency_mode else False
             )
         except Exception as e:
             logger.error(f"Failed to get MCP config from Redis: {str(e)}")
@@ -95,7 +97,8 @@ class ConfigManager:
                 kc_realm=settings.KC_REALM,
                 kc_client_id=settings.KC_CLIENT_ID,
                 kc_client_secret=settings.KC_CLIENT_SECRET,
-                gemini_api_key=self._memory_config.get("gemini_api_key")
+                gemini_api_key=self._memory_config.get("gemini_api_key"),
+                emergency_mode=self._memory_config.get("emergency_mode", False)
             )
     
     async def update_mcp_config(self, config: MCPConfig):
@@ -104,6 +107,7 @@ class ConfigManager:
             logger.warning("Updating config in MEMORY (not persistent)")
             self._memory_config["url"] = config.url
             self._memory_config["gemini_api_key"] = config.gemini_api_key
+            self._memory_config["emergency_mode"] = config.emergency_mode
             # ... other fields could be added here if needed, but these are the critical ones for Gemini
             return True
         
@@ -128,6 +132,8 @@ class ConfigManager:
                 await self.redis.set("config:mcp:gemini_api_key", config.gemini_api_key)
             else:
                 await self.redis.delete("config:mcp:gemini_api_key")
+            
+            await self.redis.set("config:mcp:emergency_mode", "true" if config.emergency_mode else "false")
             
             logger.info(f"MCP config updated: {config.url}")
             return True
