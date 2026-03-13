@@ -194,6 +194,10 @@ class AdminAPIClient:
     # User Management
     # ============================================================
 
+    def get_users(self) -> List[Dict]:
+        """Alias for get_dashboard_users for backward compatibility"""
+        return self.get_dashboard_users()
+
     def get_dashboard_users(self) -> List[Dict]:
         """Get all dashboard users"""
         result = self._get("/admin/users")
@@ -206,12 +210,17 @@ class AdminAPIClient:
 
     def delete_user(self, username: str) -> bool:
         """Delete a dashboard user"""
-        result = requests.delete(
-            f"{self.base_url}/admin/users/{username}",
-            params=self.params,
-            timeout=10
-        )
-        return result.status_code == 200
+        try:
+            url = f"{self.base_url}/admin/users/{username}"
+            response = requests.delete(
+                url,
+                params=self.params,
+                timeout=10
+            )
+            return response.status_code == 200
+        except Exception as e:
+            print(f"Delete user error: {str(e)}")
+            return False
 
     # ============================================================
     # Agent Management
