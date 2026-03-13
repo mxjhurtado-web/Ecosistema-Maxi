@@ -28,10 +28,77 @@ if st.session_state.get("role") == "supervisor":
     st.stop()
 
 # Tabs for different config sections
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["🔌 MCP Settings", "💾 Cache Settings", "🔐 Security", "🤖 AI Integration", "🚨 Email Alerts"])
+tab1, tab1_5, tab2, tab3, tab4, tab5 = st.tabs(["🔌 MCP Settings", "👥 Agents", "💾 Cache Settings", "🔐 Security", "🤖 AI Integration", "🚨 Email Alerts"])
 
 # ============================================================
 # MCP Configuration
+# ============================================================
+...
+with tab1_5:
+    st.subheader("👥 Dynamic Agent Management")
+    st.info("Configure specialized agents with custom personas, MCP connections, and write permissions.")
+    
+    # Fetch current agents
+    agents = api_client.get_agents()
+    
+    # --- Agent Creation/Edit Form ---
+    with st.expander("➕ Add / Edit Agent", expanded=not agents):
+        with st.form("agent_form"):
+            col1, col2 = st.columns(2)
+            with col1:
+                agent_name = st.text_input("Agent Name", placeholder="e.g., sales_assistant")
+                is_orchestrator = st.checkbox("Is Orchestrator?", help="The entry point agent that classifies requests")
+            
+            with col2:
+                agent_mcp_url = st.text_input("Custom MCP URL (Optional)", placeholder="http://...")
+                readonly = st.toggle("Read-Only Mode", value=False, help="If enabled, this agent cannot perform write operations")
+            
+            agent_prompt = st.text_area("System Prompt", height=150, placeholder="You are a helpful assistant that...")
+            
+            submit_agent = st.form_submit_button("💾 Save Agent", use_container_width=True)
+            
+            if submit_agent:
+                if not agent_name or not agent_prompt:
+                    st.error("Name and System Prompt are required")
+                else:
+                    new_agent = {
+                        "name": agent_name,
+                        "system_prompt": agent_prompt,
+                        "readonly": readonly,
+                        "mcp_url": agent_mcp_url if agent_mcp_url else None,
+                        "is_orchestrator": is_orchestrator
+                    }
+                    if api_client.add_agent(new_agent):
+                        st.success(f"Agent '{agent_name}' saved!")
+                        st.rerun()
+                    else:
+                        st.error("Failed to save agent")
+
+    # --- List Agents ---
+    if agents:
+        st.markdown("### Existing Agents")
+        for agent in agents:
+            with st.container(border=True):
+                c1, c2, c3 = st.columns([3, 1, 1])
+                with c1:
+                    role_icon = "👑" if agent.get('is_orchestrator') else "🤖"
+                    st.markdown(f"**{role_icon} {agent['name']}**")
+                    st.caption(f"Prompt: {agent['system_prompt'][:100]}...")
+                with c2:
+                    mode = "🔒 Read-Only" if agent.get('readonly') else "✍️ Read/Write"
+                    st.write(mode)
+                    if agent.get('mcp_url'):
+                        st.caption(f"URL: {agent['mcp_url']}")
+                with c3:
+                    if st.button("🗑️ Delete", key=f"del_{agent['name']}", type="secondary"):
+                        if api_client.delete_agent(agent['name']):
+                            st.success("Deleted")
+                            st.rerun()
+    else:
+        st.warning("No agents configured yet. Create one above.")
+
+# ============================================================
+# Cache Configuration
 # ============================================================
 
 with tab1:

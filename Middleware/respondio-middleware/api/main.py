@@ -121,6 +121,20 @@ async def webhook(
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
     
     try:
+        # Check if an agent is specified in metadata (useful for dashboard testing)
+        agent_name = request.metadata.get("agent_name")
+        
+        # If no agent specified, fall back to Orchestrator
+        if not agent_name:
+            from .config_manager import config_manager
+            orchestrator = await config_manager.get_orchestrator()
+            agent_name = orchestrator.name if orchestrator else None
+            
+            if agent_name:
+                logger.info(f"Routing request through orchestrator: {agent_name}")
+        else:
+            logger.info(f"Routing request through specified agent: {agent_name}")
+        
         # Call MCP
         mcp_response, status, mcp_latency_ms, retry_count = await mcp_client.query(
             user_text=request.user_text,
@@ -129,8 +143,35 @@ async def webhook(
                 "contact_id": request.contact_id,
                 "channel": request.channel,
                 **request.metadata
-            }
+            },
+            agent_name=agent_name
         )
+        
+        # --- Handoff Protocol Integration ---
+        import re
+        handoff_match = re.search(r"\[TRANSFER:\s*(\w+)\]", mcp_response or "")
+        
+        if handoff_match and status == ResponseStatus.OK:
+            new_agent_name = handoff_match.group(1)
+            logger.info(f"🔄 Handoff detected: Transferring to {new_agent_name}")
+            
+            # recursive call with the new agent
+            # We strip the transfer command from the response if we were to return it, 
+            # but here we actually re-query the new agent.
+            mcp_response, status, second_latency, second_retry = await mcp_client.query(
+                user_text=request.user_text,
+                context={
+                    "conversation_id": request.conversation_id,
+                    "contact_id": request.contact_id,
+                    "channel": request.channel,
+                    "handoff_from": agent_name,
+                    **request.metadata
+                },
+                agent_name=new_agent_name
+            )
+            mcp_latency_ms += second_latency
+            retry_count += second_retry
+            logger.info(f"✅ Handoff to {new_agent_name} completed")
         
         # Calculate total latency
         total_latency_ms = int((time.time() - start_time) * 1000)

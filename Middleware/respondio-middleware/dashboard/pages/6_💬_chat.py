@@ -38,11 +38,15 @@ if "chat_enabled" not in st.session_state:
 with st.sidebar:
     st.subheader("💬 Chat Settings")
     
-    # MCP selector (for future multi-MCP support)
-    mcp_name = st.selectbox(
-        "Select MCP",
-        ["Default MCP"],
-        help="Select which MCP server to query"
+    # --- Agent Selector ---
+    agents = api_client.get_agents()
+    agent_options = ["Auto (Orchestrator)"] + [a['name'] for a in agents]
+    
+    selected_agent = st.selectbox(
+        "Active Agent",
+        agent_options,
+        index=0,
+        help="Choose 'Auto' for Orchestrator or a specific agent to test directly."
     )
     
     # Channel simulator
@@ -136,7 +140,8 @@ if user_input:
                         "user_text": user_input,
                         "metadata": {
                             "source": "dashboard_chat",
-                            "test_mode": True
+                            "test_mode": True,
+                            "agent_name": selected_agent if selected_agent != "Auto (Orchestrator)" else None
                         }
                     },
                     timeout=30

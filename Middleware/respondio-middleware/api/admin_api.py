@@ -18,7 +18,8 @@ from .models import (
     CacheConfig,
     EmailAlertConfig,
     AuditLogEntry,
-    AuditAction
+    AuditAction,
+    AgentConfig
 )
 from .config import settings
 from .config_manager import config_manager
@@ -269,6 +270,62 @@ async def delete_dashboard_user(
         return {"status": "ok", "message": f"User {username} deleted"}
     else:
         raise HTTPException(status_code=400, detail=f"Cannot delete user {username}")
+
+
+# ============================================================
+# Agent Management Endpoints
+# ============================================================
+
+@router.get("/agents", response_model=List[AgentConfig])
+async def get_agents(
+    _: DashboardUser = Depends(verify_admin_credentials)
+):
+    """Get all dynamic agents"""
+    return await config_manager.get_agents()
+
+
+@router.post("/agents")
+async def add_agent(
+    agent: AgentConfig,
+    admin: DashboardUser = Depends(require_admin_role)
+):
+    """Add or update an agent"""
+    success = await config_manager.update_agent(agent)
+    
+    if success:
+        # Audit log
+        await config_manager.log_audit_action(AuditLogEntry(
+            username=admin.username,
+            role=admin.role,
+            action=AuditAction.CONFIG_CHANGE,
+            details=f"Updated agent: {agent.name} (Orchestrator: {agent.is_orchestrator})"
+        ))
+        return {"status": "ok", "message": f"Agent {agent.name} updated"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to save agent")
+
+
+@router.delete("/agents/{name}")
+async def delete_agent(
+    name: str,
+    admin: DashboardUser = Depends(require_admin_role)
+):
+    """Delete an agent"""
+    # Don't allow deleting all agents if possible? 
+    # For now, just delete.
+    success = await config_manager.delete_agent(name)
+    
+    if success:
+        # Audit log
+        await config_manager.log_audit_action(AuditLogEntry(
+            username=admin.username,
+            role=admin.role,
+            action=AuditAction.CONFIG_CHANGE,
+            details=f"Deleted agent: {name}"
+        ))
+        return {"status": "ok", "message": f"Agent {name} deleted"}
+    else:
+        raise HTTPException(status_code=400, detail=f"Failed to delete agent {name}")
 
 
 # ============================================================

@@ -214,6 +214,34 @@ class AdminAPIClient:
         return result.status_code == 200
 
     # ============================================================
+    # Agent Management
+    # ============================================================
+
+    def get_agents(self) -> List[Dict]:
+        """Get all dynamic agents"""
+        result = self._get("/admin/agents")
+        return result if result else []
+
+    def add_agent(self, agent_data: Dict) -> bool:
+        """Add or update a dynamic agent"""
+        result = self._post("/admin/agents", agent_data)
+        return result is not None
+
+    def delete_agent(self, name: str) -> bool:
+        """Delete a dynamic agent"""
+        try:
+            url = f"{self.base_url}/admin/agents/{name}"
+            response = requests.delete(
+                url,
+                params=self.params,
+                timeout=10
+            )
+            return response.status_code == 200
+        except Exception as e:
+            print(f"Delete agent error: {str(e)}")
+            return False
+
+    # ============================================================
     # Audit Log
     # ============================================================
 

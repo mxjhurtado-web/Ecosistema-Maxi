@@ -91,7 +91,8 @@ class MCPClient:
     async def query(
         self, 
         user_text: str, 
-        context: Optional[dict] = None
+        context: Optional[dict] = None,
+        agent_name: Optional[str] = None
     ) -> Tuple[Optional[str], ResponseStatus, int, int]:
         """
         Query the MCP server.
@@ -99,6 +100,7 @@ class MCPClient:
         Args:
             user_text: User's query text
             context: Additional context
+            agent_name: Name of the agent to use
         
         Returns:
             Tuple of (response_text, status, latency_ms, retry_count)
@@ -107,10 +109,23 @@ class MCPClient:
         from .config_manager import config_manager
         curr_config = await config_manager.get_mcp_config()
         
-        # Update client attributes with latest dynamic config
+        # Default settings
         self.url = curr_config.url
         self.gemini_api_key = curr_config.gemini_api_key
-        # ... could update timeouts/retries too if needed
+        readonly = False
+        system_prompt = None
+        
+        # Overwrite with Agent settings if provided
+        if agent_name:
+            agent = await config_manager.get_agent(agent_name)
+            if agent:
+                if agent.mcp_url:
+                    self.url = agent.mcp_url
+                readonly = agent.readonly
+                system_prompt = agent.system_prompt
+                logger.info(f"Using agent '{agent_name}' config: readonly={readonly}, url={self.url}")
+            else:
+                logger.warning(f"Agent '{agent_name}' not found, falling back to default config")
         
         # Check circuit breaker
         if self._check_circuit():
@@ -125,6 +140,9 @@ class MCPClient:
         # Prepare request
         full_context = context.copy() if context else {}
         full_context["gemini_api_key"] = self.gemini_api_key
+        full_context["readonly"] = readonly
+        if system_prompt:
+            full_context["system_prompt"] = system_prompt
         
         mcp_request = MCPRequest(
             query=user_text,

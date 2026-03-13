@@ -131,11 +131,83 @@ class ConfigManager:
             logger.info(f"MCP config updated: {config.url}")
             return True
         except Exception as e:
-            logger.error(f"Failed to update MCP config: {str(e)}")
-            return False
-    
-    # ============================================================
-    # Cache Configuration
+             logger.error(f"Failed to update MCP config: {str(e)}")
+             return False
+     
+     # ============================================================
+     # Agent Configuration
+     # ============================================================
+ 
+     async def get_agents(self) -> List[AgentConfig]:
+         """Get all dynamic agents"""
+         if not self.enabled:
+             # Return an empty list or a default agent if Redis is disabled
+             return []
+         
+         try:
+             agent_keys = await self.redis.keys("config:agents:*")
+             agents = []
+             
+             for key in agent_keys:
+                 agent_data = await self.redis.get(key)
+                 if agent_data:
+                     agents.append(AgentConfig.model_validate_json(agent_data))
+             
+             return agents
+         except Exception as e:
+             logger.error(f"Failed to get agents from Redis: {str(e)}")
+             return []
+ 
+     async def get_agent(self, name: str) -> Optional[AgentConfig]:
+         """Get a specific agent by name"""
+         if not self.enabled:
+             return None
+             
+         try:
+             agent_data = await self.redis.get(f"config:agents:{name}")
+             if agent_data:
+                 return AgentConfig.model_validate_json(agent_data)
+             return None
+         except Exception as e:
+             logger.error(f"Failed to get agent {name}: {str(e)}")
+             return None
+ 
+     async def update_agent(self, agent: AgentConfig) -> bool:
+         """Add or update an agent"""
+         if not self.enabled:
+             return False
+             
+         try:
+             await self.redis.set(f"config:agents:{agent.name}", agent.model_dump_json())
+             logger.info(f"Agent updated in Redis: {agent.name}")
+             return True
+         except Exception as e:
+             logger.error(f"Failed to update agent: {str(e)}")
+             return False
+ 
+     async def delete_agent(self, name: str) -> bool:
+         """Delete an agent"""
+         if not self.enabled:
+             return False
+             
+         try:
+             await self.redis.delete(f"config:agents:{name}")
+             logger.info(f"Agent deleted from Redis: {name}")
+             return True
+         except Exception as e:
+             logger.error(f"Failed to delete agent: {str(e)}")
+             return False
+ 
+     async def get_orchestrator(self) -> Optional[AgentConfig]:
+         """Get the agent marked as orchestrator"""
+         agents = await self.get_agents()
+         for agent in agents:
+             if agent.is_orchestrator:
+                 return agent
+         return None
+ 
+     # ============================================================
+     # Cache Configuration
     # ============================================================
     
     async def get_cache_config(self) -> CacheConfig:

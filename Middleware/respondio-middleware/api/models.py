@@ -196,6 +196,26 @@ class MCPConfig(BaseModel):
     kc_client_secret: Optional[str] = Field(None, description="Keycloak Client Secret")
 
 
+class AgentConfig(BaseModel):
+    """Configuración de un agente dinámico"""
+    name: str = Field(..., description="Nombre único del agente")
+    system_prompt: str = Field(..., description="Instrucciones para el LLM")
+    readonly: bool = Field(default=False, description="Modo solo lectura (bloquea escrituras)")
+    mcp_url: Optional[str] = Field(None, description="URL del MCP específico para este agente")
+    is_orchestrator: bool = Field(default=False, description="Si es un agente orquestador/clasificador")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "asistente_ventas",
+                "system_prompt": "Eres un asistente de ventas profesional...",
+                "readonly": False,
+                "mcp_url": "http://localhost:8080/query",
+                "is_orchestrator": False
+            }
+        }
+
+
 class CacheConfig(BaseModel):
     """Configuración del cache"""
     enabled: bool = Field(default=True, description="Cache habilitado")
