@@ -149,6 +149,26 @@ class MCPClient:
                 0
             )
         
+        # Prepare context
+        full_context = context.copy() if context else {}
+        full_context["gemini_api_key"] = self.gemini_api_key
+        full_context["readonly"] = readonly
+        full_context["knowledge_sources"] = knowledge_sources
+        full_context["web_search_enabled"] = web_search
+        
+        # Process specific rules into system prompt as JSON
+        if agent_rules:
+            import json
+            rules_json = json.dumps(agent_rules, indent=2, ensure_ascii=False)
+            rules_text = f"\n\nMAPA DE REGLAS ESPECÍFICAS (JSON):\n```json\n{rules_json}\n```"
+            if system_prompt:
+                system_prompt += rules_text
+            else:
+                system_prompt = rules_text
+        
+        full_context["system_prompt"] = system_prompt
+        full_context["agent_rules"] = agent_rules
+        
         # --- Emergency Mode / Direct Gemini Support ---
         if curr_config.emergency_mode and self.gemini_api_key:
             logger.info("🚨 Emergency Mode Active: Using Direct Gemini Fallback")
@@ -165,23 +185,6 @@ class MCPClient:
                 100, # Fake latency
                 0
             )
-        
-        # Prepare context
-        full_context = context.copy() if context else {}
-        full_context["gemini_api_key"] = self.gemini_api_key
-        full_context["readonly"] = readonly
-        full_context["knowledge_sources"] = knowledge_sources
-        full_context["web_search_enabled"] = web_search
-        
-        # Process specific rules into system prompt as JSON
-        if agent_rules:
-            import json
-            rules_json = json.dumps(agent_rules, indent=2, ensure_ascii=False)
-            rules_text = f"\n\nMAPA DE REGLAS ESPECÍFICAS (JSON):\n```json\n{rules_json}\n```"
-            system_prompt = f"{system_prompt or ''}{rules_text}"
-            
-        if system_prompt:
-            full_context["system_prompt"] = system_prompt
         
         mcp_request = MCPRequest(
             query=user_text,
