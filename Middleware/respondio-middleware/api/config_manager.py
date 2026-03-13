@@ -12,7 +12,8 @@ from .models import (
     UserRole,
     AuditLogEntry,
     AuditAction,
-    EmailAlertConfig
+    EmailAlertConfig,
+    AgentConfig
 )
 from .config import settings
 import logging
