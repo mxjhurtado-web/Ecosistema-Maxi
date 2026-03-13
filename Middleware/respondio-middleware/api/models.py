@@ -189,6 +189,7 @@ class MCPConfig(BaseModel):
     mcp_token: Optional[str] = Field(None, description="Token de autenticación manual")
     gemini_api_key: Optional[str] = Field(None, description="Gemini API Key")
     emergency_mode: bool = Field(default=False, description="Usa Gemini directo si el MCP está offline")
+    emergency_model: str = Field(default="gemini-1.5-flash", description="Modelo de Gemini a usar en modo emergencia")
     # Keycloak Auth (for Service Account)
     use_keycloak: bool = Field(default=False, description="Usar Keycloak para autenticación")
     kc_server_url: Optional[str] = Field(None, description="Keycloak Server URL")

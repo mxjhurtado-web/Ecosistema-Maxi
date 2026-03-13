@@ -306,7 +306,9 @@ class MCPClient:
         if not api_key:
             return "Error: Gemini API Key no configurada."
             
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        # Default to 1.5-flash if not specified, allow override for "2.0-flash" etc.
+        model_id = context.get("emergency_model", "gemini-1.5-flash")
+        url = f"https://generativelanguage.googleapis.com/v1/models/{model_id}:generateContent?key={api_key}"
         
         system_prompt = context.get("system_prompt", "Eres un asistente de IA útil.")
         prompt_text = f"{system_prompt}\n\nPregunta: {query}"

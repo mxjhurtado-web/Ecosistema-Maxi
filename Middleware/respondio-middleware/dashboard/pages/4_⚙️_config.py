@@ -215,6 +215,21 @@ with tab1:
                 help="If enabled, bypassing MCP and using Gemini directly. Recommended if MCP is offline."
             )
             
+            # Find current model index for selectbox
+            model_options = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro", "gemini-2.0-flash-exp", "gemini-2.0-flash"]
+            current_model = mcp_config.get('emergency_model', 'gemini-1.5-flash')
+            try:
+                model_index = model_options.index(current_model) if current_model in model_options else 0
+            except:
+                model_index = 0
+
+            emergency_model = st.selectbox(
+                "Gemini Model (Emergency)",
+                options=model_options,
+                index=model_index,
+                help="Selecciona el modelo a usar cuando el MCP está offline. Gemini 1.5 Flash es el recomendado por velocidad."
+            )
+            
             st.markdown("---")
             st.markdown("### 🔐 MCP Security & Keycloak")
             
@@ -277,6 +292,7 @@ with tab1:
                     "mcp_token": mcp_token if not use_keycloak else None,
                     "gemini_api_key": mcp_config.get('gemini_api_key'),
                     "emergency_mode": emergency_mode,
+                    "emergency_model": emergency_model,
                     "use_keycloak": use_keycloak,
                     "kc_server_url": kc_server if use_keycloak else None,
                     "kc_realm": kc_realm if use_keycloak else None,
