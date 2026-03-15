@@ -188,7 +188,8 @@ class MCPClient:
         
         mcp_request = MCPRequest(
             query=user_text,
-            context=full_context
+            context=full_context,
+            media=context.get("media", []) if context else []
         )
         
         retry_count = 0
@@ -306,16 +307,29 @@ class MCPClient:
         if not api_key:
             return "Error: Gemini API Key no configurada."
             
-        # Use Gemini 2.5 Flash (Standard for User's Projects)
-        model_id = "gemini-2.5-flash"
+        # Use Gemini 2.0 Flash (Default for user)
+        model_id = "gemini-2.0-flash"
         url = f"https://generativelanguage.googleapis.com/v1/models/{model_id}:generateContent?key={api_key}"
         
         system_prompt = context.get("system_prompt", "Eres un asistente de IA útil.")
         prompt_text = f"{system_prompt}\n\nPregunta: {query}"
         
+        # Multimodal parts
+        parts = [{"text": prompt_text}]
+        
+        # Add media if present
+        media_list = context.get("media", [])
+        for item in media_list:
+            parts.append({
+                "inline_data": {
+                    "mime_type": item.mime_type if hasattr(item, 'mime_type') else item.get('mime_type'),
+                    "data": item.data if hasattr(item, 'data') else item.get('data')
+                }
+            })
+        
         payload = {
             "contents": [{
-                "parts": [{"text": prompt_text}]
+                "parts": parts
             }]
         }
         

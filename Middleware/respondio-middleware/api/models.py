@@ -21,6 +21,13 @@ class UserRole(str, Enum):
     SUPERVISOR = "supervisor"
 
 
+class MediaItem(BaseModel):
+    """Objeto para manejar archivos multimedia (Base64)"""
+    mime_type: str = Field(..., description="MIME type del archivo (e.g. image/png, audio/mpeg)")
+    data: str = Field(..., description="Contenido en formato Base64")
+    file_name: Optional[str] = Field(None, description="Nombre original del archivo")
+
+
 class AuditAction(str, Enum):
     """Acciones auditables en el dashboard"""
     LOGIN = "login"
@@ -60,6 +67,7 @@ class RespondioRequest(BaseModel):
     contact_id: str = Field(..., description="ID del contacto")
     channel: str = Field(..., description="Canal (whatsapp, telegram, etc)")
     user_text: str = Field(..., description="Texto del usuario")
+    media: Optional[List[MediaItem]] = Field(default_factory=list, description="Archivos multimedia adjuntos")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Metadata adicional")
 
     class Config:
@@ -107,6 +115,7 @@ class MCPRequest(BaseModel):
     """Request hacia el MCP"""
     query: str = Field(..., description="Query del usuario")
     context: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Contexto adicional")
+    media: Optional[List[MediaItem]] = Field(default_factory=list, description="Multimedia para procesar")
 
     class Config:
         json_schema_extra = {

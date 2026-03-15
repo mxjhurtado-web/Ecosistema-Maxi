@@ -68,8 +68,24 @@ with st.sidebar:
     st.metric("Messages Sent", len([m for m in st.session_state.chat_messages if m["role"] == "user"]))
     st.metric("Responses", len([m for m in st.session_state.chat_messages if m["role"] == "assistant"]))
 
+# Helper for base64
+import base64
+
+def file_to_base64(uploaded_file):
+    if uploaded_file:
+        return base64.b64encode(uploaded_file.getvalue()).decode()
+    return None
+
 # Main chat interface
 st.subheader("💬 Chat with MCP")
+
+# File uploader
+uploaded_files = st.file_uploader(
+    "📎 Attach files (Image/Audio)", 
+    type=["png", "jpg", "jpeg", "mp3", "wav", "ogg"],
+    accept_multiple_files=True,
+    help="Upload images for ID verification or audio for voice instructions."
+)
 
 # Display chat messages
 chat_container = st.container()
@@ -78,6 +94,14 @@ with chat_container:
     for message in st.session_state.chat_messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
+            
+            # Show media if present
+            if "media" in message:
+                for item in message["media"]:
+                    if item["mime_type"].startswith("image/"):
+                        st.image(f"data:{item['mime_type']};base64,{item['data']}", width=300)
+                    elif item["mime_type"].startswith("audio/"):
+                        st.audio(f"data:{item['mime_type']};base64,{item['data']}")
             
             # Show metadata for assistant messages
             if message["role"] == "assistant" and "metadata" in message:
@@ -102,17 +126,34 @@ user_input = st.chat_input(
     disabled=not st.session_state.chat_enabled
 )
 
-if user_input:
+if user_input or (uploaded_files and st.button("🚀 Send Files")):
+    # Prepare media
+    media_items = []
+    if uploaded_files:
+        for f in uploaded_files:
+            b64_data = file_to_base64(f)
+            media_items.append({
+                "mime_type": f.type,
+                "data": b64_data,
+                "file_name": f.name
+            })
+    
     # Add user message to chat
     st.session_state.chat_messages.append({
         "role": "user",
-        "content": user_input,
+        "content": user_input or "Sent files",
+        "media": media_items,
         "timestamp": datetime.now().isoformat()
     })
     
     # Display user message
     with st.chat_message("user"):
-        st.markdown(user_input)
+        st.markdown(user_input or "Sent files")
+        for item in media_items:
+            if item["mime_type"].startswith("image/"):
+                st.image(f"data:{item['mime_type']};base64,{item['data']}", width=200)
+            elif item["mime_type"].startswith("audio/"):
+                st.audio(f"data:{item['mime_type']};base64,{item['data']}")
     
     # Show loading spinner
     with st.chat_message("assistant"):
@@ -137,7 +178,8 @@ if user_input:
                         "conversation_id": f"chat_test_{datetime.now().timestamp()}",
                         "contact_id": "dashboard_user",
                         "channel": channel,
-                        "user_text": user_input,
+                        "user_text": user_input or "Audio/Image analysis requested",
+                        "media": media_items,
                         "metadata": {
                             "source": "dashboard_chat",
                             "test_mode": True,

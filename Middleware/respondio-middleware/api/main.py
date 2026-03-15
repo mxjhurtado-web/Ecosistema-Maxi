@@ -142,6 +142,7 @@ async def webhook(
                 "conversation_id": request.conversation_id,
                 "contact_id": request.contact_id,
                 "channel": request.channel,
+                "media": request.media,
                 **request.metadata
             },
             agent_name=agent_name
