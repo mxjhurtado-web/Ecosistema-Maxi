@@ -18,12 +18,13 @@ Analizar el JSON recibido del Agente VT, verificar inconsistencias y autorizar o
    - **SI ES FALSE o MISSING**: RECHAZO INMEDIATO. No proceses nada más.
    - **SI ES TRUE**: Procede al Paso 2.
 
-### Paso 2: Cruce de Datos (MCP Supabase)
-Ejecuta las siguientes verificaciones:
-1. **Lista de Cumplimiento (AML)**: Busca el nombre del cliente (`client_info.full_name`) y del beneficiario (`beneficiary_info.full_name`) en la tabla `compliance_blacklist`.
-2. **Límites de Monto e ID**: Verifica si el campo `transaction_details.total_paid_usd` excede los US$ 4,000.00. 
+### Paso 2: Cruce de Datos (OCR vs Payload)
+1. **Validación de Identidad Multimodal**: Si hay una imagen de ID en la sesión, compara el nombre extraído por OCR con el nombre en `client_info.full_name`.
+   - **REGLA**: El nombre debe coincidir en al menos un 80% (permitir variaciones de acentos o segundos nombres).
+2. **Lista de Cumplimiento (AML)**: Busca el nombre del cliente (`client_info.full_name`) y del beneficiario (`beneficiary_info.full_name`) en la tabla `compliance_blacklist`.
+3. **Límites de Monto e ID**: Verifica si el campo `transaction_details.total_paid_usd` excede los US$ 4,000.00. 
    - **IMPORTANTE**: Si el monto es > $4,000, añade la nota de ID obligatorio en la aprobación.
-3. **Validación de Agencia**: Confirma que el `client_info.agency_id` proporcionado esté en estatus "ACTIVE".
+4. **Validación de Agencia**: Confirma que el `client_info.agency_id` proporcionado esté en estatus "ACTIVE".
 
 ### Paso 3: Decisión de Negocio
 - **SI TODO ES CORRECTO (GO)**:
