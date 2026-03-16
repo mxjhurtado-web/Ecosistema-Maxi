@@ -11,19 +11,30 @@ BASE_URL = os.getenv("API_URL", "http://localhost:8000") + "/admin/agents"
 DASHBOARD_USERNAME = os.getenv("DASHBOARD_USERNAME", "admin")
 DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "your-super-secret-dashboard-password")
 
+def get_agent_content(agent_dir, filename):
+    try:
+        # Resolve path relative to Ecosistema-Maxi root
+        # Script is in Middleware/respondio-middleware/scripts/
+        # Agentes IA is in Ecosistema-Maxi/Agentes IA
+        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        path = os.path.join(root_dir, "Agentes IA", agent_dir, filename)
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        print(f"⚠️ Could not read {filename} from {agent_dir}: {e}")
+        return None
+
+# Load dynamic content from .md files
+orquestador_prompt = get_agent_content("Agente Orquestador", "config_agente_orquestador.md")
+vt_prompt = get_agent_content("Agente VT", "config_agente_vt.md")
+status_prompt = get_agent_content("Agente Estatus", "config_agente_status.md")
+verificador_prompt = get_agent_content("Agente Verificador", "config_agente_verificador.md")
+generador_prompt = get_agent_content("Agente Generador", "config_agente_generador.md")
+
 agents = [
     {
         "name": "MAXI_ORQUESTADOR",
-        "system_prompt": """# NOMBRE DEL AGENTE: MAXI_ORQUESTADOR
-# PERFIL: Recepcionista Inteligente de Orbit
-
-## PROTOCOLO:
-1. Saludar.
-2. Identificar si desea enviar o rastrear.
-3. Transferir de inmediato.
-
-- ENVIAR -> [TRANSFER: PETTE_VT_ORCHESTRATOR]
-- ESTATUS -> [TRANSFER: MAXI_STATUS_SPEZIALIST]""",
+        "system_prompt": orquestador_prompt or "Error loading prompt",
         "readonly": False,
         "is_orchestrator": True,
         "specific_rules": {
@@ -37,13 +48,7 @@ agents = [
     },
     {
         "name": "PETTE_VT_ORCHESTRATOR",
-        "system_prompt": """# NOMBRE DEL AGENTE: PETTE_VT_ORCHESTRATOR
-# PERFIL: Arquitecto de Pre-Envíos
-
-## PROTOCOLO MEJORADO:
-- SI VIENES TRANSFERIDO: Salta la bienvenida. Di: "Claro, con gusto te ayudo con tu envío. ¿Cuál es tu nombre completo?"
-- CAPTURA: Agencia, OBBA (Lectura obligatoria), Celular, CP, Datos Beneficiario.
-- CIERRE: Avisa que verificarás los datos y haz [TRANSFER: MAXI_VERIFICADOR]""",
+        "system_prompt": vt_prompt or "Error loading prompt",
         "readonly": False,
         "is_orchestrator": False,
         "specific_rules": {
@@ -55,33 +60,21 @@ agents = [
     },
     {
         "name": "MAXI_STATUS_SPEZIALIST",
-        "system_prompt": """# NOMBRE DEL AGENTE: MAXI_STATUS_SPEZIALIST
-# PERFIL: Especialista en Rastreo
-
-## PROTOCOLO:
-- SI VIENES TRANSFERIDO: Di "Para rastrear tu envío necesito verificar tu identidad. ¿Me das tu teléfono?"
-- RECOLECTA: Teléfono, Nombre, Clave PIN.
-- SEGURIDAD: Máximo 3 intentos. Si falla 3 veces, bloquea y pide ir a Agencia.""",
-        "readonly": True,
+        "system_prompt": status_prompt or "Error loading prompt",
+        "readonly": False,
         "is_orchestrator": False,
         "specific_rules": {
             "max_attempts": 3,
-            "security": "high"
+            "security": "high",
+            "ocr_enabled": True
         },
         "knowledge_sources": [],
         "web_search_enabled": False
     },
     {
         "name": "MAXI_VERIFICADOR",
-        "system_prompt": """# NOMBRE DEL AGENTE: MAXI_VERIFICADOR
-# PERFIL: Oficial de Cumplimiento (Compliance)
-
-## LOGICA:
-- Analiza datos de VT_ORCHESTRATOR.
-- MONTO > $4,000: Advierte sobre ID y Comprobante de Ingresos.
-- SI TODO OK: [TRANSFER: MAXI_GENERADOR].
-- SI RECHAZADO: [TRANSFER: MAXI_ORQUESTADOR] con bandera de BLOQUEO_TEMPORAL.""",
-        "readonly": True,
+        "system_prompt": verificador_prompt or "Error loading prompt",
+        "readonly": False,
         "is_orchestrator": False,
         "specific_rules": {
             "id_warning_threshold": 4000,
@@ -92,14 +85,7 @@ agents = [
     },
     {
         "name": "MAXI_GENERADOR",
-        "system_prompt": """# NOMBRE DEL AGENTE: MAXI_GENERADOR
-# PERFIL: Emisor de Folios
-
-## PROTOCOLO:
-- Genera folio MMDDAAAAXX.
-- REGISTRA EN SUPABASE. 
-- **IMPORTANTE**: No te despidas hasta que el registro sea EXITO.
-- Entrega el Folio y el monto final.""",
+        "system_prompt": generador_prompt or "Error loading prompt",
         "readonly": False,
         "is_orchestrator": False,
         "specific_rules": {
