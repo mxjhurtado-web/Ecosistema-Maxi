@@ -1,6 +1,6 @@
-services:
   - type: web
     name: orbit-api
+    rootDirectory: Middleware/respondio-middleware
     env: python
     region: oregon
     plan: free
@@ -34,4 +34,16 @@ services:
       - key: DASHBOARD_USERNAME
         value: admin
       - key: DASHBOARD_PASSWORD
+        sync: false
+
+  - type: web
+    name: mcp-maxi-estatus
+    rootDirectory: Middleware/respondio-middleware
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r api/requirements.txt
+    startCommand: python api/m_cp.py
+    envVars:
+      - key: SUPABASE_URI
         sync: false
