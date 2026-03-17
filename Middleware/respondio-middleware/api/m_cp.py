@@ -56,4 +56,6 @@ def obtener_estatus_envio(clave: str) -> str:
     return f"❌ Código de envío incorrecto o no encontrado: {clave}. Por favor, verifica los datos."
 
 if __name__ == "__main__":
-    mcp.run()
+    # Para Render, necesitamos correr en modo SSE (HTTP) y usar el puerto de la variable de entorno
+    port = int(os.getenv("PORT", 8000))
+    mcp.run(transport="sse", port=port)
