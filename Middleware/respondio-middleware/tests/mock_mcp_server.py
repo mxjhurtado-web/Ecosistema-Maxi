@@ -1,232 +1,166 @@
 """
-Mock MCP Server for Testing
-Uses Google News RSS for real responses
+Mock MCP Server for Testing - Ecosistema-Maxi OFFICIAL Edition
+Integrated with postgresql for full VT-Verifier-Generator flow.
 """
 
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Dict, Any
 import requests
-import xml.etree.ElementTree as ET
 import re
-from urllib.parse import quote
 import uvicorn
+import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import logging
+from datetime import datetime
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("maxi-bridge")
 
 app = FastAPI(
-    title="Mock MCP Server",
-    description="Mock MCP server for testing middleware",
-    version="1.0.0"
+    title="Maxi Ecosistema Bridge (VT/VER/GEN)",
+    description="Bridge implementing OBBA rules and multi-agent flow",
+    version="4.0.0"
 )
 
+# Configuration from environment
+SUPABASE_URI = os.getenv("SUPABASE_URI")
 
 class MCPRequest(BaseModel):
     """Request from middleware"""
     query: str
     context: Optional[dict] = None
 
-
 class MCPResponse(BaseModel):
     """Response to middleware"""
     response: str
     confidence: float = 0.95
 
+class MaxiDB:
+    """Acceso a la base de datos oficial de Maxi en Supabase"""
+    
+    def __init__(self, uri: str):
+        self.uri = uri
+    
+    def _get_connection(self):
+        return psycopg2.connect(self.uri, cursor_factory=RealDictCursor)
 
-class NewsTool:
-    """Cliente para consultas de noticias usando Google News RSS"""
-    
-    def __init__(self):
-        self.base_url = "https://news.google.com/rss"
-        self.search_url = "https://news.google.com/rss/search"
-    
-    def search(self, query: str, top_k: int = 3):
-        """
-        Busca noticias basadas en el query.
-        Compatible con la interfaz MCP de MaxiBot.
-        
-        Args:
-            query: Texto de búsqueda (ej: "noticias de tecnología")
-            top_k: Número de resultados
-        
-        Returns:
-            Lista de resultados en formato MCP
-        """
-        # 1. Detectar intención de noticias
-        # Patrones: "noticias de X", "noticias en X", "noticias sobre X", "últimas noticias"
-        match = re.search(r"noticias (?:de|en|sobre|del) (.+)", query, re.IGNORECASE)
-        topic = match.group(1).strip() if match else None
-        
-        if not topic and "noticias" not in query.lower():
+    # --- AGENTE VT / STATUS ---
+    def query_shipment(self, search_term: str) -> List[Dict[str, Any]]:
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor() as cur:
+                    # Buscamos en Base_completa (o pre_envios si ya migramos)
+                    sql = 'SELECT * FROM "Base_completa" WHERE folio::text ILIKE %s OR "Numero_telefonico" ILIKE %s LIMIT 5'
+                    pattern = f"%{search_term}%"
+                    cur.execute(sql, (pattern, pattern))
+                    return cur.fetchall()
+        except Exception as e:
+            logger.error(f"Error query_shipment: {e}")
             return []
 
-        # Si es solo "noticias" o "últimas noticias", usamos top headlines
+    # --- AGENTE VERIFICADOR ---
+    def check_compliance(self, name: str) -> bool:
+        """Simulación de Blacklist Compliance"""
+        blacklist = ["persona non grata", "estafador", "bad customer"]
+        return not any(b in name.lower() for b in blacklist)
+
+    def get_agency_status(self, agency_code: str) -> Optional[Dict[str, Any]]:
         try:
-            params = {"hl": "es-419", "gl": "MX", "ceid": "MX:es-419"}  # Configurado para México/LatAm
-            
-            if topic:
-                # Búsqueda específica
-                url = f"{self.search_url}?q={quote(topic)}"
-            else:
-                # Top headlines
-                url = self.base_url
-            
-            response = requests.get(url, params=params, timeout=10)
-            
-            if response.status_code != 200:
-                return []
-                
-            # Parsear XML
-            root = ET.fromstring(response.content)
-            items = root.findall(".//item")
-            
-            results = []
-            count = 0
-            
-            for item in items:
-                if count >= top_k:
-                    break
-                    
-                title = item.find("title").text if item.find("title") is not None else "Sin título"
-                link = item.find("link").text if item.find("link") is not None else ""
-                pub_date = item.find("pubDate").text if item.find("pubDate") is not None else ""
-                
-                # Limpiar título (Google News suele poner " - Fuente" al final)
-                source = "Google News"
-                if " - " in title:
-                    parts = title.rsplit(" - ", 1)
-                    title = parts[0]
-                    source = parts[1]
-                
-                snippet = f"Noticia: {title}\nFecha: {pub_date}\nFuente: {source}"
-                
-                results.append({
-                    "title": title,
-                    "content": snippet,
-                    "url": link,
-                    "score": 1.0
-                })
-                count += 1
-            
-            return results
-
+            with self._get_connection() as conn:
+                with conn.cursor() as cur:
+                    sql = 'SELECT * FROM "Agencia_tarifa" WHERE agency_code = %s'
+                    cur.execute(sql, (agency_code,))
+                    return cur.fetchone()
         except Exception as e:
-            print(f"Error en NewsTool: {e}")
-            return [{
-                "title": "Error al buscar noticias",
-                "content": f"No se pudieron obtener noticias: {str(e)}",
-                "url": "https://news.google.com",
-                "score": 0.3
-            }]
+            logger.error(f"Error get_agency_status: {e}")
+            return None
 
-    def available(self) -> bool:
-        return True
+    # --- AGENTE GENERADOR ---
+    def register_pre_envio(self, data: Dict[str, Any]) -> str:
+        """Genera folio MMDDAAAAXX e inserta en Base_completa"""
+        try:
+            # Generar Folio
+            now = datetime.now()
+            # Simplificado: usamos los últimos 2 segs para el XX
+            folio = f"{now.strftime('%m%d%Y')}{now.strftime('%S')}"
+            
+            with self._get_connection() as conn:
+                with conn.cursor() as cur:
+                    sql = """
+                        INSERT INTO "Base_completa" (folio, "Numero_telefonico", agency_code, status, message_to_user, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, NOW())
+                    """
+                    cur.execute(sql, (
+                        folio, 
+                        data.get("phone", "Desconocido"), 
+                        data.get("agency", "DEFAULT"), 
+                        "PENDIENTE_PAGO",
+                        "Pre-envío generado. Favor de liquidar en agencia."
+                    ))
+                    return folio
+        except Exception as e:
+            logger.error(f"Error register_pre_envio: {e}")
+            return "ERROR"
 
-
-# Instancia global
-news_tool = NewsTool()
-
+# Inicialización
+db = MaxiDB(SUPABASE_URI) if SUPABASE_URI else None
 
 @app.post("/query", response_model=MCPResponse)
 async def query(request: MCPRequest):
-    """
-    Main query endpoint - compatible with middleware
-    """
     query_text = request.query.lower()
-    
-    # Check for Gemini API Key in context
     gemini_api_key = request.context.get("gemini_api_key") if request.context else None
     
-    # Check if it's a news query
-    if "noticias" in query_text or "news" in query_text:
-        results = news_tool.search(request.query, top_k=3)
-        
+    if not db:
+        return MCPResponse(response="ERROR: Configura SUPABASE_URI en .env", confidence=0.0)
+
+    # 1. REGLA OBBA (Impuesto Federal)
+    if any(k in query_text for k in ["enviar", "monto", "cuanto es", "costo"]):
+        match_money = re.search(r"\$\s*(\d+)", query_text)
+        if match_money:
+            amount = float(match_money.group(1))
+            if amount >= 15.00:
+                tax = amount * 0.01
+                total = amount + tax
+                return MCPResponse(
+                    response=f"📢 **Divulgación OBBA (PETTE_VT):**\nConforme a la ley federal, se aplica un impuesto del 1% (US$ {tax:.2f}). Su total estimado a pagar es US$ {total:.2f}. ¿Desea continuar?"
+                )
+
+    # 2. VERIFICACIÓN DE ESTATUS
+    match_folio = re.search(r"\b(\d{5,})\b", query_text)
+    if match_folio or "estatus" in query_text:
+        search = match_folio.group(1) if match_folio else query_text
+        results = db.query_shipment(search)
         if results:
-            # Format response
-            response_text = "📰 **Últimas Noticias:**\n\n"
-            
-            for i, result in enumerate(results, 1):
-                response_text += f"{i}. **{result['title']}**\n"
-                response_text += f"   {result['content']}\n"
-                response_text += f"   🔗 {result['url']}\n\n"
-            
-            return MCPResponse(
-                response=response_text,
-                confidence=0.95
-            )
-    
-    # Use Gemini if API Key is provided
+            r = results[0]
+            return MCPResponse(response=f"🔍 **Estatus (PETTE_STATUS):**\nFolio: {r['folio']}\nEstado: **{r['status']}**\nNota: {r['message_to_user']}")
+
+    # 3. GENERACIÓN (Simulada)
+    if "confirmado" in query_text or "si deseo continuar" in query_text:
+        # Aquí simularíamos el registro exitoso
+        new_folio = db.register_pre_envio({"phone": "Pendiente", "agency": "TEST-01"})
+        return MCPResponse(response=f"✅ **¡Éxito! (MAXI_GENERADOR):**\nTu folio es: **{new_folio}**. Preséntalo en tu agencia para pagar.")
+
+    # 4. Gemini Fallback
     if gemini_api_key:
         try:
             import google.generativeai as genai
             genai.configure(api_key=gemini_api_key)
-            model = genai.GenerativeModel('gemini-pro')
-            
+            model = genai.GenerativeModel('gemini-1.5-flash')
             prompt = f"""
-            Eres ORBIT, un asistente de IA inteligente integrado en un sistema de middleware.
-            Un usuario te ha preguntado lo siguiente: "{request.query}"
-            
-            Tu objetivo es dar una respuesta concisa, profesional y útil.
-            Estructura tu respuesta usando Markdown para que se vea bien en el dashboard.
+            Eres PETTE_VT, el orquestador de Maxi. 
+            Regla de ORO: Siempre informa sobre el impuesto OBBA (1%) si el envío es mayor a $15.
+            Tablas disponibles: Base_completa, Agencia_tarifa, Cliente_Beneficiario.
+            Query: "{request.query}"
             """
-            
             response = model.generate_content(prompt)
-            return MCPResponse(
-                response=response.text,
-                confidence=0.99
-            )
+            return MCPResponse(response=response.text, confidence=0.99)
         except Exception as e:
-            print(f"Error calling Gemini: {e}")
-            # Fallback to predefined responses
-    
-    # Default response for specific queries
-    responses = {
-        "hola": "¡Hola! Soy el asistente ORBIT con integración Gemini. ¿En qué puedo ayudarte?",
-        "como estas": "¡Estoy funcionando perfectamente! Listo para procesar tus consultas.",
-        "ayuda": "Puedo ayudarte con:\n- Noticias actualizadas\n- Consultas generales usando Gemini\n- Configuración del sistema\n\nEjemplos:\n- 'noticias de tecnología'\n- '¿Cómo funciona un middleware?'",
-    }
-    
-    # Find matching response
-    for key, value in responses.items():
-        if key in query_text:
-            return MCPResponse(response=value, confidence=0.9)
-    
-    # Default fallback
-    return MCPResponse(
-        response=f"He recibido tu mensaje: '{request.query}'. Por favor, configura una Gemini API Key en la sección de Configuración para tener respuestas más completas.",
-        confidence=0.7
-    )
+            logger.error(f"Gemini error: {e}")
 
-
-@app.get("/health")
-async def health():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "mock-mcp",
-        "version": "1.0.0"
-    }
-
-
-@app.get("/")
-async def root():
-    """Root endpoint"""
-    return {
-        "name": "Mock MCP Server",
-        "version": "1.0.0",
-        "status": "running",
-        "endpoints": {
-            "query": "POST /query",
-            "health": "GET /health"
-        }
-    }
-
+    return MCPResponse(response="Recibido. ¿Podrías darme más detalles o el folio de tu envío?", confidence=0.5)
 
 if __name__ == "__main__":
-    print("🚀 Starting Mock MCP Server on http://localhost:8080")
-    print("📰 News functionality enabled via Google News RSS")
-    print("---")
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8080,
-        log_level="info"
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8080)

@@ -27,6 +27,9 @@ services:
     container_name: respondio_mock_mcp
     ports:
       - "8090:8080" # Changed from 8080 to 8090
+    environment:
+      - SUPABASE_URI=${SUPABASE_URI}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     healthcheck:
       test: [ "CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health')" ]
       interval: 30s
