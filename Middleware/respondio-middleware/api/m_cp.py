@@ -43,9 +43,24 @@ def consultar_supabase(codigo: str):
     try:
         conn = psycopg2.connect(DB_URI)
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        query = 'SELECT * FROM "Base_completa" WHERE "Codigo_de_envio" = %s'
-        cursor.execute(query, (codigo.strip(),))
+        
+        codigo_clean = codigo.strip().upper()
+        logger.info(f"Buscando código: '{codigo_clean}' en Base_completa")
+        
+        # Búsqueda flexible: sin importar mayúsculas/minúsculas ni espacios
+        query = 'SELECT * FROM "Base_completa" WHERE TRIM(UPPER("Codigo_de_envio")) = %s'
+        cursor.execute(query, (codigo_clean,))
         resultado = cursor.fetchone()
+        
+        if resultado:
+            logger.info(f"✅ Código encontrado: {codigo_clean}")
+        else:
+            logger.warning(f"❌ Código NO encontrado: {codigo_clean}")
+            # Debug: ver los primeros registros para comparar
+            cursor.execute('SELECT "Codigo_de_envio" FROM "Base_completa" LIMIT 5')
+            samples = cursor.fetchall()
+            logger.warning(f"Muestra de códigos en DB: {[r['Codigo_de_envio'] for r in samples]}")
+        
         cursor.close()
         return resultado
     except Exception as e:
