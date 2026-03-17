@@ -4,16 +4,21 @@ Expone un endpoint /query compatible con el Orbit mcp_client.py
 """
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Optional, Any
+from typing import Optional, List, Dict, Any
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
 import logging
+import re
+from dotenv import load_dotenv
+
+# Cargar variables de entorno local si existen
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Maxi-Estatus-MCP", version="1.0.0")
+app = FastAPI(title="Maxi-Estatus-MCP", version="1.1.0")
 
 # Configuración Supabase via variable de entorno
 DB_URI = os.getenv(
@@ -33,54 +38,70 @@ class MCPRequest(BaseModel):
 class MCPResponse(BaseModel):
     response: str
     status: str = "ok"
+    error_detail: Optional[str] = None
 
 
 # ── Utilidades ────────────────────────────────────────────────────────────────
 
-def consultar_supabase(codigo: str):
-    """Busca un envío por Codigo_de_envio en Supabase."""
+def consultar_supabase(codigo: str, telefono: Optional[str] = None, nombre: Optional[str] = None):
+    """
+    Busca un envío por Codigo_de_envio en Supabase y opcionalmente verifica identidad.
+    """
     conn = None
     try:
-        conn = psycopg2.connect(DB_URI)
+        conn = psycopg2.connect(DB_URI, connect_timeout=10)
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
         codigo_clean = codigo.strip().upper()
-        logger.info(f"Buscando código: '{codigo_clean}' en Base_completa")
+        logger.info(f"🔍 Consultando DB para código: '{codigo_clean}'")
         
-        # Búsqueda flexible: sin importar mayúsculas/minúsculas ni espacios
+        # Búsqueda por código (case insensitive y sin espacios)
         query = 'SELECT * FROM "Base_completa" WHERE TRIM(UPPER("Codigo_de_envio")) = %s'
         cursor.execute(query, (codigo_clean,))
         resultado = cursor.fetchone()
         
-        if resultado:
-            logger.info(f"✅ Código encontrado: {codigo_clean}")
-        else:
-            logger.warning(f"❌ Código NO encontrado: {codigo_clean}")
-            # Debug: ver los primeros registros para comparar
-            cursor.execute('SELECT "Codigo_de_envio" FROM "Base_completa" LIMIT 5')
-            samples = cursor.fetchall()
-            logger.warning(f"Muestra de códigos en DB: {[r['Codigo_de_envio'] for r in samples]}")
-        
+        if not resultado:
+            logger.warning(f"❌ Código no encontrado: {codigo_clean}")
+            return {"error": "not_found", "detail": f"Código {codigo_clean} no existe en la tabla Base_completa."}
+
+        # Verificación de Identidad (si se proporcionan datos en el contexto)
+        if telefono:
+            val_tel = str(resultado.get("Numero_telefonico", "")).strip()
+            # Limpieza básica para comparar números
+            tel_clean = re.sub(r'\D', '', telefono)
+            val_tel_clean = re.sub(r'\D', '', val_tel)
+            
+            if tel_clean and val_tel_clean and tel_clean not in val_tel_clean and val_tel_clean not in tel_clean:
+                logger.warning(f"⚠️ Validación de teléfono fallida para {codigo_clean}")
+                return {"error": "auth_failed", "detail": "El teléfono no coincide con el registro."}
+
+        if nombre:
+            val_nom = str(resultado.get("Nombre_Cliente", "")).strip().upper()
+            nom_query = nombre.strip().upper()
+            if nom_query not in val_nom and val_nom not in nom_query:
+                logger.warning(f"⚠️ Validación de nombre fallida para {codigo_clean}")
+                # No bloqueamos por nombre parcial, pero registramos
+                pass
+
+        logger.info(f"✅ Registro validado con éxito: {codigo_clean}")
         cursor.close()
-        return resultado
+        return {"error": None, "data": resultado}
+
     except Exception as e:
-        logger.error(f"Error al conectar con Supabase: {e}")
-        return None
+        error_msg = f"Error de conexión Supabase: {str(e)}"
+        logger.error(error_msg)
+        return {"error": "connection_error", "detail": error_msg}
     finally:
         if conn:
             conn.close()
 
 
 def extraer_codigo(texto: str) -> Optional[str]:
-    """
-    Intenta extraer el código de envío del texto del usuario.
-    Los códigos suelen ser alfanuméricos de 10+ caracteres.
-    """
-    import re
-    # Busca patrones comunes: letras seguidas de números o viceversa (ej: CE17016886149)
+    """Extrae códigos alfanuméricos como CE17016886149."""
+    # Prioridad a formatos conocidos de Maxi
     patrones = [
-        r'\b[A-Z]{2}\d{9,}\b',        # CE17016886149
-        r'\b[A-Z0-9]{8,}\b',           # Genérico alfanumérico
+        r'\b[A-Z]{2}\d{9,}\b',  # Ej: CE17016886149
+        r'\b[A-Z0-9]{10,}\b',   # Genérico largo
     ]
     for patron in patrones:
         match = re.search(patron, texto.upper())
@@ -93,53 +114,77 @@ def extraer_codigo(texto: str) -> Optional[str]:
 
 @app.get("/")
 async def root():
-    return {"status": "online", "service": "Maxi-Estatus-MCP"}
+    return {"status": "online", "service": "Maxi-Estatus-MCP", "db_configured": bool(DB_URI)}
 
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
+    # Intento de conexión rápida para healthcheck real
+    try:
+        conn = psycopg2.connect(DB_URI, connect_timeout=3)
+        conn.close()
+        return {"status": "healthy", "db": "connected"}
+    except Exception as e:
+        return {"status": "degraded", "db_error": str(e)}
 
 
 @app.post("/query", response_model=MCPResponse)
 async def query(request: MCPRequest):
     """
-    Endpoint principal. Recibe la consulta del usuario,
-    extrae el código de envío, consulta Supabase y devuelve el resultado.
+    Recibe consulta, extrae código y valida contra Supabase.
+    Soporta contexto con phone/name para mayor seguridad.
     """
-    logger.info(f"Query recibido: {request.query[:100]}")
+    logger.info(f"📥 Query: {request.query[:100]}")
 
-    # 1. Extraer código de envío del mensaje
+    # 1. Extraer código
     codigo = extraer_codigo(request.query)
+    
+    # 2. Obtener datos extra del contexto (Respond.io pass data)
+    ctx = request.context or {}
+    phone = ctx.get("phone") or ctx.get("contact_id") # A veces el contact_id es el phone
+    name = ctx.get("name") or ctx.get("first_name")
 
     if not codigo:
         return MCPResponse(
-            response=(
-                "No pude encontrar un código de envío en tu mensaje. "
-                "Por favor proporciona el código de envío (ej: CE17016886149)."
-            ),
+            response="Por favor, proporciona tu código de envío de 11 o más caracteres (ejemplo: CE17016886149).",
             status="ok"
         )
 
-    # 2. Consultar Supabase
-    fila = consultar_supabase(codigo)
+    # 3. Consultar DB
+    res = consultar_supabase(codigo, telefono=phone, nombre=name)
 
-    # 3. Construir respuesta
-    if fila:
-        estatus = fila.get('status', 'No disponible')
-        cliente = fila.get('Nombre_Cliente', 'N/A')
-        mensaje = fila.get('message_to_user', 'Sin mensajes adicionales.')
+    # 4. Procesar Resultado
+    if res["error"] == "connection_error":
+        return MCPResponse(
+            response="⚠️ Lo siento, tengo problemas temporales para conectar con la base de datos de estatus.",
+            status="error",
+            error_detail=res["detail"]
+        )
+    
+    if res["error"] == "auth_failed":
+        return MCPResponse(
+            response="❌ La clave de envío es válida, pero el número de teléfono no coincide con nuestros registros. Por seguridad, no puedo mostrar el estatus.",
+            status="ok"
+        )
 
-        respuesta = (
-            f"✅ Registro encontrado para el código **{codigo}**:\n"
-            f"- **Cliente**: {cliente}\n"
-            f"- **Estatus**: {estatus}\n"
-            f"- **Nota**: {mensaje}"
+    if res["error"] == "not_found":
+        return MCPResponse(
+            response=f"❌ No encontré ningún envío con el código **{codigo}**. Por favor, verifica tu recibo.",
+            status="ok",
+            error_detail=res["detail"]
         )
-    else:
-        respuesta = (
-            f"❌ No se encontró el código de envío **{codigo}** en nuestra base de datos. "
-            f"Por favor verifica que el código sea correcto."
-        )
+
+    # 5. Éxito
+    fila = res["data"]
+    estatus = fila.get('status', 'PENDIENTE').upper()
+    mensaje_personalizado = fila.get('message_to_user') or "Tu envío está siendo procesado."
+    cliente = fila.get('Nombre_Cliente', 'Cliente')
+
+    respuesta = (
+        f"Hola {cliente}, aquí tienes el estatus de tu envío **{codigo}**:\n\n"
+        f"📍 **ESTADO**: {estatus}\n"
+        f"📝 **NOTA**: {mensaje_personalizado}\n\n"
+        "¿Hay algo más en lo que pueda ayudarte?"
+    )
 
     return MCPResponse(response=respuesta, status="ok")
