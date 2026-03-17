@@ -1,7 +1,7 @@
 services:
   - type: web
     name: orbit-api
-    rootDirectory: Middleware/respondio-middleware
+    rootDir: Middleware/respondio-middleware
     env: python
     region: oregon
     plan: free
@@ -39,7 +39,7 @@ services:
 
   - type: web
     name: mcp-maxi-estatus
-    rootDirectory: Middleware/respondio-middleware
+    rootDir: Middleware/respondio-middleware
     env: python
     region: oregon
     plan: free
