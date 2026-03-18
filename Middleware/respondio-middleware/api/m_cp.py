@@ -113,7 +113,7 @@ async def root():
     return {"status": "online", "service": "Maxi-Estatus-MCP", "version": "2.0.0", "mode": "REST API"}
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     """Health check que verifica la conexión REST a Supabase."""
     try:
