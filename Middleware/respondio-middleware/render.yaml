@@ -46,5 +46,7 @@ services:
     buildCommand: pip install -r api/requirements.txt
     startCommand: PYTHONPATH=. uvicorn api.m_cp:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: SUPABASE_URI
+      - key: SUPABASE_URL
+        value: https://tzlomvpugmrpdfatscxe.supabase.co
+      - key: SUPABASE_ANON_KEY
         sync: false
