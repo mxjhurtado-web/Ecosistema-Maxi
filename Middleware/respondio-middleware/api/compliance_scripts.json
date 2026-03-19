@@ -1,0 +1,9 @@
+{
+  "A1_INITIAL_DISCLOSURE": "You are contacting Maxitransfers via WhatsApp, a third-party messaging platform. We collect your phone number, message content, and related messaging metadata to provide customer support. WhatsApp (Meta Platforms, Inc.) processes message transmission as a service provider. Maxitransfers does not request passwords, one-time passcodes, or authentication credentials via WhatsApp. Any such request is unauthorized and should be reported immediately to Customer Service. Documentation shared in connection with an existing transaction will be securely transferred to our internal compliance system for review.",
+  "A2_GENERAL_SUPPORT": "Thank you for contacting Maxitransfers. How may we assist you today?",
+  "A3_DOCUMENTATION": "Additional documentation is required to complete the review of your transaction. You may provide the requested documentation in connection with this existing transaction. Documentation received through this channel will be securely transferred to our internal compliance system for review and processing.",
+  "A4_DISPUTE_REDIRECTION": "Disputes or error claims cannot be handled through WhatsApp. Please contact our official dispute resolution department at 800-456-7426 or email customerservice@maxillc.com so we can assist you through the appropriate process.",
+  "A5_SUSPICIOUS_ACTIVITY": "We are unable to discuss investigative or security-related matters through WhatsApp. Please contact our customer support line at 800-456-7426 for assistance.",
+  "A6_PRIVACY_REDirection": "Privacy-related requests cannot be processed through WhatsApp. Please submit your request through our designated Privacy Rights Request channel at customerservice@maxillc.com, where we can apply the required process.",
+  "A7_OUTBOUND_CONFIRMATION": "You are receiving this message because you opted to receive service communications from Maxitransfers via WhatsApp. You may request to stop these communications at any time."
+}

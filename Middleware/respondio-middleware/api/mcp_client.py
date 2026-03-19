@@ -9,6 +9,7 @@ from typing import Optional, Tuple
 from .models import MCPRequest, MCPResponse, ResponseStatus
 from .config import settings
 from .auth import KeycloakAuthService
+from .shared_logic import get_compliance_scripts
 import logging
 
 logger = logging.getLogger(__name__)
@@ -136,7 +137,33 @@ class MCPClient:
                 logger.info(f"Using agent '{agent_name}' config: readonly={readonly}, rules={bool(agent_rules)}, web={web_search}")
             else:
                 logger.warning(f"Agent '{agent_name}' not found, falling back to default config")
-        
+
+        # --- PHASE 28: COMPLIANCE SYSTEM PROMPT INJECTION ---
+        scripts = get_compliance_scripts()
+        compliance_footer = f"""
+### WHATSAPP COMPLIANCE RULES (MANDATORY) ###
+You are a COMMUNICATION CHANNEL ONLY. You are NOT authorized for validation or final decision-making. 
+All regulated activities (KYC, approval, release) are performed outside WhatsApp in Chronos.
+
+USE THESE SCRIPTS VERBATIM (NO IMPROVISATION):
+- General Support: "{scripts.get('A2_GENERAL_SUPPORT', '')}"
+- Documentation Needed: "{scripts.get('A3_DOCUMENTATION', '')}"
+- Dispute/Refund/Error: "{scripts.get('A4_DISPUTE_REDIRECTION', '')}"
+- Security/Suspicious Activity: "{scripts.get('A5_SUSPICIOUS_ACTIVITY', '')}"
+- Privacy Rights: "{scripts.get('A6_PRIVACY_REDIRECTION', '')}"
+
+STRICT BOUNDARIES:
+1. NO improvisation or paraphrasing of the scripts above.
+2. NO identity validation or document verification (e.g., avoid "looks good", "verified").
+3. NO transaction result confirmation (e.g., avoid "it is approved", "it is released").
+4. If a user asks for a dispute or privacy right, you MUST use the corresponding redirection script immediately.
+5. All documentation received must be acknowledged as "received and transferred for processing" (A3 script).
+"""
+        if system_prompt:
+            system_prompt = f"{system_prompt}\n\n{compliance_footer}"
+        else:
+            system_prompt = compliance_footer
+
         # Check circuit breaker (skip if emergency mode is active)
         is_emergency = curr_config.emergency_mode and self.gemini_api_key
         
@@ -146,6 +173,32 @@ class MCPClient:
                 "Lo siento, el servicio está temporalmente no disponible (Circuit Breaker Abierto). Por favor intenta más tarde.",
                 ResponseStatus.ERROR,
                 0,
+                0
+            )
+
+        # --- PHASE 28: AUTOMATED COMPLIANCE TRIGGERS ---
+        scripts = get_compliance_scripts()
+        user_text_lower = user_text.lower()
+        
+        # Dispute detection (A4 Script)
+        dispute_keywords = ["disputa", "reembolso", "error", "reclamo", "dispute", "refund", "claim", "re-embolso"]
+        if any(kw in user_text_lower for kw in dispute_keywords):
+            logger.info("🛡️ Automated compliance trigger: Dispute detected")
+            return (
+                scripts.get("A4_DISPUTE_REDIRECTION", "Disputes cannot be handled here."),
+                ResponseStatus.OK,
+                10,
+                0
+            )
+            
+        # Privacy detection (A6 Script)
+        privacy_keywords = ["privacidad", "datos", "borrar", "privacy", "data", "delete", "identity rights"]
+        if any(kw in user_text_lower for kw in privacy_keywords):
+            logger.info("🛡️ Automated compliance trigger: Privacy request detected")
+            return (
+                scripts.get("A6_PRIVACY_REDIRECTION", "Privacy requests cannot be handled here."),
+                ResponseStatus.OK,
+                10,
                 0
             )
         
@@ -307,8 +360,8 @@ class MCPClient:
         if not api_key:
             return "Error: Gemini API Key no configurada."
             
-        # Use Gemini 2.0 Flash (Default for user)
-        model_id = "gemini-2.0-flash"
+        # Use Gemini 2.5 Flash (Standard for User's Projects)
+        model_id = "gemini-2.5-flash"
         url = f"https://generativelanguage.googleapis.com/v1/models/{model_id}:generateContent?key={api_key}"
         
         system_prompt = context.get("system_prompt", "Eres un asistente de IA útil.")

@@ -8,8 +8,11 @@ from fastapi.responses import JSONResponse
 import time
 import uuid
 from datetime import datetime
-from typing import Optional
 import logging
+import json
+import os
+from .shared_logic import get_compliance_scripts
+from shared.redis_client import get_redis_client
 
 from .models import (
     RespondioRequest,
@@ -120,6 +123,25 @@ async def webhook(
         )
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
     
+    # --- PHASE 28: COMPLIANCE INITIAL DISCLOSURE ---
+    needs_disclosure = False
+    disclosure_text = ""
+    try:
+        redis = await get_redis_client()
+        # Key to track if disclosure was sent to this contact today
+        disclosure_key = f"compliance:disclosure:sent:{request.contact_id}"
+        already_sent = await redis.get(disclosure_key)
+        
+        if not already_sent:
+            needs_disclosure = True
+            scripts = get_compliance_scripts()
+            disclosure_text = scripts.get("A1_INITIAL_DISCLOSURE", "")
+            # Mark as sent for 24 hours
+            await redis.set(disclosure_key, "true", ex=86400)
+            logger.info(f"🛡️ Initial Disclosure will be prepended for contact {request.contact_id}")
+    except Exception as e:
+        logger.error(f"Failed to check/set disclosure in Redis: {str(e)}")
+
     try:
         # Check if an agent is specified in metadata (useful for dashboard testing)
         agent_name = request.metadata.get("agent_name")
@@ -173,6 +195,11 @@ async def webhook(
             mcp_latency_ms += second_latency
             retry_count += second_retry
             logger.info(f"✅ Handoff to {new_agent_name} completed")
+        
+        # --- COMPLIANCE: PREPEND DISCLOSURE IF NEEDED ---
+        if needs_disclosure and disclosure_text and mcp_response:
+            mcp_response = f"{disclosure_text}\n\n---\n\n{mcp_response}"
+            logger.debug("Disclosure prepended to final response")
         
         # Calculate total latency
         total_latency_ms = int((time.time() - start_time) * 1000)
