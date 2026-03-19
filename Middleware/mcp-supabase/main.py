@@ -30,6 +30,14 @@ class MCPResponse(BaseModel):
     response: str
     confidence: float = 1.0
 
+# --- PHASE 28: WHATSAPP COMPLIANCE SCRIPTS ---
+COMPLIANCE_SCRIPTS = {
+    "A1_INITIAL_DISCLOSURE": "You are contacting Maxitransfers via WhatsApp, a third-party messaging platform. We collect your phone number, message content, and related messaging metadata to provide customer support. WhatsApp (Meta Platforms, Inc.) processes message transmission as a service provider. Maxitransfers does not request passwords, one-time passcodes, or authentication credentials via WhatsApp. Any such request is unauthorized and should be reported immediately to Customer Service. Documentation shared in connection with an existing transaction will be securely transferred to our internal compliance system for review.",
+    "A4_DISPUTE_REDIRECTION": "Disputes or error claims cannot be handled through WhatsApp. Please contact our official dispute resolution department at 800-456-7426 or email customerservice@maxillc.com so we can assist you through the appropriate process.",
+    "A6_PRIVACY_REDIRECTION": "Privacy-related requests cannot be processed through WhatsApp. Please submit your request through our designated Privacy Rights Request channel at customerservice@maxillc.com, where we can apply the required process.",
+    "A3_DOCUMENTATION": "Additional documentation is required to complete the review of your transaction. You may provide the requested documentation in connection with this existing transaction. Documentation received through this channel will be securely transferred to our internal compliance system for review and processing."
+}
+
 @app.post("/query", response_model=MCPResponse)
 async def query_supabase(
     request: MCPRequest,
@@ -50,10 +58,21 @@ async def query_supabase(
     if not supabase:
         return MCPResponse(response="Error: Supabase no está configurado.")
 
-    # Get API Key from context or environment
-    api_key = request.context.get("gemini_api_key") or GEMINI_API_KEY
     if not api_key:
         return MCPResponse(response="Error: No se proporcionó Gemini API Key.")
+
+    # --- PHASE 28: AUTOMATED COMPLIANCE TRIGGERS ---
+    query_lower = request.query.lower()
+    
+    # Dispute detection (A4 Script)
+    dispute_keywords = ["disputa", "reembolso", "error", "reclamo", "dispute", "refund", "claim", "re-embolso"]
+    if any(kw in query_lower for kw in dispute_keywords):
+        return MCPResponse(response=COMPLIANCE_SCRIPTS["A4_DISPUTE_REDIRECTION"])
+        
+    # Privacy detection (A6 Script)
+    privacy_keywords = ["privacidad", "datos", "borrar", "privacy", "data", "delete", "identity rights"]
+    if any(kw in query_lower for kw in privacy_keywords):
+        return MCPResponse(response=COMPLIANCE_SCRIPTS["A6_PRIVACY_REDIRECTION"])
 
     try:
         # --- RAG: Knowledge Sources retrieval ---
@@ -88,11 +107,30 @@ async def query_supabase(
             except: pass
 
         model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
+            model_name='gemini-2.5-flash',
             tools=tools if tools else None
         )
         
-        system_instructions = request.context.get("system_prompt", "Eres un asistente experto en análisis de datos.")
+        # --- COMPLIANCE SYSTEM INSTRUCTIONS ---
+        base_instructions = request.context.get("system_prompt", "Eres un asistente experto en análisis de datos.")
+        compliance_footer = f"""
+### WHATSAPP COMPLIANCE RULES (MANDATORY) ###
+You are a COMMUNICATION CHANNEL ONLY. You are NOT authorized for validation or final decision-making. 
+All regulated activities (KYC, approval, release) are performed outside WhatsApp in Chronos.
+
+USE THESE SCRIPTS VERBATIM (NO IMPROVISATION):
+- General Support: "{COMPLIANCE_SCRIPTS['A1_INITIAL_DISCLOSURE']}"
+- Documentation Needed: "{COMPLIANCE_SCRIPTS['A3_DOCUMENTATION']}"
+- Dispute/Refund/Error: "{COMPLIANCE_SCRIPTS['A4_DISPUTE_REDIRECTION']}"
+- Privacy Rights: "{COMPLIANCE_SCRIPTS['A6_PRIVACY_REDIRECTION']}"
+
+STRICT BOUNDARIES:
+1. NO improvisation or paraphrasing of the scripts above.
+2. NO identity validation or document verification.
+3. NO transaction result confirmation (e.g., avoid "it is approved").
+4. If a user asks for a dispute or privacy right, you MUST use the corresponding redirection script.
+"""
+        system_instructions = f"{base_instructions}\n\n{compliance_footer}"
         
         prompt = f"""
         {system_instructions}
