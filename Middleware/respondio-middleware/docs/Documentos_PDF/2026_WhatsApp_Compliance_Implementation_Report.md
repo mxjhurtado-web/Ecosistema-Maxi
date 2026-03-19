@@ -38,18 +38,33 @@ Este documento detalla la arquitectura, lógica y procesos implementados en el e
 
 ---
 
-## 🛡️ 2. Blindaje de Doble Capa (Ecosistema)
+## 📜 2. Catálogo Detallado de Frases (Verbatim Scripts)
 
-### Middleware (ORBIT)
-Actúa como la primera línea de defensa, manejando los disclosures y el enrutamiento inteligente entre agentes. Es el encargado de la memoria de sesión vía Redis.
+Se han cargado las siguientes frases literales que el sistema utiliza de forma obligatoria. No existe margen de improvisación para la IA en estos casos:
 
-### MCP (Supabase / Chronos)
-Para la integración directa (`mcp-maxi-estatus`), se replicó la lógica de cumplimiento. Esto asegura que si una integración bypassa el middleware y llama directamente al MCP, las protecciones críticas (Triggers de Disputas y Scripts Verbatim) sigan activas en el núcleo del servicio.
+| ID | Propósito | Frase Implementada |
+| :--- | :--- | :--- |
+| **A1** | Disclosure Inicial | "You are contacting Maxitransfers via WhatsApp... Maxitransfers does not request passwords... Documentation shared... will be securely transferred..." |
+| **A2** | Soporte General | "To protect your information, please provide only the information requested or necessary to address your question." |
+| **A3** | Documentación | "Additional documentation is required to complete the review... Documentation received... will be securely transferred to our internal compliance system..." |
+| **A4** | Disputas (Reg E) | "Disputes or error claims cannot be handled through WhatsApp. Please contact our official dispute resolution department at 800-456-7426..." |
+| **A5** | Actividad Inusual | "We cannot address your question through this channel. Please call Maxitransfers' Customer Service at 800-456-7426 for further assistance." |
+| **A6** | Privacidad | "Privacy-related requests cannot be processed through WhatsApp. Please submit your request through our designated Privacy Rights Request channel..." |
 
 ---
 
-## ⚡ 3. Estandarización de Motor IA
-Se ha estandarizado la arquitectura completa para usar exclusivamente **Gemini 2.5 Flash**. Este modelo fue seleccionado por el usuario debido a su rendimiento superior y estabilidad demostrada en proyectos previos del ecosistema.
+## 🛠️ 3. Ubicación Específica de Cambios (Mapa Técnico)
+
+Para facilitar auditorías técnicas, estos son los archivos y secciones donde se inyectó la lógica de cumplimiento:
+
+### API Middleware (ORBIT)
+- **`api/main.py` [Líneas 116-140]**: Implementación de la lógica de **A1 Initial Disclosure**. Utiliza el cliente Redis para verificar si el usuario ya recibió el aviso en las últimas 24 horas.
+- **`api/mcp_client.py` [Líneas 140-165]**: Inyección global de la capa de cumplimiento. Añade el "Compliance Footer" a todas las instrucciones enviadas a los modelos Gemini.
+- **`api/mcp_client.py` [Líneas 178-200]**: Implementación de los **Disparadores Automáticos (Triggers)**. Si el texto del usuario coincide con palabras clave de "Disputas" o "Privacidad", el sistema responde con los scripts A4 o A6 respectivamente, finalizando el proceso antes de llamar a la IA.
+- **`api/shared_logic.py`**: Lógica compartida para la carga asíncrona y caché de los scripts de cumplimiento.
+
+### MCP Supabase (mcp-maxi-estatus)
+- **`main.py` [Líneas 33-120]**: Replicación de cumplimiento para la integración directa. Incluye el catálogo de scripts interno y los triggers de detección directa para asegurar que el agente de estatus/inventario sea conforme por diseño (*Compliance by Design*).
 
 ---
 
