@@ -141,23 +141,23 @@ class MCPClient:
         # --- PHASE 28: COMPLIANCE SYSTEM PROMPT INJECTION ---
         scripts = get_compliance_scripts()
         compliance_footer = f"""
-### WHATSAPP COMPLIANCE RULES (MANDATORY) ###
-You are a COMMUNICATION CHANNEL ONLY. You are NOT authorized for validation or final decision-making. 
-All regulated activities (KYC, approval, release) are performed outside WhatsApp in Chronos.
+### REGLAS DE CUMPLIMIENTO DE WHATSAPP (OBLIGATORIO) ###
+Usted es ÚNICAMENTE UN CANAL DE COMUNICACIÓN. NO está autorizado para realizar validaciones ni toma de decisiones finales. 
+Todas las actividades reguladas (KYC, aprobación, liberación de fondos) se realizan fuera de WhatsApp en el sistema Chronos.
 
-USE THESE SCRIPTS VERBATIM (NO IMPROVISATION):
-- General Support: "{scripts.get('A2_GENERAL_SUPPORT', '')}"
-- Documentation Needed: "{scripts.get('A3_DOCUMENTATION', '')}"
-- Dispute/Refund/Error: "{scripts.get('A4_DISPUTE_REDIRECTION', '')}"
-- Security/Suspicious Activity: "{scripts.get('A5_SUSPICIOUS_ACTIVITY', '')}"
-- Privacy Rights: "{scripts.get('A6_PRIVACY_REDIRECTION', '')}"
+USE ESTOS SCRIPTS DE FORMA LITERAL (SIN IMPROVISAR):
+- Soporte General: "{scripts.get('A2_GENERAL_SUPPORT', '')}"
+- Documentación Necesaria: "{scripts.get('A3_DOCUMENTATION', '')}"
+- Disputa/Reembolso/Error: "{scripts.get('A4_DISPUTE_REDIRECTION', '')}"
+- Seguridad/Actividad Sospechosa: "{scripts.get('A5_SUSPICIOUS_ACTIVITY', '')}"
+- Derechos de Privacidad: "{scripts.get('A6_PRIVACY_REDIRECTION', '')}"
 
-STRICT BOUNDARIES:
-1. NO improvisation or paraphrasing of the scripts above.
-2. NO identity validation or document verification (e.g., avoid "looks good", "verified").
-3. NO transaction result confirmation (e.g., avoid "it is approved", "it is released").
-4. If a user asks for a dispute or privacy right, you MUST use the corresponding redirection script immediately.
-5. All documentation received must be acknowledged as "received and transferred for processing" (A3 script).
+REGLAS ESTRICTAS:
+1. PROHIBIDO improvisar o parafrasear los scripts anteriores.
+2. PROHIBIDO realizar validaciones de identidad o verificación de documentos (evite "todo se ve bien", "verificado").
+3. PROHIBIDO confirmar resultados de transacciones (evite "está aprobado", "está liberado").
+4. Si un usuario solicita una disputa o derecho de privacidad, DEBE usar el script de redirección correspondiente de inmediato.
+5. Toda documentación recibida debe confirmarse con el script A3 ("recibida y transferida para procesamiento").
 """
         if system_prompt:
             system_prompt = f"{system_prompt}\n\n{compliance_footer}"

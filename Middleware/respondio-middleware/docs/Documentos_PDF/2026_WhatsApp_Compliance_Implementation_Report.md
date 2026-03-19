@@ -42,14 +42,14 @@ Este documento detalla la arquitectura, lógica y procesos implementados en el e
 
 Se han cargado las siguientes frases literales que el sistema utiliza de forma obligatoria. No existe margen de improvisación para la IA en estos casos:
 
-| ID | Propósito | Frase Implementada |
+| ID | Propósito | Frase Implementada (Español) |
 | :--- | :--- | :--- |
-| **A1** | Disclosure Inicial | "You are contacting Maxitransfers via WhatsApp... Maxitransfers does not request passwords... Documentation shared... will be securely transferred..." |
-| **A2** | Soporte General | "To protect your information, please provide only the information requested or necessary to address your question." |
-| **A3** | Documentación | "Additional documentation is required to complete the review... Documentation received... will be securely transferred to our internal compliance system..." |
-| **A4** | Disputas (Reg E) | "Disputes or error claims cannot be handled through WhatsApp. Please contact our official dispute resolution department at 800-456-7426..." |
-| **A5** | Actividad Inusual | "We cannot address your question through this channel. Please call Maxitransfers' Customer Service at 800-456-7426 for further assistance." |
-| **A6** | Privacidad | "Privacy-related requests cannot be processed through WhatsApp. Please submit your request through our designated Privacy Rights Request channel..." |
+| **A1** | Disclosure Inicial | "Usted se está comunicando con Maxitransfers a través de WhatsApp... Maxitransfers no solicita contraseñas... La documentación compartida... se transferirá de forma segura..." |
+| **A2** | Soporte General | "Para proteger su información, proporcione únicamente la información solicitada o necesaria para atender su pregunta." |
+| **A3** | Documentación | "Se requiere documentación adicional para completar la revisión... La documentación recibida... se transferirá de forma segura a nuestro sistema de cumplimiento interno..." |
+| **A4** | Disputas (Reg E) | "Las disputas o reclamaciones por errores no se pueden gestionar a través de WhatsApp. Póngase en contacto con nuestro departamento oficial de resolución de disputas al 800-456-7426..." |
+| **A5** | Actividad Inusual | "No podemos atender su pregunta a través de este canal. Llame al Servicio de Atención al Cliente de Maxitransfers al 800-456-7426 para recibir más ayuda." |
+| **A6** | Privacidad | "Las solicitudes relacionadas con la privacidad no se pueden procesar a través de WhatsApp. Envíe su solicitud a través de nuestro canal designado de Solicitudes de Derechos de Privacidad..." |
 
 ---
 
