@@ -5,6 +5,7 @@ HTTP client for MCP communication with retry logic and circuit breaker.
 import httpx
 import time
 import asyncio
+import base64
 from typing import Optional, Tuple
 from .models import MCPRequest, MCPResponse, ResponseStatus
 from .config import settings
@@ -373,12 +374,30 @@ REGLAS ESTRICTAS:
         # Add media if present
         media_list = context.get("media", [])
         for item in media_list:
-            parts.append({
-                "inline_data": {
-                    "mime_type": item.mime_type if hasattr(item, 'mime_type') else item.get('mime_type'),
-                    "data": item.data if hasattr(item, 'data') else item.get('data')
-                }
-            })
+            mime_type = item.mime_type if hasattr(item, 'mime_type') else item.get('mime_type')
+            data = item.data if hasattr(item, 'data') else item.get('data')
+            url_source = item.url if hasattr(item, 'url') else item.get('url')
+            
+            # If data is empty but URL is present, try to fetch it
+            if not data and url_source:
+                try:
+                    logger.info(f"Downloading media from {url_source}")
+                    async with httpx.AsyncClient() as client:
+                        resp = await client.get(url_source, timeout=10)
+                        resp.raise_for_status()
+                        data = base64.b64encode(resp.content).decode('utf-8')
+                        logger.debug(f"Media downloaded and encoded successfully ({len(data)} bytes)")
+                except Exception as e:
+                    logger.error(f"Failed to fetch media from URL {url_source}: {str(e)}")
+                    continue # Skip this media item if download fails
+            
+            if data and mime_type:
+                parts.append({
+                    "inline_data": {
+                        "mime_type": mime_type,
+                        "data": data
+                    }
+                })
         
         payload = {
             "contents": [{

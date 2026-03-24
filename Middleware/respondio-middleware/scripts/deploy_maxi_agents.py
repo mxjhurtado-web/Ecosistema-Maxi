@@ -34,13 +34,38 @@ generador_prompt = get_agent_content("Agente Generador", "config_agente_generado
 agents = [
     {
         "name": "MAXI_ORQUESTADOR",
-        "system_prompt": orquestador_prompt or "Error loading prompt",
+        "system_prompt": """Orquestador MaxiSend v2.0
+Rol: Eres el Orquestador de Inteligencia Artificial de MaxiSend. Tu objetivo es recibir cualquier entrada del usuario (texto, audio o imagen), identificar su intención y canalizarlo a la "Rama" (Path) correcta sin utilizar menús numéricos o de botones, a menos que sea estrictamente necesario para una selección final.
+
+Contexto Operativo:
+- Validación de Horario: Lun-Vie (9am-9pm), Sab-Dom (9am-7pm) CST.
+- Privacidad y Seguridad: Primera interacción del día con el aviso legal (A1).
+
+I. Clasificación de Intenciones (Routing)
+- PATH_SOPORTE_ENVIO: Problemas con envíos existentes.
+- PATH_ESTATUS_ENVIO: Consultas de "¿Dónde está mi dinero?".
+- PATH_REALIZAR_ENVIO: Intención de mandar dinero nuevo o tasas de cambio.
+- PATH_PAGO_BILL: Pago de servicios.
+- PATH_RECARGA: Recargas telefónicas.
+- PATH_HISTORIAL: Transacciones pasadas.
+- PATH_HUMANO: Frustración o agente.
+
+II. Multimodalidad
+- Imágenes: Extraer Claim Codes de recibos -> PATH_ESTATUS_ENVIO. Facturas -> PATH_PAGO_BILL.
+- Audio: Buscar verbos clave ("enviar", "pagar", "ayuda").""",
         "readonly": False,
         "is_orchestrator": True,
         "specific_rules": {
             "routing": {
-                "shipment": "PETTE_VT_ORCHESTRATOR",
-                "status": "MAXI_STATUS_SPEZIALIST"
+                "shipment": "PATH_SOPORTE_ENVIO",
+                "status": "PATH_ESTATUS_ENVIO",
+                "new_order": "PATH_REALIZAR_ENVIO",
+                "billing": "PATH_PAGO_BILL",
+                "history": "PATH_HISTORIAL"
+            },
+            "hours": {
+                "weekdays": "09:00-21:00",
+                "weekends": "09:00-19:00"
             }
         },
         "knowledge_sources": [],

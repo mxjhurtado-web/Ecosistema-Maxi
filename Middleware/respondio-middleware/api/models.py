@@ -22,9 +22,10 @@ class UserRole(str, Enum):
 
 
 class MediaItem(BaseModel):
-    """Objeto para manejar archivos multimedia (Base64)"""
+    """Objeto para manejar archivos multimedia (Base64 o URL)"""
     mime_type: str = Field(..., description="MIME type del archivo (e.g. image/png, audio/mpeg)")
-    data: str = Field(..., description="Contenido en formato Base64")
+    data: Optional[str] = Field(None, description="Contenido en formato Base64")
+    url: Optional[str] = Field(None, description="URL directa del archivo (Respond.io compatible)")
     file_name: Optional[str] = Field(None, description="Nombre original del archivo")
 
 

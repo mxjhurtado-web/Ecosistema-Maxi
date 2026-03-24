@@ -115,6 +115,21 @@ async def webhook(
             "channel": request.channel
         }
     )
+
+    # --- ENHANCEMENT: Extract Respond.io Attachments if root media is empty ---
+    # Usually Respond.io sends message.attachments[].url/mimeType
+    if not request.media and request.metadata.get("message", {}).get("attachments"):
+        from .models import MediaItem
+        attachments = request.metadata["message"]["attachments"]
+        for att in attachments:
+            if "url" in att and "mimeType" in att:
+                request.media.append(MediaItem(
+                    mime_type=att["mimeType"],
+                    url=att["url"],
+                    file_name=att.get("fileName")
+                ))
+        if request.media:
+            logger.info(f"📎 Extracted {len(request.media)} attachments from Respond.io metadata")
     
     # Validate webhook secret
     if x_webhook_secret != settings.WEBHOOK_SECRET:
