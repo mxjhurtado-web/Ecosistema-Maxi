@@ -32,10 +32,10 @@ class MCPResponse(BaseModel):
 
 # --- PHASE 28: WHATSAPP COMPLIANCE SCRIPTS ---
 COMPLIANCE_SCRIPTS = {
-    "A1_INITIAL_DISCLOSURE": "You are contacting Maxitransfers via WhatsApp, a third-party messaging platform. We collect your phone number, message content, and related messaging metadata to provide customer support. WhatsApp (Meta Platforms, Inc.) processes message transmission as a service provider. Maxitransfers does not request passwords, one-time passcodes, or authentication credentials via WhatsApp. Any such request is unauthorized and should be reported immediately to Customer Service. Documentation shared in connection with an existing transaction will be securely transferred to our internal compliance system for review.",
-    "A4_DISPUTE_REDIRECTION": "Disputes or error claims cannot be handled through WhatsApp. Please contact our official dispute resolution department at 800-456-7426 or email customerservice@maxillc.com so we can assist you through the appropriate process.",
-    "A6_PRIVACY_REDIRECTION": "Privacy-related requests cannot be processed through WhatsApp. Please submit your request through our designated Privacy Rights Request channel at customerservice@maxillc.com, where we can apply the required process.",
-    "A3_DOCUMENTATION": "Additional documentation is required to complete the review of your transaction. You may provide the requested documentation in connection with this existing transaction. Documentation received through this channel will be securely transferred to our internal compliance system for review and processing."
+    "A1_INITIAL_DISCLOSURE": "Usted se está comunicando con Maxitransfers a través de WhatsApp, una plataforma de mensajería de terceros. Recopilamos su número de teléfono, el contenido de sus mensajes y los metadatos relacionados para brindar soporte técnico. WhatsApp (Meta Platforms, Inc.) procesa la transmisión de mensajes como proveedor de servicios. Maxitransfers no solicita contraseñas, códigos de acceso único ni credenciales de autenticación a través de WhatsApp. Cualquier solicitud de este tipo no está autorizada y debe informarse de inmediato al Servicio de Atención al Cliente. La documentación compartida en relación con una transacción existente se transferirá de forma segura a nuestro sistema de cumplimiento interno para su revisión.",
+    "A4_DISPUTE_REDIRECTION": "Las disputas o reclamaciones por errores no se pueden gestionar a través de WhatsApp. Póngase en contacto con nuestro departamento oficial de resolución de disputas al 800-456-7426 o envíe un correo electrónico a customerservice@maxillc.com para que podamos ayudarle a través del proceso adecuado.",
+    "A6_PRIVACY_REDIRECTION": "Las solicitudes relacionadas con la privacidad no se pueden procesar a través de WhatsApp. Envíe su solicitud a través de nuestro canal designado de Solicitudes de Derechos de Privacidad en customerservice@maxillc.com, donde podremos aplicar el proceso requerido.",
+    "A3_DOCUMENTATION": "Se requiere documentación adicional para completar la revisión de su transacción. Puede proporcionar la documentación solicitada en relación con esta transacción existente. La documentación recibida a través de este canal se transferirá de forma segura a nuestro sistema de cumplimiento interno para su revisión y procesamiento."
 }
 
 @app.post("/query", response_model=MCPResponse)
@@ -114,21 +114,21 @@ async def query_supabase(
         # --- COMPLIANCE SYSTEM INSTRUCTIONS ---
         base_instructions = request.context.get("system_prompt", "Eres un asistente experto en análisis de datos.")
         compliance_footer = f"""
-### WHATSAPP COMPLIANCE RULES (MANDATORY) ###
-You are a COMMUNICATION CHANNEL ONLY. You are NOT authorized for validation or final decision-making. 
-All regulated activities (KYC, approval, release) are performed outside WhatsApp in Chronos.
+### REGLAS DE CUMPLIMIENTO DE WHATSAPP (OBLIGATORIO) ###
+Usted es ÚNICAMENTE UN CANAL DE COMUNICACIÓN. NO está autorizado para realizar validaciones ni toma de decisiones finales. 
+Todas las actividades reguladas (KYC, aprobación, liberación de fondos) se realizan fuera de WhatsApp en el sistema Chronos.
 
-USE THESE SCRIPTS VERBATIM (NO IMPROVISATION):
-- General Support: "{COMPLIANCE_SCRIPTS['A1_INITIAL_DISCLOSURE']}"
-- Documentation Needed: "{COMPLIANCE_SCRIPTS['A3_DOCUMENTATION']}"
-- Dispute/Refund/Error: "{COMPLIANCE_SCRIPTS['A4_DISPUTE_REDIRECTION']}"
-- Privacy Rights: "{COMPLIANCE_SCRIPTS['A6_PRIVACY_REDIRECTION']}"
+USE ESTOS SCRIPTS DE FORMA LITERAL (SIN IMPROVISAR):
+- Soporte General: "{COMPLIANCE_SCRIPTS['A1_INITIAL_DISCLOSURE']}"
+- Documentación Necesaria: "{COMPLIANCE_SCRIPTS['A3_DOCUMENTATION']}"
+- Disputa/Reembolso/Error: "{COMPLIANCE_SCRIPTS['A4_DISPUTE_REDIRECTION']}"
+- Derechos de Privacidad: "{COMPLIANCE_SCRIPTS['A6_PRIVACY_REDIRECTION']}"
 
-STRICT BOUNDARIES:
-1. NO improvisation or paraphrasing of the scripts above.
-2. NO identity validation or document verification.
-3. NO transaction result confirmation (e.g., avoid "it is approved").
-4. If a user asks for a dispute or privacy right, you MUST use the corresponding redirection script.
+REGLAS ESTRICTAS:
+1. PROHIBIDO improvisar o parafrasear los scripts anteriores.
+2. PROHIBIDO realizar validaciones de identidad o verificación de documentos.
+3. PROHIBIDO confirmar resultados de transacciones (evite "está aprobado").
+4. Si un usuario solicita una disputa o derecho de privacidad, DEBE usar el script de redirección correspondiente.
 """
         system_instructions = f"{base_instructions}\n\n{compliance_footer}"
         
