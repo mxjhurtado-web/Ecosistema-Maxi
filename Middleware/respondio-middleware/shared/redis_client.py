@@ -19,29 +19,30 @@ async def get_redis_client() -> redis.Redis:
     if _redis_client is None:
         try:
             if settings.REDIS_URL:
-                logger.info("Connecting to Redis using URL...")
+                logger.info("🔗 Connecting to Redis using URL...")
                 _redis_client = redis.from_url(
                     settings.REDIS_URL,
                     decode_responses=False,
-                    socket_connect_timeout=5
+                    socket_connect_timeout=2
                 )
             else:
-                logger.info(f"Connecting to Redis at {settings.REDIS_HOST}:{settings.REDIS_PORT}...")
+                logger.info(f"💾 Connecting to local Redis at {settings.REDIS_HOST}:{settings.REDIS_PORT}...")
                 _redis_client = redis.Redis(
                     host=settings.REDIS_HOST,
                     port=settings.REDIS_PORT,
                     db=settings.REDIS_DB,
                     password=settings.REDIS_PASSWORD,
                     decode_responses=False,
-                    socket_connect_timeout=5
+                    socket_connect_timeout=2
                 )
             
             # Test connection
             await _redis_client.ping()
-            logger.info("Redis client created successfully")
+            logger.info("✅ Redis client established and verified")
             
         except Exception as e:
-            logger.error(f"Failed to create Redis client: {str(e)}")
+            logger.error(f"❌ Redis connection failed: {str(e)}")
+            _redis_client = None
             raise
     
     return _redis_client

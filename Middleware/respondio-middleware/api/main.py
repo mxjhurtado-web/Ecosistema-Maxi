@@ -5,6 +5,7 @@ Main FastAPI application - Middleware for Respond.io to MCP.
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+import httpx
 import time
 import uuid
 from datetime import datetime
@@ -303,17 +304,38 @@ async def webhook(
 
 @app.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse)
 async def health_check():
-    """Health check endpoint"""
+    """
+    Health check endpoint optimized for Render.
+    Responds quickly even if downstream services are slow.
+    """
+    start_time = time.time()
     
-    # Check MCP health
-    mcp_healthy = await mcp_client.health_check()
+    # Check MCP health with strict 1s timeout
+    mcp_healthy = False
+    try:
+        # We manually call the mcp health check with a shorter timeout here 
+        # to ensure Render/UptimeRobot don't time out on the API itself
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                settings.MCP_URL.replace("/query", "/health"),
+                timeout=1.0
+            )
+            mcp_healthy = response.status_code == 200
+    except Exception as e:
+        logger.warning(f"Health check: MCP connection failed or timed out: {str(e)}")
+        mcp_healthy = False
+
     mcp_status = "healthy" if mcp_healthy else "unhealthy"
     
-    # Check Redis health
+    # Check Redis health (based on initialization in startup_event)
     redis_status = "healthy" if telemetry_service.enabled else "disabled"
     
-    # Overall status
+    # Overall status: Always return 'healthy' if the API is running, 
+    # but specify 'degraded' in the body if MCP is down.
+    # This prevents Render from killing the container if MCP is just spinning up.
     overall_status = "healthy" if mcp_healthy else "degraded"
+    
+    latency_ms = int((time.time() - start_time) * 1000)
     
     return HealthResponse(
         status=overall_status,

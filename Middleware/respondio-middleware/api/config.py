@@ -36,11 +36,11 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 100
     
     # Redis
+    REDIS_URL: Optional[str] = None
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
     REDIS_PASSWORD: Optional[str] = None
-    REDIS_URL: Optional[str] = None
     
     # Cache
     CACHE_ENABLED: bool = True
