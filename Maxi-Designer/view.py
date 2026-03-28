@@ -22,7 +22,7 @@ try: from PyQt6.QtPrintSupport import QPrinter
 except ImportError: QPrinter = None
 
 from constants import NODE_TYPES, DEFAULT_NODE_COLOR
-from models import WorkflowNode, WorkflowModel, HistoryManager
+from models import WorkflowNode, WorkflowModel
 from engine import LayoutEngine
 import config
 from ai_engine import AIEngine
@@ -232,6 +232,25 @@ class WorkflowTab(QWidget):
             self.model.nodes[nid] = new_n; self.render()
         elif action == "REFRESH": self.render()
 
+class AIConfirmationDialog(QDialog):
+    def __init__(self, summary, parent=None):
+        super().__init__(parent); self.setWindowTitle("Análisis de Documento"); self.setMinimumWidth(600); self.setStyleSheet("background:#1a1a2e; color:white;")
+        lay = QVBoxLayout(self); lay.addWidget(QLabel("<b>¿Procedemos a generar el diagrama con este análisis?</b>"))
+        self.view = QTextEdit(); self.view.setReadOnly(True); self.view.setPlainText(summary); lay.addWidget(self.view)
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        btns.accepted.connect(self.accept); btns.rejected.connect(self.reject); lay.addWidget(btns)
+
+class SettingsDialog(QDialog):
+    def __init__(self, parent):
+        super().__init__(parent); self.setWindowTitle("Config Gemini"); lay = QVBoxLayout(self)
+        self.setStyleSheet("background:#1a1a2e; color:white;")
+        self.key = QLineEdit(); self.key.setText(config.get_config().get("gemini_api_key",""))
+        lay.addWidget(QLabel("API Key:")); lay.addWidget(self.key); btn = QPushButton("Guardar"); btn.clicked.connect(self.save); lay.addWidget(btn)
+    def save(self):
+        c = config.get_config(); c["gemini_api_key"] = self.key.text().strip(); config.save_config(c)
+        if hasattr(self.parent(), "ai"): self.parent().ai.reconfigure()
+        self.accept()
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__(); self.setWindowTitle("Maxi-Designer"); self.resize(1400, 900); self.ai = AIEngine(); self.last_doc_context = ""; self.init_ui(); self.setStyleSheet(GLOBAL_STYLE)
@@ -258,7 +277,9 @@ class MainWindow(QMainWindow):
         self.sp.setStretchFactor(0, 1); self.sp.setStretchFactor(1, 4)
     def update_minimap(self, idx=None):
         t = self._current_tab()
-        if t and t.canvas.scene and t.canvas.scene.sceneRect().isValid(): self.mini_map.setScene(t.canvas.scene); QTimer.singleShot(100, lambda: self.mini_map.fitInView(t.canvas.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio))
+        if t and hasattr(t, "canvas") and t.canvas.scene and t.canvas.scene.sceneRect().isValid():
+            self.mini_map.setScene(t.canvas.scene)
+            QTimer.singleShot(100, lambda: self.mini_map.fitInView(t.canvas.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio))
     def reset_flow(self):
         t = self._current_tab()
         if t and QMessageBox.question(self, "Reset", "¿Borrar?") == QMessageBox.StandardButton.Yes: t.model = WorkflowModel(); t.render()
