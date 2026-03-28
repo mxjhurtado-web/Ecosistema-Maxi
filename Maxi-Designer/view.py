@@ -308,7 +308,9 @@ class MainWindow(QMainWindow):
         t = self._current_tab(); f, _ = QFileDialog.getSaveFileName(self, "PDF", "", "*.pdf")
         if t and f and QPrinter: pr = QPrinter(); pr.setOutputFileName(f); p = QPainter(pr); t.canvas.scene.render(p); p.end()
     def run_ai_task(self, p, c, s, cb):
-        self.progress.show(); self.worker = AIWorker(self.ai, p, c, s)
+        self.console.append("⏳ Procesando... Por favor espera.")
+        self.progress.show(); self.progress.setRange(0, 0)
+        self.worker = AIWorker(self.ai, p, c, s)
         self.worker.finished.connect(lambda r: (self.progress.hide(), cb(r))); self.worker.start()
     def ask_ai(self):
         t = self._current_tab(); p = self.ai_in.text().strip(); self.ai_in.clear()

@@ -7,17 +7,18 @@ class AIEngine:
         self.reconfigure()
 
     def reconfigure(self):
-        self.api_key = config.get_config().get("gemini_api_key", "")
+        self.api_key = config.get_config().get("gemini_api_key", "").strip()
         self.model = None
         if self.api_key:
             try:
                 genai.configure(api_key=self.api_key)
+                # Using 1.5-flash as the standard robust model
                 self.model = genai.GenerativeModel('gemini-2.5-flash')
             except Exception as e:
-                print(f"Error AI Refiner: {e}")
+                print(f"Error AI Engine Config: {e}")
 
     def ask(self, prompt, current_json, system_override=None):
-        if not self.model: return "⚠️ Configura API Key."
+        if not self.model: return "⚠️ Configura API Key en Ajustes."
         
         system_instruction = system_override or (
             "Eres el 'MAXI AI ARCHITECT'. Tu misión es diseñar flujos de Respond.io basados UNICAMENTE en el documento del usuario. "
@@ -40,8 +41,14 @@ INSTRUCCIÓN: {prompt}"""
         
         try:
             response = self.model.generate_content(full_prompt)
+            if not response or not hasattr(response, 'text'):
+                return "❌ Error: Respuesta vacía de la IA."
             return response.text
-        except Exception as e: return f"❌ Error: {e}"
+        except Exception as e:
+            err_msg = str(e)
+            if "403" in err_msg:
+                return f"❌ Error API (403): La llave es inválida o está bloqueada. Por favor usa una nueva llave en 'Config Gemini'."
+            return f"❌ Error: {err_msg}"
 
     def prepare_summary(self, requirements_text):
         prompt = (
