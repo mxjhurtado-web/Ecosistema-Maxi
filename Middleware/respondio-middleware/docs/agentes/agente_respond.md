@@ -1,164 +1,84 @@
-# Agente de Estatus en Respond.io — Configuración Completa
+# Manual de Identidades IA: Respond.io — Ecosistema Maxi v2.3
 
-**Fecha de configuración:** 2026-03-17  
-**Estado actual:** En prueba — acción HTTP funcional, ajuste de integración MCP pendiente
-
----
-
-## Arquitectura del Flujo
-
-```
-WhatsApp → Respond.io (AI Agent) → HTTP Action → MCP Maxi Estatus → Supabase
-```
-
-El AI Agent de Respond.io llama directamente al servidor MCP (sin pasar por orbit-api) para consultar el estatus del envío.
+**Última actualización:** 2026-03-25  
+**Estado:** PRODUCCIÓN FINAL ✅  
+**Arquitectura:** Cascada de Inteligencia (Orquestador → Especialistas)
 
 ---
 
-## Servicios involucrados
+## 1. Orquestador MaxiSend v2.2 (El Cerebro)
 
-| Servicio | URL | Plataforma |
+El Orquestador es el primer punto de contacto. Su misión es clasificar la intención y derivar al cliente sin usar menús de botones.
+
+### Configuración en Respond.io
+- **Nombre**: `Orquestador MaxiSend v2.2`
+- **Variable de salida**: `intended_path`
+
+### Prompt de Instrucciones
+```markdown
+# CONTEXT
+- Eres el Orquestador IA de MaxiSend.
+- Tu misión es clasificar la intención y guiar al usuario al path correcto.
+
+# TOP-LEVEL FLOW
+1. **Detección**: Identifica si el usuario desea Estatus, Envío, Pago o Contacto Humano.
+2. **Disponibilidad 24/7**:
+   - Si la intención es ESTATUS: Procesa siempre (PATH_ESTATUS_ENVIO).
+   - Si es atención HUMANA: Solo transfiere en horario (Lun-Vie 9am-9pm CST).
+3. **Ruteo**: Informa que estás validando los datos y guarda la intención en 'intended_path'.
+
+# PATHS
+- PATH_ESTATUS_ENVIO, PATH_REALIZAR_ENVIO, PATH_PAGO_BILL, PATH_HUMANO.
+```
+
+---
+
+## 2. Agente Estatus Maxi v2.3 (El Especialista)
+
+Este agente utiliza la acción HTTP para consultar la base de datos y sabe cuándo pedir ayuda humana o cerrar el chat.
+
+### Configuración en Respond.io
+- **Nombre**: `Agente Estatus Maxi v2.3`
+- **Acciones habilitadas**:
+  - `ConsultarEstatus` (HTTP POST)
+  - `Asignar a agente o equipo` (Handoff a @Elvia Liliana Vega)
+  - `Cerrar conversaciones` (Cierre Automatizado)
+
+### Prompt de Instrucciones
+```markdown
+# CONTEXT
+- Eres el Agente de Estatus de MAXI. Consultas envíos y gestionas el flujo final del cliente.
+
+# TOP-LEVEL FLOW
+1. **Rastreo**: Usa el código (CE...) para llamar a 'ConsultarEstatus'.
+2. **Sugerencia Proactiva**: Tras dar el estatus, pregunta siempre: "¿Deseas hablar con un asesor o tienes otra duda?".
+3. **Acción Handoff**: Si el cliente acepta o pide un humano, asígnalo al equipo de soporte.
+4. **Acción Cierre**: Si el cliente no tiene más dudas, despídete y usa 'Cerrar conversación'.
+
+# BOUNDARIES
+- No inventes fechas. No cierres si hay dudas pendientes.
+```
+
+### Instrucción de Cierre (Box de Acción)
+> "Cierra la conversación únicamente cuando el cliente indique que ya no tiene más dudas o agradezca la atención. Antes de cerrar, confirma que se resolvió su duda de estatus."
+
+---
+
+## 3. Infraestructura Técnica
+
+| Componente | Endpoint / Detalle | Status |
 |---|---|---|
-| MCP Maxi Estatus | `https://mcp-maxi-estatus.onrender.com` | Render (free) |
-| Orbit API | `https://orbit-api-xnyd.onrender.com` | Render (free) |
-| Base de datos | Supabase — tabla `Base_completa` | Supabase |
+| **MCP Estatus** | `https://mcp-maxi-estatus.onrender.com/query` | FUNCIONAL |
+| **Orbit API** | `https://orbit-api-xnyd.onrender.com` | RESPALDO |
+| **Tabla DB** | `Base_completa` (Supabase) | INDEXADA |
 
 ---
 
-## Configuración del AI Agent en Respond.io
+## 4. Guía de Mapeo de Variables
 
-### Datos generales
-- **Nombre**: `Agente Estatus Maxi`
-- **Emoji**: 📦 (o el que prefieras)
-- **Descripción**: Agente especializado en consulta de estatus de envíos Maxi
-
-### Instrucciones (prompt del agente)
-```
-Eres el Agente de Estatus de MAXI. Tu única función es consultar el estado de envíos.
-
-CUANDO RECIBAS UN CÓDIGO DE ENVÍO:
-- Ejecuta inmediatamente la acción HTTP "ConsultarEstatus"
-- Responde con la información exacta que retorne el sistema
-- NO inventes ni supongas información
-
-SI EL CLIENTE NO DA EL CÓDIGO:
-- Pide amablemente: "Para consultar tu envío, necesito tu código de envío (ej: CE17016886149). ¿Me lo puedes proporcionar?"
-
-TONO: Profesional, amable y conciso.
-```
-
----
-
-## Acción HTTP: ConsultarEstatus
-
-### ¿Cuándo ejecutarla?
-```
-Usa esta acción cuando el cliente quiera saber el estado de su envío o 
-proporcione un código de envío. Ejecuta la acción con el código que el 
-cliente te dé.
-```
-
-### Campo requerido por el agente
-| Nombre | Formato | Descripción |
-|---|---|---|
-| `codigo_envio` | Text | Código de envío del cliente (ej: CE17016886149). Pídelo si no lo proporciona. |
-
-### Configuración de la solicitud HTTP
-
-> ⚠️ **IMPORTANTE:** Llamar directamente al MCP — NO a orbit-api (orbit-api tiene problemas de Redis en Render free tier)
-
-| Campo | Valor |
+| Variable Respond.io | Uso |
 |---|---|
-| **Method** | `POST` |
-| **URL** | `https://mcp-maxi-estatus.onrender.com/query` |
+| `$intended_path` | Resultado del Orquestador para branching. |
+| `$codigo_envio` | Entrada para la acción HTTP de estatus. |
+| `$message_to_user` | Respuesta final extraída de la base de datos. |
 
-**Cabeceras:**
-| Clave | Valor |
-|---|---|
-| `Content-Type` | `application/json` |
-
-**Cuerpo (JSON):**
-```json
-{
-  "query": "$codigo_envio"
-}
-```
-
----
-
-## Configuración de Supabase
-
-- **Proyecto:** `tzlomvpugmrpdfatscxe`
-- **URL:** `https://tzlomvpugmrpdfatscxe.supabase.co`
-- **Tabla:** `Base_completa`
-- **RLS:** DESACTIVADO (para permitir lectura con anon key)
-- **Anon Key:** guardada en Render como variable `SUPABASE_ANON_KEY`
-
----
-
-## Configuración de Render (mcp-maxi-estatus)
-
-| Variable | Valor |
-|---|---|
-| `SUPABASE_URL` | `https://tzlomvpugmrpdfatscxe.supabase.co` |
-| `SUPABASE_ANON_KEY` | *(ver Render → Environment — clave anon de Supabase)* |
-
-**Start Command:**
-```
-PYTHONPATH=. uvicorn api.m_cp:app --host 0.0.0.0 --port $PORT
-```
-
----
-
-## Monitoreo — UptimeRobot
-
-Ambos servicios configurados en UptimeRobot con ping cada 5 min:
-
-| Monitor | URL | Estado |
-|---|---|---|
-| MCP Maxi Estatus | `https://mcp-maxi-estatus.onrender.com/health` | Activo |
-| Orbit API | `https://orbit-api-xnyd.onrender.com/health` | Activo |
-
----
-
-## Columnas clave de la tabla `Base_completa` (Supabase)
-
-| Columna | Descripción |
-|---|---|
-| `Codigo_de_envio` | Código único del envío (ej: CE17016886149) |
-| `status` | Estado actual (PAGADO, DETENIDO, EN TRÁNSITO, etc.) |
-| `message_to_user` | Mensaje personalizado para el cliente |
-| `Nombre_Cliente` | Nombre del destinatario |
-| `Numero_telefonico` | Teléfono del cliente |
-
----
-
-## Estado de la integración (al 2026-03-17)
-
-- [x] MCP Maxi Estatus desplegado en Render y funcional
-- [x] Supabase REST API configurada (reemplazó psycopg2 por incompatibilidad de puertos)
-- [x] RLS desactivado en tabla `Base_completa`
-- [x] AI Agent creado en Respond.io con prompt e instrucciones
-- [x] Acción HTTP `ConsultarEstatus` configurada
-- [x] UptimeRobot monitoreando ambos servicios
-- [ ] **PENDIENTE:** Verificar que variable `$codigo_envio` se sustituye correctamente en el cuerpo JSON de Respond.io
-- [ ] **PENDIENTE:** Probar la acción HTTP con URL directa al MCP (`/query`) — sin pasar por orbit-api
-
----
-
-## Problemas conocidos
-
-### orbit-api con Redis en localhost
-Al redesplegar, orbit-api a veces conecta a `redis://localhost:6379` en lugar de la URL de Redis real. Esto impide cargar el MCP_URL desde la configuración. **Solución:** Llamar directamente al MCP desde Respond.io, sin pasar por orbit-api.
-
-### UptimeRobot 405 en /health (resuelto)
-UptimeRobot enviaba peticiones HEAD al endpoint `/health` que solo aceptaba GET. **Solución:** Cambiado a `@app.api_route("/health", methods=["GET", "HEAD"])` en `m_cp.py` y `main.py`.
-
----
-
-## Próximos pasos
-
-1. Probar la acción HTTP directa al MCP con `$codigo_envio` en el body
-2. Verificar la sintaxis de variables de Respond.io (`$variable` vs `{{variable}}`)
-3. Conectar el agente a un canal de WhatsApp para prueba real
-4. Decidir si se necesita orbit-api en el flujo o si el MCP directo es suficiente
