@@ -12,56 +12,48 @@ class AIEngine:
         if self.api_key:
             try:
                 genai.configure(api_key=self.api_key)
-                # Using 1.5-flash as the standard robust model
                 self.model = genai.GenerativeModel('gemini-2.5-flash')
             except Exception as e:
                 print(f"Error AI Engine Config: {e}")
 
-    def ask(self, prompt, current_json, system_override=None):
+    def ask(self, prompt, current_json, system_override=None, include_template=True):
         if not self.model: return "⚠️ Configura API Key en Ajustes."
         
-        system_instruction = system_override or (
-            "Eres el 'MAXI AI ARCHITECT'. Tu misión es diseñar flujos de Respond.io basados UNICAMENTE en el documento del usuario. "
-            "Responde siempre en Español. NUNCA inventes aplicaciones externas."
-        )
+        system_instruction = system_override or "Eres el 'MAXI AI ARCHITECT'. Responde siempre en Español."
+        
+        template = ""
+        if include_template:
+            template = """
+ESTRUCTURA OBLIGATORIA PARA COMANDOS (USA SOLO ESTO):
+[[COMMANDS: [
+  {"action": "ADD_NODE", "type": "sendMessage", "name": "Msg 1", "parentId": null, "node_data": {"payload": [{"message": {"text": "Hola"}}] } },
+  {"action": "ADD_NODE", "type": "askQuestion", "name": "Q1", "parentId": "parent_item", "node_data": {"payload": [...], "options": [{"label": "Si", "value": "si"}] } }
+] ]]
+"""
         
         ctx_json = json.dumps(current_json)
-        full_prompt = f"""{system_instruction}
-
-ESTRUCTURA OBLIGATORIA PARA COMANDOS:
-[[COMMANDS: [
-  {{"action": "ADD_NODE", "type": "sendMessage", "name": "Msg 1", "parentId": null, "node_data": {{"payload": [{{"message": {{"text": "Hola"}}}}] }} }},
-  {{"action": "ADD_NODE", "type": "askQuestion", "name": "Q1", "parentId": "parent_id", "node_data": {{"payload": [...], "options": [{{"label": "Si", "value": "si"}}] }} }}
-] ]]
-
-CONTEXTO ACTUAL (JSON):
-{ctx_json[:4000]}
-
-INSTRUCCIÓN: {prompt}"""
+        full_prompt = f"{system_instruction}\n{template}\nCONTEXTO ACTUAL (JSON):\n{ctx_json[:2000]}\n\nINSTRUCCIÓN: {prompt}"
         
         try:
             response = self.model.generate_content(full_prompt)
-            if not response or not hasattr(response, 'text'):
-                return "❌ Error: Respuesta vacía de la IA."
-            return response.text
+            return response.text if response and hasattr(response, 'text') else "❌ Error: Respuesta vacía."
         except Exception as e:
-            err_msg = str(e)
-            if "403" in err_msg:
-                return f"❌ Error API (403): La llave es inválida o está bloqueada. Por favor usa una nueva llave en 'Config Gemini'."
-            return f"❌ Error: {err_msg}"
+            return f"❌ Error API: {e}"
 
     def prepare_summary(self, requirements_text):
         prompt = (
             "Analiza este documento y genera un RESUMEN NARRATIVO detallado. "
-            "Explica los pasos del diálogo y las ramas lógicas. NO USES JSON EN ESTA ETAPA.\n\n"
+            "Describe el flujo lógico PASO A PASO. NO USES JSON, NO USES [[COMMANDS]]. "
+            "Habla como un humano explicando el proceso.\n\n"
             f"DOCUMENTO:\n{requirements_text[:12000]}"
         )
-        return self.ask(prompt, {}, system_override="Eres un analista experto en scripts de ventas.")
+        return self.ask(prompt, {}, system_override="Eres un analista experto.", include_template=False)
 
-    def generate_from_summary(self, summary_text, feedback, current_json):
+    def generate_from_summary(self, summary_text, original_doc, current_json):
         prompt = (
-            f"Basado en el análisis previo: {summary_text}\n"
-            "Crea el flujo completo siguiendo la ESTRUCTURA OBLIGATORIA de [[COMMANDS: [...] ]].\n"
-            "Es VITAL usar 'parentId' para conectar los nodos en un árbol ramificado."
+            f"DOCUMENTO ORIGINAL:\n{original_doc[:8000]}\n\n"
+            f"RESUMEN APROBADO:\n{summary_text}\n\n"
+            "INSTRUCCIÓN: Traduce este resumen a un flujo técnico de Respond.io. "
+            "Usa la estructura de comandos [[COMMANDS: [...] ]] para crear todos los nodos conectados por 'parentId'."
         )
         return self.ask(prompt, current_json)

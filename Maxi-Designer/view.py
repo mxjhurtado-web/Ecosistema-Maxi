@@ -103,10 +103,10 @@ def repair_json(s):
 
 class AIWorker(QThread):
     finished = pyqtSignal(str)
-    def __init__(self, ai, prompt, current_json, system_override=None):
-        super().__init__(); self.ai, self.prompt, self.current_json, self.system_override = ai, prompt, current_json, system_override
+    def __init__(self, method, *args):
+        super().__init__(); self.method, self.args = method, args
     def run(self):
-        try: res = self.ai.ask(self.prompt, self.current_json, self.system_override); self.finished.emit(res)
+        try: res = self.method(*self.args); self.finished.emit(res)
         except Exception as e: self.finished.emit(str(e))
 
 class NodeEditDialog(QDialog):
@@ -307,25 +307,33 @@ class MainWindow(QMainWindow):
     def export_pdf(self):
         t = self._current_tab(); f, _ = QFileDialog.getSaveFileName(self, "PDF", "", "*.pdf")
         if t and f and QPrinter: pr = QPrinter(); pr.setOutputFileName(f); p = QPainter(pr); t.canvas.scene.render(p); p.end()
-    def run_ai_task(self, p, c, s, cb):
+    
+    def run_ai_task(self, cb, method, *args):
         self.console.append("⏳ Procesando... Por favor espera.")
         self.progress.show(); self.progress.setRange(0, 0)
-        self.worker = AIWorker(self.ai, p, c, s)
+        self.worker = AIWorker(method, *args)
         self.worker.finished.connect(lambda r: (self.progress.hide(), cb(r))); self.worker.start()
+
     def ask_ai(self):
         t = self._current_tab(); p = self.ai_in.text().strip(); self.ai_in.clear()
         if not p or not t: return
         self.console.append(f"👤 Tú: {p}"); ctx = [{"id": n.id, "name": n.name} for n in t.model.nodes.values()]
-        self.run_ai_task(p, ctx, None, lambda r: self.console.append(f"🧠 Gemini: {self._process_ai_cmds(r, t)}"))
+        self.run_ai_task(lambda r: self.console.append(f"🧠 Gemini: {self._process_ai_cmds(r, t)}"), self.ai.ask, p, ctx)
+
     def import_doc_ai(self):
         t = self._current_tab(); fs, _ = QFileDialog.getOpenFileNames(self, "Docs", "", "*.pdf *.docx *.txt")
         if fs and t:
+            self.doc_list.clear()
             for f in fs: self.doc_list.addItem(os.path.basename(f))
             txt = DocParser.extract_text(fs); self.last_doc_context = txt
-            self.run_ai_task(f"Analiza:\n{txt[:12000]}", {}, "Resume narrativamente.", self._on_summary_ready)
+            self.run_ai_task(self._on_summary_ready, self.ai.prepare_summary, txt)
+
     def _on_summary_ready(self, s):
         def _cb(r): self.console.append(f"✅ Gemini: {self._process_ai_cmds(r, self._current_tab())}")
-        if AIConfirmationDialog(s, self).exec(): self.run_ai_task("CREA EL FLUJO YA.", {}, None, _cb)
+        if AIConfirmationDialog(s, self).exec():
+            t = self._current_tab(); ctx = [{"id": n.id, "name": n.name} for n in t.model.nodes.values()]
+            self.run_ai_task(_cb, self.ai.generate_from_summary, s, self.last_doc_context, ctx)
+
     def _process_ai_cmds(self, text, tab):
         cleaned = re.sub(r"\[\[\s*COMMANDS:\s*", "", text, flags=re.IGNORECASE)
         cleaned = re.sub(r"\]\s*\]", "]", cleaned); found = []
@@ -341,7 +349,7 @@ class MainWindow(QMainWindow):
                 nid = c.get("id") or f"ia_{uuid.uuid4().hex[:6]}"
                 node = WorkflowNode({"id": nid, "parentId": c.get("parentId"), "type": c.get("type", "sendMessage"), "name": c.get("name"), "data": c.get("node_data", c.get("data", {}))})
                 tab.model.nodes[nid] = node
-            LayoutEngine().apply_tree_layout(tab.model); tab.render(); return "[Flujo aplicado]"
+            LayoutEngine().apply_tree_layout(tab.model); tab.render(); return "[Flujo aplicado correctamente]"
         return text
 
 if __name__ == "__main__":
