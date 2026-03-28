@@ -1,0 +1,121 @@
+
+--- Render Error ---
+'NoneType' object has no attribute 'views'
+Traceback (most recent call last):
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 651, in render
+    conn = ConnectionItem(items[p_id], items[str(node.id)], child_node=node)
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 393, in __init__
+    self.update_path()
+    ~~~~~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 410, in update_path
+    is_dark = getattr(self.scene().views()[0].window(), "dark_mode_active", False)
+                      ^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'views'
+
+
+--- Render Error ---
+'NoneType' object has no attribute 'views'
+Traceback (most recent call last):
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 672, in render
+    conn = ConnectionItem(items[p_id], items[str(node.id)], child_node=node)
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 410, in __init__
+    self.update_path()
+    ~~~~~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 427, in update_path
+    is_dark = getattr(self.scene().views()[0].window(), "dark_mode_active", False)
+                      ^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'views'
+
+
+--- Render Error ---
+'NoneType' object has no attribute 'views'
+Traceback (most recent call last):
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 672, in render
+    conn = ConnectionItem(items[p_id], items[str(node.id)], child_node=node)
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 410, in __init__
+    self.update_path()
+    ~~~~~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 427, in update_path
+    is_dark = getattr(self.scene().views()[0].window(), "dark_mode_active", False)
+                      ^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'views'
+
+
+--- Render Error ---
+'ConnectionItem' object has no attribute 'start_item'
+Traceback (most recent call last):
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 707, in render
+    conn = ConnectionItem(items[p_id], items[str(node.id)], child_node=node)
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 419, in __init__
+    self.update_path()
+    ~~~~~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 424, in update_path
+    p1 = self.start_item.scenePos() + QPointF(110, self.start_item.height / 2)
+         ^^^^^^^^^^^^^^^
+AttributeError: 'ConnectionItem' object has no attribute 'start_item'
+
+
+[2026-03-27 15:29:18] FATAL CRASH: 'QPushButton' object has no attribute 'aboutToShow'
+Traceback (most recent call last):
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 358, in __init__
+    self.init_ui()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 380, in init_ui
+    self.btn_recent.aboutToShow.connect(self.update_recent_menu)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'QPushButton' object has no attribute 'aboutToShow'
+----------------------------------------
+
+[2026-03-27 15:29:25] FATAL CRASH: 'QPushButton' object has no attribute 'aboutToShow'
+Traceback (most recent call last):
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 358, in __init__
+    self.init_ui()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 380, in init_ui
+    self.btn_recent.aboutToShow.connect(self.update_recent_menu)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'QPushButton' object has no attribute 'aboutToShow'
+----------------------------------------
+
+[2026-03-27 15:30:40] FATAL CRASH: 'QPushButton' object has no attribute 'aboutToShow'
+Traceback (most recent call last):
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 358, in __init__
+    self.init_ui()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 380, in init_ui
+    self.btn_recent.aboutToShow.connect(self.update_recent_menu)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'QPushButton' object has no attribute 'aboutToShow'
+----------------------------------------
+
+[2026-03-27 15:30:51] FATAL CRASH: 'QPushButton' object has no attribute 'aboutToShow'
+Traceback (most recent call last):
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 358, in __init__
+    self.init_ui()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 380, in init_ui
+    self.btn_recent.aboutToShow.connect(self.update_recent_menu)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'QPushButton' object has no attribute 'aboutToShow'
+----------------------------------------
+
+[2026-03-27 15:31:17] FATAL CRASH: 'QPushButton' object has no attribute 'aboutToShow'
+Traceback (most recent call last):
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 358, in __init__
+    self.init_ui()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 380, in init_ui
+    self.btn_recent.aboutToShow.connect(self.update_recent_menu)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'QPushButton' object has no attribute 'aboutToShow'
+----------------------------------------

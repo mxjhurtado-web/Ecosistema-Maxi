@@ -1,0 +1,20 @@
+{
+  "id": "test-flow",
+  "name": "Test Flow",
+  "steps": [
+    {
+      "id": "root",
+      "type": "sendMessage",
+      "name": "Inicio",
+      "payload": [{"message": {"type": "text", "text": "Hola!"}}],
+      "connectors": [{"id": "conn1", "targetStepId": "step2"}]
+    },
+    {
+      "id": "step2",
+      "type": "askQuestion",
+      "name": "Pregunta",
+      "question": {"text": "Como estas?"},
+      "connectors": []
+    }
+  ]
+}
