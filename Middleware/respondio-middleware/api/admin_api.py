@@ -3,7 +3,7 @@ Admin API for dashboard management.
 Provides endpoints for configuration, telemetry, and maintenance.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from typing import List, Optional
 from datetime import datetime, timedelta
 
@@ -257,51 +257,46 @@ async def test_google_chat(
 # ============================================================
 
 @router.post("/google-chat/event")
-async def google_chat_event_handler(request):
+async def google_chat_event_handler(request: Request):
     """
     Handles interactive events from Google Chat (messages, added to space, etc.)
     """
-    from fastapi import Request as FastAPIRequest
-    import json
-
     try:
-        if hasattr(request, 'json'):
-            data = await request.json()
-        elif isinstance(request, dict):
-            data = request
-        else:
-            data = {}
-    except Exception:
+        data = await request.json()
+    except Exception as e:
+        logger.error(f"Error parsing Google Chat event body: {e}")
         data = {}
 
     event_type = data.get("type", "")
     user_name = data.get("user", {}).get("displayName", "Usuario")
 
-    logger.info(f"📥 Evento recibido de Google Chat: {event_type} de {user_name}")
+    logger.info(f"📥 Google Chat event: type={event_type} from {user_name}")
 
     if event_type == "ADDED_TO_SPACE":
         return {
-            "text": f"¡Hola! Soy el bot de monitoreo de ORBIT. Estoy listo para enviarte alertas. Escribe 'estado' para ver el estado del sistema."
+            "text": "¡Hola! Soy el bot de monitoreo de ORBIT. Escribe 'estado' para ver el estado del sistema o 'ayuda' para más opciones."
         }
 
     elif event_type == "MESSAGE":
-        text = data.get("message", {}).get("argumentText", data.get("message", {}).get("text", "")).lower().strip()
+        msg = data.get("message", {})
+        text = (msg.get("argumentText") or msg.get("text") or "").lower().strip()
 
         if "estado" in text or "status" in text or "salud" in text:
             return {
-                "text": "📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nEscribe 'ayuda' para ver todos los comandos disponibles."
+                "text": "📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nEscribe 'ayuda' para ver todos los comandos."
             }
 
         if "ayuda" in text or "help" in text or "hola" in text:
             return {
-                "text": "🤖 *ORBIT Middleware Bot*\n\nComandos disponibles:\n- `estado` — Ver estado del sistema\n- `ayuda` — Ver esta ayuda\n\nTambién recibirás alertas automáticas ante fallos críticos. 🚨"
+                "text": "🤖 *ORBIT Middleware Bot*\n\nComandos:\n- `estado` — Estado del sistema\n- `ayuda` — Esta ayuda\n\nTambién recibirás alertas automáticas ante fallos críticos. 🚨"
             }
 
         return {
-            "text": f"Recibí tu mensaje. Escribe 'estado' para ver el estado del sistema o 'ayuda' para más opciones. 🚀"
+            "text": "Escribe 'estado' para ver el estado del sistema o 'ayuda' para más opciones. 🚀"
         }
 
-    return {"text": "Evento recibido correctamente."}
+    # Para cualquier otro evento (CARD_CLICKED, etc.) respondemos 200 vacío
+    return {"text": ""}
 
 
 
