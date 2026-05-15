@@ -367,6 +367,8 @@ async def google_chat_event_handler(request: Request):
     # VÍA DE ESCAPE: Enviar mensaje asíncronamente y responder 200 OK
     try:
         from .google_chat_service import google_chat_service
+        from .models import GoogleChatAlertConfig
+        from .config import settings
         
         # Función para buscar el space_id recursivamente
         def find_space_id(obj):
@@ -386,16 +388,25 @@ async def google_chat_event_handler(request: Request):
         
         if space_name:
             logger.info(f"🎯 ESPACIO ENCONTRADO: {space_name}")
-            logger.info(f"📤 Enviando mensaje asíncrono...")
+            
+            # Bypasseamos el config_manager para evitar bloqueos
+            direct_config = GoogleChatAlertConfig(
+                enabled=True,
+                sa_json_b64=settings.GOOGLE_CHATS_SA_BASE64 or "",
+                default_space_id=space_name
+            )
+            
+            logger.info(f"📤 Enviando mensaje asíncrono con config directa...")
             await google_chat_service.send_message(
                 space_id=space_name,
-                text=response_text
+                text=response_text,
+                config_override=direct_config
             )
         else:
             logger.warning(f"⚠️ No se encontró ningún string 'spaces/...' en el JSON. Keys: {list(data.keys())}")
             
     except Exception as e:
-        logger.error(f"❌ Error al enviar respuesta asíncrona: {e}")
+        logger.error(f"❌ Error crítico en el flujo de respuesta Google Chat: {e}")
 
     return {}
 

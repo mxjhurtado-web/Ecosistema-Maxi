@@ -32,16 +32,16 @@ class GoogleChatService:
             logger.error(f"Failed to load Google Chat Service Account: {str(e)}")
             return None
 
-    async def send_message(self, text: str, space_id: Optional[str] = None) -> bool:
+    async def send_message(self, text: str, space_id: Optional[str] = None, config_override: Optional[GoogleChatAlertConfig] = None) -> bool:
         """
         Send a message to a Google Chat space.
-        
-        Args:
-            text: The message content
-            space_id: Target space (e.g. 'spaces/AAAA1234'). If None, uses default from config.
         """
-        config = await config_manager.get_google_chat_config()
-        if not config.enabled:
+        if config_override:
+            config = config_override
+        else:
+            config = await config_manager.get_google_chat_config()
+
+        if not config.enabled and not config_override:
             logger.debug("Google Chat alerts are disabled")
             return False
 
