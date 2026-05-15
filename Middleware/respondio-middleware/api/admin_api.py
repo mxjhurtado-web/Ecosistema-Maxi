@@ -365,14 +365,18 @@ async def google_chat_event_handler(request: Request):
             response_text = f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
 
     # VÍA DE ESCAPE: Enviar mensaje asíncronamente y responder 200 OK
-    # Esto evita todos los problemas de validación de JSON de Google.
     try:
         from .google_chat_service import google_chat_service
         
-        # El espacio de Google Chat viene en el objeto 'chat' dentro de 'data'
-        chat_obj = data.get("chat", {})
-        space_obj = chat_obj.get("space", {})
-        space_name = space_obj.get("name")
+        # LOG de depuración para ver qué llaves llegan
+        logger.info(f"🔍 Llaves en el objeto data: {list(data.keys())}")
+        
+        # Buscar el espacio en todas las rutas posibles
+        space_name = (
+            data.get("chat", {}).get("space", {}).get("name") or 
+            data.get("space", {}).get("name") or
+            data.get("commonEventObject", {}).get("space", {}).get("name")
+        )
         
         if space_name:
             logger.info(f"📤 Enviando mensaje asíncrono a {space_name}...")
@@ -381,7 +385,7 @@ async def google_chat_event_handler(request: Request):
                 text=response_text
             )
         else:
-            logger.warning("⚠️ No se encontró el nombre del espacio para enviar respuesta asíncrona.")
+            logger.warning(f"⚠️ No se encontró el nombre del espacio. Data keys: {list(data.keys())}")
             
     except Exception as e:
         logger.error(f"❌ Error al enviar respuesta asíncrona: {e}")
