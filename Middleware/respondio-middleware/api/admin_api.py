@@ -353,21 +353,20 @@ async def google_chat_event_handler(request: Request):
         ]
     }
     
-    # FORMATO OBLIGATORIO PARA COMPLEMENTOS DE WORKSPACE (RenderActions)
+    # FORMATO OBLIGATORIO PARA COMPLEMENTOS DE WORKSPACE (Sin envoltorio extra)
     final_response = {
-        "renderActions": {
-            "action": {
-                "navigations": [
-                    {
-                        "pushCard": card
-                    }
-                ]
-            }
+        "action": {
+            "navigations": [
+                {
+                    "pushCard": card
+                }
+            ]
         }
     }
     
-    logger.info(f"📤 Enviando RenderActions a Google Chat: {json.dumps(final_response)}")
+    logger.info(f"📤 Enviando RenderActions Directo a Google Chat: {json.dumps(final_response)}")
     return final_response
+
 
 
 
