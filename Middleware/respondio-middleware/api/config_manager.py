@@ -13,6 +13,7 @@ from .models import (
     AuditLogEntry,
     AuditAction,
     EmailAlertConfig,
+    GoogleChatAlertConfig,
     AgentConfig
 )
 from .config import settings
