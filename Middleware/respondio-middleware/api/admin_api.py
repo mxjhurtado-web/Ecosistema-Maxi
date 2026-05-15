@@ -364,35 +364,28 @@ async def google_chat_event_handler(request: Request):
             logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
             response_text = f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
 
-    # FORMATO ESTRICTO PARA COMPLEMENTO DE WORKSPACE (Sin campo 'text' en raíz)
-    final_response = {
-        "action": {
-            "navigations": [
-                {
-                    "pushCard": {
-                        "header": {
-                            "title": "ORBIT Bot",
-                            "subtitle": "IA Middleware"
-                        },
-                        "sections": [
-                            {
-                                "widgets": [
-                                    {
-                                        "textParagraph": {
-                                            "text": response_text
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                }
-            ]
-        }
-    }
-    
-    logger.info(f"📤 Enviando respuesta estricta CardV2: {json.dumps(final_response)}")
-    return final_response
+    # VÍA DE ESCAPE: Enviar mensaje asíncronamente y responder 200 OK
+    # Esto evita todos los problemas de validación de JSON de Google.
+    try:
+        from .google_chat_service import google_chat_service
+        
+        # El espacio de Google Chat viene en el payload
+        space_name = payload.get("space", {}).get("name")
+        if space_name:
+            logger.info(f"📤 Enviando mensaje asíncrono a {space_name}...")
+            await google_chat_service.send_message(
+                space_id=space_name,
+                text=response_text
+            )
+        else:
+            logger.warning("⚠️ No se encontró el nombre del espacio para enviar respuesta asíncrona.")
+            
+    except Exception as e:
+        logger.error(f"❌ Error al enviar respuesta asíncrona: {e}")
+
+    # Retornamos éxito total a Google para que no marque error
+    return {"status": "ok"}
+
 
 
 
