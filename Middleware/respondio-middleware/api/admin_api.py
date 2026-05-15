@@ -305,34 +305,6 @@ async def google_chat_event_handler(request: Request):
             "text": f"🤖 *ORBIT Bot*\n¡Hola *{user_name}*! 👋\n\nPuedo ayudarte con:\n- `estado`: Ver salud técnica de ORBIT.\n- *Consultas IA*: Pregúntame por estatus de guías o información de envíos directamente."
         }
 
-    else:
-        # CONSULTA AL MCP PARA CUALQUIER OTRA COSA
-        logger.info(f"🧠 Consultando MCP para: {text}")
-        try:
-            from .mcp_client import mcp_client
-            from .models import ResponseStatus
-            
-            response_text, status, latency, _ = await mcp_client.query_mcp(
-                user_text=text,
-                context={"source": "google_chat", "user": user_name},
-                agent_name=None
-            )
-            
-            if status == ResponseStatus.OK:
-                response_payload = {
-                    "text": f"{response_text}\n\n_🕒 Latencia: {latency}ms_"
-                }
-            else:
-                response_payload = {
-                    "text": f"⚠️ *Error del MCP*\n{response_text}"
-                }
-                
-        except Exception as e:
-            logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
-            response_payload = {
-                "text": f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
-            }
-
     # Lógica de respuestas
     response_text = ""
     
@@ -349,7 +321,8 @@ async def google_chat_event_handler(request: Request):
             from .mcp_client import mcp_client
             from .models import ResponseStatus
             
-            mcp_resp, status, latency, _ = await mcp_client.query_mcp(
+            # El método correcto es .query()
+            mcp_resp, status, latency, _ = await mcp_client.query(
                 user_text=text,
                 context={"source": "google_chat", "user": user_name},
                 agent_name=None
@@ -363,6 +336,7 @@ async def google_chat_event_handler(request: Request):
         except Exception as e:
             logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
             response_text = f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
+
 
     # VÍA DE ESCAPE: Enviar mensaje asíncronamente y responder 200 OK
     try:
