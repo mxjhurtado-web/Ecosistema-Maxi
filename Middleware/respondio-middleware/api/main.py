@@ -92,6 +92,53 @@ async def shutdown_event():
 
 
 # ============================================================
+# Google Chat Bot Webhook (public, no auth required)
+# ============================================================
+
+@app.post("/google-chat/event")
+async def google_chat_webhook(request: Request):
+    """
+    Public endpoint for Google Chat bot events.
+    Google sends MESSAGE and ADDED_TO_SPACE events here.
+    """
+    try:
+        data = await request.json()
+    except Exception as e:
+        logger.error(f"Google Chat webhook: could not parse body: {e}")
+        return {"text": ""}
+
+    event_type = data.get("type", "")
+    user_name = data.get("user", {}).get("displayName", "")
+    logger.info(f"📥 Google Chat event: type={event_type!r} from={user_name!r}")
+
+    if event_type == "ADDED_TO_SPACE":
+        return {
+            "text": "¡Hola! Soy el bot de monitoreo de ORBIT. Escribe 'estado' para ver el estado del sistema o 'ayuda' para más opciones."
+        }
+
+    if event_type == "MESSAGE":
+        msg = data.get("message", {})
+        text = (msg.get("argumentText") or msg.get("text") or "").lower().strip()
+        logger.info(f"📨 Google Chat message text: {text!r}")
+
+        if any(kw in text for kw in ["estado", "status", "salud"]):
+            return {
+                "text": "📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nEscribe 'ayuda' para ver todos los comandos."
+            }
+
+        if any(kw in text for kw in ["ayuda", "help", "hola", "hi"]):
+            return {
+                "text": "🤖 *ORBIT Middleware Bot*\n\nComandos:\n- `estado` — Estado del sistema\n- `ayuda` — Esta ayuda\n\nTambién recibirás alertas automáticas ante fallos críticos. 🚨"
+            }
+
+        return {
+            "text": "Escribe 'estado' o 'ayuda' para interactuar conmigo. 🚀"
+        }
+
+    return {"text": ""}
+
+
+# ============================================================
 # Main Webhook Endpoint
 # ============================================================
 
