@@ -30,8 +30,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Create router
+# Create routers
 router = APIRouter(prefix="/admin", tags=["admin"])
+public_router = APIRouter(tags=["public"])
 
 
 # ============================================================
@@ -253,10 +254,10 @@ async def test_google_chat(
 
 
 # ============================================================
-# Google Chat Interactive Event Handler
+# Google Chat Interactive Event Handler (Public)
 # ============================================================
 
-@router.post("/google-chat/event")
+@public_router.post("/google-chat/event")
 async def google_chat_event_handler(request: Request):
     """
     Handles interactive events from Google Chat (messages, added to space, etc.)
