@@ -368,8 +368,9 @@ async def google_chat_event_handler(request: Request):
     try:
         from .google_chat_service import google_chat_service
         
-        # LOG de depuración para ver qué llaves llegan
-        logger.info(f"🔍 Llaves en el objeto data: {list(data.keys())}")
+        # LOG DEL OBJETO COMPLETO para diagnóstico definitivo
+        data_str = json.dumps(data)
+        logger.info(f"🧪 DATA COMPLETA (primeros 1000 chars): {data_str[:1000]}")
         
         # Buscar el espacio en todas las rutas posibles
         space_name = (
