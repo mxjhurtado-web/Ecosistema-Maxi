@@ -8,7 +8,13 @@ def get_config():
         with open(CONFIG_FILE, "r") as f:
             try: return json.load(f)
             except: pass
-    return {"gemini_api_key": "", "recent_files": []}
+    return {
+        "gemini_api_key": "",
+        "recent_files": [],
+        "glossary_path": "",
+        "glossary_text": "",
+        "example_path": ""
+    }
 
 def save_config(config):
     with open(CONFIG_FILE, "w") as f:

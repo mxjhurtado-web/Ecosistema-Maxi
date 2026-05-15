@@ -3,12 +3,12 @@ from models import WorkflowModel, WorkflowNode
 
 class LayoutEngine:
     def __init__(self):
-        self.spacing_h = 500
+        # Spacing optimized to match the manual JSON look without being too sparse
+        self.spacing_h = 700
         self.spacing_v = 350
 
     def apply_tree_layout(self, model: WorkflowModel):
-        if not model.nodes:
-            return
+        if not model.nodes: return
 
         assigned = set()
         subtree_widths = {}
@@ -38,7 +38,6 @@ class LayoutEngine:
                 layout_node_recursive(child, current_x + child_w / 2, y + self.spacing_v)
                 current_x += child_w
 
-        # Identify roots: nodes with no parent in the current set
         all_ids = set(model.nodes.keys())
         has_parent = set()
         for n in model.nodes.values():
@@ -49,18 +48,25 @@ class LayoutEngine:
         roots.sort(key=lambda n: 0 if n.type == "trigger" else 1)
 
         current_x_cursor = 0.0
-        for root in roots:
+        current_y_cursor = 100.0
+        for i, root in enumerate(roots):
             if root.id not in assigned:
                 w = calculate_subtree_width(root)
-                layout_node_recursive(root, current_x_cursor + w / 2, 100.0)
-                current_x_cursor += w + 600
+                # If there are MANY roots (import mess), arrange in a grid of 3 columns
+                if len(roots) > 5:
+                    col = i % 3
+                    row = i // 3
+                    layout_node_recursive(root, col * (self.spacing_h * 2), 100.0 + row * (self.spacing_v * 2.5))
+                else:
+                    layout_node_recursive(root, current_x_cursor + w / 2, 100.0)
+                    current_x_cursor += w + 1000 
 
-        # Fallback grid for unassigned (should be empty if roots worked)
+        # Fallback grid for unassigned
         unassigned = [n for n in model.nodes.values() if n.id not in assigned]
         if unassigned:
-            cols = 6
-            start_x = current_x_cursor + 400
+            cols = 5
+            start_x = current_x_cursor + 500
             for i, n in enumerate(unassigned):
-                n.x = start_x + (i % cols) * self.spacing_h
-                n.y = 100.0 + (i // cols) * self.spacing_v
+                n.x = start_x + (i % cols) * (self.spacing_h * 1.5)
+                n.y = 100.0 + (i // cols) * (self.spacing_v * 1.5)
                 assigned.add(n.id)

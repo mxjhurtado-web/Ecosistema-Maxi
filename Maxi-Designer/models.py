@@ -1,19 +1,21 @@
 import json
 import os
+import uuid
 from typing import List, Dict, Any, Optional
 
 class WorkflowNode:
     def __init__(self, data: Dict[str, Any]):
         self.id: str = str(data.get("id")) if data.get("id") is not None else ""
         self.parentId: Optional[str] = str(data.get("parentId")) if data.get("parentId") is not None else None
+        self.branchLabel: Optional[str] = str(data.get("branchLabel")) if data.get("branchLabel") is not None else None
         self.type: str = data.get("type", "unknown")
         self.name: str = data.get("name", "")
         # Resilient data capture for different Respond.io versions
         self.data_payload: Dict[str, Any] = data.get("data") or data.get("properties") or data.get("attributes") or data.get("params") or {}
         
         # Position for the UI
-        self.x: float = 0.0
-        self.y: float = 0.0
+        self.x: float = data.get("x", 0.0)
+        self.y: float = data.get("y", 0.0)
         
         # UI metadata
         self.children: List['WorkflowNode'] = []
@@ -22,20 +24,34 @@ class WorkflowNode:
         return {
             "id": self.id,
             "parentId": self.parentId,
+            "branchLabel": self.branchLabel,
             "type": self.type,
             "name": self.name,
+            "x": self.x,
+            "y": self.y,
             "data": self.data_payload
         }
 
 class WorkflowModel:
     def __init__(self):
-        self.id: Optional[str] = None
-        self.name: str = "New Workflow"
+        self.id: Optional[str] = f"wf_{uuid.uuid4().hex[:6]}"
+        self.name: str = "Nuevo Flujo"
         self.description: str = ""
         self.nodes: Dict[str, WorkflowNode] = {}
         self.root_node_ids: List[str] = []
         self.root_node_id: Optional[str] = None
         self.raw_data: Dict[str, Any] = {}
+        # Auto-create trigger for empty models
+        self._add_default_trigger()
+
+    def _add_default_trigger(self):
+        tid = "trigger_start"
+        self.nodes[tid] = WorkflowNode({
+            "id": tid, "type": "trigger", "name": "Disparador (Inicio)",
+            "data": {"payload": [{"message": {"text": "Flujo iniciado por el cliente"}}]}
+        })
+        self.root_node_ids = [tid]
+        self.root_node_id = tid
 
     def load_json(self, file_path: str):
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -67,6 +83,15 @@ class WorkflowModel:
             if p_id and p_id in self.nodes and p_id != nid:
                 parent = self.nodes[p_id]
                 if node not in parent.children: parent.children.append(node)
+                
+                # Try to discover branchLabel from parent's options if not already set
+                if not node.branchLabel:
+                    opts = parent.data_payload.get("options") or parent.data_payload.get("choices") or []
+                    for opt in opts:
+                        dest = str(opt.get("destinationId") or opt.get("stepId") or "")
+                        if dest == nid:
+                            node.branchLabel = str(opt.get("label") or opt.get("text") or "")
+                            break
             else:
                 if nid not in self.root_node_ids: self.root_node_ids.append(nid)
 
@@ -77,6 +102,7 @@ class WorkflowModel:
             if node.type == "trigger": continue
             found = False
             for potential_parent in self.nodes.values():
+                # Check for mention of this ID in potential parent's data
                 def find_id_in_data(obj):
                     if isinstance(obj, str): return obj == rid
                     if isinstance(obj, list): return any(find_id_in_data(i) for i in obj)
@@ -84,7 +110,16 @@ class WorkflowModel:
                     return False
                 if find_id_in_data(potential_parent.data_payload):
                     if node not in potential_parent.children: potential_parent.children.append(node)
+                    node.parentId = potential_parent.id
                     if rid in self.root_node_ids: self.root_node_ids.remove(rid)
+                    
+                    # Try to set branchLabel from potential_parent's options
+                    opts = potential_parent.data_payload.get("options") or potential_parent.data_payload.get("choices") or []
+                    for opt in opts:
+                        dest = str(opt.get("destinationId") or opt.get("stepId") or "")
+                        if dest == rid:
+                            node.branchLabel = str(opt.get("label") or opt.get("text") or "")
+                            break
                     found = True; break
                     
         reachable = set()
@@ -104,6 +139,40 @@ class WorkflowModel:
 
         self.root_node_ids.sort(key=lambda rid: 0 if self.nodes[rid].type == "trigger" else 1)
         if self.root_node_ids: self.root_node_id = self.root_node_ids[0]
+
+    def from_dict(self, data: Dict[str, Any]):
+        self.raw_data = data.get("raw_data", data)
+        self.id = str(data.get("id")) if data.get("id") is not None else self.id
+        self.name = str(data.get("name", self.name))
+        self.nodes = {}
+        
+        workflow_data = data.get("workflow") or data.get("steps") or data.get("components") or []
+        for node_data in workflow_data:
+            if not isinstance(node_data, dict): continue
+            node = WorkflowNode(node_data)
+            if node.id:
+                self.nodes[node.id] = node
+        
+        self.root_node_ids = []
+        for nid, node in self.nodes.items():
+            p_id = str(node.parentId) if node.parentId is not None else None
+            if p_id and p_id in self.nodes:
+                parent = self.nodes[p_id]
+                if node not in parent.children: parent.children.append(node)
+            else:
+                self.root_node_ids.append(nid)
+        
+        if self.root_node_ids: self.root_node_id = self.root_node_ids[0]
+
+    def to_dict(self):
+        workflow_list = [node.to_dict() for node in self.nodes.values()]
+        output_data = self.raw_data.copy() if self.raw_data else {}
+        output_data.update({
+            "id": self.id,
+            "name": self.name,
+            "workflow": workflow_list
+        })
+        return output_data
 
     def save_json(self, file_path: str):
         workflow_list = [node.to_dict() for node in self.nodes.values()]

@@ -119,3 +119,45 @@ Traceback (most recent call last):
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'QPushButton' object has no attribute 'aboutToShow'
 ----------------------------------------
+
+[2026-03-30 09:19:56] FATAL CRASH: name 'uuid' is not defined
+Traceback (most recent call last):
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 341, in __init__
+    super().__init__(); self.setWindowTitle("Maxi-Designer"); self.resize(1400, 900); self.ai = AIEngine(); self.last_doc_context = ""; self.init_ui(); self.setStyleSheet(GLOBAL_STYLE)
+                                                                                                                                        ~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 382, in init_ui
+    self.tabs.currentChanged.connect(self.update_minimap); self.sp.addWidget(self.tabs); self.new_tab()
+                                                                                         ~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 404, in new_tab
+    t = WorkflowTab(self); self.tabs.addTab(t, os.path.basename(path) if path else "Nuevo")
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 244, in __init__
+    super().__init__(parent); self.main_win = main_win; self.model = WorkflowModel(); self._file_path = None
+                                                                     ~~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\models.py", line 34, in __init__
+    self.id: Optional[str] = f"wf_{uuid.uuid4().hex[:6]}"
+                                   ^^^^
+NameError: name 'uuid' is not defined. Did you forget to import 'uuid'?
+----------------------------------------
+
+[2026-03-30 09:21:26] FATAL CRASH: name 'uuid' is not defined
+Traceback (most recent call last):
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 341, in __init__
+    super().__init__(); self.setWindowTitle("Maxi-Designer"); self.resize(1400, 900); self.ai = AIEngine(); self.last_doc_context = ""; self.init_ui(); self.setStyleSheet(GLOBAL_STYLE)
+                                                                                                                                        ~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 382, in init_ui
+    self.tabs.currentChanged.connect(self.update_minimap); self.sp.addWidget(self.tabs); self.new_tab()
+                                                                                         ~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 404, in new_tab
+    t = WorkflowTab(self); self.tabs.addTab(t, os.path.basename(path) if path else "Nuevo")
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\view.py", line 244, in __init__
+    super().__init__(parent); self.main_win = main_win; self.model = WorkflowModel(); self._file_path = None
+                                                                     ~~~~~~~~~~~~~^^
+  File "C:\Users\User\Ecosistema-Maxi\Maxi-Designer\models.py", line 34, in __init__
+    self.id: Optional[str] = f"wf_{uuid.uuid4().hex[:6]}"
+                                   ^^^^
+NameError: name 'uuid' is not defined. Did you forget to import 'uuid'?
+----------------------------------------
