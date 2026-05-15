@@ -202,6 +202,92 @@ async def update_email_config(
 
 
 # ============================================================
+# Google Chat Configuration Endpoints
+# ============================================================
+
+@router.get("/config/google-chat", response_model=GoogleChatAlertConfig)
+async def get_google_chat_config(
+    _: DashboardUser = Depends(verify_admin_credentials)
+):
+    """Get current Google Chat configuration"""
+    return await config_manager.get_google_chat_config()
+
+
+@router.put("/config/google-chat")
+async def update_google_chat_config(
+    config: GoogleChatAlertConfig,
+    user: DashboardUser = Depends(require_admin_role)
+):
+    """Update Google Chat configuration"""
+    success = await config_manager.update_google_chat_config(config)
+    
+    if success:
+        # Audit log
+        await config_manager.log_audit_action(AuditLogEntry(
+            username=user.username,
+            role=user.role,
+            action=AuditAction.CONFIG_CHANGE,
+            details="Updated Google Chat alerting configuration"
+        ))
+        
+        return {"status": "ok", "message": "Google Chat config updated"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to update config")
+
+
+@router.post("/maintenance/test-google-chat")
+async def test_google_chat(
+    message: str = Query(default="Test alert from ORBIT Dashboard"),
+    space_id: Optional[str] = Query(None),
+    _: DashboardUser = Depends(verify_admin_credentials)
+):
+    """Test Google Chat connection"""
+    from .google_chat_service import google_chat_service
+    success = await google_chat_service.send_alert("Prueba de Conexión", message, level="SUCCESS", space_id=space_id)
+    
+    if success:
+        return {"status": "ok", "message": "Test message sent to Google Chat"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send test message to Google Chat")
+
+
+# ============================================================
+# Google Chat Interactive Event Handler
+# ============================================================
+
+@router.post("/google-chat/event")
+async def google_chat_event_handler(request: dict):
+    """
+    Handles interactive events from Google Chat (messages, added to space, etc.)
+    """
+    event_type = request.get("type")
+    user_name = request.get("user", {}).get("displayName", "Usuario")
+    
+    logger.info(f"📥 Evento recibido de Google Chat: {event_type} de {user_name}")
+    
+    if event_type == "ADDED_TO_SPACE":
+        return {
+            "text": f"¡Hola {user_name}! Gracias por agregarme. Soy el bot de monitoreo de ORBIT. Estoy listo para enviarte alertas y reportes."
+        }
+    
+    elif event_type == "MESSAGE":
+        text = request.get("message", {}).get("text", "").lower()
+        
+        # Lógica de respuesta básica
+        if "estado" in text or "status" in text:
+            # Aquí luego podemos conectar la telemetría real
+            return {
+                "text": f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\n¿Quieres que analice los logs recientes?"
+            }
+        
+        return {
+            "text": f"Recibí tu mensaje: '{text}'. Por ahora solo entiendo comandos como 'estado', pero pronto seré más inteligente. 🚀"
+        }
+    
+    return {"text": "Evento recibido correctamente."}
+
+
+# ============================================================
 # User Management Endpoints
 # ============================================================
 

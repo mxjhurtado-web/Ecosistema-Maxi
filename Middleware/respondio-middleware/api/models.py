@@ -262,6 +262,15 @@ class EmailAlertConfig(BaseModel):
     alert_on_circuit_breaker: bool = Field(default=True, description="Alertar en apertura de Circuit Breaker")
 
 
+class GoogleChatAlertConfig(BaseModel):
+    """Configuración de alertas por Google Chat"""
+    enabled: bool = Field(default=False, description="Habilitar alertas por Google Chat")
+    sa_json_b64: str = Field(default="", description="Service Account JSON en Base64")
+    default_space_id: str = Field(default="", description="ID del espacio por defecto (spaces/XXXX)")
+    alert_on_mcp_error: bool = Field(default=True, description="Alertar en error de MCP")
+    alert_on_circuit_breaker: bool = Field(default=True, description="Alertar en apertura de Circuit Breaker")
+
+
 # ============================================================
 # Health Check
 # ============================================================

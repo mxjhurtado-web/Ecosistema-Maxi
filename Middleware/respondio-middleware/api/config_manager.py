@@ -368,6 +368,56 @@ class ConfigManager:
             return False
 
     # ============================================================
+    # Google Chat Configuration
+    # ============================================================
+
+    async def get_google_chat_config(self) -> GoogleChatAlertConfig:
+        """Get current Google Chat configuration"""
+        if not self.enabled:
+            return GoogleChatAlertConfig(
+                sa_json_b64=settings.GOOGLE_CHATS_SA_BASE64 or "",
+                default_space_id=settings.GOOGLE_CHATS_DEFAULT_SPACE or ""
+            )
+            
+        try:
+            enabled = await self.redis.get("config:google_chat:enabled")
+            sa_json = await self.redis.get("config:google_chat:sa_json_b64")
+            space_id = await self.redis.get("config:google_chat:default_space_id")
+            alert_mcp = await self.redis.get("config:google_chat:alert_on_mcp_error")
+            alert_cb = await self.redis.get("config:google_chat:alert_on_circuit_breaker")
+            
+            return GoogleChatAlertConfig(
+                enabled=enabled.decode() == "true" if enabled else False,
+                sa_json_b64=sa_json.decode() if sa_json else (settings.GOOGLE_CHATS_SA_BASE64 or ""),
+                default_space_id=space_id.decode() if space_id else (settings.GOOGLE_CHATS_DEFAULT_SPACE or ""),
+                alert_on_mcp_error=alert_mcp.decode() == "true" if alert_mcp else True,
+                alert_on_circuit_breaker=alert_cb.decode() == "true" if alert_cb else True
+            )
+        except Exception as e:
+            logger.error(f"Failed to get google chat config: {str(e)}")
+            return GoogleChatAlertConfig()
+
+    async def update_google_chat_config(self, config: GoogleChatAlertConfig) -> bool:
+        """Update Google Chat configuration"""
+        if not self.enabled:
+            # Memory fallback
+            self._memory_config["google_chat"] = config
+            return True
+            
+        try:
+            await self.redis.set("config:google_chat:enabled", "true" if config.enabled else "false")
+            await self.redis.set("config:google_chat:sa_json_b64", config.sa_json_b64)
+            await self.redis.set("config:google_chat:default_space_id", config.default_space_id)
+            await self.redis.set("config:google_chat:alert_on_mcp_error", "true" if config.alert_on_mcp_error else "false")
+            await self.redis.set("config:google_chat:alert_on_circuit_breaker", "true" if config.alert_on_circuit_breaker else "false")
+            
+            logger.info("Google Chat config updated")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update google chat config: {str(e)}")
+            return False
+
+    # ============================================================
     # User Management
     # ============================================================
 

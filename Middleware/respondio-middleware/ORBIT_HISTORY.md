@@ -344,6 +344,41 @@
 
 ---
 
+### 🔹 Fase 18 — Integración con Google Chat (Service Account)
+**Estado:** ✅ Completada | **Tiempo estimado:** ~2 horas
+
+**Objetivo:** Implementar alertas en tiempo real mediante Google Chat usando una cuenta de servicio corporativa.
+
+**Archivos creados/modificados:**
+| Archivo | Descripción |
+|---|---|
+| `api/google_chat_service.py` | Servicio de comunicación con la API de Google Chat |
+| `api/config.py` | Variables para SA Base64 y Space ID por defecto |
+| `api/models.py` | Modelo `GoogleChatAlertConfig` |
+| `api/config_manager.py` | Gestión dinámica de la configuración de Chat en Redis |
+| `api/mcp_client.py` | Disparadores de alertas en tiempo real (CB y Errores MCP) |
+| `api/admin_api.py` | Endpoints para configurar y probar la conexión con Chat |
+
+**Logros:**
+- Notificaciones instantáneas con formato enriquecido (iconos y negritas).
+- Soporte para múltiples espacios de chat (salas).
+- Autenticación segura mediante Service Account (Base64).
+- Independencia entre alertas de email y alertas de chat.
+
+---
+
+### 🔹 Fase 19 — Cimientos para Interactividad Bidireccional
+**Estado:** ✅ Completada | **Tiempo estimado:** ~1 hora
+
+**Objetivo:** Preparar la arquitectura para que el bot de Google Chat pueda responder preguntas sobre el estado de ORBIT.
+
+**Acciones realizadas:**
+- Diseño de la estructura de enrutamiento para mensajes entrantes de Google Chat.
+- Creación de métodos genéricos en `google_chat_service.py` para facilitar respuestas futuras.
+- Actualización de `requirements.txt` con librerías oficiales de Google Auth.
+
+---
+
 ## 🏗️ Arquitectura Actual
 
 ```
@@ -358,37 +393,26 @@
 │  ✅ Circuit Breaker             │
 │  ✅ Telemetría Redis            │
 │  ✅ Keycloak Service Account    │
-│  ✅ Fallback In-Memory          │
-│  ✅ Alertas Email               │
+│  ✅ Google Chat Service Account │  ← NUEVO
+│  ✅ Alertas Email + G-Chat      │  ← NUEVO
 └────────┬────────────────────────┘
          │ POST /query (Bearer Token)
          ▼
-┌─────────────────┐
-│   MCP Server    │  ← Servidor de IA interno
-└─────────────────┘
-
-┌─────────────────────────────────┐
-│    Dashboard (Streamlit Cloud)  │
-│  📊 KPIs + Gráficos Plotly      │
-│  📜 Historial + Exportación CSV │
-│  🔍 Logs en Tiempo Real         │
-│  ⚙️  Configuración en Caliente  │
-│  🛡️  Auditoría (solo Admin)     │
-│  👥 Gestión de Usuarios         │
-│  💬 Chat de Pruebas             │
-│  🚨 Alertas Email               │
-│  📚 Knowledge Base              │
-└─────────────────────────────────┘
+┌─────────────────┐      ┌──────────────────────────┐
+│   MCP Server    │      │ Google Chat Space (Sala) │
+└─────────────────┘      └──────────────────────────┘
+                                ▲
+                                │ Alertas instantáneas 🚨
 ```
 
 ---
 
 ## 🚀 Próximos Pasos
 
-- **Redis en Render**: Activar persistencia real para reemplazar el fallback in-memory.
-- **Página de Herramientas** (`8_🛠️_herramientas.py`): Kill Switch para herramientas MCP.
-- **Multi-MCP UI**: Interfaz visual para gestionar múltiples servidores MCP y sus reglas de ruteo.
-- **Alertas Predictivas**: Notificaciones cuando la latencia supera umbrales configurables.
+- **Bot Interactivo**: Implementar el endpoint `/google-chat/event` para responder consultas desde el chat.
+- **Redis en Render**: Activar persistencia real.
+- **Página de Herramientas**: Kill Switch para herramientas MCP.
+- **Multi-MCP UI**: Interfaz visual para ruteo avanzado.
 
 ---
 

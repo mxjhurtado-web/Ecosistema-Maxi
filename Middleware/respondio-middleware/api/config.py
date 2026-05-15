@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = None
     ALERT_EMAIL_RECIPIENT: Optional[str] = None
     
+    # Google Chat Settings
+    GOOGLE_CHATS_SA_BASE64: Optional[str] = None
+    GOOGLE_CHATS_DEFAULT_SPACE: Optional[str] = None
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

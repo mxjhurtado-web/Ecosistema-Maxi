@@ -80,15 +80,26 @@ class MCPClient:
             
             # Fire alert trigger (background task since aiosmtplib is async)
             from .email_service import email_service
+            from .google_chat_service import google_chat_service
             from .config_manager import config_manager
             
             async def fire_cb_alert():
-                config = await config_manager.get_email_config()
-                if config.enabled and config.alert_on_circuit_breaker:
+                # Email alert
+                email_config = await config_manager.get_email_config()
+                if email_config.enabled and email_config.alert_on_circuit_breaker:
                     await email_service.send_alert(
                         "Circuit Breaker Opened",
                         f"The ORBIT circuit breaker has been activated after {self.failure_count} consecutive failures. "
                         "Middleware is now in safety mode (returning fallbacks)."
+                    )
+                
+                # Google Chat alert
+                chat_config = await config_manager.get_google_chat_config()
+                if chat_config.enabled and chat_config.alert_on_circuit_breaker:
+                    await google_chat_service.send_alert(
+                        "Circuit Breaker Activado",
+                        f"El Circuit Breaker de ORBIT se ha abierto tras {self.failure_count} fallos consecutivos. El middleware está en modo de seguridad.",
+                        level="ERROR"
                     )
             
             asyncio.create_task(fire_cb_alert())
@@ -335,14 +346,25 @@ REGLAS ESTRICTAS:
         
         # Fire alert trigger for MCP Error
         from .email_service import email_service
+        from .google_chat_service import google_chat_service
         from .config_manager import config_manager
         
         async def fire_mcp_alert():
-            config = await config_manager.get_email_config()
-            if config.enabled and config.alert_on_mcp_error:
+            # Email alert
+            email_config = await config_manager.get_email_config()
+            if email_config.enabled and email_config.alert_on_mcp_error:
                 await email_service.send_alert(
                     "MCP Connection Failure",
                     f"A query failed after {retry_count} retries.\nError: {last_error}\nQuery: {user_text[:100]}..."
+                )
+            
+            # Google Chat alert
+            chat_config = await config_manager.get_google_chat_config()
+            if chat_config.enabled and chat_config.alert_on_mcp_error:
+                await google_chat_service.send_alert(
+                    "Fallo de Conexión MCP",
+                    f"Una consulta falló tras {retry_count} reintentos.\n*Error:* {last_error}\n*Consulta:* {user_text[:100]}...",
+                    level="WARNING"
                 )
         
         asyncio.create_task(fire_mcp_alert())
