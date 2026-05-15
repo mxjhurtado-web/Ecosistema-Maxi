@@ -260,48 +260,53 @@ async def test_google_chat(
 @public_router.post("/google-chat/event")
 async def google_chat_event_handler(request: Request):
     """
-    Handles interactive events from Google Chat
+    Handles interactive events from Google Chat (Workspace Add-on format)
     """
     import json
     
-    # Leer el cuerpo crudo para debug
     body_bytes = await request.body()
     body_str = body_bytes.decode("utf-8")
-    logger.info(f"📦 Raw Google Chat Body: {body_str}")
     
     try:
         data = json.loads(body_str) if body_str else {}
     except Exception as e:
         logger.error(f"❌ Error parsing JSON: {e}")
-        data = {}
+        return {"text": "Error parsing request"}
 
-    event_type = data.get("type", "")
-    user_name = data.get("user", {}).get("displayName", "Usuario")
+    # Detectar el tipo de evento en el nuevo formato
+    # El mensaje suele estar en chat -> messagePayload -> message
+    chat_data = data.get("chat", {})
+    message_payload = chat_data.get("messagePayload", {})
+    message = message_payload.get("message", {})
+    
+    # Usuario
+    user = chat_data.get("user", {})
+    user_name = user.get("displayName", "Usuario")
+    
+    # Texto (usamos argumentText para evitar la mención @Bot)
+    text = (message.get("argumentText") or message.get("text") or "").lower().strip()
+    
+    logger.info(f"📥 Message from {user_name}: {text}")
 
-    logger.info(f"📥 Event Type: {event_type} | User: {user_name}")
+    # Si no hay texto pero hay un evento de interacción
+    if not text and not chat_data:
+        return {"text": "Sistema ORBIT listo."}
 
-    if event_type == "ADDED_TO_SPACE":
+    # Lógica de respuestas
+    if "estado" in text or "status" in text or "reporte" in text:
         return {
-            "text": "¡Hola! Soy el bot de monitoreo de ORBIT. Escribe 'estado' para ver cómo va todo."
+            "text": f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nHola *{user_name}*, el sistema opera con normalidad."
         }
 
-    elif event_type == "MESSAGE":
-        msg_data = data.get("message", {})
-        # Google Chat puede mandar el texto en 'text' o 'argumentText'
-        text = (msg_data.get("text") or "").lower().strip()
-        
-        logger.info(f"💬 Mensaje recibido: {text}")
-
-        if "estado" in text or "status" in text:
-            return {
-                "text": "📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable"
-            }
-
+    if "hola" in text or "ayuda" in text:
         return {
-            "text": f"Recibí tu mensaje: '{text}'. Escribe 'estado' para ver el reporte. 🚀"
+            "text": f"🤖 *ORBIT Bot*\n¡Hola {user_name}! Puedo ayudarte con:\n- `estado`: Ver salud del sistema\n- `alertas`: Configuración de notificaciones"
         }
 
-    return {"text": "Evento procesado."}
+    return {
+        "text": f"Recibí: '{text}'. Escribe `estado` para el reporte detallado."
+    }
+
 
 
 
