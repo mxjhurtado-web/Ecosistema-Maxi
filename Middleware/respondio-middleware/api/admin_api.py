@@ -383,8 +383,9 @@ async def google_chat_event_handler(request: Request):
     except Exception as e:
         logger.error(f"❌ Error al enviar respuesta asíncrona: {e}")
 
-    # Retornamos éxito total a Google para que no marque error
-    return {"status": "ok"}
+    # Retornamos un objeto vacío válido para RenderActions/DataActions
+    # Google espera un JSON, y un objeto vacío es el RenderActions más simple posible.
+    return {}
 
 
 
