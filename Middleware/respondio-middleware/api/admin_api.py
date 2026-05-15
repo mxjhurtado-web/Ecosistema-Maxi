@@ -364,13 +364,37 @@ async def google_chat_event_handler(request: Request):
             logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
             response_text = f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
 
-    # RESPUESTA SIMPLE (La más compatible universalmente)
+    # FORMATO HÍBRIDO (Para bot normal y para Complemento de Workspace)
     final_response = {
-        "text": response_text
+        "text": response_text,  # Para bot normal
+        "action": {             # Para Complemento de Workspace
+            "navigations": [
+                {
+                    "pushCard": {
+                        "header": {
+                            "title": "ORBIT Bot",
+                            "subtitle": "IA Middleware"
+                        },
+                        "sections": [
+                            {
+                                "widgets": [
+                                    {
+                                        "textParagraph": {
+                                            "text": response_text
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
     }
     
-    logger.info(f"📤 Enviando respuesta final: {json.dumps(final_response)}")
+    logger.info(f"📤 Enviando respuesta híbrida: {json.dumps(final_response)}")
     return final_response
+
 
 
 
