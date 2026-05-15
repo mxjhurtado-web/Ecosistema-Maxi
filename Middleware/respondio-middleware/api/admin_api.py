@@ -17,6 +17,7 @@ from .models import (
     MCPConfig,
     CacheConfig,
     EmailAlertConfig,
+    GoogleChatAlertConfig,
     AuditLogEntry,
     AuditAction,
     AgentConfig
