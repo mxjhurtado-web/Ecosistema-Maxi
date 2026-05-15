@@ -298,14 +298,38 @@ async def google_chat_event_handler(request: Request):
             "text": f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nHola *{user_name}*, el sistema opera con normalidad."
         }
 
-    if "hola" in text or "ayuda" in text:
+    if "ayuda" in text:
         return {
-            "text": f"🤖 *ORBIT Bot*\n¡Hola {user_name}! Puedo ayudarte con:\n- `estado`: Ver salud del sistema\n- `alertas`: Configuración de notificaciones"
+            "text": f"🤖 *ORBIT Bot*\n¡Hola {user_name}! Puedo ayudarte con:\n- `estado`: Ver salud del sistema\n- Cualquier otra consulta será procesada por mi IA (ej. 'dame el estatus de la guia 12345')."
         }
 
-    return {
-        "text": f"Recibí: '{text}'. Escribe `estado` para el reporte detallado."
-    }
+    # CONSULTA AL MCP PARA CUALQUIER OTRA COSA
+    logger.info(f"🧠 Consultando MCP para: {text}")
+    try:
+        from .mcp_client import mcp_client
+        
+        # Consultar al MCP usando un agente por defecto (o ninguno)
+        response_text, status, latency, _ = await mcp_client.query_mcp(
+            user_text=text,
+            context={"source": "google_chat", "user": user_name},
+            agent_name=None # Puedes cambiar esto por un nombre de agente específico si quieres
+        )
+        
+        if status == ResponseStatus.OK:
+            return {
+                "text": f"{response_text}\n\n_🕒 Latencia: {latency}ms_"
+            }
+        else:
+            return {
+                "text": f"⚠️ *Error del MCP*\n{response_text}"
+            }
+            
+    except Exception as e:
+        logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
+        return {
+            "text": f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
+        }
+
 
 
 
