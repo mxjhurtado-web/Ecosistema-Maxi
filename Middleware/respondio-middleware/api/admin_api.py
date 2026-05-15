@@ -293,25 +293,13 @@ async def google_chat_event_handler(request: Request):
         return {"text": "Sistema ORBIT listo."}
 
     # Lógica de respuestas
-    response_payload = {}
-    
-    if "estado" in text or "status" in text or "reporte" in text:
-        response_payload = {
-            "text": f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nHola *{user_name}*, el sistema opera con normalidad."
-        }
-
-    elif "ayuda" in text or "hola" in text:
-        response_payload = {
-            "text": f"🤖 *ORBIT Bot*\n¡Hola *{user_name}*! 👋\n\nPuedo ayudarte con:\n- `estado`: Ver salud técnica de ORBIT.\n- *Consultas IA*: Pregúntame por estatus de guías o información de envíos directamente."
-        }
-
-    # Lógica de respuestas
     response_text = ""
     
-    if "estado" in text or "status" in text or "reporte" in text:
+    # Comprobación exacta para evitar falsos positivos con frases como "estatus de envio"
+    if text in ["estado", "status", "reporte", "health"]:
         response_text = f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nHola *{user_name}*, el sistema opera con normalidad."
 
-    elif "ayuda" in text or "hola" in text:
+    elif text in ["ayuda", "hola", "hi", "help"]:
         response_text = f"🤖 *ORBIT Bot*\n¡Hola *{user_name}*! 👋\n\nPuedo ayudarte con:\n- `estado`: Ver salud técnica de ORBIT.\n- *Consultas IA*: Pregúntame por estatus de guías o información de envíos directamente."
 
     else:
@@ -336,6 +324,7 @@ async def google_chat_event_handler(request: Request):
         except Exception as e:
             logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
             response_text = f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
+
 
 
     # VÍA DE ESCAPE: Enviar mensaje asíncronamente y responder 200 OK
