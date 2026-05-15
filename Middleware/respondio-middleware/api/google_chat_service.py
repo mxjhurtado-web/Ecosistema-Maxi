@@ -57,13 +57,16 @@ class GoogleChatService:
             target_space = f"spaces/{target_space}"
 
         try:
+            logger.info(f"🔑 Cargando credenciales para el espacio: {target_space}")
             creds = await self._get_credentials(sa_b64)
             if not creds:
+                logger.error("❌ No se pudieron obtener las credenciales de la Service Account")
                 return False
-
-            # Refresh token if needed (this is sync, but acceptable for alerts)
-            # In a high-traffic scenario, we would cache the token.
+            
+            # Refresh token (usando el Request que ya importamos)
+            logger.info("🔄 Refrescando token de Google Auth...")
             creds.refresh(Request())
+            logger.info("🎟️ Token refrescado con éxito")
 
             url = f"https://chat.googleapis.com/v1/{target_space}/messages"
             headers = {
@@ -71,13 +74,17 @@ class GoogleChatService:
                 "Content-Type": "application/json"
             }
             
-            # Allow rich text / card formatting in the future, for now simple text
             payload = {"text": text}
 
+            logger.info(f"🚀 Disparando POST a Google Chat API: {url}")
             async with httpx.AsyncClient() as client:
                 response = await client.post(url, json=payload, headers=headers)
-                response.raise_for_status()
-                logger.info(f"✅ Message sent successfully to Google Chat: {target_space}")
+                
+                if response.status_code != 200:
+                    logger.error(f"❌ Error API Google Chat ({response.status_code}): {response.text}")
+                    return False
+                    
+                logger.info(f"✅ ¡Mensaje enviado con éxito a {target_space}!")
                 return True
 
         except httpx.HTTPStatusError as e:
