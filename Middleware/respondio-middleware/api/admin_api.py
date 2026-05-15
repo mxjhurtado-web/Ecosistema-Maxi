@@ -257,35 +257,52 @@ async def test_google_chat(
 # ============================================================
 
 @router.post("/google-chat/event")
-async def google_chat_event_handler(request: dict):
+async def google_chat_event_handler(request):
     """
     Handles interactive events from Google Chat (messages, added to space, etc.)
     """
-    event_type = request.get("type")
-    user_name = request.get("user", {}).get("displayName", "Usuario")
-    
+    from fastapi import Request as FastAPIRequest
+    import json
+
+    try:
+        if hasattr(request, 'json'):
+            data = await request.json()
+        elif isinstance(request, dict):
+            data = request
+        else:
+            data = {}
+    except Exception:
+        data = {}
+
+    event_type = data.get("type", "")
+    user_name = data.get("user", {}).get("displayName", "Usuario")
+
     logger.info(f"📥 Evento recibido de Google Chat: {event_type} de {user_name}")
-    
+
     if event_type == "ADDED_TO_SPACE":
         return {
-            "text": f"¡Hola {user_name}! Gracias por agregarme. Soy el bot de monitoreo de ORBIT. Estoy listo para enviarte alertas y reportes."
+            "text": f"¡Hola! Soy el bot de monitoreo de ORBIT. Estoy listo para enviarte alertas. Escribe 'estado' para ver el estado del sistema."
         }
-    
+
     elif event_type == "MESSAGE":
-        text = request.get("message", {}).get("text", "").lower()
-        
-        # Lógica de respuesta básica
-        if "estado" in text or "status" in text:
-            # Aquí luego podemos conectar la telemetría real
+        text = data.get("message", {}).get("argumentText", data.get("message", {}).get("text", "")).lower().strip()
+
+        if "estado" in text or "status" in text or "salud" in text:
             return {
-                "text": f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\n¿Quieres que analice los logs recientes?"
+                "text": "📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nEscribe 'ayuda' para ver todos los comandos disponibles."
             }
-        
+
+        if "ayuda" in text or "help" in text or "hola" in text:
+            return {
+                "text": "🤖 *ORBIT Middleware Bot*\n\nComandos disponibles:\n- `estado` — Ver estado del sistema\n- `ayuda` — Ver esta ayuda\n\nTambién recibirás alertas automáticas ante fallos críticos. 🚨"
+            }
+
         return {
-            "text": f"Recibí tu mensaje: '{text}'. Por ahora solo entiendo comandos como 'estado', pero pronto seré más inteligente. 🚀"
+            "text": f"Recibí tu mensaje. Escribe 'estado' para ver el estado del sistema o 'ayuda' para más opciones. 🚀"
         }
-    
+
     return {"text": "Evento recibido correctamente."}
+
 
 
 # ============================================================
