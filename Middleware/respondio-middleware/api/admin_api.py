@@ -339,48 +339,57 @@ async def google_chat_event_handler(request: Request):
 
 
     # VÍA DE ESCAPE: Enviar mensaje asíncronamente y responder 200 OK
-    try:
-        from .google_chat_service import google_chat_service
-        from .models import GoogleChatAlertConfig
-        from .config import settings
-        
-        # Función para buscar el space_id recursivamente
-        def find_space_id(obj):
-            if isinstance(obj, str) and obj.startswith("spaces/"):
-                return obj
-            if isinstance(obj, dict):
-                for v in obj.values():
-                    res = find_space_id(v)
-                    if res: return res
-            if isinstance(obj, list):
-                for item in obj:
-                    res = find_space_id(item)
-                    if res: return res
-            return None
+    from fastapi import BackgroundTasks
+    
+    async def send_async_response(chat_data_obj, resp_text):
+        try:
+            from .google_chat_service import google_chat_service
+            
+            # Función para buscar el space_id recursivamente
+            def find_space_id(obj):
+                if isinstance(obj, str) and obj.startswith("spaces/"):
+                    return obj
+                if isinstance(obj, dict):
+                    for v in obj.values():
+                        res = find_space_id(v)
+                        if res: return res
+                if isinstance(obj, list):
+                    for item in obj:
+                        res = find_space_id(item)
+                        if res: return res
+                return None
 
-        space_name = find_space_id(data)
-        
-        if space_name:
-            logger.info(f"🎯 ESPACIO ENCONTRADO: {space_name}")
+            space_id = find_space_id(chat_data_obj)
             
-            # Bypasseamos el config_manager usando settings globales
-            direct_config = GoogleChatAlertConfig(
-                enabled=True,
-                sa_json_b64=settings.GOOGLE_CHATS_SA_BASE64 or "",
-                default_space_id=space_name
-            )
-            
-            logger.info(f"📤 Enviando mensaje asíncrono con config directa...")
-            await google_chat_service.send_message(
-                text=response_text,
-                space_id=space_name,
-                config_override=direct_config
-            )
-        else:
-            logger.warning(f"⚠️ No se encontró ningún string 'spaces/...' en el JSON. Keys: {list(data.keys())}")
-            
-    except Exception as e:
-        logger.error(f"❌ Error crítico en el flujo de respuesta Google Chat: {e}")
+            if space_id:
+                logger.info(f"🎯 ESPACIO ENCONTRADO: {space_id}")
+                
+                # Usamos la configuración directa con la clase global
+                direct_cfg = GoogleChatAlertConfig(
+                    enabled=True,
+                    sa_json_b64=settings.GOOGLE_CHATS_SA_BASE64 or "",
+                    default_space_id=space_id
+                )
+                
+                logger.info(f"📤 Enviando mensaje asíncrono (Background)...")
+                await google_chat_service.send_message(
+                    text=resp_text,
+                    space_id=space_id,
+                    config_override=direct_cfg
+                )
+            else:
+                logger.warning("⚠️ No se encontró el ID del espacio en la tarea de fondo.")
+                
+        except Exception as err:
+            logger.error(f"❌ Error en Background Task de Google Chat: {err}")
+
+    # Añadimos la tarea de fondo y retornamos de inmediato
+    # (Necesitamos recibir background_tasks como parámetro en la función principal)
+    # Pero como no queremos cambiar la firma de la función ahora, lo haremos inline:
+    import asyncio
+    asyncio.create_task(send_async_response(data, response_text))
+
+    return {}
 
 
     return {}
