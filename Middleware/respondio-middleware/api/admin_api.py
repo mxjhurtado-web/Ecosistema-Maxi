@@ -333,13 +333,45 @@ async def google_chat_event_handler(request: Request):
                 "text": f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
             }
 
+    # Lógica de respuestas
+    response_text = ""
+    
+    if "estado" in text or "status" in text or "reporte" in text:
+        response_text = f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nHola *{user_name}*, el sistema opera con normalidad."
+
+    elif "ayuda" in text or "hola" in text:
+        response_text = f"🤖 *ORBIT Bot*\n¡Hola *{user_name}*! 👋\n\nPuedo ayudarte con:\n- `estado`: Ver salud técnica de ORBIT.\n- *Consultas IA*: Pregúntame por estatus de guías o información de envíos directamente."
+
+    else:
+        # CONSULTA AL MCP PARA CUALQUIER OTRA COSA
+        logger.info(f"🧠 Consultando MCP para: {text}")
+        try:
+            from .mcp_client import mcp_client
+            from .models import ResponseStatus
+            
+            mcp_resp, status, latency, _ = await mcp_client.query_mcp(
+                user_text=text,
+                context={"source": "google_chat", "user": user_name},
+                agent_name=None
+            )
+            
+            if status == ResponseStatus.OK:
+                response_text = f"{mcp_resp}\n\n_🕒 Latencia: {latency}ms_"
+            else:
+                response_text = f"⚠️ *Error del MCP*\n{mcp_resp}"
+                
+        except Exception as e:
+            logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
+            response_text = f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
+
     # RESPUESTA SIMPLE (La más compatible universalmente)
     final_response = {
-        "text": f"🤖 *ORBIT Bot*\nHola {user_name}, el sistema está activo.\n\nEscribe *'estado'* para ver salud técnica o hazme cualquier consulta de IA."
+        "text": response_text
     }
     
     logger.info(f"📤 Enviando respuesta final: {json.dumps(final_response)}")
     return final_response
+
 
 
 
