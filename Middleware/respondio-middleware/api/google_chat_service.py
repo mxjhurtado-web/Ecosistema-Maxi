@@ -10,8 +10,10 @@ from typing import Optional
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 from .config_manager import config_manager
+from .models import GoogleChatAlertConfig
 
 logger = logging.getLogger(__name__)
+
 
 class GoogleChatService:
     """Service to send messages to Google Chat using a Service Account"""
