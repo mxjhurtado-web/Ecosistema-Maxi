@@ -368,32 +368,37 @@ async def google_chat_event_handler(request: Request):
     try:
         from .google_chat_service import google_chat_service
         
-        # LOG DEL OBJETO COMPLETO para diagnóstico definitivo
-        data_str = json.dumps(data)
-        logger.info(f"🧪 DATA COMPLETA (primeros 1000 chars): {data_str[:1000]}")
-        
-        # Buscar el espacio en todas las rutas posibles
-        space_name = (
-            data.get("chat", {}).get("space", {}).get("name") or 
-            data.get("space", {}).get("name") or
-            data.get("commonEventObject", {}).get("space", {}).get("name")
-        )
+        # Función para buscar el space_id recursivamente
+        def find_space_id(obj):
+            if isinstance(obj, str) and obj.startswith("spaces/"):
+                return obj
+            if isinstance(obj, dict):
+                for v in obj.values():
+                    res = find_space_id(v)
+                    if res: return res
+            if isinstance(obj, list):
+                for item in obj:
+                    res = find_space_id(item)
+                    if res: return res
+            return None
+
+        space_name = find_space_id(data)
         
         if space_name:
-            logger.info(f"📤 Enviando mensaje asíncrono a {space_name}...")
+            logger.info(f"🎯 ESPACIO ENCONTRADO: {space_name}")
+            logger.info(f"📤 Enviando mensaje asíncrono...")
             await google_chat_service.send_message(
                 space_id=space_name,
                 text=response_text
             )
         else:
-            logger.warning(f"⚠️ No se encontró el nombre del espacio. Data keys: {list(data.keys())}")
+            logger.warning(f"⚠️ No se encontró ningún string 'spaces/...' en el JSON. Keys: {list(data.keys())}")
             
     except Exception as e:
         logger.error(f"❌ Error al enviar respuesta asíncrona: {e}")
 
-    # Retornamos un objeto vacío válido para RenderActions/DataActions
-    # Google espera un JSON, y un objeto vacío es el RenderActions más simple posible.
     return {}
+
 
 
 
