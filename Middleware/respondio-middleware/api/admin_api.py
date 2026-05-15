@@ -333,51 +333,12 @@ async def google_chat_event_handler(request: Request):
                 "text": f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
             }
 
-    # FORMATO PROFESIONAL CardV2 PARA GOOGLE WORKSPACE
-    card = {
-        "header": {
-            "title": "ORBIT Middleware",
-            "subtitle": "Sistema de Monitoreo e IA",
-            "imageUrl": "https://fonts.gstatic.com/s/i/googlematerialicons/smart_toy/v12/24px.svg"
-        },
-        "sections": [
-            {
-                "widgets": [
-                    {
-                        "textParagraph": {
-                            "text": response_payload.get("text", "Mensaje recibido.")
-                        }
-                    }
-                ]
-            }
-        ]
-    }
-    
-    # FORMATO MINIMALISTA PARA COMPLEMENTO DE WORKSPACE
-    # Sin emojis, sin cabeceras complejas, solo el contenido.
+    # RESPUESTA SIMPLE (La más compatible universalmente)
     final_response = {
-        "action": {
-            "navigations": [
-                {
-                    "pushCard": {
-                        "sections": [
-                            {
-                                "widgets": [
-                                    {
-                                        "textParagraph": {
-                                            "text": f"Hola {user_name}, el sistema ORBIT esta activo. Escribe 'estado' para mas detalles."
-                                        }
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            }
-        }
+        "text": f"🤖 *ORBIT Bot*\nHola {user_name}, el sistema está activo.\n\nEscribe *'estado'* para ver salud técnica o hazme cualquier consulta de IA."
     }
     
-    logger.info(f"📤 Enviando respuesta minimalista: {json.dumps(final_response)}")
+    logger.info(f"📤 Enviando respuesta final: {json.dumps(final_response)}")
     return final_response
 
 
