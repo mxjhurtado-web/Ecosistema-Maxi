@@ -369,8 +369,11 @@ async def google_chat_event_handler(request: Request):
     try:
         from .google_chat_service import google_chat_service
         
-        # El espacio de Google Chat viene en el event
-        space_name = event.get("space", {}).get("name")
+        # El espacio de Google Chat viene en el objeto 'chat' dentro de 'data'
+        chat_obj = data.get("chat", {})
+        space_obj = chat_obj.get("space", {})
+        space_name = space_obj.get("name")
+        
         if space_name:
             logger.info(f"📤 Enviando mensaje asíncrono a {space_name}...")
             await google_chat_service.send_message(
