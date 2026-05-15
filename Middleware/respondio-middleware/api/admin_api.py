@@ -344,6 +344,8 @@ async def google_chat_event_handler(request: Request):
     async def send_async_response(chat_data_obj, resp_text):
         try:
             from .google_chat_service import google_chat_service
+            from .models import GoogleChatAlertConfig
+            from .config import settings
             
             # Función para buscar el space_id recursivamente
             def find_space_id(obj):
@@ -364,12 +366,13 @@ async def google_chat_event_handler(request: Request):
             if space_id:
                 logger.info(f"🎯 ESPACIO ENCONTRADO: {space_id}")
                 
-                # Usamos la configuración directa con la clase global
+                # Usamos la configuración directa importada localmente
                 direct_cfg = GoogleChatAlertConfig(
                     enabled=True,
                     sa_json_b64=settings.GOOGLE_CHATS_SA_BASE64 or "",
                     default_space_id=space_id
                 )
+
                 
                 logger.info(f"📤 Enviando mensaje asíncrono (Background)...")
                 await google_chat_service.send_message(
