@@ -334,12 +334,16 @@ async def google_chat_event_handler(request: Request):
             }
 
     # FORMATO OBLIGATORIO PARA WORKSPACE ADD-ONS
-    return {
+    final_response = {
         "actionResponse": {
             "type": "NEW_MESSAGE"
         },
-        **response_payload
+        "text": response_payload.get("text", "Mensaje recibido correctamente.")
     }
+    
+    logger.info(f"📤 Enviando respuesta a Google Chat: {json.dumps(final_response)}")
+    return final_response
+
 
 
 
