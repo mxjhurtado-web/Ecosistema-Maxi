@@ -293,42 +293,54 @@ async def google_chat_event_handler(request: Request):
         return {"text": "Sistema ORBIT listo."}
 
     # Lógica de respuestas
+    response_payload = {}
+    
     if "estado" in text or "status" in text or "reporte" in text:
-        return {
+        response_payload = {
             "text": f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nHola *{user_name}*, el sistema opera con normalidad."
         }
 
-    if "ayuda" in text or "hola" in text:
-        return {
+    elif "ayuda" in text or "hola" in text:
+        response_payload = {
             "text": f"🤖 *ORBIT Bot*\n¡Hola *{user_name}*! 👋\n\nPuedo ayudarte con:\n- `estado`: Ver salud técnica de ORBIT.\n- *Consultas IA*: Pregúntame por estatus de guías o información de envíos directamente."
         }
 
-    # CONSULTA AL MCP PARA CUALQUIER OTRA COSA
-    logger.info(f"🧠 Consultando MCP para: {text}")
-    try:
-        from .mcp_client import mcp_client
-        
-        # Consultar al MCP usando un agente por defecto (o ninguno)
-        response_text, status, latency, _ = await mcp_client.query_mcp(
-            user_text=text,
-            context={"source": "google_chat", "user": user_name},
-            agent_name=None # Puedes cambiar esto por un nombre de agente específico si quieres
-        )
-        
-        if status == ResponseStatus.OK:
-            return {
-                "text": f"{response_text}\n\n_🕒 Latencia: {latency}ms_"
-            }
-        else:
-            return {
-                "text": f"⚠️ *Error del MCP*\n{response_text}"
-            }
+    else:
+        # CONSULTA AL MCP PARA CUALQUIER OTRA COSA
+        logger.info(f"🧠 Consultando MCP para: {text}")
+        try:
+            from .mcp_client import mcp_client
+            from .models import ResponseStatus
             
-    except Exception as e:
-        logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
-        return {
-            "text": f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
-        }
+            response_text, status, latency, _ = await mcp_client.query_mcp(
+                user_text=text,
+                context={"source": "google_chat", "user": user_name},
+                agent_name=None
+            )
+            
+            if status == ResponseStatus.OK:
+                response_payload = {
+                    "text": f"{response_text}\n\n_🕒 Latencia: {latency}ms_"
+                }
+            else:
+                response_payload = {
+                    "text": f"⚠️ *Error del MCP*\n{response_text}"
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
+            response_payload = {
+                "text": f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
+            }
+
+    # FORMATO OBLIGATORIO PARA WORKSPACE ADD-ONS
+    return {
+        "actionResponse": {
+            "type": "NEW_MESSAGE"
+        },
+        **response_payload
+    }
+
 
 
 
