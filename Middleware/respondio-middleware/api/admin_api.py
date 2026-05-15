@@ -353,11 +353,33 @@ async def google_chat_event_handler(request: Request):
         ]
     }
     
-    # FORMATO RAÍZ (Card) - El más compatible
-    final_response = card
+    # FORMATO MINIMALISTA PARA COMPLEMENTO DE WORKSPACE
+    # Sin emojis, sin cabeceras complejas, solo el contenido.
+    final_response = {
+        "action": {
+            "navigations": [
+                {
+                    "pushCard": {
+                        "sections": [
+                            {
+                                "widgets": [
+                                    {
+                                        "textParagraph": {
+                                            "text": f"Hola {user_name}, el sistema ORBIT esta activo. Escribe 'estado' para mas detalles."
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    }
     
-    logger.info(f"📤 Enviando Card Directo (Raíz) a Google Chat: {json.dumps(final_response)}")
+    logger.info(f"📤 Enviando respuesta minimalista: {json.dumps(final_response)}")
     return final_response
+
 
 
 
