@@ -341,6 +341,8 @@ async def google_chat_event_handler(request: Request):
     # VÍA DE ESCAPE: Enviar mensaje asíncronamente y responder 200 OK
     try:
         from .google_chat_service import google_chat_service
+        from .models import GoogleChatAlertConfig
+        from .config import settings
         
         # Función para buscar el space_id recursivamente
         def find_space_id(obj):
@@ -379,6 +381,7 @@ async def google_chat_event_handler(request: Request):
             
     except Exception as e:
         logger.error(f"❌ Error crítico en el flujo de respuesta Google Chat: {e}")
+
 
     return {}
 
