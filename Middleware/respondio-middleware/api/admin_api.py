@@ -333,16 +333,41 @@ async def google_chat_event_handler(request: Request):
                 "text": f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
             }
 
-    # FORMATO OBLIGATORIO PARA WORKSPACE ADD-ONS
+    # FORMATO PROFESIONAL CardV2 PARA GOOGLE WORKSPACE
+    card = {
+        "header": {
+            "title": "ORBIT Middleware",
+            "subtitle": "Sistema de Monitoreo e IA",
+            "imageUrl": "https://fonts.gstatic.com/s/i/googlematerialicons/smart_toy/v12/24px.svg"
+        },
+        "sections": [
+            {
+                "widgets": [
+                    {
+                        "textParagraph": {
+                            "text": response_payload.get("text", "Mensaje recibido.")
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+    
     final_response = {
         "actionResponse": {
             "type": "NEW_MESSAGE"
         },
-        "text": response_payload.get("text", "Mensaje recibido correctamente.")
+        "cardsV2": [
+            {
+                "cardId": "main_card",
+                "card": card
+            }
+        ]
     }
     
-    logger.info(f"📤 Enviando respuesta a Google Chat: {json.dumps(final_response)}")
+    logger.info(f"📤 Enviando CardV2 a Google Chat: {json.dumps(final_response)}")
     return final_response
+
 
 
 
