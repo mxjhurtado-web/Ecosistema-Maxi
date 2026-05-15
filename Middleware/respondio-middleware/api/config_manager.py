@@ -558,5 +558,4 @@ class ConfigManager:
 
 # Singleton instance
 config_manager = ConfigManager()
-   
- 
+ 
