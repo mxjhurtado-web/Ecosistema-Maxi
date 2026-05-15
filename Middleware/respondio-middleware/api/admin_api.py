@@ -298,9 +298,9 @@ async def google_chat_event_handler(request: Request):
             "text": f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nHola *{user_name}*, el sistema opera con normalidad."
         }
 
-    if "ayuda" in text:
+    if "ayuda" in text or "hola" in text:
         return {
-            "text": f"🤖 *ORBIT Bot*\n¡Hola {user_name}! Puedo ayudarte con:\n- `estado`: Ver salud del sistema\n- Cualquier otra consulta será procesada por mi IA (ej. 'dame el estatus de la guia 12345')."
+            "text": f"🤖 *ORBIT Bot*\n¡Hola *{user_name}*! 👋\n\nPuedo ayudarte con:\n- `estado`: Ver salud técnica de ORBIT.\n- *Consultas IA*: Pregúntame por estatus de guías o información de envíos directamente."
         }
 
     # CONSULTA AL MCP PARA CUALQUIER OTRA COSA
