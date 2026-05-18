@@ -208,6 +208,86 @@ class GoogleSheetsService:
             logger.error(f"Failed to append log row to Google Sheets: {str(e)}")
             return False
 
+    async def fetch_faq_data(self, spreadsheet_id: str) -> Optional[str]:
+        """Fetch FAQ data from a Google Sheet and format it as a knowledge base block for Gemini"""
+        config = await config_manager.get_google_chat_config()
+        sa_b64 = config.sa_json_b64
+        
+        if not sa_b64:
+            logger.warning("Google Sheet FAQ fetch skipped: Service Account credentials not configured")
+            return None
+            
+        redis = None
+        # 1. Try Redis cache first to avoid hitting Google API limits
+        try:
+            redis = await get_redis_client()
+            cached_faq = await redis.get(f"google_sheets:faq_cache:{spreadsheet_id}")
+            if cached_faq:
+                logger.info(f"✅ Loaded FAQ from Redis cache for sheet {spreadsheet_id}")
+                return cached_faq.decode('utf-8')
+        except Exception as e:
+            logger.warning(f"Redis cache check failed for FAQ: {str(e)}")
+
+        try:
+            # 2. Get credentials and refresh token
+            creds = await self._get_credentials(sa_b64)
+            if not creds:
+                logger.error("Failed to load credentials for Google Sheets FAQ fetch")
+                return None
+                
+            creds.refresh(Request())
+            
+            # 3. Fetch sheet values (A1:C500)
+            url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:C500"
+            headers = {
+                "Authorization": f"Bearer {creds.token}",
+                "Content-Type": "application/json"
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers)
+                if response.status_code != 200:
+                    logger.error(f"Failed to fetch FAQ from Google Sheets ({response.status_code}): {response.text}")
+                    return None
+                    
+                data = response.json()
+                rows = data.get("values", [])
+                
+                if not rows:
+                    logger.warning("Google Sheets FAQ is empty")
+                    return None
+                
+                # Format rows into a clean knowledge base string
+                faq_lines = []
+                # Skip header if first row looks like a header (e.g. contains words like 'pregunta', 'question', 'respuesta')
+                start_idx = 0
+                first_row = [str(cell).lower() for cell in rows[0]]
+                if any("pregunta" in cell or "question" in cell or "faq" in cell for cell in first_row):
+                    start_idx = 1
+                    
+                for idx, row in enumerate(rows[start_idx:]):
+                    if len(row) >= 2:
+                        question = row[0].strip()
+                        answer = row[1].strip()
+                        if question and answer:
+                            faq_lines.append(f"Pregunta {idx+1}: {question}\nRespuesta {idx+1}: {answer}\n")
+                            
+                faq_text = "\n".join(faq_lines)
+                
+                if faq_text and redis:
+                    try:
+                        # Cache for 1 hour (3600 seconds)
+                        await redis.setex(f"google_sheets:faq_cache:{spreadsheet_id}", 3600, faq_text)
+                        logger.info("Saved FAQ to Redis cache")
+                    except Exception:
+                        pass
+                        
+                return faq_text
+                
+        except Exception as e:
+            logger.error(f"Failed to fetch or parse FAQ from Google Sheets: {str(e)}")
+            return None
+
 
 # Singleton instance
 google_sheets_service = GoogleSheetsService()

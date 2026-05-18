@@ -286,6 +286,9 @@ async def google_chat_event_handler(request: Request):
     # Texto (usamos argumentText para evitar la mención @Bot)
     text = (message.get("argumentText") or message.get("text") or "").lower().strip()
     
+    # Limpieza defensiva de menciones del bot para evitar falsos positivos
+    text = text.replace("@orbit middleware bot", "").replace("@orbit_middleware_bot", "").strip()
+    
     logger.info(f"📥 Message from {user_name}: {text}")
 
     # Si no hay texto pero hay un evento de interacción

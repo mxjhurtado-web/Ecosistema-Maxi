@@ -264,7 +264,12 @@ REGLAS ESTRICTAS:
             for patron in patrones:
                 m = re.search(patron, texto.upper())
                 if m:
-                    return m.group()
+                    codigo_candidato = m.group()
+                    # CRÍTICO: Si el código consiste únicamente en letras sin números (ej. "middleware"), lo ignoramos.
+                    # Esto previene falsos positivos causados por el nombre del Bot o palabras del diccionario.
+                    if codigo_candidato.isalpha():
+                        continue
+                    return codigo_candidato
             return None
 
         has_code = extraer_codigo_router(user_text) is not None
@@ -272,9 +277,28 @@ REGLAS ESTRICTAS:
         if not has_code and self.gemini_api_key:
             logger.info("🤖 Auto-Agent: No tracking code detected. Routing directly to Gemini for conversational response.")
             
+            # --- BASE DE CONOCIMIENTO DINÁMICA (GOOGLE SHEETS FAQ) ---
+            faq_spreadsheet_id = "1wrtj7SZ6wB9h1yd_9h613DYNPGjI69_Zj1gLigiUHtE"
+            faq_knowledge = None
+            try:
+                from .google_sheets_service import google_sheets_service
+                faq_knowledge = await google_sheets_service.fetch_faq_data(faq_spreadsheet_id)
+            except Exception as faq_err:
+                logger.error(f"Failed to fetch dynamic FAQ sheet: {str(faq_err)}")
+
             conversational_prompt = """
 ### GUÍA DE ATENCIÓN CONVERSACIONAL (AUTO-AGENTE) ###
 Usted es ORBIT Bot, el asistente de soporte e integración oficial del ecosistema Maxi. Su tono debe ser sumamente cálido, natural, empático y servicial en español.
+"""
+            if faq_knowledge:
+                conversational_prompt += f"""
+### BASE DE CONOCIMIENTO OFICIAL (FAQs de Maxi) ###
+Utilice las siguientes preguntas y respuestas oficiales para resolver las dudas del usuario. Responda de manera sumamente humana y conversacional. Si el usuario pregunta algo que no está cubierto por estas FAQs, use el sentido común amigable de Maxi o sugiérale amablemente contactar al soporte humano:
+
+{faq_knowledge}
+"""
+            else:
+                conversational_prompt += """
 Si el usuario pregunta cómo encontrar su código de envío, dónde buscarlo o indica que no lo tiene:
 1. Explíquele de forma muy amigable que el código es una clave alfanumérica única (generalmente inicia con dos letras como "CE" seguidas de números, ej: CE17016886149).
 2. Indíquele que puede encontrar este código de las siguientes formas:
@@ -283,9 +307,10 @@ Si el usuario pregunta cómo encontrar su código de envío, dónde buscarlo o i
    - En mensajes de WhatsApp o SMS anteriores de notificaciones oficiales de MaxiSend.
 3. Invítelo cordialmente a buscar su código y escribirlo en el chat para que usted pueda consultar el estatus en tiempo real en la base de datos de Supabase.
 4. Si no cuenta con él o lo ha extraviado, sugiérale amablemente contactar al soporte de Maxi (soporte humano) o verificar con la persona que le realizó el envío.
-
-Siempre conteste en español de manera fluida y humana. Prohibido usar respuestas cortas o robóticas.
 """
+
+            conversational_prompt += "\nSiempre conteste en español de manera fluida y humana. Prohibido usar respuestas cortas o robóticas.\n"
+
             # Combine with the existing system prompt
             if system_prompt:
                 full_context["system_prompt"] = f"{conversational_prompt}\n\n{system_prompt}"
