@@ -259,16 +259,35 @@ class GoogleSheetsService:
                 
                 # Format rows into a clean knowledge base string
                 faq_lines = []
-                # Skip header if first row looks like a header (e.g. contains words like 'pregunta', 'question', 'respuesta')
+                
+                # Dynamic column mapping based on headers
+                q_idx = 0
+                a_idx = 1
                 start_idx = 0
-                first_row = [str(cell).lower() for cell in rows[0]]
-                if any("pregunta" in cell or "question" in cell or "faq" in cell for cell in first_row):
+                
+                first_row = [str(cell).lower().strip() for cell in rows[0]]
+                logger.info(f"📊 [FAQ DIAGNOSTIC] Detected headers: {first_row}")
+                
+                # Check if first row is a header
+                is_header = False
+                for idx, cell in enumerate(first_row):
+                    if "pregunta" in cell or "question" in cell or "faq" in cell:
+                        q_idx = idx
+                        is_header = True
+                    if "respuesta" in cell or "answer" in cell or "solución" in cell or "solucion" in cell:
+                        a_idx = idx
+                        is_header = True
+                        
+                if is_header:
                     start_idx = 1
-                    
+                    logger.info(f"🎯 [FAQ DIAGNOSTIC] Dynamic mapping: Question col={q_idx}, Answer col={a_idx}")
+                else:
+                    logger.info("⚠️ [FAQ DIAGNOSTIC] No header row recognized, using default mapping (col 0: Question, col 1: Answer)")
+
                 for idx, row in enumerate(rows[start_idx:]):
-                    if len(row) >= 2:
-                        question = row[0].strip()
-                        answer = row[1].strip()
+                    if len(row) > max(q_idx, a_idx):
+                        question = row[q_idx].strip()
+                        answer = row[a_idx].strip()
                         if question and answer:
                             faq_lines.append(f"Pregunta {idx+1}: {question}\nRespuesta {idx+1}: {answer}\n")
                             
@@ -276,9 +295,9 @@ class GoogleSheetsService:
                 
                 if faq_text and redis:
                     try:
-                        # Cache for 1 hour (3600 seconds)
-                        await redis.setex(f"google_sheets:faq_cache:{spreadsheet_id}", 3600, faq_text)
-                        logger.info("Saved FAQ to Redis cache")
+                        # Cache for 60 seconds (1 minute) during testing and setup
+                        await redis.setex(f"google_sheets:faq_cache:{spreadsheet_id}", 60, faq_text)
+                        logger.info("Saved FAQ to Redis cache (60s TTL)")
                     except Exception:
                         pass
                         
