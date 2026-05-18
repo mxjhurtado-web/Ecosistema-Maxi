@@ -237,8 +237,8 @@ class GoogleSheetsService:
                 
             creds.refresh(Request())
             
-            # 3. Fetch sheet values (A1:C500)
-            url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:C500"
+            # 3. Fetch sheet values (Contenido!A1:C with fallback to A1:C)
+            url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/Contenido!A1:C"
             headers = {
                 "Authorization": f"Bearer {creds.token}",
                 "Content-Type": "application/json"
@@ -246,6 +246,11 @@ class GoogleSheetsService:
             
             async with httpx.AsyncClient() as client:
                 response = await client.get(url, headers=headers)
+                if response.status_code != 200:
+                    logger.warning("Failed to fetch FAQ from tab 'Contenido', trying default leftmost tab...")
+                    url_fallback = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:C"
+                    response = await client.get(url_fallback, headers=headers)
+                    
                 if response.status_code != 200:
                     logger.error(f"Failed to fetch FAQ from Google Sheets ({response.status_code}): {response.text}")
                     return None
