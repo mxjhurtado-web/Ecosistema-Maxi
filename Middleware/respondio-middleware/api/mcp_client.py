@@ -251,6 +251,57 @@ REGLAS ESTRICTAS:
                 0
             )
         
+        # --- SMART HYBRID ROUTER (AUTO-AGENT FOR CONVERSATIONAL QUERIES) ---
+        # Si no hay un código de seguimiento en el texto, y tenemos la API Key de Gemini activa,
+        # respondemos la consulta de forma conversacional y amigable directamente usando Gemini (Auto-Agent).
+        # Esto evita respuestas robóticas y cuadradas ante preguntas de ayuda generales.
+        import re
+        def extraer_codigo_router(texto: str) -> Optional[str]:
+            patrones = [
+                r'\b[A-Z]{2}\d{9,}\b',   # CE17016886149
+                r'\b[A-Z0-9]{10,}\b',    # Genérico largo
+            ]
+            for patron in patrones:
+                m = re.search(patron, texto.upper())
+                if m:
+                    return m.group()
+            return None
+
+        has_code = extraer_codigo_router(user_text) is not None
+        
+        if not has_code and self.gemini_api_key:
+            logger.info("🤖 Auto-Agent: No tracking code detected. Routing directly to Gemini for conversational response.")
+            
+            conversational_prompt = """
+### GUÍA DE ATENCIÓN CONVERSACIONAL (AUTO-AGENTE) ###
+Usted es ORBIT Bot, el asistente de soporte e integración oficial del ecosistema Maxi. Su tono debe ser sumamente cálido, natural, empático y servicial en español.
+Si el usuario pregunta cómo encontrar su código de envío, dónde buscarlo o indica que no lo tiene:
+1. Explíquele de forma muy amigable que el código es una clave alfanumérica única (generalmente inicia con dos letras como "CE" seguidas de números, ej: CE17016886149).
+2. Indíquele que puede encontrar este código de las siguientes formas:
+   - Impreso en el recibo físico de MaxiSend que le entregaron en la sucursal al realizar el envío.
+   - En el correo electrónico de confirmación que recibió de MaxiSend al enviar.
+   - En mensajes de WhatsApp o SMS anteriores de notificaciones oficiales de MaxiSend.
+3. Invítelo cordialmente a buscar su código y escribirlo en el chat para que usted pueda consultar el estatus en tiempo real en la base de datos de Supabase.
+4. Si no cuenta con él o lo ha extraviado, sugiérale amablemente contactar al soporte de Maxi (soporte humano) o verificar con la persona que le realizó el envío.
+
+Siempre conteste en español de manera fluida y humana. Prohibido usar respuestas cortas o robóticas.
+"""
+            # Combine with the existing system prompt
+            if system_prompt:
+                full_context["system_prompt"] = f"{conversational_prompt}\n\n{system_prompt}"
+            else:
+                full_context["system_prompt"] = conversational_prompt
+                
+            response_text = await self._query_gemini_direct(user_text, full_context)
+            self._record_success()
+            
+            return (
+                response_text,
+                ResponseStatus.OK,
+                150,  # Simulated latency for direct Gemini REST call
+                0
+            )
+
         mcp_request = MCPRequest(
             query=user_text,
             context=full_context,

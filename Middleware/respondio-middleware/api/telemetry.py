@@ -22,6 +22,30 @@ class TelemetryService:
     
     async def log_request(self, request_log: RequestLog):
         """Log a processed request"""
+        # Trigger Google Sheets logging in the background (asynchronously)
+        try:
+            import asyncio
+            from .google_sheets_service import google_sheets_service
+            
+            timestamp_str = request_log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            status_val = request_log.status.value if hasattr(request_log.status, "value") else str(request_log.status)
+            
+            asyncio.create_task(
+                google_sheets_service.append_log(
+                    timestamp=timestamp_str,
+                    trace_id=request_log.trace_id,
+                    conversation_id=request_log.conversation_id,
+                    contact_id=request_log.contact_id,
+                    channel=request_log.channel,
+                    user_text=request_log.user_text or "",
+                    bot_response=request_log.mcp_response or request_log.error_message or "",
+                    latency_ms=request_log.latency_ms,
+                    status=status_val
+                )
+            )
+        except Exception as sheet_err:
+            logger.error(f"Failed to initiate Google Sheets log append: {str(sheet_err)}")
+
         if not self.enabled:
             logger.warning("Telemetry disabled (no Redis connection)")
             return
