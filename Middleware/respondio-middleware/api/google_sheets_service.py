@@ -66,7 +66,9 @@ class GoogleSheetsService:
             params_folder = {
                 "q": q_folder,
                 "spaces": "drive",
-                "fields": "files(id, name)"
+                "fields": "files(id, name)",
+                "supportsAllDrives": "true",
+                "includeItemsFromAllDrives": "true"
             }
             async with httpx.AsyncClient() as client:
                 folder_response = await client.get(folder_search_url, headers=headers, params=params_folder)
@@ -85,7 +87,9 @@ class GoogleSheetsService:
             params = {
                 "q": q,
                 "spaces": "drive",
-                "fields": "files(id, name)"
+                "fields": "files(id, name)",
+                "supportsAllDrives": "true",
+                "includeItemsFromAllDrives": "true"
             }
             async with httpx.AsyncClient() as client:
                 response = await client.get(search_url, headers=headers, params=params)
@@ -105,7 +109,7 @@ class GoogleSheetsService:
 
         # 3. Create a new Spreadsheet in the folder (with fallback to root Drive)
         try:
-            create_url = "https://www.googleapis.com/drive/v3/files"
+            create_url = "https://www.googleapis.com/drive/v3/files?supportsAllDrives=true"
             payload = {
                 "name": self.sheet_name,
                 "mimeType": "application/vnd.google-apps.spreadsheet",
@@ -382,8 +386,8 @@ class GoogleSheetsService:
             async with httpx.AsyncClient() as client:
                 # Handle Google Doc export
                 if file_type == "google_doc":
-                    logger.info(f"📄 Exporting Google Doc {file_id} to text...")
-                    url = f"https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=text/plain"
+                    logger.info(f"📄 Exporting Google Doc {file_id} to text (supportsAllDrives=true)...")
+                    url = f"https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=text/plain&supportsAllDrives=true"
                     response = await client.get(url, headers=headers, timeout=20)
                     if response.status_code == 200:
                         return response.text
@@ -393,8 +397,8 @@ class GoogleSheetsService:
                         
                 # Handle Google Sheet export
                 elif file_type == "google_sheet":
-                    logger.info(f"📊 Exporting Google Sheet {file_id} to CSV...")
-                    url = f"https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=text/csv"
+                    logger.info(f"📊 Exporting Google Sheet {file_id} to CSV (supportsAllDrives=true)...")
+                    url = f"https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=text/csv&supportsAllDrives=true"
                     response = await client.get(url, headers=headers, timeout=20)
                     if response.status_code == 200:
                         return response.text
@@ -405,7 +409,7 @@ class GoogleSheetsService:
                 # Handle generic file download (PDF or Plain Text)
                 else:
                     # 1. Fetch metadata first to know the mimeType
-                    meta_url = f"https://www.googleapis.com/drive/v3/files/{file_id}?fields=name,mimeType"
+                    meta_url = f"https://www.googleapis.com/drive/v3/files/{file_id}?fields=name,mimeType&supportsAllDrives=true"
                     meta_response = await client.get(meta_url, headers=headers, timeout=10)
                     mime_type = "unknown"
                     file_name = "unknown"
@@ -416,8 +420,8 @@ class GoogleSheetsService:
                         logger.info(f"📂 Found Drive file: '{file_name}' | MimeType: {mime_type}")
                     
                     # 2. Download raw content
-                    logger.info(f"📥 Downloading Drive file content {file_id}...")
-                    download_url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+                    logger.info(f"📥 Downloading Drive file content {file_id} (supportsAllDrives=true)...")
+                    download_url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&supportsAllDrives=true"
                     response = await client.get(download_url, headers=headers, timeout=30)
                     if response.status_code != 200:
                         logger.error(f"Failed to download Drive file ({response.status_code}): {response.text}")
