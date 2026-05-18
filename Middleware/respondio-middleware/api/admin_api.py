@@ -283,11 +283,13 @@ async def google_chat_event_handler(request: Request):
     user = chat_data.get("user", {})
     user_name = user.get("displayName", "Usuario")
     
-    # Texto (usamos argumentText para evitar la mención @Bot)
-    text = (message.get("argumentText") or message.get("text") or "").lower().strip()
+    # Texto (usamos argumentText para evitar la mención @Bot) - MANTENEMOS EL CASO ORIGINAL para URLs y códigos sensibles
+    text = (message.get("argumentText") or message.get("text") or "").strip()
     
-    # Limpieza defensiva de menciones del bot para evitar falsos positivos
-    text = text.replace("@orbit middleware bot", "").replace("@orbit_middleware_bot", "").strip()
+    # Limpieza defensiva de menciones del bot de manera insensible a mayúsculas/minúsculas
+    import re
+    text = re.sub(r'(?i)@orbit\s*middleware\s*bot', '', text).strip()
+    text = re.sub(r'(?i)@orbit_middleware_bot', '', text).strip()
     
     logger.info(f"📥 Message from {user_name}: {text}")
 
@@ -326,10 +328,11 @@ async def google_chat_event_handler(request: Request):
             
             # Generar respuesta de forma asíncrona en el Background
             resp_text = ""
-            if text_query in ["estado", "status", "reporte", "health"]:
+            text_query_lower = text_query.lower()
+            if text_query_lower in ["estado", "status", "reporte", "health"]:
                 resp_text = f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nHola *{display_name}*, el sistema opera con normalidad."
             
-            elif text_query in ["ayuda", "hola", "hi", "help"]:
+            elif text_query_lower in ["ayuda", "hola", "hi", "help"]:
                 resp_text = f"🤖 *ORBIT Bot*\n¡Hola *{display_name}*! 👋\n\nPuedo ayudarte con:\n- `estado`: Ver salud técnica de ORBIT.\n- *Consultas IA*: Pregúntame por estatus de guías o información de envíos directamente."
             
             else:
