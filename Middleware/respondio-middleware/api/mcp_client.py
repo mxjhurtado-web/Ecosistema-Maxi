@@ -265,12 +265,15 @@ REGLAS ESTRICTAS:
         # Esto evita respuestas robóticas y cuadradas ante preguntas de ayuda generales.
         import re
         def extraer_codigo_router(texto: str) -> Optional[str]:
+            # Eliminar URLs para evitar que los IDs de archivos (Docs, Drive, etc.) se confundan con códigos de seguimiento
+            texto_limpio = re.sub(r'https?://\S+', '', texto)
+            
             patrones = [
                 r'\b[A-Z]{2}\d{9,}\b',   # CE17016886149
                 r'\b[A-Z0-9]{10,}\b',    # Genérico largo
             ]
             for patron in patrones:
-                m = re.search(patron, texto.upper())
+                m = re.search(patron, texto_limpio.upper())
                 if m:
                     codigo_candidato = m.group()
                     # CRÍTICO: Si el código consiste únicamente en letras sin números (ej. "middleware"), lo ignoramos.
