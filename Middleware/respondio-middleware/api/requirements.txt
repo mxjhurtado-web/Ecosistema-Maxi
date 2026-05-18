@@ -30,3 +30,6 @@ requests>=2.31.0
 # MCP and Database
 mcp[cli]>=1.3.0
 psycopg2-binary>=2.9.9
+
+# PDF Parsing
+pypdf>=4.0.0

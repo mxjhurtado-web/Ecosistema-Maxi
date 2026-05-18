@@ -312,6 +312,108 @@ class GoogleSheetsService:
             logger.error(f"Failed to fetch or parse FAQ from Google Sheets: {str(e)}")
             return None
 
+    async def read_drive_document(self, file_id: str, file_type: str) -> Optional[str]:
+        """
+        Read the content of a Google Doc, Google Sheet, PDF, or Plain Text file from Google Drive
+        using the Service Account credentials.
+        """
+        config = await config_manager.get_google_chat_config()
+        sa_b64 = config.sa_json_b64
+        
+        if not sa_b64:
+            logger.warning("Google Drive read skipped: Service Account credentials not configured")
+            return None
+            
+        try:
+            # 1. Get credentials and refresh token
+            creds = await self._get_credentials(sa_b64)
+            if not creds:
+                logger.error("Failed to load credentials for Google Drive read")
+                return None
+                
+            creds.refresh(Request())
+            token = creds.token
+            headers = {
+                "Authorization": f"Bearer {token}",
+            }
+            
+            async with httpx.AsyncClient() as client:
+                # Handle Google Doc export
+                if file_type == "google_doc":
+                    logger.info(f"📄 Exporting Google Doc {file_id} to text...")
+                    url = f"https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=text/plain"
+                    response = await client.get(url, headers=headers, timeout=20)
+                    if response.status_code == 200:
+                        return response.text
+                    else:
+                        logger.error(f"Failed to export Google Doc ({response.status_code}): {response.text}")
+                        return None
+                        
+                # Handle Google Sheet export
+                elif file_type == "google_sheet":
+                    logger.info(f"📊 Exporting Google Sheet {file_id} to CSV...")
+                    url = f"https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=text/csv"
+                    response = await client.get(url, headers=headers, timeout=20)
+                    if response.status_code == 200:
+                        return response.text
+                    else:
+                        logger.error(f"Failed to export Google Sheet ({response.status_code}): {response.text}")
+                        return None
+                        
+                # Handle generic file download (PDF or Plain Text)
+                else:
+                    # 1. Fetch metadata first to know the mimeType
+                    meta_url = f"https://www.googleapis.com/drive/v3/files/{file_id}?fields=name,mimeType"
+                    meta_response = await client.get(meta_url, headers=headers, timeout=10)
+                    mime_type = "unknown"
+                    file_name = "unknown"
+                    if meta_response.status_code == 200:
+                        meta = meta_response.json()
+                        mime_type = meta.get("mimeType", "unknown").lower()
+                        file_name = meta.get("name", "unknown")
+                        logger.info(f"📂 Found Drive file: '{file_name}' | MimeType: {mime_type}")
+                    
+                    # 2. Download raw content
+                    logger.info(f"📥 Downloading Drive file content {file_id}...")
+                    download_url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+                    response = await client.get(download_url, headers=headers, timeout=30)
+                    if response.status_code != 200:
+                        logger.error(f"Failed to download Drive file ({response.status_code}): {response.text}")
+                        return None
+                        
+                    content_bytes = response.content
+                    
+                    # 3. Parse content based on mimeType
+                    if "pdf" in mime_type:
+                        logger.info(f"🛠️ Parsing PDF content using pypdf ({len(content_bytes)} bytes)...")
+                        try:
+                            import io
+                            from pypdf import PdfReader
+                            reader = PdfReader(io.BytesIO(content_bytes))
+                            text_pages = []
+                            for idx, page in enumerate(reader.pages):
+                                page_text = page.extract_text()
+                                if page_text:
+                                    text_pages.append(f"--- [PÁGINA {idx+1}] ---\n{page_text}")
+                            return "\n\n".join(text_pages)
+                        except Exception as pdf_err:
+                            logger.error(f"Failed to parse PDF using pypdf: {str(pdf_err)}")
+                            return f"[Error al parsear el PDF '{file_name}']: {str(pdf_err)}"
+                    
+                    elif "text" in mime_type or mime_type == "unknown" or "javascript" in mime_type or "json" in mime_type:
+                        try:
+                            return content_bytes.decode('utf-8', errors='ignore')
+                        except Exception as dec_err:
+                            logger.error(f"Failed to decode text file: {str(dec_err)}")
+                            return None
+                    
+                    else:
+                        return f"[Archivo no soportado]: El archivo '{file_name}' es de tipo {mime_type}, el cual no se puede leer directamente como texto."
+                        
+        except Exception as e:
+            logger.error(f"Error reading document from Google Drive: {str(e)}")
+            return None
+
 
 # Singleton instance
 google_sheets_service = GoogleSheetsService()

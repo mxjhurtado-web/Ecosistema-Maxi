@@ -6,6 +6,7 @@ import httpx
 import time
 import asyncio
 import base64
+import re
 from typing import Optional, Tuple
 from .models import MCPRequest, MCPResponse, ResponseStatus
 from .config import settings
@@ -280,10 +281,41 @@ REGLAS ESTRICTAS:
             return None
 
         has_code = extraer_codigo_router(user_text) is not None
-        
+
         if not has_code and self.gemini_api_key:
             logger.info("🤖 Auto-Agent: No tracking code detected. Routing directly to Gemini for conversational response.")
             
+            # --- DETECCIÓN DE ENLACES DE GOOGLE DRIVE / DOCS ---
+            doc_id = None
+            doc_type = None
+            doc_content = None
+            
+            doc_re = re.search(r"docs\.google\.com/document/d/([a-zA-Z0-9-_]+)", user_text)
+            sheet_re = re.search(r"docs\.google\.com/spreadsheets/d/([a-zA-Z0-9-_]+)", user_text)
+            file_re = re.search(r"drive\.google\.com/file/d/([a-zA-Z0-9-_]+)", user_text)
+            
+            if doc_re:
+                doc_id = doc_re.group(1)
+                doc_type = "google_doc"
+            elif sheet_re:
+                doc_id = sheet_re.group(1)
+                doc_type = "google_sheet"
+            elif file_re:
+                doc_id = file_re.group(1)
+                doc_type = "drive_file"
+                
+            if doc_id and doc_type:
+                logger.info(f"📂 Detected Google Drive link ({doc_type}) with ID: {doc_id}. Fetching content...")
+                try:
+                    from .google_sheets_service import google_sheets_service
+                    doc_content = await google_sheets_service.read_drive_document(doc_id, doc_type)
+                    if doc_content:
+                        logger.info(f"✅ Successfully read {len(doc_content)} characters from Drive document.")
+                    else:
+                        logger.warning("⚠️ Google Drive read returned empty content.")
+                except Exception as doc_err:
+                    logger.error(f"Failed to read Drive document: {str(doc_err)}")
+
             # --- BASE DE CONOCIMIENTO DINÁMICA (GOOGLE SHEETS FAQ) ---
             faq_spreadsheet_id = "1wrtj7SZ6wB9h1yd_9h613DYNPGjI69_Zj1gLigiUHtE"
             faq_knowledge = None
@@ -318,6 +350,19 @@ Si el usuario pregunta cómo encontrar su código de envío, dónde buscarlo o i
    - En mensajes de WhatsApp o SMS anteriores de notificaciones oficiales de MaxiSend.
 3. Invítelo cordialmente a buscar su código y escribirlo en el chat para que usted pueda consultar el estatus en tiempo real en la base de datos de Supabase.
 4. Si no cuenta con él o lo ha extraviado, sugiérale amablemente contactar al soporte de Maxi (soporte humano) o verificar con la persona que le realizó el envío.
+"""
+            if doc_content:
+                conversational_prompt += f"""
+
+### CONTENIDO DEL DOCUMENTO ADJUNTO (LEÍDO DESDE GOOGLE DRIVE) ###
+El usuario ha adjuntado un documento de Google Drive/Docs. A continuación se muestra su contenido extraído en texto plano:
+
+{doc_content}
+
+### INSTRUCCIONES DE RESPUESTA PARA EL DOCUMENTO ADJUNTO:
+1. El usuario te ha proporcionado este documento para que lo leas, analices, respondas preguntas específicas, realices un resumen o lleves a cabo alguna tarea sobre él.
+2. Utiliza la información real que se encuentra en el texto de arriba para responder a la solicitud sobre el documento.
+3. Menciona de forma muy amigable, entusiasta y cálida que has podido leer el documento adjunto y que con gusto le das la información o el resumen que te ha pedido.
 """
 
             conversational_prompt += "\nSiempre conteste en español de manera fluida y humana. Prohibido usar respuestas cortas o robóticas.\n"
