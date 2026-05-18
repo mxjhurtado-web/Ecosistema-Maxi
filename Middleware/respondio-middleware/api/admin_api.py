@@ -301,8 +301,18 @@ async def google_chat_event_handler(request: Request):
     async def send_async_response(chat_data_obj, text_query, display_name):
         try:
             from .google_chat_service import google_chat_service
-            from .models import GoogleChatAlertConfig
+            from .models import GoogleChatAlertConfig, ResponseStatus, RequestLog
             from .config import settings
+            from .telemetry import telemetry_service
+            import uuid
+            import time
+            from datetime import datetime
+            
+            trace_id = f"gchat-{uuid.uuid4()}"
+            start_time = time.time()
+            status = ResponseStatus.OK
+            mcp_latency_ms = None
+            error_message = None
             
             # Función para buscar el space_id recursivamente
             def find_space_id(obj):
@@ -340,22 +350,27 @@ async def google_chat_event_handler(request: Request):
                 logger.info(f"🧠 Consultando MCP en segundo plano para: {text_query}")
                 try:
                     from .mcp_client import mcp_client
-                    from .models import ResponseStatus
                     
-                    mcp_resp, status, latency, _ = await mcp_client.query(
+                    mcp_resp, query_status, latency, _ = await mcp_client.query(
                         user_text=text_query,
                         context={"source": "google_chat", "user": display_name},
                         agent_name=None
                     )
                     
+                    status = query_status
+                    mcp_latency_ms = latency
+                    
                     if status == ResponseStatus.OK:
                         resp_text = f"{mcp_resp}\n\n_🕒 Latencia: {latency}ms_"
                     else:
                         resp_text = f"⚠️ *Error del MCP*\n{mcp_resp}"
+                        error_message = "MCP error"
                         
                 except Exception as e:
                     logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
                     resp_text = f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
+                    status = ResponseStatus.ERROR
+                    error_message = str(e)
 
             # Usamos la configuración directa importada localmente
             direct_cfg = GoogleChatAlertConfig(
@@ -370,6 +385,28 @@ async def google_chat_event_handler(request: Request):
                 space_id=space_id,
                 config_override=direct_cfg
             )
+            
+            # Registrar telemetría y Google Sheets
+            try:
+                latency_ms = int((time.time() - start_time) * 1000)
+                request_log = RequestLog(
+                    trace_id=trace_id,
+                    timestamp=datetime.utcnow(),
+                    conversation_id=space_id,
+                    contact_id=display_name,
+                    channel="google_chat",
+                    user_text=text_query,
+                    mcp_response=resp_text,
+                    status=status,
+                    latency_ms=latency_ms,
+                    mcp_latency_ms=mcp_latency_ms,
+                    error_message=error_message,
+                    retry_count=0
+                )
+                await telemetry_service.log_request(request_log)
+                logger.info(f"📊 Google Chat message logged to Sheets telemetry successfully.")
+            except Exception as log_err:
+                logger.error(f"❌ Failed to write Google Chat message telemetry: {log_err}")
                 
         except Exception as err:
             logger.error(f"❌ Error en Background Task de Google Chat: {err}")
