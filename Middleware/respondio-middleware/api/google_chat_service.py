@@ -59,20 +59,23 @@ class GoogleChatService:
             target_space = f"spaces/{target_space}"
 
         try:
-            logger.info(f"🔑 Cargando credenciales para el espacio: {target_space}")
-            creds = await self._get_credentials(sa_b64)
-            if not creds:
+            if not self._credentials:
+                logger.info(f"🔑 Cargando credenciales por primera vez para el espacio: {target_space}")
+                self._credentials = await self._get_credentials(sa_b64)
+            
+            if not self._credentials:
                 logger.error("❌ No se pudieron obtener las credenciales de la Service Account")
                 return False
             
-            # Refresh token (usando el Request que ya importamos)
-            logger.info("🔄 Refrescando token de Google Auth...")
-            creds.refresh(Request())
-            logger.info("🎟️ Token refrescado con éxito")
+            # Refresh token solo si no es válido
+            if not self._credentials.valid:
+                logger.info("🔄 Refrescando token de Google Auth...")
+                self._credentials.refresh(Request())
+                logger.info("🎟️ Token refrescado con éxito")
 
             url = f"https://chat.googleapis.com/v1/{target_space}/messages"
             headers = {
-                "Authorization": f"Bearer {creds.token}",
+                "Authorization": f"Bearer {self._credentials.token}",
                 "Content-Type": "application/json"
             }
             
