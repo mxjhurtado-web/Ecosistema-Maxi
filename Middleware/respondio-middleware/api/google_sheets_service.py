@@ -58,10 +58,30 @@ class GoogleSheetsService:
             "Content-Type": "application/json"
         }
         
+        # 1.5. Intentar buscar una carpeta llamada "Registro Orbit" compartida con la Service Account
+        folder_id = self.parent_folder_id
+        try:
+            folder_search_url = "https://www.googleapis.com/drive/v3/files"
+            q_folder = "mimeType = 'application/vnd.google-apps.folder' and name = 'Registro Orbit' and trashed = false"
+            params_folder = {
+                "q": q_folder,
+                "spaces": "drive",
+                "fields": "files(id, name)"
+            }
+            async with httpx.AsyncClient() as client:
+                folder_response = await client.get(folder_search_url, headers=headers, params=params_folder)
+                if folder_response.status_code == 200:
+                    folders = folder_response.json().get("files", [])
+                    if folders:
+                        folder_id = folders[0]["id"]
+                        logger.info(f"📁 Dynamically discovered folder 'Registro Orbit' ID: {folder_id}")
+        except Exception as fe:
+            logger.warning(f"Failed to dynamically search for 'Registro Orbit' folder: {str(fe)}")
+
         # 2. Search in Google Drive folder
         try:
             search_url = "https://www.googleapis.com/drive/v3/files"
-            q = f"name = '{self.sheet_name}' and '{self.parent_folder_id}' in parents and trashed = false"
+            q = f"name = '{self.sheet_name}' and '{folder_id}' in parents and trashed = false"
             params = {
                 "q": q,
                 "spaces": "drive",
@@ -83,19 +103,19 @@ class GoogleSheetsService:
         except Exception as e:
             logger.error(f"Failed to search for Google Sheet in Drive: {str(e)}")
 
-        # 3. Create a new Spreadsheet in the folder
+        # 3. Create a new Spreadsheet in the folder (with fallback to root Drive)
         try:
             create_url = "https://www.googleapis.com/drive/v3/files"
             payload = {
                 "name": self.sheet_name,
                 "mimeType": "application/vnd.google-apps.spreadsheet",
-                "parents": [self.parent_folder_id]
+                "parents": [folder_id]
             }
             async with httpx.AsyncClient() as client:
                 response = await client.post(create_url, json=payload, headers=headers)
                 if response.status_code == 200:
                     spreadsheet_id = response.json().get("id")
-                    logger.info(f"✨ Created NEW Google Sheet in Drive: {spreadsheet_id}")
+                    logger.info(f"✨ Created NEW Google Sheet in folder '{folder_id}': {spreadsheet_id}")
                     
                     # Write headers immediately
                     await self._write_headers(spreadsheet_id, token)
@@ -107,7 +127,28 @@ class GoogleSheetsService:
                             pass
                     return spreadsheet_id
                 else:
-                    logger.error(f"❌ Failed to create Google Sheet ({response.status_code}): {response.text}")
+                    logger.warning(f"⚠️ Failed to create Google Sheet in folder '{folder_id}' ({response.status_code}): {response.text}. Retrying in root drive...")
+                    
+                    # Fallback to root Drive
+                    payload_fallback = {
+                        "name": self.sheet_name,
+                        "mimeType": "application/vnd.google-apps.spreadsheet"
+                    }
+                    response_fallback = await client.post(create_url, json=payload_fallback, headers=headers)
+                    if response_fallback.status_code == 200:
+                        spreadsheet_id = response_fallback.json().get("id")
+                        logger.info(f"✨ Created NEW Google Sheet in ROOT drive: {spreadsheet_id}")
+                        
+                        await self._write_headers(spreadsheet_id, token)
+                        
+                        if redis:
+                            try:
+                                await redis.set("google_sheets:spreadsheet_id", spreadsheet_id)
+                            except Exception:
+                                pass
+                        return spreadsheet_id
+                    else:
+                        logger.error(f"❌ Failed to create Google Sheet in root drive ({response_fallback.status_code}): {response_fallback.text}")
         except Exception as e:
             logger.error(f"Failed to create Google Sheet: {str(e)}")
             
