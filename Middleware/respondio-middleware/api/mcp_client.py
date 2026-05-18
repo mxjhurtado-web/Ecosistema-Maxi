@@ -128,6 +128,13 @@ class MCPClient:
         # Default settings
         self.url = curr_config.url
         self.gemini_api_key = curr_config.gemini_api_key
+        
+        # Diagnostic logging for Render env variables
+        import os
+        env_keys = [k for k in os.environ.keys() if "GEMINI" in k or "API_KEY" in k]
+        logger.info(f"🔍 [DIAGNOSTIC] env_keys starting with GEMINI or API_KEY: {env_keys}")
+        logger.info(f"⚙️ [DIAGNOSTIC] Configured MCP URL: {self.url} | Gemini API Key present: {'YES' if self.gemini_api_key else 'NO'}")
+        
         readonly = False
         system_prompt = None
         
