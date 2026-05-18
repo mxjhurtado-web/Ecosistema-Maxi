@@ -367,6 +367,18 @@ El usuario ha adjuntado un documento de Google Drive/Docs. A continuación se mu
 2. Utiliza la información real que se encuentra en el texto de arriba para responder a la solicitud sobre el documento.
 3. Menciona de forma muy amigable, entusiasta y cálida que has podido leer el documento adjunto y que con gusto le das la información o el resumen que te ha pedido.
 """
+            elif doc_id:
+                conversational_prompt += f"""
+
+### ERROR CRÍTICO: NO SE PUDO DESCARGAR EL DOCUMENTO ADJUNTO ###
+El usuario incluyó un enlace a un archivo de Google Drive/Docs (ID: **{doc_id}**), pero el bot no pudo descargar su contenido debido a un error 404 de la API (problema de permisos).
+
+### INSTRUCCIONES DE RESPUESTA CRÍTICAS (EVITAR ALUCINACIÓN):
+1. **NO te inventes ni alucines el contenido del documento.** (Prohibido simular que leíste la guía de firmas, políticas de WhatsApp, planes, o cualquier otro tema ficticio).
+2. Explícale al usuario de forma sumamente cálida y empática que no pudiste leer el documento porque la API de Google arrojó un error **404 (No Encontrado / Sin Permisos de Acceso)**.
+3. Pídele amablemente que por favor comparta el archivo dándole acceso de **Lector** o **Editor** al correo de la Service Account que esté configurada en el bot, para que así puedas acceder a él sin problemas.
+4. Explícale que en cuanto comparta el acceso al correo del bot, podrá volver a enviarte el enlace para resumirlo de inmediato.
+"""
 
             conversational_prompt += "\nSiempre conteste en español de manera fluida y humana. Prohibido usar respuestas cortas o robóticas.\n"
 

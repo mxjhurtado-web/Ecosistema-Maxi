@@ -32,6 +32,7 @@ class GoogleSheetsService:
         try:
             sa_json = base64.b64decode(sa_b64).decode('utf-8')
             sa_info = json.loads(sa_json)
+            logger.info(f"🔑 [CREDENTIAL DIAGNOSTIC] Loaded Service Account email: {sa_info.get('client_email')}")
             return service_account.Credentials.from_service_account_info(
                 sa_info, scopes=self.scopes
             )
