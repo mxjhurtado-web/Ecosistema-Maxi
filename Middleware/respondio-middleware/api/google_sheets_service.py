@@ -221,7 +221,7 @@ class GoogleSheetsService:
         # 1. Try Redis cache first to avoid hitting Google API limits
         try:
             redis = await get_redis_client()
-            cached_faq = await redis.get(f"google_sheets:faq_cache:{spreadsheet_id}")
+            cached_faq = await redis.get(f"google_sheets:faq_cache:v3:{spreadsheet_id}")
             if cached_faq:
                 logger.info(f"✅ Loaded FAQ from Redis cache for sheet {spreadsheet_id}")
                 return cached_faq.decode('utf-8')
@@ -301,7 +301,7 @@ class GoogleSheetsService:
                 if faq_text and redis:
                     try:
                         # Cache for 60 seconds (1 minute) during testing and setup
-                        await redis.setex(f"google_sheets:faq_cache:{spreadsheet_id}", 60, faq_text)
+                        await redis.setex(f"google_sheets:faq_cache:v3:{spreadsheet_id}", 60, faq_text)
                         logger.info("Saved FAQ to Redis cache (60s TTL)")
                     except Exception:
                         pass
