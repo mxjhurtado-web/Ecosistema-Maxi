@@ -292,45 +292,8 @@ async def google_chat_event_handler(request: Request):
     if not text and not chat_data:
         return {"text": "Sistema ORBIT listo."}
 
-    # Lógica de respuestas
-    response_text = ""
-    
-    # Comprobación exacta para evitar falsos positivos con frases como "estatus de envio"
-    if text in ["estado", "status", "reporte", "health"]:
-        response_text = f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nHola *{user_name}*, el sistema opera con normalidad."
-
-    elif text in ["ayuda", "hola", "hi", "help"]:
-        response_text = f"🤖 *ORBIT Bot*\n¡Hola *{user_name}*! 👋\n\nPuedo ayudarte con:\n- `estado`: Ver salud técnica de ORBIT.\n- *Consultas IA*: Pregúntame por estatus de guías o información de envíos directamente."
-
-    else:
-        # CONSULTA AL MCP PARA CUALQUIER OTRA COSA
-        logger.info(f"🧠 Consultando MCP para: {text}")
-        try:
-            from .mcp_client import mcp_client
-            from .models import ResponseStatus
-            
-            # El método correcto es .query()
-            mcp_resp, status, latency, _ = await mcp_client.query(
-                user_text=text,
-                context={"source": "google_chat", "user": user_name},
-                agent_name=None
-            )
-            
-            if status == ResponseStatus.OK:
-                response_text = f"{mcp_resp}\n\n_🕒 Latencia: {latency}ms_"
-            else:
-                response_text = f"⚠️ *Error del MCP*\n{mcp_resp}"
-                
-        except Exception as e:
-            logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
-            response_text = f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
-
-
-
-    # VÍA DE ESCAPE: Enviar mensaje asíncronamente y responder 200 OK
-    from fastapi import BackgroundTasks
-    
-    async def send_async_response(chat_data_obj, resp_text):
+    # VÍA DE ESCAPE: Enviar mensaje asíncronamente y responder 200 OK de inmediato
+    async def send_async_response(chat_data_obj, text_query, display_name):
         try:
             from .google_chat_service import google_chat_service
             from .models import GoogleChatAlertConfig
@@ -352,37 +315,62 @@ async def google_chat_event_handler(request: Request):
 
             space_id = find_space_id(chat_data_obj)
             
-            if space_id:
-                logger.info(f"🎯 ESPACIO ENCONTRADO: {space_id}")
-                
-                # Usamos la configuración directa importada localmente
-                direct_cfg = GoogleChatAlertConfig(
-                    enabled=True,
-                    sa_json_b64=settings.GOOGLE_CHATS_SA_BASE64 or "",
-                    default_space_id=space_id
-                )
-
-                
-                logger.info(f"📤 Enviando mensaje asíncrono (Background)...")
-                await google_chat_service.send_message(
-                    text=resp_text,
-                    space_id=space_id,
-                    config_override=direct_cfg
-                )
-            else:
+            if not space_id:
                 logger.warning("⚠️ No se encontró el ID del espacio en la tarea de fondo.")
+                return
+                
+            logger.info(f"🎯 ESPACIO ENCONTRADO: {space_id}")
+            
+            # Generar respuesta de forma asíncrona en el Background
+            resp_text = ""
+            if text_query in ["estado", "status", "reporte", "health"]:
+                resp_text = f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nHola *{display_name}*, el sistema opera con normalidad."
+            
+            elif text_query in ["ayuda", "hola", "hi", "help"]:
+                resp_text = f"🤖 *ORBIT Bot*\n¡Hola *{display_name}*! 👋\n\nPuedo ayudarte con:\n- `estado`: Ver salud técnica de ORBIT.\n- *Consultas IA*: Pregúntame por estatus de guías o información de envíos directamente."
+            
+            else:
+                # CONSULTA AL MCP DE FORMA ASÍNCRONA
+                logger.info(f"🧠 Consultando MCP en segundo plano para: {text_query}")
+                try:
+                    from .mcp_client import mcp_client
+                    from .models import ResponseStatus
+                    
+                    mcp_resp, status, latency, _ = await mcp_client.query(
+                        user_text=text_query,
+                        context={"source": "google_chat", "user": display_name},
+                        agent_name=None
+                    )
+                    
+                    if status == ResponseStatus.OK:
+                        resp_text = f"{mcp_resp}\n\n_🕒 Latencia: {latency}ms_"
+                    else:
+                        resp_text = f"⚠️ *Error del MCP*\n{mcp_resp}"
+                        
+                except Exception as e:
+                    logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
+                    resp_text = f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
+
+            # Usamos la configuración directa importada localmente
+            direct_cfg = GoogleChatAlertConfig(
+                enabled=True,
+                sa_json_b64=settings.GOOGLE_CHATS_SA_BASE64 or "",
+                default_space_id=space_id
+            )
+            
+            logger.info(f"📤 Enviando mensaje asíncrono (Background)...")
+            await google_chat_service.send_message(
+                text=resp_text,
+                space_id=space_id,
+                config_override=direct_cfg
+            )
                 
         except Exception as err:
             logger.error(f"❌ Error en Background Task de Google Chat: {err}")
 
-    # Añadimos la tarea de fondo y retornamos de inmediato
-    # (Necesitamos recibir background_tasks como parámetro en la función principal)
-    # Pero como no queremos cambiar la firma de la función ahora, lo haremos inline:
+    # Disparar la tarea de fondo de inmediato
     import asyncio
-    asyncio.create_task(send_async_response(data, response_text))
-
-    return {}
-
+    asyncio.create_task(send_async_response(data, text, user_name))
 
     return {}
 
