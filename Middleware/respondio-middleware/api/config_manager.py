@@ -50,7 +50,7 @@ class ConfigManager:
                 kc_realm=settings.KC_REALM,
                 kc_client_id=settings.KC_CLIENT_ID,
                 kc_client_secret=settings.KC_CLIENT_SECRET,
-                gemini_api_key=self._memory_config.get("gemini_api_key")
+                gemini_api_key=self._memory_config.get("gemini_api_key") or settings.GEMINI_API_KEY
             )
 
         try:
@@ -78,7 +78,7 @@ class ConfigManager:
                 kc_realm=kc_realm.decode() if kc_realm else settings.KC_REALM,
                 kc_client_id=kc_client_id.decode() if kc_client_id else settings.KC_CLIENT_ID,
                 kc_client_secret=kc_client_secret.decode() if kc_client_secret else settings.KC_CLIENT_SECRET,
-                gemini_api_key=gemini_api_key.decode() if gemini_api_key else None,
+                gemini_api_key=gemini_api_key.decode() if gemini_api_key else settings.GEMINI_API_KEY,
                 emergency_mode=emergency_mode.decode() == 'true' if emergency_mode else False
             )
         except Exception as e:
@@ -94,7 +94,7 @@ class ConfigManager:
                 kc_realm=settings.KC_REALM,
                 kc_client_id=settings.KC_CLIENT_ID,
                 kc_client_secret=settings.KC_CLIENT_SECRET,
-                gemini_api_key=self._memory_config.get("gemini_api_key"),
+                gemini_api_key=self._memory_config.get("gemini_api_key") or settings.GEMINI_API_KEY,
                 emergency_mode=self._memory_config.get("emergency_mode", False)
             )
 
