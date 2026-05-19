@@ -592,35 +592,101 @@ class HadesEngine:
         # 2. Base64 de la imagen
         b64_image = base64.b64encode(image_bytes).decode("utf-8")
 
-        # 3. Prompt unificado: OCR + Forense (JSON estructurado)
+        # 3. Prompt unificado: OCR + Forense (JSON estructurado con esquema)
         prompt = (
             "Actúa como un perito forense experto en documentos de identidad y oficial de cumplimiento corporativo.\n"
-            "Analiza esta imagen y extrae la información solicitada en formato JSON exacto.\n\n"
-            "INSTRUCCIONES DE ANÁLISIS FORENSE:\n"
+            "Analiza esta imagen y extrae la información solicitada en formato JSON exacto respetando la estructura del esquema.\n\n"
+            "INSTRUCCIONES DE EXTRACCIÓN DE DATOS Y ANÁLISIS FORENSE:\n"
             "1. OCR TEXTUAL: Extrae de forma literal todo el texto visible del documento (nombres, fechas, firmas, códigos).\n"
-            "2. ELEMENTOS DE SEGURIDAD (0-10): Evalúa la presencia/consistencia de hologramas, guilloches, marcas de agua, relieves (10=sospechoso/ausente, 0=perfecto).\n"
-            "3. CALIDAD DE IMPRESIÓN (0-10): Evalúa nitidez de los bordes del texto, registro de color y microimpresión (10=impresión casera/inconsistente, 0=oficial/offset).\n"
-            "4. MANIPULACIÓN DIGITAL (0-10): Busca señales de clonación de píxeles, recortes alrededor de la foto/firma, artefactos extraños o bordes ásperos (10=evidencia de Photoshop, 0=consistente).\n"
-            "5. TIPOGRAFÍA (0-10): Busca si las fuentes del texto coinciden con las tipografías oficiales o si son genéricas (ej. Arial) y si tienen espaciado irregular (10=sospechoso, 0=oficial).\n"
-            "6. FOTOGRAFÍA (0-10): Evalúa si el fondo de la foto es uniforme, si las proporciones faciales son naturales y consistentes con la iluminación del documento (10=sospechoso, 0=profesional).\n\n"
-            "Debes responder ÚNICAMENTE con un objeto JSON válido con la siguiente estructura (no agregues bloques de código ``` ni texto adicional):\n"
-            "{\n"
-            "  \"extracted_ocr\": \"Texto completo literal extraído aquí\",\n"
-            "  \"forensic_analysis_summary\": \"Breve resumen técnico del peritaje forense visual\",\n"
-            "  \"photoshop_detected\": true,\n"
-            "  \"scores\": {\n"
-            "    \"security_elements\": 0,\n"
-            "    \"printing_quality\": 0,\n"
-            "    \"digital_manipulation\": 0,\n"
-            "    \"typography\": 0,\n"
-            "    \"photography\": 0\n"
-            "  },\n"
-            "  \"evidences\": [\n"
-            "    \"Detalle o anomalía específica detectada 1\",\n"
-            "    \"Detalle o anomalía específica detectada 2\"\n"
-            "  ]\n"
-            "}"
+            "2. EXTRAE EL PAÍS: Identifica el país emisor del documento y retorna su código de dos letras (ej: US, MX, GT, CO, PE).\n"
+            "3. EXTRAE EL TIPO DE DOCUMENTO: Identifica si es una Licencia de Conducir, Tarjeta de Identificación, Pasaporte, Credencial para Votar, etc.\n"
+            "4. EXTRAE EL NOMBRE: Identifica el nombre completo del titular tal como aparece en el documento (sin prefijos como 'Nombre:').\n"
+            "5. EXTRAE EL NÚMERO DE ID: Identifica el número de documento de forma limpia (ej: D04774185).\n"
+            "6. EXTRAE LAS FECHAS: Identifica la fecha de nacimiento (birth_date), fecha de vencimiento (expiration_date) y fecha de emisión (issue_date), formateándolas estrictamente como MM/DD/YYYY. Si una fecha no está presente, es ilegible o está en blanco en el documento, retorna una cadena vacía \"\".\n"
+            "7. ELEMENTOS DE SEGURIDAD (0-10): Evalúa la presencia/consistencia de hologramas, guilloches, marcas de agua, relieves (10=sospechoso/ausente, 0=perfecto).\n"
+            "8. CALIDAD DE IMPRESIÓN (0-10): Evalúa nitidez de los bordes del texto, registro de color y microimpresión (10=impresión casera/inconsistente, 0=oficial/offset).\n"
+            "9. MANIPULACIÓN DIGITAL (0-10): Busca señales de clonación de píxeles, recortes alrededor de la foto/firma, artefactos extraños o bordes ásperos (10=evidencia de Photoshop, 0=consistente).\n"
+            "10. TIPOGRAFÍA (0-10): Busca si las fuentes del texto coinciden con las tipografías oficiales o si son genéricas (ej. Arial) y si tienen espaciado irregular (10=sospechoso, 0=oficial).\n"
+            "11. FOTOGRAFÍA (0-10): Evalúa si el fondo de la foto es uniforme, si las proporciones faciales son naturales y consistentes con la iluminación del documento (10=sospechoso, 0=profesional).\n\n"
+            "Debes responder ÚNICAMENTE con un objeto JSON válido que cumpla con el esquema requerido."
         )
+
+        # Definir el esquema JSON estructurado para Gemini
+        schema = {
+            "type": "OBJECT",
+            "properties": {
+                "extracted_ocr": {
+                    "type": "STRING",
+                    "description": "Texto completo literal extraído del documento."
+                },
+                "document_country": {
+                    "type": "STRING",
+                    "description": "Código de país de dos letras (ej: US, MX, GT, CO, PE) del documento o vacío si no se identifica."
+                },
+                "document_type": {
+                    "type": "STRING",
+                    "description": "Tipo de documento (ej: Licencia de Conducir, Tarjeta de Identificación, Pasaporte, Credencial para Votar)."
+                },
+                "extracted_name": {
+                    "type": "STRING",
+                    "description": "Nombre completo del titular tal como aparece en el documento o vacío si no se identifica."
+                },
+                "id_number": {
+                    "type": "STRING",
+                    "description": "Número de identificación, número de licencia o número de documento o vacío si no se identifica."
+                },
+                "expiration_date": {
+                    "type": "STRING",
+                    "description": "Fecha de vencimiento en formato MM/DD/YYYY o vacío si no tiene o está en blanco."
+                },
+                "birth_date": {
+                    "type": "STRING",
+                    "description": "Fecha de nacimiento en formato MM/DD/YYYY o vacío si no tiene."
+                },
+                "issue_date": {
+                    "type": "STRING",
+                    "description": "Fecha de emisión en formato MM/DD/YYYY o vacío si no tiene."
+                },
+                "forensic_analysis_summary": {
+                    "type": "STRING",
+                    "description": "Resumen técnico detallado del análisis forense visual."
+                },
+                "photoshop_detected": {
+                    "type": "BOOLEAN",
+                    "description": "Indica si hay sospecha o evidencia clara de manipulación digital."
+                },
+                "scores": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "security_elements": {"type": "INTEGER", "description": "Puntuación de 0 a 10 (10 sospechoso/ausente, 0 perfecto)."},
+                        "printing_quality": {"type": "INTEGER", "description": "Puntuación de 0 a 10 (10 sospechoso, 0 perfecto)."},
+                        "digital_manipulation": {"type": "INTEGER", "description": "Puntuación de 0 a 10 (10 sospechoso, 0 perfecto)."},
+                        "typography": {"type": "INTEGER", "description": "Puntuación de 0 a 10 (10 sospechoso, 0 perfecto)."},
+                        "photography": {"type": "INTEGER", "description": "Puntuación de 0 a 10 (10 sospechoso, 0 perfecto)."}
+                    },
+                    "required": ["security_elements", "printing_quality", "digital_manipulation", "typography", "photography"]
+                },
+                "evidences": {
+                    "type": "ARRAY",
+                    "items": {"type": "STRING"},
+                    "description": "Detalles o anomalías específicas detectadas en el documento."
+                }
+            },
+            "required": [
+                "extracted_ocr",
+                "document_country",
+                "document_type",
+                "extracted_name",
+                "id_number",
+                "expiration_date",
+                "birth_date",
+                "issue_date",
+                "forensic_analysis_summary",
+                "photoshop_detected",
+                "scores",
+                "evidences"
+            ]
+        }
 
         # 4. Llamada HTTP REST asíncrona a Gemini
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
@@ -645,6 +711,7 @@ class HadesEngine:
                 "temperature": 0.1,
                 "topP": 0.9,
                 "responseMimeType": "application/json",
+                "responseSchema": schema,
                 "maxOutputTokens": 2048
             }
         }
@@ -682,7 +749,11 @@ class HadesEngine:
                 details_internal = []
                 details_user = []
                 low_ocr = ocr_text.lower()
-                doc_pais = _infer_doc_country(ocr_text)
+                
+                # Usar el país extraído directamente por Gemini con fallback a inferencia
+                doc_pais = gemini_data.get("document_country") or _infer_doc_country(ocr_text)
+                if doc_pais:
+                    doc_pais = doc_pais.strip().upper()
 
                 # 1. Chequeo de Muestra/Plantilla (crítico)
                 if any(w in low_ocr for w in _SAMPLE_WORDS if w):
@@ -692,11 +763,27 @@ class HadesEngine:
 
                 # 2. Extracción de Fechas e Identificación (motor HADES)
                 date_results = _process_all_dates_by_type(ocr_text)
-                dob_use = date_results.get("fecha_nacimiento_final")
-                vig_final = date_results.get("fecha_vigencia_final")
-                extracted_name = date_results.get("nombre") or _extract_name(ocr_text)
-                extracted_id = _extract_id_number(ocr_text, doc_pais)
-                extracted_type = date_results.get("tipo_identificacion") or _extract_id_type(ocr_text, doc_pais)
+                
+                # Usar extracción directa de Gemini si está disponible, con fallback a regex clásicos de HADES
+                dob_use = gemini_data.get("birth_date") or date_results.get("fecha_nacimiento_final")
+                if dob_use:
+                    dob_use = dob_use.strip()
+                    
+                vig_final = gemini_data.get("expiration_date") or date_results.get("fecha_vigencia_final")
+                if vig_final:
+                    vig_final = vig_final.strip()
+                    
+                extracted_name = gemini_data.get("extracted_name") or date_results.get("nombre") or _extract_name(ocr_text)
+                if extracted_name:
+                    extracted_name = extracted_name.strip()
+                    
+                extracted_id = gemini_data.get("id_number") or _extract_id_number(ocr_text, doc_pais)
+                if extracted_id:
+                    extracted_id = extracted_id.strip()
+                    
+                extracted_type = gemini_data.get("document_type") or date_results.get("tipo_identificacion") or _extract_id_type(ocr_text, doc_pais)
+                if extracted_type:
+                    extracted_type = extracted_type.strip()
 
                 # 3. Penalización por Nombre ausente
                 if not extracted_name:
@@ -788,7 +875,7 @@ class HadesEngine:
                         details_internal.extend([f"Forense: {e}" for e in evidences[:2]])
 
                 # 9. CLASIFICACIÓN DE COMPLIANCE (Policy Templates 2025)
-                compliance_result = classify_document(ocr_text)
+                compliance_result = classify_document(ocr_text, known_expiration_date=gemini_data.get("expiration_date"))
                 acceptance = compliance_result.get("acceptance", "REVIEW")
                 policy_reason = compliance_result.get("policy_reason", "")
                 

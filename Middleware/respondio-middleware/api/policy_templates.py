@@ -344,6 +344,11 @@ def _check_expiration(text: str) -> Tuple[bool, Optional[str], Optional[str]]:
             for pattern in date_patterns:
                 date_match = re.search(pattern, text_after, re.IGNORECASE)
                 if date_match:
+                    # Evitar falsos positivos si la fecha en text_after está precedida por una etiqueta de nacimiento
+                    match_start = date_match.start()
+                    prefix = text_after[:match_start].lower()
+                    if any(birth_kw in prefix for birth_kw in ["birth", "dob", "nacimiento", "naci"]):
+                        continue
                     try:
                         groups = date_match.groups()
                         
@@ -400,7 +405,8 @@ def _check_expiration(text: str) -> Tuple[bool, Optional[str], Optional[str]]:
 
 def classify_document(
     ocr_text_front: str,
-    ocr_text_back: Optional[str] = None
+    ocr_text_back: Optional[str] = None,
+    known_expiration_date: Optional[str] = None
 ) -> Dict[str, any]:
     """
     Clasifica un documento según reglas de cumplimiento.
@@ -446,7 +452,40 @@ def classify_document(
     result["acceptance"] = matched_rule["acceptance"]
     result["policy_evidence"] = matched_rule["patterns"]
     
-    is_expired, exp_date, exp_reason = _check_expiration(text_combined)
+    # Si tenemos una fecha de vencimiento explícita y confiable (extraída por Gemini visualmente)
+    if known_expiration_date is not None:
+        clean_exp = known_expiration_date.strip()
+        if not clean_exp:
+            is_expired = False
+            exp_date = None
+            exp_reason = "Documento sin fecha de expiración especificada o en blanco"
+        else:
+            import datetime
+            try:
+                parts = re.split(r'[/-]', clean_exp)
+                if len(parts) == 3:
+                    month, day, year = int(parts[0]), int(parts[1]), int(parts[2])
+                    if year < 100:
+                        year = 2000 + year if year < 50 else 1900 + year
+                    exp_date_obj = datetime.date(year, month, day)
+                    today = datetime.date.today()
+                    is_expired = exp_date_obj < today
+                    exp_date = exp_date_obj.strftime("%m/%d/%Y")
+                    if is_expired:
+                        exp_reason = f"Documento expirado el {exp_date}"
+                    else:
+                        exp_reason = f"Documento válido hasta {exp_date}"
+                else:
+                    is_expired = False
+                    exp_date = clean_exp
+                    exp_reason = f"Fecha de expiración: {exp_date}"
+            except Exception:
+                is_expired = False
+                exp_date = clean_exp
+                exp_reason = f"Fecha de expiración: {exp_date}"
+    else:
+        is_expired, exp_date, exp_reason = _check_expiration(text_combined)
+        
     result["is_expired"] = is_expired
     result["expiration_date"] = exp_date
     result["expiration_reason"] = exp_reason
