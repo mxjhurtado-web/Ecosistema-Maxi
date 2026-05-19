@@ -345,9 +345,6 @@ async def google_chat_event_handler(request: Request):
             if text_query_lower in ["estado", "status", "reporte", "health"]:
                 resp_text = f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nHola *{display_name}*, el sistema opera con normalidad."
             
-            elif text_query_lower in ["ayuda", "hola", "hi", "help"]:
-                resp_text = f"🤖 *ORBIT Bot*\n¡Hola *{display_name}*! 👋\n\nPuedo ayudarte con:\n- `estado`: Ver salud técnica de ORBIT.\n- *Consultas IA*: Pregúntame por estatus de guías o información de envíos directamente."
-            
             else:
                 # DETECTAR Y PARSEAR ARCHIVOS ADJUNTOS EN GOOGLE CHAT
                 def find_attachments(obj):
