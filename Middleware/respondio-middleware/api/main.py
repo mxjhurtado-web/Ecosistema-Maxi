@@ -161,6 +161,100 @@ async def webhook(
         logger.error(f"Failed to check/set disclosure in Redis: {str(e)}")
 
     try:
+        # --- INTERCEPT IMAGES FOR HADES CLOUD FORENSIC ANALYSIS ---
+        image_media = None
+        if request.media:
+            for media in request.media:
+                if "image" in (media.mime_type or "").lower():
+                    user_msg = (request.user_text or "").lower()
+                    keywords = ["analiza", "hades", "cedula", "pasaporte", "ine", "id", "verificar", "autenticidad"]
+                    if not request.user_text or any(k in user_msg for k in keywords):
+                        image_media = media
+                        break
+
+        if image_media:
+            logger.info(f"📸 Interceptando imagen de Respond.io para HADES: {image_media.url}")
+            try:
+                async with httpx.AsyncClient() as client:
+                    img_resp = await client.get(image_media.url, timeout=30)
+                    if img_resp.status_code == 200:
+                        from .hades_engine import hades_engine
+                        hades_report = await hades_engine.analyze_document_image(img_resp.content, image_media.mime_type)
+                        if hades_report.get("success"):
+                            score = hades_report["score"]
+                            riesgo = hades_report["riesgo"]
+                            emoji = hades_report["emoji"]
+                            data = hades_report["data"]
+                            forensic = hades_report["forensic_details"]
+                            details_user = hades_report["details_user"]
+                            
+                            mcp_response = (
+                                f"🛡️ *INFORME DE CUMPLIMIENTO Y ANÁLISIS FORENSE (HADES CLOUD)*\n"
+                                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                                f"📊 *Resultado de Autenticidad:* {emoji} *{riesgo}* (Score: `{score}/100`)\n"
+                                f"👤 *Titular:* `{data['nombre']}`\n"
+                                f"🆔 *Documento:* `{data['tipo']}` | ID: `{data['id']}`\n"
+                                f"🌎 *País Emisor:* `{data['pais']}`\n"
+                                f"📅 *Nacimiento:* `{data['nacimiento']}` | *Vigencia:* `{data['expiracion']}`\n"
+                                f"⚖️ *Estatus de Compliance:* `{data['compliance_status']}`\n"
+                                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                                f"🔍 *Detalles Forenses Visuales:*\n"
+                            )
+                            
+                            if forensic.get("photoshop_detected"):
+                                mcp_response += f"🚨 *MANIPULACIÓN DIGITAL:* Se detectó posible fotomontaje o edición digital.\n"
+                            
+                            scores = forensic.get("scores", {})
+                            mcp_response += (
+                                f"- 🛡️ Elementos de Seguridad: `{scores.get('security_elements', 0)}/10`\n"
+                                f"- 🖨️ Calidad de Impresión: `{scores.get('printing_quality', 0)}/10`\n"
+                                f"- 💻 Manipulación Digital: `{scores.get('digital_manipulation', 0)}/10`\n"
+                                f"- 🔤 Tipografía: `{scores.get('typography', 0)}/10`\n"
+                                f"- 📸 Fotografía: `{scores.get('photography', 0)}/10`\n"
+                            )
+                            
+                            if forensic.get("evidences"):
+                                mcp_response += "\n*Evidencias Encontradas:*\n"
+                                for ev in forensic["evidences"][:3]:
+                                    mcp_response += f"• _{ev}_\n"
+                            
+                            if details_user:
+                                mcp_response += "\n*Observaciones de Operación:*\n"
+                                for obs in details_user:
+                                    mcp_response += f"⚠️ _{obs}_\n"
+                                    
+                            mcp_response += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n_Análisis completado en {hades_report.get('latency_sec', 0):.2f}s_"
+                            
+                            total_latency_ms = int((time.time() - start_time) * 1000)
+                            
+                            try:
+                                request_log = RequestLog(
+                                    trace_id=trace_id,
+                                    timestamp=datetime.utcnow(),
+                                    conversation_id=request.conversation_id,
+                                    contact_id=request.contact_id,
+                                    channel=request.channel,
+                                    user_text=request.user_text,
+                                    mcp_response=mcp_response,
+                                    status=ResponseStatus.OK,
+                                    latency_ms=total_latency_ms,
+                                    retry_count=0
+                                )
+                                await telemetry_service.log_request(request_log)
+                            except Exception as tel_err:
+                                logger.error(f"Failed to log Hades telemetry: {tel_err}")
+                                
+                            return RespondioResponse(
+                                status=ResponseStatus.OK,
+                                reply_text=mcp_response,
+                                trace_id=trace_id,
+                                latency_ms=total_latency_ms
+                            )
+                        else:
+                            logger.error(f"HadesEngine failed: {hades_report.get('error')}")
+            except Exception as download_err:
+                logger.error(f"Failed downloading image for Hades: {download_err}")
+
         # Check if an agent is specified in metadata (useful for dashboard testing)
         agent_name = request.metadata.get("agent_name")
         

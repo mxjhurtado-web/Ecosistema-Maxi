@@ -477,7 +477,64 @@ async def google_chat_event_handler(request: Request):
                                         
                                         # Parsear según el tipo de archivo
                                         extracted_text = ""
-                                        if "pdf" in mime_type or content_name.endswith(".pdf"):
+                                        is_image = "image" in mime_type or any(content_name.lower().endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".webp"])
+                                        
+                                        if is_image:
+                                            logger.info(f"📸 Procesando imagen adjunta en Google Chat usando HadesEngine...")
+                                            try:
+                                                from .hades_engine import hades_engine
+                                                hades_report = await hades_engine.analyze_document_image(content_bytes, mime_type)
+                                                if hades_report.get("success"):
+                                                    score = hades_report["score"]
+                                                    riesgo = hades_report["riesgo"]
+                                                    emoji = hades_report["emoji"]
+                                                    data = hades_report["data"]
+                                                    forensic = hades_report["forensic_details"]
+                                                    details_user = hades_report["details_user"]
+                                                    
+                                                    resp_text = (
+                                                        f"🛡️ *INFORME DE CUMPLIMIENTO Y ANÁLISIS FORENSE (HADES CLOUD)*\n"
+                                                        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                                                        f"📊 *Resultado de Autenticidad:* {emoji} *{riesgo}* (Score: `{score}/100`)\n"
+                                                        f"👤 *Titular:* `{data['nombre']}`\n"
+                                                        f"🆔 *Documento:* `{data['tipo']}` | ID: `{data['id']}`\n"
+                                                        f"🌎 *País Emisor:* `{data['pais']}`\n"
+                                                        f"📅 *Nacimiento:* `{data['nacimiento']}` | *Vigencia:* `{data['expiracion']}`\n"
+                                                        f"⚖️ *Estatus de Compliance:* `{data['compliance_status']}`\n"
+                                                        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                                                        f"🔍 *Detalles Forenses Visuales:*\n"
+                                                    )
+                                                    
+                                                    if forensic.get("photoshop_detected"):
+                                                        resp_text += f"🚨 *MANIPULACIÓN DIGITAL:* Se detectó posible fotomontaje o edición digital.\n"
+                                                    
+                                                    scores = forensic.get("scores", {})
+                                                    resp_text += (
+                                                        f"- 🛡️ Elementos de Seguridad: `{scores.get('security_elements', 0)}/10`\n"
+                                                        f"- 🖨️ Calidad de Impresión: `{scores.get('printing_quality', 0)}/10`\n"
+                                                        f"- 💻 Manipulación Digital: `{scores.get('digital_manipulation', 0)}/10`\n"
+                                                        f"- 🔤 Tipografía: `{scores.get('typography', 0)}/10`\n"
+                                                        f"- 📸 Fotografía: `{scores.get('photography', 0)}/10`\n"
+                                                    )
+                                                    
+                                                    if forensic.get("evidences"):
+                                                        resp_text += "\n*Evidencias Encontradas:*\n"
+                                                        for ev in forensic["evidences"][:3]:
+                                                            resp_text += f"• _{ev}_\n"
+                                                    
+                                                    if details_user:
+                                                        resp_text += "\n*Observaciones de Operación:*\n"
+                                                        for obs in details_user:
+                                                            resp_text += f"⚠️ _{obs}_\n"
+                                                            
+                                                    resp_text += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n_Análisis completado en {hades_report.get('latency_sec', 0):.2f}s_"
+                                                else:
+                                                    resp_text = f"❌ *Error en HadesEngine:* {hades_report.get('error')}"
+                                            except Exception as he_err:
+                                                logger.error(f"Error executing HadesEngine on image: {he_err}")
+                                                resp_text = f"❌ *Error al procesar la imagen con HadesEngine:* {str(he_err)}"
+                                        
+                                        elif "pdf" in mime_type or content_name.endswith(".pdf"):
                                             logger.info(f"🛠️ Parseando archivo PDF adjunto usando pypdf...")
                                             import io
                                             from pypdf import PdfReader
@@ -491,41 +548,42 @@ async def google_chat_event_handler(request: Request):
                                         else:
                                             extracted_text = content_bytes.decode('utf-8', errors='ignore')
                                             
-                                        if extracted_text:
-                                            logger.info(f"✅ Se extrajeron {len(extracted_text)} caracteres del archivo adjunto.")
-                                            text_query = f"[CONTENIDO DEL ARCHIVO ADJUNTO '{content_name}':]\n{extracted_text}\n\n[Instrucción/Pregunta del usuario:]\n{text_query}"
-                                        else:
-                                            logger.warning(f"⚠️ El archivo adjunto '{content_name}' está vacío o no tiene texto extraíble.")
+                                        if not is_image:
+                                            if extracted_text:
+                                                logger.info(f"✅ Se extrajeron {len(extracted_text)} caracteres del archivo adjunto.")
+                                                text_query = f"[CONTENIDO DEL ARCHIVO ADJUNTO '{content_name}':]\n{extracted_text}\n\n[Instrucción/Pregunta del usuario:]\n{text_query}"
+                                            else:
+                                                logger.warning(f"⚠️ El archivo adjunto '{content_name}' está vacío o no tiene texto extraíble.")
                                     else:
                                         logger.error(f"❌ Error al descargar archivo adjunto ({attachment_resp.status_code}): {attachment_resp.text}")
                         except Exception as attach_err:
                             logger.error(f"❌ Error procesando archivo adjunto de Google Chat: {attach_err}")
-
+ 
                 # CONSULTA AL MCP DE FORMA ASÍNCRONA
-                logger.info(f"🧠 Consultando MCP en segundo plano para: {text_query[:100]}...")
-                try:
-                    from .mcp_client import mcp_client
-                    
-                    mcp_resp, query_status, latency, _ = await mcp_client.query(
-                        user_text=text_query,
-                        context={"source": "google_chat", "user": display_name},
-                        agent_name=None
-                    )
-                    
-                    status = query_status
-                    mcp_latency_ms = latency
-                    
-                    if status == ResponseStatus.OK:
-                        resp_text = f"{mcp_resp}\n\n_🕒 Latencia: {latency}ms_"
-                    else:
-                        resp_text = f"⚠️ *Error del MCP*\n{mcp_resp}"
-                        error_message = "MCP error"
+                if not resp_text:
+                    logger.info(f"🧠 Consultando MCP en segundo plano para: {text_query[:100]}...")
+                    try:
+                        from .mcp_client import mcp_client
                         
-                except Exception as e:
-                    logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
-                    resp_text = f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
-                    status = ResponseStatus.ERROR
-                    error_message = str(e)
+                        mcp_resp, query_status, latency, _ = await mcp_client.query(
+                            user_text=text_query,
+                            context={"source": "google_chat", "user": display_name},
+                            agent_name=None
+                        )
+                        
+                        status = query_status
+                        mcp_latency_ms = latency
+                        
+                        if status == ResponseStatus.OK:
+                            resp_text = f"{mcp_resp}\n\n_🕒 Latencia: {latency}ms_"
+                        else:
+                            resp_text = f"⚠️ *Error del MCP*\n{mcp_resp}"
+                            error_message = "MCP error"
+                    except Exception as e:
+                        logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
+                        resp_text = f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
+                        status = ResponseStatus.ERROR
+                        error_message = str(e)
 
             # Usamos la configuración directa importada localmente
             direct_cfg = GoogleChatAlertConfig(
