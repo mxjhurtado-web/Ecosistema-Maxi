@@ -339,6 +339,13 @@ async def google_chat_event_handler(request: Request):
                 
             logger.info(f"🎯 ESPACIO ENCONTRADO: {space_id}")
             
+            # Registrar el space_id en el conjunto de espacios activos en Redis
+            try:
+                if telemetry_service.redis:
+                    await telemetry_service.redis.sadd("gchat:active_spaces", space_id)
+            except Exception as sadd_err:
+                logger.error(f"Failed to register space_id {space_id} to Redis active set: {sadd_err}")
+
             # Generar respuesta de forma asíncrona en el Background
             resp_text = ""
             text_query_lower = text_query.lower()
@@ -346,19 +353,84 @@ async def google_chat_event_handler(request: Request):
                 resp_text = f"📊 *Estado de ORBIT*\n- API: 🟢 Activa\n- Redis: 🟢 Conectado\n- MCP: 🟢 Saludable\n\nHola *{display_name}*, el sistema opera con normalidad."
             
             else:
-                # DETECTAR Y PARSEAR ARCHIVOS ADJUNTOS EN GOOGLE CHAT
-                def find_attachments(obj):
-                    if isinstance(obj, dict):
-                        if "attachment" in obj:
-                            return obj["attachment"]
-                        for v in obj.values():
-                            res = find_attachments(v)
-                            if res: return res
-                    if isinstance(obj, list):
-                        for item in obj:
-                            res = find_attachments(item)
-                            if res: return res
-                    return None
+                # 1. DETECTAR SI ES UN ANUNCIO MULTI-ESPACIO
+                text_stripped = text_query.strip()
+                import re
+                ann_match = re.match(r'^(?i)(anuncio|anunciar)\s*:\s*(.*)', text_stripped)
+                if not ann_match:
+                    ann_match = re.match(r'^(?i)(anuncio|anunciar)\s+(.*)', text_stripped)
+                    
+                if ann_match:
+                    announcement_msg = ann_match.group(2).strip()
+                    if announcement_msg:
+                        logger.info(f"📢 ANUNCIO DETECTADO: '{announcement_msg}' emitido por {display_name}")
+                        
+                        spaces_to_announce = {space_id}
+                        if settings.GOOGLE_CHATS_DEFAULT_SPACE:
+                            spaces_to_announce.add(settings.GOOGLE_CHATS_DEFAULT_SPACE)
+                            
+                        try:
+                            if telemetry_service.redis:
+                                stored_spaces = await telemetry_service.redis.smembers("gchat:active_spaces")
+                                if stored_spaces:
+                                    for s in stored_spaces:
+                                        s_str = s.decode() if isinstance(s, bytes) else str(s)
+                                        if s_str.startswith("spaces/"):
+                                            spaces_to_announce.add(s_str)
+                        except Exception as redis_err:
+                            logger.error(f"Error fetching active spaces from Redis: {redis_err}")
+                            
+                        announcement_text = (
+                            f"📢 *ANUNCIO OFICIAL DE ORBIT* 📢\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                            f"{announcement_msg}\n\n"
+                            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                            f"_Emitido por: *{display_name}* desde {space_id}_"
+                        )
+                        
+                        success_count = 0
+                        failed_count = 0
+                        direct_cfg = GoogleChatAlertConfig(
+                            enabled=True,
+                            sa_json_b64=settings.GOOGLE_CHATS_SA_BASE64 or "",
+                            default_space_id=space_id
+                        )
+                        
+                        for dest_space in spaces_to_announce:
+                            try:
+                                logger.info(f"Posting announcement to space: {dest_space}")
+                                await google_chat_service.send_message(
+                                    text=announcement_text,
+                                    space_id=dest_space,
+                                    config_override=direct_cfg
+                                )
+                                success_count += 1
+                            except Exception as post_err:
+                                logger.error(f"Failed to post announcement to {dest_space}: {post_err}")
+                                failed_count += 1
+                                
+                        resp_text = (
+                            f"📢 *¡Anuncio difundido con éxito!*\n"
+                            f"Se ha enviado el anuncio a `{success_count}` espacio(s) activo(s) de Google Chat.\n"
+                            f"❌ Fallidos: `{failed_count}`\n\n"
+                            f"*Mensaje enviado:*\n{announcement_msg}"
+                        )
+
+                # Si no fue un anuncio, procesar adjuntos y consultas de forma normal
+                if not resp_text:
+                    # DETECTAR Y PARSEAR ARCHIVOS ADJUNTOS EN GOOGLE CHAT
+                    def find_attachments(obj):
+                        if isinstance(obj, dict):
+                            if "attachment" in obj:
+                                return obj["attachment"]
+                            for v in obj.values():
+                                res = find_attachments(v)
+                                if res: return res
+                        if isinstance(obj, list):
+                            for item in obj:
+                                res = find_attachments(item)
+                                if res: return res
+                        return None
 
                 attachments = find_attachments(chat_data_obj)
                 if attachments and len(attachments) > 0:
