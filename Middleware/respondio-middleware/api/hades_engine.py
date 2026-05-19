@@ -534,6 +534,28 @@ def _parse_dob_from_curp(curp: str) -> Optional[str]:
     except Exception: return None
 
 
+def _safe_parse_gemini_json(raw_text: str) -> dict:
+    """
+    Parsea de forma robusta la respuesta JSON de Gemini.
+    - Quita bloques de código markdown (```json ... ```) si los hay.
+    - Usa strict=False para tolerar caracteres de control y saltos de línea literales en strings.
+    """
+    if not raw_text:
+        raise ValueError("El texto de respuesta de Gemini está vacío.")
+
+    text_to_parse = raw_text.strip()
+
+    # 1. Quitar bloques de código Markdown
+    if text_to_parse.startswith("```"):
+        text_to_parse = re.sub(r"^```(?:json)?\s*\n", "", text_to_parse)
+        text_to_parse = re.sub(r"\n\s*```$", "", text_to_parse)
+        text_to_parse = text_to_parse.strip()
+
+    # 2. Parseo con strict=False (tolera newlines literales en strings)
+    return json.loads(text_to_parse, strict=False)
+
+
+
 # ============================================================================
 # MOTOR GEMINI VISION + FORENSE UNIFICADO EN LA NUBE
 # ============================================================================
@@ -642,8 +664,8 @@ class HadesEngine:
                 response_json = r.json()
                 raw_text = response_json["candidates"][0]["content"]["parts"][0]["text"].strip()
                 
-                # Parsear el JSON retornado por Gemini
-                gemini_data = json.loads(raw_text)
+                # Parsear el JSON retornado por Gemini de forma robusta (manejo de saltos de línea y Markdown)
+                gemini_data = _safe_parse_gemini_json(raw_text)
                 
                 ocr_text = gemini_data.get("extracted_ocr", "")
                 forensic_summary = gemini_data.get("forensic_analysis_summary", "")
