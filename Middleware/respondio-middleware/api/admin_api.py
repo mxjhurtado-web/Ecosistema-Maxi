@@ -449,6 +449,19 @@ async def google_chat_event_handler(request: Request):
                     resource_name = attachment.get("attachmentDataRef", {}).get("resourceName")
                     
                     if resource_name:
+                        # Limpiar el resourceName si viene codificado en base64
+                        if "/" not in resource_name or resource_name.endswith("==") or resource_name.startswith("Clx"):
+                            try:
+                                import base64
+                                decoded = base64.b64decode(resource_name).decode("utf-8", errors="ignore")
+                                idx = decoded.find("spaces/")
+                                if idx != -1:
+                                    clean_resource_name = decoded[idx:]
+                                    logger.info(f"✨ Decoded and extracted clean resource name: {clean_resource_name}")
+                                    resource_name = clean_resource_name
+                            except Exception as dec_err:
+                                logger.warning(f"⚠️ Could not decode resourceName: {dec_err}")
+
                         logger.info(f"📎 File attachment found in chat: '{content_name}' ({mime_type}) | resourceName: {resource_name}")
                         try:
                             from .config_manager import config_manager
