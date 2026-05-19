@@ -475,7 +475,7 @@ async def google_chat_event_handler(request: Request):
                                 creds.refresh(Request())
                                 
                                 # Descargar binario usando Google Chat API
-                                download_url = f"https://chat.googleapis.com/v1/{resource_name}?alt=media"
+                                download_url = f"https://chat.googleapis.com/v1/media/{resource_name}?alt=media"
                                 headers = {
                                     "Authorization": f"Bearer {creds.token}"
                                 }
