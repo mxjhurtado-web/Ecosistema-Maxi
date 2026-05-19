@@ -536,9 +536,11 @@ def _parse_dob_from_curp(curp: str) -> Optional[str]:
 
 def _safe_parse_gemini_json(raw_text: str) -> dict:
     """
-    Parsea de forma robusta la respuesta JSON de Gemini.
+    Parsea de forma ultra-robusta la respuesta JSON de Gemini.
     - Quita bloques de código markdown (```json ... ```) si los hay.
-    - Usa strict=False para tolerar caracteres de control y saltos de línea literales en strings.
+    - Intenta usar json.loads con strict=False.
+    - Si falla (por comillas dobles o backslashes de escape no válidos), usa regex
+      para extraer cada campo directamente de la cadena de texto plano.
     """
     if not raw_text:
         raise ValueError("El texto de respuesta de Gemini está vacío.")
@@ -551,8 +553,89 @@ def _safe_parse_gemini_json(raw_text: str) -> dict:
         text_to_parse = re.sub(r"\n\s*```$", "", text_to_parse)
         text_to_parse = text_to_parse.strip()
 
-    # 2. Parseo con strict=False (tolera newlines literales en strings)
-    return json.loads(text_to_parse, strict=False)
+    try:
+        # Intento 1: Standard JSON parser con strict=False (tolera newlines literales)
+        return json.loads(text_to_parse, strict=False)
+    except Exception as e:
+        logger.warning(f"⚠️ Standard json.loads falló: {e}. Activando extractor robusto por expresiones regulares...")
+
+    # Intento 2: Extractor por Expresiones Regulares para campos individuales del esquema
+    data = {}
+    
+    # Helper para limpiar escapes en las cadenas extraídas
+    def clean_extracted_value(val: str) -> str:
+        val = val.replace("\\n", "\n").replace("\\t", "\t")
+        val = val.replace('\\"', '"')
+        return val.strip()
+
+    # 1. Extraer campos de texto simples
+    text_fields = [
+        "extracted_ocr",
+        "document_country",
+        "document_type",
+        "extracted_name",
+        "id_number",
+        "expiration_date",
+        "birth_date",
+        "issue_date",
+        "forensic_analysis_summary"
+    ]
+    
+    for field in text_fields:
+        # Buscar el campo capturando todo el valor string hasta la siguiente llave del esquema o fin
+        pattern = rf'"{field}"\s*:\s*"(.*?)"\s*(?:,\s*"|,\s*\n\s*"|\s*}})'
+        match = re.search(pattern, text_to_parse, re.DOTALL)
+        if match:
+            raw_val = match.group(1)
+            data[field] = clean_extracted_value(raw_val)
+        else:
+            data[field] = ""
+            
+    # 2. Extraer campo booleano photoshop_detected
+    photo_match = re.search(r'"photoshop_detected"\s*:\s*(true|false)', text_to_parse, re.IGNORECASE)
+    if photo_match:
+        data["photoshop_detected"] = photo_match.group(1).lower() == "true"
+    else:
+        data["photoshop_detected"] = False
+        
+    # 3. Extraer puntuaciones (scores)
+    scores = {}
+    score_fields = [
+        "security_elements",
+        "printing_quality",
+        "digital_manipulation",
+        "typography",
+        "photography"
+    ]
+    for score_field in score_fields:
+        score_match = re.search(rf'"{score_field}"\s*:\s*(\d+)', text_to_parse)
+        if score_match:
+            scores[score_field] = int(score_match.group(1))
+        else:
+            scores[score_field] = 0
+    data["scores"] = scores
+    
+    # 4. Extraer evidencias (evidences)
+    evidences = []
+    ev_match = re.search(r'"evidences"\s*:\s*\[(.*?)\]', text_to_parse, re.DOTALL)
+    if ev_match:
+        ev_block = ev_match.group(1).strip()
+        raw_items = re.split(r',\s*\n\s*', ev_block)
+        for item in raw_items:
+            item = item.strip()
+            if item.startswith('"'):
+                item = item[1:]
+            if item.endswith(','):
+                item = item[:-1].strip()
+            if item.endswith('"'):
+                item = item[:-1]
+                
+            clean_ev = clean_extracted_value(item).strip()
+            if clean_ev:
+                evidences.append(clean_ev)
+    data["evidences"] = evidences
+    
+    return data
 
 
 
@@ -608,7 +691,8 @@ class HadesEngine:
             "9. MANIPULACIÓN DIGITAL (0-10): Busca señales de clonación de píxeles, recortes alrededor de la foto/firma, artefactos extraños o bordes ásperos (10=evidencia de Photoshop, 0=consistente).\n"
             "10. TIPOGRAFÍA (0-10): Busca si las fuentes del texto coinciden con las tipografías oficiales o si son genéricas (ej. Arial) y si tienen espaciado irregular (10=sospechoso, 0=oficial).\n"
             "11. FOTOGRAFÍA (0-10): Evalúa si el fondo de la foto es uniforme, si las proporciones faciales son naturales y consistentes con la iluminación del documento (10=sospechoso, 0=profesional).\n\n"
-            "Debes responder ÚNICAMENTE con un objeto JSON válido que cumpla con el esquema requerido."
+            "Debes responder ÚNICAMENTE con un objeto JSON válido que cumpla con el esquema requerido. "
+            "IMPORTANTE: Dentro de los valores de texto del JSON, NUNCA uses comillas dobles (\"). Si necesitas citar o incluir comillas, usa comillas simples (') en su lugar para evitar errores de parseo."
         )
 
         # Definir el esquema JSON estructurado para Gemini
