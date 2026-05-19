@@ -19,7 +19,10 @@ class GoogleChatService:
     """Service to send messages to Google Chat using a Service Account"""
     
     def __init__(self):
-        self.scopes = ["https://www.googleapis.com/auth/chat.messages.create"]
+        self.scopes = [
+            "https://www.googleapis.com/auth/chat.messages.create",
+            "https://www.googleapis.com/auth/chat.bot"
+        ]
         self._credentials = None
 
     async def _get_credentials(self, sa_b64: str):
