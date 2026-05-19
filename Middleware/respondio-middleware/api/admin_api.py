@@ -427,8 +427,82 @@ async def google_chat_event_handler(request: Request):
                 resp_text = f"🤖 *ORBIT Bot*\n¡Hola *{display_name}*! 👋\n\nPuedo ayudarte con:\n- `estado`: Ver salud técnica de ORBIT.\n- *Consultas IA*: Pregúntame por estatus de guías o información de envíos directamente."
             
             else:
+                # DETECTAR Y PARSEAR ARCHIVOS ADJUNTOS EN GOOGLE CHAT
+                def find_attachments(obj):
+                    if isinstance(obj, dict):
+                        if "attachment" in obj:
+                            return obj["attachment"]
+                        for v in obj.values():
+                            res = find_attachments(v)
+                            if res: return res
+                    if isinstance(obj, list):
+                        for item in obj:
+                            res = find_attachments(item)
+                            if res: return res
+                    return None
+
+                attachments = find_attachments(chat_data_obj)
+                if attachments and len(attachments) > 0:
+                    attachment = attachments[0]
+                    content_name = attachment.get("contentName", "archivo")
+                    mime_type = attachment.get("contentType", "").lower()
+                    resource_name = attachment.get("attachmentDataRef", {}).get("resourceName")
+                    
+                    if resource_name:
+                        logger.info(f"📎 File attachment found in chat: '{content_name}' ({mime_type}) | resourceName: {resource_name}")
+                        try:
+                            from .config_manager import config_manager
+                            config = await config_manager.get_google_chat_config()
+                            sa_b64 = config.sa_json_b64
+                            
+                            from .google_chat_service import google_chat_service
+                            creds = await google_chat_service._get_credentials(sa_b64)
+                            if creds:
+                                from google.auth.transport.requests import Request
+                                creds.refresh(Request())
+                                
+                                # Descargar binario usando Google Chat API
+                                download_url = f"https://chat.googleapis.com/v1/{resource_name}?alt=media"
+                                headers = {
+                                    "Authorization": f"Bearer {creds.token}"
+                                }
+                                
+                                logger.info(f"📥 Descargando archivo adjunto de Google Chat: {download_url}")
+                                import httpx
+                                async with httpx.AsyncClient() as client:
+                                    attachment_resp = await client.get(download_url, headers=headers, timeout=30)
+                                    if attachment_resp.status_code == 200:
+                                        content_bytes = attachment_resp.content
+                                        logger.info(f"✅ ¡Descarga de {len(content_bytes)} bytes exitosa!")
+                                        
+                                        # Parsear según el tipo de archivo
+                                        extracted_text = ""
+                                        if "pdf" in mime_type or content_name.endswith(".pdf"):
+                                            logger.info(f"🛠️ Parseando archivo PDF adjunto usando pypdf...")
+                                            import io
+                                            from pypdf import PdfReader
+                                            reader = PdfReader(io.BytesIO(content_bytes))
+                                            text_pages = []
+                                            for idx, page in enumerate(reader.pages):
+                                                page_text = page.extract_text()
+                                                if page_text:
+                                                    text_pages.append(f"--- [PÁGINA {idx+1}] ---\n{page_text}")
+                                            extracted_text = "\n\n".join(text_pages)
+                                        else:
+                                            extracted_text = content_bytes.decode('utf-8', errors='ignore')
+                                            
+                                        if extracted_text:
+                                            logger.info(f"✅ Se extrajeron {len(extracted_text)} caracteres del archivo adjunto.")
+                                            text_query = f"[CONTENIDO DEL ARCHIVO ADJUNTO '{content_name}':]\n{extracted_text}\n\n[Instrucción/Pregunta del usuario:]\n{text_query}"
+                                        else:
+                                            logger.warning(f"⚠️ El archivo adjunto '{content_name}' está vacío o no tiene texto extraíble.")
+                                    else:
+                                        logger.error(f"❌ Error al descargar archivo adjunto ({attachment_resp.status_code}): {attachment_resp.text}")
+                        except Exception as attach_err:
+                            logger.error(f"❌ Error procesando archivo adjunto de Google Chat: {attach_err}")
+
                 # CONSULTA AL MCP DE FORMA ASÍNCRONA
-                logger.info(f"🧠 Consultando MCP en segundo plano para: {text_query}")
+                logger.info(f"🧠 Consultando MCP en segundo plano para: {text_query[:100]}...")
                 try:
                     from .mcp_client import mcp_client
                     
