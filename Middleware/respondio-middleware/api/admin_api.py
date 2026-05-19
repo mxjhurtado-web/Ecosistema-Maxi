@@ -356,9 +356,9 @@ async def google_chat_event_handler(request: Request):
                 # 1. DETECTAR SI ES UN ANUNCIO MULTI-ESPACIO
                 text_stripped = text_query.strip()
                 import re
-                ann_match = re.match(r'^(?i)(anuncio|anunciar)\s*:\s*(.*)', text_stripped)
+                ann_match = re.match(r'(?i)(anuncio|anunciar)\s*:\s*(.*)', text_stripped)
                 if not ann_match:
-                    ann_match = re.match(r'^(?i)(anuncio|anunciar)\s+(.*)', text_stripped)
+                    ann_match = re.match(r'(?i)(anuncio|anunciar)\s+(.*)', text_stripped)
                     
                 if ann_match:
                     announcement_msg = ann_match.group(2).strip()
