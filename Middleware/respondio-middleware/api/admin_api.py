@@ -662,7 +662,20 @@ async def google_chat_notify_handler(
     # Determine target message and media
     message_text = request.message
     media_url = request.media_url
-    if media_url and media_url.strip() and not media_url.startswith("$") and ("http" in media_url):
+    
+    # If media_url is empty, null, or placeholder, look it up in Redis cache using contact_id
+    if (not media_url or media_url.strip() == "null" or media_url.startswith("$")) and request.contact_id:
+        try:
+            from shared.redis_client import get_redis_client
+            redis = await get_redis_client()
+            cached_url = await redis.get(f"contact:last_image:{request.contact_id}")
+            if cached_url:
+                media_url = cached_url.decode('utf-8')
+                logger.info(f"🔍 [CACHE] Retrieved last image URL from Redis cache for contact {request.contact_id}: {media_url}")
+        except Exception as cache_err:
+            logger.warning(f"Failed to retrieve cached image from Redis: {cache_err}")
+
+    if media_url and media_url.strip() and not media_url.startswith("$") and media_url != "null" and ("http" in media_url):
         message_text = f"{message_text}\n\n📷 *Adjunto:* {media_url}"
 
     # Send the alert using google_chat_service

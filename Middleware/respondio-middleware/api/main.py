@@ -132,6 +132,20 @@ async def webhook(
                 ))
         if request.media:
             logger.info(f"📎 Extracted {len(request.media)} attachments from Respond.io metadata")
+
+    # Cache the last image URL in Redis for this contact (valid for 1 hour)
+    if request.media:
+        for item in request.media:
+            if "image" in (item.mime_type or "").lower() and item.url:
+                try:
+                    from shared.redis_client import get_redis_client
+                    redis = await get_redis_client()
+                    cache_key = f"contact:last_image:{request.contact_id}"
+                    await redis.set(cache_key, item.url, ex=3600)
+                    logger.info(f"💾 [CACHE] Saved last image URL for contact {request.contact_id}: {item.url}")
+                    break
+                except Exception as re_err:
+                    logger.warning(f"Failed to cache last image in Redis: {re_err}")
     
     # Validate webhook secret
     if x_webhook_secret != settings.WEBHOOK_SECRET:

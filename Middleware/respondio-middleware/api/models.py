@@ -291,4 +291,5 @@ class GoogleChatNotificationRequest(BaseModel):
     destino: Optional[str] = Field(None, description="Destino mapeado (alertas, soporte, ventas)")
     space_id: Optional[str] = Field(None, description="ID del espacio (spaces/XXXX) para envío directo")
     media_url: Optional[str] = Field(None, description="URL de la imagen/archivo adjunto a incluir")
+    contact_id: Optional[str] = Field(None, description="ID del contacto de Respond.io para emparejar caché")
 
