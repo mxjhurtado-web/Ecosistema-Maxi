@@ -99,7 +99,8 @@ async def shutdown_event():
 @app.post("/webhook", response_model=RespondioResponse)
 async def webhook(
     request: RespondioRequest,
-    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret")
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
 ):
     """
     Main webhook endpoint for Respond.io.
@@ -148,7 +149,8 @@ async def webhook(
                     logger.warning(f"Failed to cache last image in Redis: {re_err}")
     
     # Validate webhook secret
-    if x_webhook_secret != settings.WEBHOOK_SECRET:
+    incoming_secret = x_webhook_secret or secret
+    if incoming_secret != settings.WEBHOOK_SECRET:
         logger.warning(
             f"❌ Invalid webhook secret",
             extra={"trace_id": trace_id}
