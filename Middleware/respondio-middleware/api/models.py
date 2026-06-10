@@ -282,3 +282,12 @@ class HealthResponse(BaseModel):
     version: str = Field(default="1.0.0", description="Versión del servicio")
     mcp_status: Optional[str] = Field(None, description="Estado del MCP")
     redis_status: Optional[str] = Field(None, description="Estado de Redis")
+
+
+class GoogleChatNotificationRequest(BaseModel):
+    """Request for Google Chat notification"""
+    message: str = Field(..., description="El mensaje a enviar a Google Chat")
+    level: str = Field(default="INFO", description="Nivel del mensaje (INFO, ERROR, WARNING, SUCCESS)")
+    destino: Optional[str] = Field(None, description="Destino mapeado (alertas, soporte, ventas)")
+    space_id: Optional[str] = Field(None, description="ID del espacio (spaces/XXXX) para envío directo")
+

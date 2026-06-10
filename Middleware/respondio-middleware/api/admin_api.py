@@ -3,7 +3,7 @@ Admin API for dashboard management.
 Provides endpoints for configuration, telemetry, and maintenance.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Request
+from fastapi import APIRouter, HTTPException, Depends, Query, Request, Header
 from typing import List, Optional
 from datetime import datetime, timedelta
 
@@ -20,7 +20,8 @@ from .models import (
     GoogleChatAlertConfig,
     AuditLogEntry,
     AuditAction,
-    AgentConfig
+    AgentConfig,
+    GoogleChatNotificationRequest
 )
 from .config import settings
 from .config_manager import config_manager
@@ -620,6 +621,53 @@ async def google_chat_event_handler(request: Request):
     asyncio.create_task(send_async_response(data, text, user_name))
 
     return {}
+
+
+@public_router.post("/google-chat/notify")
+async def google_chat_notify_handler(
+    request: GoogleChatNotificationRequest,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret")
+):
+    """
+    Public notification endpoint for Google Chat, secured by WEBHOOK_SECRET.
+    Allows routing by direct space_id or semantic destination.
+    """
+    # Validate webhook secret
+    if x_webhook_secret != settings.WEBHOOK_SECRET:
+        logger.warning("❌ Invalid secret for Google Chat notify request")
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+        
+    # Determine target space_id
+    target_space = request.space_id
+    
+    # If not direct space_id, try semantic mapping of destino
+    if not target_space and request.destino:
+        import os
+        destino_lower = request.destino.lower()
+        if destino_lower == "alertas":
+            target_space = settings.GOOGLE_CHATS_DEFAULT_SPACE
+        elif destino_lower == "soporte":
+            target_space = os.getenv("GOOGLE_CHATS_SOPORTE_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
+        elif destino_lower == "ventas":
+            target_space = os.getenv("GOOGLE_CHATS_VENTAS_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
+        else:
+            target_space = settings.GOOGLE_CHATS_DEFAULT_SPACE
+
+            
+    # Send the alert using google_chat_service
+    from .google_chat_service import google_chat_service
+    success = await google_chat_service.send_alert(
+        title="Alerta de Orbit",
+        message=request.message,
+        level=request.level,
+        space_id=target_space
+    )
+    
+    if success:
+        return {"status": "ok", "message": "Notification sent to Google Chat"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send notification to Google Chat")
+
 
 
 
