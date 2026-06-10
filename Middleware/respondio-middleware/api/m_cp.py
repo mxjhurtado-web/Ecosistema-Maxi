@@ -166,14 +166,25 @@ async def query(request: MCPRequest):
     fila = res["data"]
     estatus = str(fila.get("status", "PENDIENTE")).upper()
     mensaje = fila.get("message_to_user") or "Tu envío está siendo procesado."
-    cliente = fila.get("Nombre_Cliente", "Cliente")
+    
+    # Extraer nombres completos manejando los typos y espacios de las columnas de la base de datos
+    nombre_c = str(fila.get("Nombre_Cliente", "")).strip()
+    paterno_c = str(fila.get("Cliente_ Apellido_Paterno", "")).strip()
+    materno_c = str(fila.get("Cliente_Apellido_Materno", "")).strip()
+    full_client = f"{nombre_c} {paterno_c} {materno_c}".replace("  ", " ").strip()
+    
+    nombre_b = str(fila.get("Beneficiario_Nombre", "")).strip()
+    paterno_b = str(fila.get("Benerificario_Primer_Apellido", "")).strip()
+    materno_b = str(fila.get("Beneficiario_Segundo_Apellido", "")).strip()
+    full_beneficiary = f"{nombre_b} {paterno_b} {materno_b}".replace("  ", " ").strip()
 
     return MCPResponse(
         response=(
-            f"Hola {cliente}, aquí tienes el estatus de tu envío **{codigo}**:\n\n"
+            f"Hola {nombre_c}, aquí tienes el estatus de tu envío **{codigo}**:\n\n"
             f"📍 **ESTADO**: {estatus}\n"
             f"📝 **NOTA**: {mensaje}\n\n"
-            "¿Hay algo más en lo que pueda ayudarte?"
+            f"[SENDER: {full_client}] [BENEFICIARY: {full_beneficiary}]"
         ),
         status="ok"
     )
+
