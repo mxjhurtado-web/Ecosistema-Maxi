@@ -732,6 +732,10 @@ async def debug_sheets(x_webhook_secret: Optional[str] = Header(None, alias="X-W
                 if r.status_code == 200:
                     sheets = r.json().get("sheets", [])
                     tab_names = [s.get("properties", {}).get("title") for s in sheets]
+                
+                # Fetch recent values
+                r_val = await client.get(f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:I100", headers=headers)
+                sheet_values = r_val.json().get("values", []) if r_val.status_code == 200 else []
     
     # Ejecutar una escritura de prueba de forma síncrona
     import uuid
@@ -755,7 +759,8 @@ async def debug_sheets(x_webhook_secret: Optional[str] = Header(None, alias="X-W
         "sheet_name": "ORBIT_Conversations_Log",
         "parent_folder_id": "1WDoC72ycPqsBvtjc_dj9Ljcue1QmvPMy",
         "test_write_success": success,
-        "tabs": tab_names
+        "tabs": tab_names,
+        "values": sheet_values
     }
 
 
