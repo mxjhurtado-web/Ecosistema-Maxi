@@ -726,6 +726,7 @@ async def debug_sheets(x_webhook_secret: Optional[str] = Header(None, alias="X-W
                 "Authorization": f"Bearer {creds.token}",
                 "Content-Type": "application/json"
             }
+            import httpx
             async with httpx.AsyncClient() as client:
                 r = await client.get(f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}", headers=headers)
                 if r.status_code == 200:
