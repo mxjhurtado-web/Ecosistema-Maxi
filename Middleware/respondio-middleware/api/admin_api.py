@@ -747,8 +747,13 @@ async def debug_sheets(x_webhook_secret: Optional[str] = Header(None, alias="X-W
     from datetime import datetime
     trace_id = str(uuid.uuid4())
     
+    from zoneinfo import ZoneInfo
+    utc_dt = datetime.utcnow().replace(tzinfo=ZoneInfo("UTC"))
+    local_dt = utc_dt.astimezone(ZoneInfo("America/Mexico_City"))
+    local_timestamp = local_dt.strftime("%Y-%m-%d %H:%M:%S")
+    
     success = await google_sheets_service.append_log(
-        timestamp=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+        timestamp=local_timestamp,
         trace_id=trace_id,
         conversation_id="debug_conv",
         contact_id="debug_contact",

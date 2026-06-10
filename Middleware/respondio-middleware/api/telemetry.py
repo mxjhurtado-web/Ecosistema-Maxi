@@ -26,7 +26,13 @@ class TelemetryService:
             import asyncio
             from .google_sheets_service import google_sheets_service
             
-            timestamp_str = request_log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            from zoneinfo import ZoneInfo
+            
+            # Convert UTC timestamp to local Mexico timezone (UTC-6)
+            utc_dt = request_log.timestamp.replace(tzinfo=ZoneInfo("UTC"))
+            local_dt = utc_dt.astimezone(ZoneInfo("America/Mexico_City"))
+            timestamp_str = local_dt.strftime("%Y-%m-%d %H:%M:%S")
+            
             status_val = request_log.status.value if hasattr(request_log.status, "value") else str(request_log.status)
             
             async def run_append():
