@@ -709,9 +709,30 @@ async def debug_sheets(x_webhook_secret: Optional[str] = Header(None, alias="X-W
     from shared.redis_client import get_redis_client
     redis = await get_redis_client()
     cached_id = await redis.get("google_sheets:spreadsheet_id")
+    spreadsheet_id = cached_id.decode() if cached_id else None
+    
+    # Obtener los nombres de las pestañas
+    from .google_sheets_service import google_sheets_service
+    config = await config_manager.get_google_chat_config()
+    sa_b64 = config.sa_json_b64
+    
+    tab_names = []
+    if sa_b64 and spreadsheet_id:
+        from google.auth.transport.requests import Request
+        creds = await google_sheets_service._get_credentials(sa_b64)
+        if creds:
+            creds.refresh(Request())
+            headers = {
+                "Authorization": f"Bearer {creds.token}",
+                "Content-Type": "application/json"
+            }
+            async with httpx.AsyncClient() as client:
+                r = await client.get(f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}", headers=headers)
+                if r.status_code == 200:
+                    sheets = r.json().get("sheets", [])
+                    tab_names = [s.get("properties", {}).get("title") for s in sheets]
     
     # Ejecutar una escritura de prueba de forma síncrona
-    from .google_sheets_service import google_sheets_service
     import uuid
     from datetime import datetime
     trace_id = str(uuid.uuid4())
@@ -729,11 +750,13 @@ async def debug_sheets(x_webhook_secret: Optional[str] = Header(None, alias="X-W
     )
     
     return {
-        "cached_id": cached_id.decode() if cached_id else None,
+        "cached_id": spreadsheet_id,
         "sheet_name": "ORBIT_Conversations_Log",
         "parent_folder_id": "1WDoC72ycPqsBvtjc_dj9Ljcue1QmvPMy",
-        "test_write_success": success
+        "test_write_success": success,
+        "tabs": tab_names
     }
+
 
 
 
