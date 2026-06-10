@@ -45,8 +45,9 @@ X-Webhook-Secret: [Valor de settings.WEBHOOK_SECRET]
 ```json
 {
   "message": "Mensaje redactado por el agente o el flujo en Respond.io.",
-  "level": "INFO",       // Opciones: INFO, SUCCESS, WARNING, ERROR
-  "destino": "soporte"  // Opciones: alertas, soporte, ventas (mapeados internamente)
+  "level": "INFO",        // Opciones: INFO, SUCCESS, WARNING, ERROR
+  "destino": "soporte",   // Opciones: alertas, soporte, ventas (mapeados internamente)
+  "media_url": "https://..." // Opcional: URL de la imagen o archivo adjunto
 }
 ```
 
@@ -89,7 +90,8 @@ Para implementar este flujo en Respond.io de forma ultra-estable (minimizando al
      {
        "message": "🚨 *Nueva Alerta de Soporte*\n\n👤 *Cliente:* $contact.nombre_completo\n📦 *Guía:* $contact.numero_guia\n📝 *Problema:* $contact.resumen_problema",
        "level": "WARNING",
-       "destino": "soporte"
+       "destino": "soporte",
+       "media_url": "$contact.message.attachments[0].url"
      }
      ```
 

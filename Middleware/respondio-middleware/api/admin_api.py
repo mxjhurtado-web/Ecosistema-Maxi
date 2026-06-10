@@ -640,6 +640,8 @@ async def google_chat_notify_handler(
         logger.warning("❌ Invalid secret for Google Chat notify request")
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
         
+    logger.info(f"📥 [DEBUG] Received notify request: {request.model_dump()}")
+        
     # Determine target space_id
     target_space = request.space_id
     
@@ -657,11 +659,17 @@ async def google_chat_notify_handler(
             target_space = settings.GOOGLE_CHATS_DEFAULT_SPACE
 
             
+    # Determine target message and media
+    message_text = request.message
+    media_url = request.media_url
+    if media_url and media_url.strip() and not media_url.startswith("$") and ("http" in media_url):
+        message_text = f"{message_text}\n\n📷 *Adjunto:* {media_url}"
+
     # Send the alert using google_chat_service
     from .google_chat_service import google_chat_service
     success, detail = await google_chat_service.send_alert_detailed(
         title="Alerta de Orbit",
-        message=request.message,
+        message=message_text,
         level=request.level,
         space_id=target_space
     )
@@ -681,7 +689,7 @@ async def google_chat_notify_handler(
             conversation_id=target_space or "unknown",
             contact_id="RespondIO_Agent",
             channel="respond_notificacion",
-            user_text=request.message,
+            user_text=message_text,
             mcp_response="Notification sent successfully" if success else f"Failed: {detail}",
             status=ResponseStatus.OK if success else ResponseStatus.ERROR,
             latency_ms=latency_ms,

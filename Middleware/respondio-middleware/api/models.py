@@ -290,4 +290,5 @@ class GoogleChatNotificationRequest(BaseModel):
     level: str = Field(default="INFO", description="Nivel del mensaje (INFO, ERROR, WARNING, SUCCESS)")
     destino: Optional[str] = Field(None, description="Destino mapeado (alertas, soporte, ventas)")
     space_id: Optional[str] = Field(None, description="ID del espacio (spaces/XXXX) para envío directo")
+    media_url: Optional[str] = Field(None, description="URL de la imagen/archivo adjunto a incluir")
 
