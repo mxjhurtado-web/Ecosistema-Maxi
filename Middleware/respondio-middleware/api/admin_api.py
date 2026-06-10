@@ -632,6 +632,9 @@ async def google_chat_notify_handler(
     Public notification endpoint for Google Chat, secured by WEBHOOK_SECRET.
     Allows routing by direct space_id or semantic destination.
     """
+    import time
+    start_time = time.time()
+
     # Validate webhook secret
     if x_webhook_secret != settings.WEBHOOK_SECRET:
         logger.warning("❌ Invalid secret for Google Chat notify request")
@@ -663,11 +666,40 @@ async def google_chat_notify_handler(
         space_id=target_space
     )
     
+    # Registrar telemetría y Google Sheets
+    try:
+        import uuid
+        from .telemetry import telemetry_service
+        from .models import RequestLog, ResponseStatus
+        
+        trace_id = str(uuid.uuid4())
+        latency_ms = int((time.time() - start_time) * 1000)
+        
+        request_log = RequestLog(
+            trace_id=trace_id,
+            timestamp=datetime.utcnow(),
+            conversation_id=target_space or "unknown",
+            contact_id="RespondIO_Agent",
+            channel="respond_notificacion",
+            user_text=request.message,
+            mcp_response="Notification sent successfully" if success else f"Failed: {detail}",
+            status=ResponseStatus.OK if success else ResponseStatus.ERROR,
+            latency_ms=latency_ms,
+            mcp_latency_ms=0,
+            error_message=None if success else detail,
+            retry_count=0
+        )
+        await telemetry_service.log_request(request_log)
+        logger.info(f"📊 Google Chat notification logged to telemetry successfully.")
+    except Exception as log_err:
+        logger.error(f"❌ Failed to write notify telemetry: {log_err}")
+    
     if success:
         return {"status": "ok", "message": "Notification sent to Google Chat"}
     else:
         logger.error(f"Failed to send notification: {detail}")
         raise HTTPException(status_code=500, detail=f"Failed to send notification to Google Chat: {detail}")
+
 
 
 
