@@ -72,13 +72,8 @@ async def consultar_supabase(codigo: str, telefono: Optional[str] = None):
 
         resultado = data[0]
 
-        # Verificación opcional de teléfono
-        if telefono:
-            val_tel = re.sub(r'\D', '', str(resultado.get("Numero_telefonico", "")))
-            tel_clean = re.sub(r'\D', '', telefono)
-            if tel_clean and val_tel and tel_clean not in val_tel and val_tel not in tel_clean:
-                logger.warning(f"⚠️ Teléfono no coincide para {codigo_clean}")
-                return {"error": "auth_failed"}
+        # Verificación de teléfono desactivada para delegar validación al Agente de IA mediante nombres
+        pass
 
         logger.info(f"✅ Registro encontrado: {codigo_clean}")
         return {"error": None, "data": resultado}
