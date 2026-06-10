@@ -701,6 +701,22 @@ async def google_chat_notify_handler(
         raise HTTPException(status_code=500, detail=f"Failed to send notification to Google Chat: {detail}")
 
 
+@public_router.get("/debug/sheets")
+async def debug_sheets(x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret")):
+    """Retrieve the cached Google Sheet ID currently used by ORBIT"""
+    if x_webhook_secret != settings.WEBHOOK_SECRET:
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+    from shared.redis_client import get_redis_client
+    redis = await get_redis_client()
+    cached_id = await redis.get("google_sheets:spreadsheet_id")
+    return {
+        "cached_id": cached_id.decode() if cached_id else None,
+        "sheet_name": "ORBIT_Conversations_Log",
+        "parent_folder_id": "1WDoC72ycPqsBvtjc_dj9Ljcue1QmvPMy"
+    }
+
+
+
 
 
 
