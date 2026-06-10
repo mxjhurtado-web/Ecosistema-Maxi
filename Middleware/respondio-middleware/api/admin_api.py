@@ -717,6 +717,8 @@ async def debug_sheets(x_webhook_secret: Optional[str] = Header(None, alias="X-W
     sa_b64 = config.sa_json_b64
     
     tab_names = []
+    sheet_values = []
+    total_rows = 0
     if sa_b64 and spreadsheet_id:
         from google.auth.transport.requests import Request
         creds = await google_sheets_service._get_credentials(sa_b64)
@@ -733,9 +735,12 @@ async def debug_sheets(x_webhook_secret: Optional[str] = Header(None, alias="X-W
                     sheets = r.json().get("sheets", [])
                     tab_names = [s.get("properties", {}).get("title") for s in sheets]
                 
-                # Fetch recent values
-                r_val = await client.get(f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:I100", headers=headers)
+                # Fetch recent values (up to 1000 rows)
+                r_val = await client.get(f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:I1000", headers=headers)
                 sheet_values = r_val.json().get("values", []) if r_val.status_code == 200 else []
+                total_rows = len(sheet_values)
+                if len(sheet_values) > 31:
+                    sheet_values = [sheet_values[0]] + sheet_values[-30:]
     
     # Ejecutar una escritura de prueba de forma síncrona
     import uuid
@@ -760,6 +765,7 @@ async def debug_sheets(x_webhook_secret: Optional[str] = Header(None, alias="X-W
         "parent_folder_id": "1WDoC72ycPqsBvtjc_dj9Ljcue1QmvPMy",
         "test_write_success": success,
         "tabs": tab_names,
+        "total_rows": total_rows,
         "values": sheet_values
     }
 
