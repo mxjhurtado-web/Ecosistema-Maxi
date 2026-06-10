@@ -2,7 +2,7 @@
 Main FastAPI application - Middleware for Respond.io to MCP.
 """
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import httpx
@@ -98,7 +98,7 @@ async def shutdown_event():
 
 @app.post("/webhook", response_model=RespondioResponse)
 async def webhook(
-    request: RespondioRequest,
+    request: Dict[str, Any] = Body(...),
     x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
     secret: Optional[str] = None
 ):
@@ -110,6 +110,59 @@ async def webhook(
     start_time = time.time()
     trace_id = str(uuid.uuid4())
     
+    # Validate webhook secret
+    incoming_secret = x_webhook_secret or secret
+    if incoming_secret != settings.WEBHOOK_SECRET:
+        logger.warning(
+            f"❌ Invalid webhook secret",
+            extra={"trace_id": trace_id}
+        )
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+
+    # Check if this is a native/global Respond.io webhook payload
+    is_global_webhook = "contact" in request and "message" in request
+    
+    if is_global_webhook:
+        contact_id = str(request["contact"].get("id"))
+        message_data = request.get("message", {})
+        attachments = message_data.get("attachments", [])
+        
+        logger.info(f"📨 Global webhook received for contact {contact_id}")
+        
+        # Cache image if present
+        image_url = None
+        for att in attachments:
+            url = att.get("url")
+            mime_type = att.get("mimeType") or att.get("mime_type") or ""
+            if url and "image" in mime_type.lower():
+                image_url = url
+                break
+                
+        if image_url:
+            try:
+                from shared.redis_client import get_redis_client
+                redis = await get_redis_client()
+                cache_key = f"contact:last_image:{contact_id}"
+                await redis.set(cache_key, image_url, ex=3600)
+                logger.info(f"💾 [GLOBAL CACHE] Saved last image URL for contact {contact_id}: {image_url}")
+            except Exception as re_err:
+                logger.warning(f"Failed to cache global image in Redis: {re_err}")
+                
+        return RespondioResponse(
+            status=ResponseStatus.OK,
+            reply_text="",
+            trace_id=trace_id,
+            latency_ms=0
+        )
+
+    # If not global webhook, parse as standard RespondioRequest
+    try:
+        from .models import RespondioRequest
+        request = RespondioRequest(**request)
+    except Exception as parse_err:
+        logger.error(f"Failed to parse custom webhook request: {parse_err}")
+        raise HTTPException(status_code=422, detail=f"Validation error: {parse_err}")
+
     logger.info(
         f"📨 Webhook received",
         extra={
@@ -147,15 +200,6 @@ async def webhook(
                     break
                 except Exception as re_err:
                     logger.warning(f"Failed to cache last image in Redis: {re_err}")
-    
-    # Validate webhook secret
-    incoming_secret = x_webhook_secret or secret
-    if incoming_secret != settings.WEBHOOK_SECRET:
-        logger.warning(
-            f"❌ Invalid webhook secret",
-            extra={"trace_id": trace_id}
-        )
-        raise HTTPException(status_code=401, detail="Invalid webhook secret")
     
     # --- PHASE 28: COMPLIANCE INITIAL DISCLOSURE ---
     needs_disclosure = False
