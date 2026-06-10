@@ -703,17 +703,38 @@ async def google_chat_notify_handler(
 
 @public_router.get("/debug/sheets")
 async def debug_sheets(x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret")):
-    """Retrieve the cached Google Sheet ID currently used by ORBIT"""
+    """Retrieve the cached Google Sheet ID currently used by ORBIT and run a test write"""
     if x_webhook_secret != settings.WEBHOOK_SECRET:
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
     from shared.redis_client import get_redis_client
     redis = await get_redis_client()
     cached_id = await redis.get("google_sheets:spreadsheet_id")
+    
+    # Ejecutar una escritura de prueba de forma síncrona
+    from .google_sheets_service import google_sheets_service
+    import uuid
+    from datetime import datetime
+    trace_id = str(uuid.uuid4())
+    
+    success = await google_sheets_service.append_log(
+        timestamp=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+        trace_id=trace_id,
+        conversation_id="debug_conv",
+        contact_id="debug_contact",
+        channel="debug_channel",
+        user_text="Test write from Orbit debug endpoint",
+        bot_response="Success",
+        latency_ms=10,
+        status="OK"
+    )
+    
     return {
         "cached_id": cached_id.decode() if cached_id else None,
         "sheet_name": "ORBIT_Conversations_Log",
-        "parent_folder_id": "1WDoC72ycPqsBvtjc_dj9Ljcue1QmvPMy"
+        "parent_folder_id": "1WDoC72ycPqsBvtjc_dj9Ljcue1QmvPMy",
+        "test_write_success": success
     }
+
 
 
 
