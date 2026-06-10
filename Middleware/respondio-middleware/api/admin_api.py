@@ -656,7 +656,7 @@ async def google_chat_notify_handler(
             
     # Send the alert using google_chat_service
     from .google_chat_service import google_chat_service
-    success = await google_chat_service.send_alert(
+    success, detail = await google_chat_service.send_alert_detailed(
         title="Alerta de Orbit",
         message=request.message,
         level=request.level,
@@ -666,7 +666,9 @@ async def google_chat_notify_handler(
     if success:
         return {"status": "ok", "message": "Notification sent to Google Chat"}
     else:
-        raise HTTPException(status_code=500, detail="Failed to send notification to Google Chat")
+        logger.error(f"Failed to send notification: {detail}")
+        raise HTTPException(status_code=500, detail=f"Failed to send notification to Google Chat: {detail}")
+
 
 
 

@@ -112,6 +112,74 @@ class GoogleChatService:
         formatted_text = f"{icon} *{title}*\n{message}"
         return await self.send_message(formatted_text, space_id)
 
+    async def send_alert_detailed(self, title: str, message: str, level: str = "INFO", space_id: Optional[str] = None) -> tuple[bool, str]:
+        """Send a formatted alert message and return detailed result status"""
+        icon = "ℹ️"
+        if level == "ERROR": icon = "🚨"
+        elif level == "WARNING": icon = "⚠️"
+        elif level == "SUCCESS": icon = "✅"
+        
+        formatted_text = f"{icon} *{title}*\n{message}"
+        
+        config = await config_manager.get_google_chat_config()
+        
+        sa_b64 = config.sa_json_b64
+        target_space = space_id or config.default_space_id
+
+        if not sa_b64:
+            return False, "Google Chat configuration incomplete: Service Account JSON (sa_json_b64) is missing or empty"
+            
+        if not target_space:
+            return False, "Google Chat configuration incomplete: Space ID is missing or empty"
+
+        # Space ID normalization (must start with spaces/)
+        if not target_space.startswith("spaces/"):
+            target_space = f"spaces/{target_space}"
+
+        # If general config is disabled and no explicit space_id was passed, prevent it.
+        # But if space_id is explicitly passed, let it proceed!
+        if not config.enabled and not space_id:
+            return False, "Google Chat alerts are globally disabled (enabled = False) and no explicit space_id was provided"
+
+        try:
+            # Decode and load credentials
+            creds = await self._get_credentials(sa_b64)
+            if not creds:
+                return False, "Failed to decode or parse Service Account credentials"
+            
+            # Refresh token
+            creds.refresh(Request())
+
+            url = f"https://chat.googleapis.com/v1/{target_space}/messages"
+            headers = {
+                "Authorization": f"Bearer {creds.token}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {"text": formatted_text}
+
+            logger.info(f"🚀 Disparando POST a Google Chat API: {url}")
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, json=payload, headers=headers)
+                
+                if response.status_code != 200:
+                    error_msg = f"Google Chat API returned status {response.status_code}: {response.text}"
+                    logger.error(f"❌ {error_msg}")
+                    return False, error_msg
+                    
+                logger.info(f"✅ ¡Mensaje enviado con éxito a {target_space}!")
+                return True, "Message sent successfully"
+
+        except httpx.HTTPStatusError as e:
+            error_msg = f"HTTP status error: {e.response.status_code} - {e.response.text}"
+            logger.error(f"❌ {error_msg}")
+            return False, error_msg
+        except Exception as e:
+            error_msg = f"Unexpected exception: {str(e)}"
+            logger.error(f"💥 {error_msg}")
+            return False, error_msg
+
 
 # Singleton instance
 google_chat_service = GoogleChatService()
+
