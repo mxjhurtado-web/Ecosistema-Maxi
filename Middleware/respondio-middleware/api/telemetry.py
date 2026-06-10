@@ -19,7 +19,6 @@ class TelemetryService:
     def __init__(self, redis_client=None):
         self.redis = redis_client
         self.enabled = redis_client is not None
-    
     async def log_request(self, request_log: RequestLog):
         """Log a processed request"""
         # Trigger Google Sheets logging in the background (asynchronously)
@@ -30,19 +29,33 @@ class TelemetryService:
             timestamp_str = request_log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
             status_val = request_log.status.value if hasattr(request_log.status, "value") else str(request_log.status)
             
-            asyncio.create_task(
-                google_sheets_service.append_log(
-                    timestamp=timestamp_str,
-                    trace_id=request_log.trace_id,
-                    conversation_id=request_log.conversation_id,
-                    contact_id=request_log.contact_id,
-                    channel=request_log.channel,
-                    user_text=request_log.user_text or "",
-                    bot_response=request_log.mcp_response or request_log.error_message or "",
-                    latency_ms=request_log.latency_ms,
-                    status=status_val
-                )
-            )
+            async def run_append():
+                try:
+                    logger.info(f"📊 [Telemetry] Starting Google Sheets append_log for Trace={request_log.trace_id}, Channel={request_log.channel}...")
+                    success = await google_sheets_service.append_log(
+                        timestamp=timestamp_str,
+                        trace_id=request_log.trace_id,
+                        conversation_id=request_log.conversation_id,
+                        contact_id=request_log.contact_id,
+                        channel=request_log.channel,
+                        user_text=request_log.user_text or "",
+                        bot_response=request_log.mcp_response or request_log.error_message or "",
+                        latency_ms=request_log.latency_ms,
+                        status=status_val
+                    )
+                    if success:
+                        logger.info(f"📊 [Telemetry] Google Sheets append_log SUCCESS for Trace={request_log.trace_id}")
+                    else:
+                        logger.error(f"📊 [Telemetry] Google Sheets append_log FAILED (returned False) for Trace={request_log.trace_id}")
+                except Exception as e:
+                    logger.error(f"💥 [Telemetry] Google Sheets append_log EXCEPTION for Trace={request_log.trace_id}: {str(e)}", exc_info=True)
+
+            # Prevent garbage collection of the task by saving a reference
+            if not hasattr(self, "_active_tasks"):
+                self._active_tasks = set()
+            task = asyncio.create_task(run_append())
+            self._active_tasks.add(task)
+            task.add_done_callback(self._active_tasks.discard)
         except Exception as sheet_err:
             logger.error(f"Failed to initiate Google Sheets log append: {str(sheet_err)}")
 
