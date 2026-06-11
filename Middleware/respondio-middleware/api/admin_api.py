@@ -680,7 +680,8 @@ async def google_chat_notify_handler(
             logger.warning(f"Failed to retrieve cached image from Redis: {cache_err}")
 
     if media_url and media_url.strip() and not media_url.startswith("$") and media_url != "null" and ("http" in media_url):
-        message_text = f"{message_text}\n\n📷 *Adjunto:* {media_url}"
+        emoji_attach = "📄" if ".pdf" in media_url.lower() else "📷"
+        message_text = f"{message_text}\n\n{emoji_attach} *Adjunto:* {media_url}"
 
     # Send the alert using google_chat_service
     from .google_chat_service import google_chat_service

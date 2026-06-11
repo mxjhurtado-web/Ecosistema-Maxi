@@ -132,14 +132,16 @@ async def webhook(
         except Exception as log_err:
             logger.warning(f"Could not stringify payload: {log_err}. Raw: {request}")
 
-        # Recursively find image URL in the payload
+        # Recursively find image/pdf URL in the payload
         def find_image_url(obj) -> Optional[str]:
             if isinstance(obj, dict):
                 url = obj.get("url")
                 mime_type = str(obj.get("mimeType") or obj.get("mime_type") or "")
                 attachment_type = str(obj.get("type") or "")
                 if url and isinstance(url, str) and ("http" in url):
-                    if "image" in mime_type.lower() or "image" in attachment_type.lower() or any(ext in url.lower() for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif"]):
+                    is_image = "image" in mime_type.lower() or "image" in attachment_type.lower() or any(ext in url.lower() for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif"])
+                    is_pdf = "pdf" in mime_type.lower() or "pdf" in attachment_type.lower() or url.lower().endswith(".pdf")
+                    if is_image or is_pdf:
                         return url
                 for v in obj.values():
                     res = find_image_url(v)
@@ -201,19 +203,23 @@ async def webhook(
         if request.media:
             logger.info(f"📎 Extracted {len(request.media)} attachments from Respond.io metadata")
 
-    # Cache the last image URL in Redis for this contact (valid for 1 hour)
+    # Cache the last image or document (PDF) URL in Redis for this contact (valid for 1 hour)
     if request.media:
         for item in request.media:
-            if "image" in (item.mime_type or "").lower() and item.url:
+            mime_lower = (item.mime_type or "").lower()
+            url_lower = (item.url or "").lower()
+            is_img = "image" in mime_lower
+            is_pdf = "pdf" in mime_lower or url_lower.endswith(".pdf")
+            if (is_img or is_pdf) and item.url:
                 try:
                     from shared.redis_client import get_redis_client
                     redis = await get_redis_client()
                     cache_key = f"contact:last_image:{request.contact_id}"
                     await redis.set(cache_key, item.url, ex=3600)
-                    logger.info(f"💾 [CACHE] Saved last image URL for contact {request.contact_id}: {item.url}")
+                    logger.info(f"💾 [CACHE] Saved last media (image/pdf) URL for contact {request.contact_id}: {item.url}")
                     break
                 except Exception as re_err:
-                    logger.warning(f"Failed to cache last image in Redis: {re_err}")
+                    logger.warning(f"Failed to cache last media in Redis: {re_err}")
     
     # --- PHASE 28: COMPLIANCE INITIAL DISCLOSURE ---
     needs_disclosure = False

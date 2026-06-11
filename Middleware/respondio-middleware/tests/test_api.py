@@ -249,3 +249,20 @@ class TestGoogleChatNotifyEndpoint:
             # Verify that the target space was resolved to spaces/test-cumplimiento
             args, kwargs = self.mock_send.call_args
             assert kwargs.get("space_id") == "spaces/test-cumplimiento"
+
+    def test_notify_with_pdf_attachment(self, client):
+        """Test notify formatting with PDF attachment"""
+        response = client.post(
+            f"/google-chat/notify?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "message": "Test document check",
+                "level": "INFO",
+                "destino": "cumplimiento",
+                "media_url": "https://example.com/document.pdf"
+            }
+        )
+        assert response.status_code == 200
+        
+        # Verify that the target space and formatted text are correct
+        args, kwargs = self.mock_send.call_args
+        assert "📄 *Adjunto:*" in kwargs.get("message")
