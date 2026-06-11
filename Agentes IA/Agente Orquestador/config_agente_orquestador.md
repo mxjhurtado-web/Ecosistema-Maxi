@@ -81,6 +81,8 @@ Este agente es la puerta de entrada inteligente de ORBIT. Su misión es identifi
  - Asigna a {{@ai-agent.1111215}}.
   - Si son **Dudas o Aclaración de Pagos** (preguntas sobre tarifas, comisiones o facturación), entonces:
  - Asigna a {{@ai-agent.1111216}}.
+  - Si es una solicitud de **Soporte Interno o Derivación a Departamentos** (incluyendo Agent Oversight, auditorías del IRS, capacitaciones BSA/CFPB, bloqueos KYC/AML, balance de agencias, cobranza, consultas o rechazos de cheques, fallas técnicas en Hermes o equipos físicos, negociaciones de tipo de cambio, o nuevos usuarios), entonces:
+  - Asigna a {{@ai-agent.1122328}}.
 
 7. Realiza delegación a equipos humanos (handoff nativo).
  7.1. Disputas, reclamos o errores transaccionales.
