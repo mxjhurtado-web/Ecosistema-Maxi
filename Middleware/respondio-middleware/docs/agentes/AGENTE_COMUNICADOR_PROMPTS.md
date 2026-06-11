@@ -28,11 +28,13 @@ Debes activar las siguientes **7 acciones HTTP individuales** en la sección de 
 
 ## 📥 3. Configuración de las 7 Acciones HTTP (Paso a Paso)
 
-Para cumplir con las políticas de control, **todas** las llamadas HTTP deben proveer de forma obligatoria la siguiente información al middleware:
+Para cumplir con las políticas de control, **todas** las llamadas HTTP deben de proveer de forma obligatoria la siguiente información al middleware:
 * **Contacto:** Nombre y teléfono del usuario ($contact.name y $contact.phone).
 * **Resumen de la solicitud:** Detalle o contexto provisto por el usuario ($agent.resumen_solicitud).
 * **Intención:** Categoría u objetivo de la consulta ($agent.intencion_solicitud).
 * **Adjuntos (Imágenes y PDFs):** Mediante el sistema de caché asíncrono, si el usuario sube un archivo adjunto (imagen o documento PDF), ORBIT lo extraerá automáticamente de Redis mediante el `contact_id`. **Los audios y otros formatos son descartados por seguridad.**
+
+A solicitud del equipo, configuramos el parámetro **`space_id`** como el identificador principal en cada cuerpo JSON. De esta forma, si cambian de grupo de Google Chat en el futuro, podrán actualizar el ID de espacio directamente en Respond.io sin necesidad de modificar el código del middleware.
 
 ### 🛡️ 1. Notificar Agent Oversight
 * **Nombre de la Acción:** `Notificar_Agent_Oversight`
@@ -51,10 +53,11 @@ Para cumplir con las políticas de control, **todas** las llamadas HTTP deben pr
     {
       "message": "🛡️ *REPORTE DE AGENT OVERSIGHT*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "WARNING",
-      "destino": "cumplimiento",
+      "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
       "contact_id": "$contact.id"
     }
     ```
+    *(Nota: Reemplaza `"spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO"` por el ID real de tu sala de Google Chat).*
 
 ---
 
@@ -75,10 +78,11 @@ Para cumplir con las políticas de control, **todas** las llamadas HTTP deben pr
     {
       "message": "🎓 *REPORTE DE CAPACITACIÓN*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "INFO",
-      "destino": "cumplimiento",
+      "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
       "contact_id": "$contact.id"
     }
     ```
+    *(Nota: Reemplaza `"spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO"` por el ID real de tu sala de Google Chat).*
 
 ---
 
@@ -100,10 +104,11 @@ Para cumplir con las políticas de control, **todas** las llamadas HTTP deben pr
     {
       "message": "⚖️ *REPORTE DE CUMPLIMIENTO (AML/KYC)*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "$agent.nivel_alerta",
-      "destino": "cumplimiento",
+      "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
       "contact_id": "$contact.id"
     }
     ```
+    *(Nota: Reemplaza `"spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO"` por el ID real de tu sala de Google Chat).*
 
 ---
 
@@ -125,10 +130,11 @@ Para cumplir con las políticas de control, **todas** las llamadas HTTP deben pr
     {
       "message": "💰 *REPORTE DE COBRANZA*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "$agent.nivel_alerta",
-      "destino": "soporte",
+      "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
       "contact_id": "$contact.id"
     }
     ```
+    *(Nota: Reemplaza `"spaces/TU_ID_DE_ESPACIO_SOPORTE"` por el ID real de tu sala de Google Chat).*
 
 ---
 
@@ -138,7 +144,7 @@ Para cumplir con las políticas de control, **todas** las llamadas HTTP deben pr
   > *Use this action when the agent requires reviewing a cheque status, cancelling a cheque, or learning the reason for a cheque rejection.*
 * **Variables requeridas por el agente (Information needed):**
   * **`resumen_solicitud`** (Format: `Text`): *Detalles del cheque, estatus, cancelación o rechazo.*
-  * **`intencion_solicitud`** (Format: `Text`): *Ej. "Cancelación de Cheque" o "Estatus de Cobro".*
+  * **`intencion_solicitud`** (Format: `Text`): *Ej. "Cancelación de Cheque" o "Incidencia de Cheque".*
 * **Configuración del API:**
   * **Method:** `POST`
   * **URL:** `https://orbit-api-ewov.onrender.com/google-chat/notify?secret=maxi-secret-2025`
@@ -149,10 +155,11 @@ Para cumplir con las políticas de control, **todas** las llamadas HTTP deben pr
     {
       "message": "🎫 *REPORTE DE CHEQUES*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "INFO",
-      "destino": "soporte",
+      "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
       "contact_id": "$contact.id"
     }
     ```
+    *(Nota: Reemplaza `"spaces/TU_ID_DE_ESPACIO_SOPORTE"` por el ID real de tu sala de Google Chat).*
 
 ---
 
@@ -173,10 +180,11 @@ Para cumplir con las políticas de control, **todas** las llamadas HTTP deben pr
     {
       "message": "🛠️ *REPORTE DE SOPORTE TÉCNICO*\n\n👤 *Usuario:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Detalle:* $agent.resumen_solicitud",
       "level": "INFO",
-      "destino": "soporte",
+      "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
       "contact_id": "$contact.id"
     }
     ```
+    *(Nota: Reemplaza `"spaces/TU_ID_DE_ESPACIO_SOPORTE"` por el ID real de tu sala de Google Chat).*
 
 ---
 
@@ -197,10 +205,11 @@ Para cumplir con las políticas de control, **todas** las llamadas HTTP deben pr
     {
       "message": "💼 *REPORTE DE VENTAS INTERNAS*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Detalle:* $agent.resumen_solicitud",
       "level": "SUCCESS",
-      "destino": "ventas",
+      "space_id": "spaces/TU_ID_DE_ESPACIO_VENTAS",
       "contact_id": "$contact.id"
     }
     ```
+    *(Nota: Reemplaza `"spaces/TU_ID_DE_ESPACIO_VENTAS"` por el ID real de tu sala de Google Chat).*
 
 ---
 
@@ -262,7 +271,7 @@ Si el usuario refiere en su mensaje de texto libre o audio alguna solicitud, dud
 - **Criterio de activación:** El agente requiere revisar el estatus, cancelar o conocer el motivo de rechazo de un cheque.
 - **Palabras clave:** `cheque`, `cheque+cancelar`, `cheque+rechazo`, `cheque+cancelación`, `cancelar+cheque`.
 - **Acción HTTP:** Ejecuta `Notificar_Cheques`.
-  * Rellena `resumen_solicitud` con el número y valor del cheque y su estatus o problema.
+  * Rellena `resumen_solicitud` con el número y valor del cheque y su estatus o problemav.
   * Rellena `intencion_solicitud` como "Cancelación de Cheque" o "Incidencia de Cheque".
 
 ## 🛠️ 6. SOPORTE TÉCNICO
