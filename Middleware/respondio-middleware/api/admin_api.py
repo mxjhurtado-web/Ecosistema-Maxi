@@ -626,7 +626,8 @@ async def google_chat_event_handler(request: Request):
 @public_router.post("/google-chat/notify")
 async def google_chat_notify_handler(
     request: GoogleChatNotificationRequest,
-    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret")
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
 ):
     """
     Public notification endpoint for Google Chat, secured by WEBHOOK_SECRET.
@@ -636,7 +637,8 @@ async def google_chat_notify_handler(
     start_time = time.time()
 
     # Validate webhook secret
-    if x_webhook_secret != settings.WEBHOOK_SECRET:
+    incoming_secret = x_webhook_secret or secret
+    if incoming_secret != settings.WEBHOOK_SECRET:
         logger.warning("❌ Invalid secret for Google Chat notify request")
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
         
@@ -655,6 +657,8 @@ async def google_chat_notify_handler(
             target_space = os.getenv("GOOGLE_CHATS_SOPORTE_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
         elif destino_lower == "ventas":
             target_space = os.getenv("GOOGLE_CHATS_VENTAS_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
+        elif destino_lower == "cumplimiento":
+            target_space = os.getenv("GOOGLE_CHATS_CUMPLIMIENTO_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
         else:
             target_space = settings.GOOGLE_CHATS_DEFAULT_SPACE
 
