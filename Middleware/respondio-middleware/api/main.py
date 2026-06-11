@@ -124,19 +124,33 @@ async def webhook(
     
     if is_global_webhook:
         contact_id = str(request["contact"].get("id"))
-        message_data = request.get("message", {})
-        attachments = message_data.get("attachments", [])
-        
         logger.info(f"📨 Global webhook received for contact {contact_id}")
         
-        # Cache image if present
-        image_url = None
-        for att in attachments:
-            url = att.get("url")
-            mime_type = att.get("mimeType") or att.get("mime_type") or ""
-            if url and "image" in mime_type.lower():
-                image_url = url
-                break
+        # Log the full payload for diagnostic purposes
+        try:
+            logger.info(f"📨 Global Webhook Payload: {json.dumps(request)}")
+        except Exception as log_err:
+            logger.warning(f"Could not stringify payload: {log_err}. Raw: {request}")
+
+        # Recursively find image URL in the payload
+        def find_image_url(obj) -> Optional[str]:
+            if isinstance(obj, dict):
+                url = obj.get("url")
+                mime_type = str(obj.get("mimeType") or obj.get("mime_type") or "")
+                attachment_type = str(obj.get("type") or "")
+                if url and isinstance(url, str) and ("http" in url):
+                    if "image" in mime_type.lower() or "image" in attachment_type.lower() or any(ext in url.lower() for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif"]):
+                        return url
+                for v in obj.values():
+                    res = find_image_url(v)
+                    if res: return res
+            elif isinstance(obj, list):
+                for item in obj:
+                    res = find_image_url(item)
+                    if res: return res
+            return None
+
+        image_url = find_image_url(request)
                 
         if image_url:
             try:
