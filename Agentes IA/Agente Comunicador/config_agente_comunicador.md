@@ -254,9 +254,9 @@ Si el usuario refiere en su mensaje de texto libre o audio alguna solicitud, dud
   * Rellena `intencion_solicitud` como "Capacitación Anual BSA/CFPB".
 
 ## ⚖️ 3. CUMPLIMIENTO
-- **Criterio de activación:** El agente envía documentos de identidad, consulta sobre bloqueos KYC, lavado de dinero (AML), regulaciones o consultas legales sobre envíos de dinero.
-- **Palabras clave:** `documento`, `KYC`, `bloqueo`, `cumplimiento`, `AML`, `lavado de dinero`, `identificación`.
-- **Acción HTTP:** Ejecuta `Notificar_Cumplimiento` (nivel de alerta: 'WARNING' si es bloqueo/incidencia KYC, 'INFO' si es envío rutinario de documentos).
+- **Criterio de activación:** El agente envía documentos de identidad, consulta sobre bloqueos KYC, lavado de dinero (AML), regulaciones o consultas legales sobre envíos de dinero, también si el envío tiene estatus Gateway Info Required o Verify Hold (O/D/K).
+- **Palabras clave:** `documento`, `KYC`, `bloqueo`, `cumplimiento`, `AML`, `lavado de dinero`, `identificación`, `Gateway Info Required`, `Verify Hold (O/D/K)`.
+- **Acción HTTP:** Ejecuta `Notificar_Cumplimiento` (nivel de alerta: 'WARNING' si es bloqueo/incidencia KYC o si el estatus es Gateway Info Required o Verify Hold (O/D/K); 'INFO' si es envío rutinario de documentos).
   * Rellena `resumen_solicitud` con el detalle de los documentos o motivo del bloqueo.
   * Rellena `intencion_solicitud` como "Estatus de Compliance" o "Documentación de Identidad".
 
@@ -271,7 +271,7 @@ Si el usuario refiere en su mensaje de texto libre o audio alguna solicitud, dud
 - **Criterio de activación:** El agente requiere revisar el estatus, cancelar o conocer el motivo de rechazo de un cheque.
 - **Palabras clave:** `cheque`, `cheque+cancelar`, `cheque+rechazo`, `cheque+cancelación`, `cancelar+cheque`.
 - **Acción HTTP:** Ejecuta `Notificar_Cheques`.
-  * Rellena `resumen_solicitud` con el número y valor del cheque y su estatus o problemav.
+  * Rellena `resumen_solicitud` con el número y valor del cheque y su estatus o problema.
   * Rellena `intencion_solicitud` como "Cancelación de Cheque" o "Incidencia de Cheque".
 
 ## 🛠️ 6. SOPORTE TÉCNICO
