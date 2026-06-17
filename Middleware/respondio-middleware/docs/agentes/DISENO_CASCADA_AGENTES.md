@@ -118,7 +118,7 @@ Si no puedes determinar la intención después de analizar el contexto, realiza 
 * **Llamadas HTTP para Consulta Dinámica de Diálogos:**
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.001,CU.A1,SC.004,SC.005,SC.006,SC.012,SC.031,SC.031.1,SC.034,SC.035,SC.037&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.001,CU.A1,SC.004,SC.005,SC.006,SC.012,SC.031,SC.031.1,SC.034,SC.035,SC.037&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de bienvenida (`SC.001`), privacidad (`CU.A1`), menús (`SC.004`/`SC.005`), inactividad (`SC.006`/`SC.037`), disputas (`SC.031`/`SC.031.1`), transferencia (`SC.012`), fallback (`SC.034`) y fraude (`SC.035`).
@@ -240,7 +240,7 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
 
 * **Configuración de la Acción HTTP (`ConsultarEstatus`):**
   * **Método:** `POST`
-  * **URL:** `https://[orbit-domain]/api/v1/status/check?secret=[webhook_secret]`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/status/check?secret=maxi-secret-2025`
   * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción de forma automática únicamente cuando el usuario haya confirmado de manera activa la consulta de estatus y cuentes con el código de envío, perfil de usuario y validaciones de nombres requeridas.`
   * **Cuerpo JSON:**
     ```json
@@ -269,13 +269,13 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
 * **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
   * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/rules?codes=RNE.10,RNE.13&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.10,RNE.13&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve las políticas vigentes de rastreo directamente desde el Google Sheet de Reglas.
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.008,SC.009,SC.011,SC.012,SC.012.1,SC.032,SC.034,SC.041&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.008,SC.009,SC.011,SC.012,SC.012.1,SC.032,SC.034,SC.041&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de confirmación (`SC.008`), solicitud de datos (`SC.009`/`SC.011`), transferencia (`SC.012`/`SC.012.1`), fallo de coincidencia (`SC.034`), cortesía (`SC.032`) y despedida (`SC.041`).
@@ -332,7 +332,7 @@ Solicita uno a uno de forma atenta:
 * **Llamadas HTTP para Consulta Dinámica de Diálogos:**
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.013,SC.035&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.013,SC.035&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia/cancelación (`SC.013`) y prevención de fraude (`SC.035`).
@@ -385,7 +385,7 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
 * **Llamadas HTTP para Consulta Dinámica de Diálogos:**
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.014,SC.018,SC.035&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.014,SC.018,SC.035&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de soporte con ticket (`SC.014`), sin ticket (`SC.018`) y prevención de fraude (`SC.035`).
@@ -443,7 +443,7 @@ Si el cliente menciona que sospecha haber sido estafado, engañado, víctima de 
 * **Llamadas HTTP para Consulta Dinámica de Diálogos:**
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.012,SC.015,SC.035&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.012,SC.015,SC.035&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia (`SC.012`), reembolso/devolución (`SC.015`) y prevención de fraude (`SC.035`).
@@ -492,7 +492,7 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
 * **Llamadas HTTP para Consulta Dinámica de Diálogos:**
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.012,SC.035&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.012,SC.035&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia (`SC.012`) and prevención de fraude (`SC.035`).
@@ -541,7 +541,7 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
 * **Llamadas HTTP para Consulta Dinámica de Diálogos:**
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.012,SC.035&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.012,SC.035&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia (`SC.012`) y prevención de fraude (`SC.035`).
@@ -637,20 +637,20 @@ Tu objetivo es tomar decisiones basadas únicamente en el horario en que el usua
 * **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
   * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/rules?codes=RNE.55&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.55&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve las reglas y horarios vigentes del departamento de Prevención de Fraudes.
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.032,SC.035,SC.041&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.032,SC.035,SC.041&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de fuera de horario (`SC.032`), prevención de fraude (`SC.035`) and despedida (`SC.041`).
 
 * **Configuración de la Acción HTTP (`Notificar_Fraudes`):**
   * **Método:** `POST`
-  * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+  * **URL:** `https://orbit-api-ewov.onrender.com/google-chat/notify?secret=maxi-secret-2025`
   * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción para enviar una alerta inmediata de fraude al canal de Google Chat, incluyendo el timestamp, ID de conversación, teléfono del cliente y detalles del caso.`
   * **Cuerpo JSON:**
     ```json
@@ -756,20 +756,20 @@ Verifica el horario en que el usuario se comunica (hora centro de Estados Unidos
 * **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
   * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/rules?codes=RNE.55&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.55&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve las reglas y horarios vigentes del departamento de BSA Monitoring.
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.032,SC.035,SC.041&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.032,SC.035,SC.041&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de fuera de horario (`SC.032`), sospecha/fraude (`SC.035`) y despedida (`SC.041`).
 
 * **Configuración de la Acción HTTP (`Notificar_BSA`):**
   * **Método:** `POST`
-  * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+  * **URL:** `https://orbit-api-ewov.onrender.com/google-chat/notify?secret=maxi-secret-2025`
   * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción para enviar una alerta inmediata de actividad sospechosa (BSA/AML) al canal de Google Chat, incluyendo el timestamp, ID de conversación y descripción del caso.`
   * **Cuerpo JSON:**
     ```json
@@ -882,7 +882,7 @@ Si el usuario refiere en su mensaje de texto libre o audio alguna solicitud, dud
 * **Llamadas HTTP para Consulta Dinámica de Diálogos:**
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.012,SC.041&secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.012,SC.041&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia (`SC.012`) y despedida (`SC.041`).
@@ -890,7 +890,7 @@ Si el usuario refiere en su mensaje de texto libre o audio alguna solicitud, dud
 * **Configuración de las Acciones HTTP (POST):**
   * **Notificar Agent Oversight:**
     * **Método:** `POST`
-    * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/google-chat/notify?secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción para enviar una alerta inmediata de Agent Oversight al canal de Google Chat cuando el agente solicite una carta de agente autorizado o notifique una auditoría del IRS, incluyendo el contacto, intención y resumen de la solicitud.`
     * **Headers:** `Content-Type: application/json`
     * **Cuerpo JSON:**
@@ -904,7 +904,7 @@ Si el usuario refiere en su mensaje de texto libre o audio alguna solicitud, dud
       ```
   * **Notificar Capacitación:**
     * **Método:** `POST`
-    * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/google-chat/notify?secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción para enviar una alerta inmediata de Capacitación al canal de Google Chat cuando el agente solicite apoyo con la capacitación anual de antilavado (BSA/CFPB) o reclame un diploma no recibido, incluyendo el contacto, intención y resumen de la solicitud.`
     * **Headers:** `Content-Type: application/json`
     * **Cuerpo JSON:**
@@ -918,7 +918,7 @@ Si el usuario refiere en su mensaje de texto libre o audio alguna solicitud, dud
       ```
   * **Notificar Cumplimiento:**
     * **Método:** `POST`
-    * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/google-chat/notify?secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción para enviar una alerta inmediata de Cumplimiento al canal de Google Chat cuando se requiera notificar un bloqueo de KYC, advertencia AML o envío de documentos de identidad, incluyendo el contacto, intención y nivel de alerta.`
     * **Headers:** `Content-Type: application/json`
     * **Cuerpo JSON:**
@@ -932,7 +932,7 @@ Si el usuario refiere en su mensaje de texto libre o audio alguna solicitud, dud
       ```
   * **Notificar Cobranza:**
     * **Método:** `POST`
-    * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/google-chat/notify?secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción para enviar una alerta inmediata de Cobranza al canal de Google Chat cuando el agente consulte su balance, envíe comprobante de pago o solicite la reactivación de una agencia suspendida, incluyendo el contacto, intención y nivel de alerta.`
     * **Headers:** `Content-Type: application/json`
     * **Cuerpo JSON:**
@@ -946,7 +946,7 @@ Si el usuario refiere en su mensaje de texto libre o audio alguna solicitud, dud
       ```
   * **Notificar Cheques:**
     * **Método:** `POST`
-    * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/google-chat/notify?secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción para enviar una alerta inmediata de Cheques al canal de Google Chat cuando el agente requiera revisar el estatus, cancelar o conocer el motivo de rechazo de un cheque, incluyendo el contacto, intención y resumen de la solicitud.`
     * **Headers:** `Content-Type: application/json`
     * **Cuerpo JSON:**
@@ -960,7 +960,7 @@ Si el usuario refiere en su mensaje de texto libre o audio alguna solicitud, dud
       ```
   * **Notificar Soporte Técnico:**
     * **Método:** `POST`
-    * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/google-chat/notify?secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción para enviar una alerta inmediata de Soporte Técnico al canal de Google Chat para reportar problemas de acceso a Hermes, fallas de equipo o ajustes en el sistema, incluyendo el contacto, intención y detalles del caso.`
     * **Headers:** `Content-Type: application/json`
     * **Cuerpo JSON:**
@@ -974,7 +974,7 @@ Si el usuario refiere en su mensaje de texto libre o audio alguna solicitud, dud
       ```
   * **Notificar Ventas Internas:**
     * **Método:** `POST`
-    * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+    * **URL:** `https://orbit-api-ewov.onrender.com/google-chat/notify?secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción para enviar una alerta inmediata de Ventas Internas al canal de Google Chat para reportar solicitudes comerciales, negociación de tipo de cambio o creación de usuarios de Hermes, incluyendo el contacto, intención y detalles del caso.`
     * **Headers:** `Content-Type: application/json`
     * **Cuerpo JSON:**
@@ -996,7 +996,7 @@ Para mantener la redacción conversacional centralizada y dinámica en Google Sh
 
 ### A. Endpoint General para Scripts de Diálogo
 * **Método:** `GET`
-* **URL:** `https://[orbit-domain]/api/v1/scripts`
+* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts`
 * **Query Parameters:** `codes` (lista separada por comas, ej. `SC.001,CU.A1`)
 * **Ejemplo de Respuesta:**
   ```json
@@ -1008,7 +1008,7 @@ Para mantener la redacción conversacional centralizada y dinámica en Google Sh
 
 ### B. Endpoint para Reglas de Negocio
 * **Método:** `GET`
-* **URL:** `https://[orbit-domain]/api/v1/rules`
+* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules`
 * **Query Parameters:** `codes` (ej. `RNE.01,RNE.02`)
 * **Ejemplo de Respuesta:**
   ```json
@@ -1019,7 +1019,7 @@ Para mantener la redacción conversacional centralizada y dinámica en Google Sh
 
 ### C. Sincronización Manual (Google Sheets ➔ ORBIT Cache)
 * **Método:** `POST`
-* **URL:** `https://[orbit-domain]/api/v1/scripts/sync`
+* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts/sync`
 * **Descripción:** Borra el caché de scripts y reglas en Redis, forzando a ORBIT a consultar en tiempo real los Google Sheets en la siguiente petición.
 * **Google Sheets Utilizados:**
   * **Reglas de Negocio (ID):** `1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw`
