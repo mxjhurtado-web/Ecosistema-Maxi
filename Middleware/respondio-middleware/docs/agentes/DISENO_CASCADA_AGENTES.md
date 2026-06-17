@@ -101,6 +101,13 @@ Si no puedes determinar la intención después de analizar el contexto, llama a 
 
 ```
 
+* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
+  * **Obtener Scripts y Diálogos:**
+    * **Método:** `GET`
+    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.001,CU.A1,SC.004,SC.005,SC.006,SC.012,SC.031,SC.031.1,SC.034,SC.035,SC.037&secret=[webhook_secret]`
+    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+    * **Resultado:** Devuelve los textos oficiales de bienvenida (`SC.001`), privacidad (`CU.A1`), menús (`SC.004`/`SC.005`), inactividad (`SC.006`/`SC.037`), disputas (`SC.031`/`SC.031.1`), transferencia (`SC.012`), fallback (`SC.034`) y fraude (`SC.035`).
+
 ---
 
 ## 🟢 2. Agentes de Fase 1 (Especialistas Directos)
