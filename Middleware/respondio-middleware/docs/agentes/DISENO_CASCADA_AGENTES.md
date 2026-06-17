@@ -247,7 +247,7 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
     {
       "contact_id": "$contact.id",
       "contact_name": "$contact.name",
-      "user_text": "$message.message",
+      "user_text": "$message.text",
       "codigo_envio": "$agent.codigo_envio",
       "perfil": "$agent.perfil",
       "nombre_remitente": "$agent.nombre_remitente",
