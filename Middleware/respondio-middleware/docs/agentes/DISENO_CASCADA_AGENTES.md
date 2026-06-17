@@ -248,10 +248,10 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
       "contact_id": "$contact.id",
       "contact_name": "$contact.name",
       "user_text": "$message.message",
-      "codigo_envio": "$codigo_envio",
-      "perfil": "$perfil",
-      "nombre_remitente": "$nombre_remitente",
-      "nombre_beneficiario": "$nombre_beneficiario"
+      "codigo_envio": "$agent.codigo_envio",
+      "perfil": "$agent.perfil",
+      "nombre_remitente": "$agent.nombre_remitente",
+      "nombre_beneficiario": "$agent.nombre_beneficiario"
     }
     ```
   * **Respuesta Esperada (JSON):**
