@@ -236,9 +236,9 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
     * **Resultado:** Devuelve las políticas vigentes de rastreo directamente desde el Google Sheet de Reglas.
   * **Obtener Scripts y Diálogos:**
     * **Método:** `GET`
-    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.008,SC.009,SC.012,SC.034,SC.041&secret=[webhook_secret]`
+    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.008,SC.009,SC.011,SC.012,SC.012.1,SC.032,SC.034,SC.041&secret=[webhook_secret]`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de confirmación, fallos de coincidencia, despedida y transferencia desde el Google Sheet de Scripts de SC.
+    * **Resultado:** Devuelve los textos oficiales de confirmación (`SC.008`), solicitud de datos (`SC.009`/`SC.011`), transferencia (`SC.012`/`SC.012.1`), fallo de coincidencia (`SC.034`), cortesía (`SC.032`) y despedida (`SC.041`).
 
 ---
 
@@ -277,6 +277,13 @@ Solicita uno a uno de forma atenta:
   ➔ Acción: Asigna la conversación de vuelta a @Max
 ```
 
+* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
+  * **Obtener Scripts y Diálogos:**
+    * **Método:** `GET`
+    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.013,SC.035&secret=[webhook_secret]`
+    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+    * **Resultado:** Devuelve los textos oficiales de transferencia/cancelación (`SC.013`) y prevención de fraude (`SC.035`).
+
 ---
 
 ### C. Historial de Envíos (`@HistorialEnvios`)
@@ -312,6 +319,13 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
   ➔ Envía: "Entiendo su solicitud. Permítame transferirle de vuelta a nuestro orquestador principal para que le guíe adecuadamente."
   ➔ Acción: Asigna la conversación de vuelta a @Max
 ```
+
+* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
+  * **Obtener Scripts y Diálogos:**
+    * **Método:** `GET`
+    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.014,SC.018,SC.035&secret=[webhook_secret]`
+    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+    * **Resultado:** Devuelve los textos oficiales de soporte con ticket (`SC.014`), sin ticket (`SC.018`) y prevención de fraude (`SC.035`).
 
 ---
 
@@ -350,6 +364,13 @@ Si el cliente menciona que sospecha haber sido estafado, engañado, víctima de 
   ➔ Acción: Asigna la conversación de vuelta a @Max
 ```
 
+* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
+  * **Obtener Scripts y Diálogos:**
+    * **Método:** `GET`
+    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.012,SC.015,SC.035&secret=[webhook_secret]`
+    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+    * **Resultado:** Devuelve los textos oficiales de transferencia (`SC.012`), reembolso/devolución (`SC.015`) y prevención de fraude (`SC.035`).
+
 ---
 
 ### B. Modificación de Datos del Envío (`@ModificacionDatos`)
@@ -384,6 +405,13 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
   ➔ Acción: Asigna la conversación de vuelta a @Max
 ```
 
+* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
+  * **Obtener Scripts y Diálogos:**
+    * **Método:** `GET`
+    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.012,SC.035&secret=[webhook_secret]`
+    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+    * **Resultado:** Devuelve los textos oficiales de transferencia (`SC.012`) and prevención de fraude (`SC.035`).
+
 ---
 
 ### C. Coordinación de Pago (`@CoordinacionPago`)
@@ -416,6 +444,14 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
 - Si el usuario te hace una pregunta fuera de tu especialidad, cambia de tema o no puedes resolver su duda tras 2 interacciones:
   ➔ Envía: "Entiendo su solicitud. Permítame transferirle de vuelta a nuestro orquestador principal para que le guíe adecuadamente."
   ➔ Acción: Asigna la conversación de vuelta a @Max
+```
+
+* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
+  * **Obtener Scripts y Diálogos:**
+    * **Método:** `GET`
+    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.012,SC.035&secret=[webhook_secret]`
+    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+    * **Resultado:** Devuelve los textos oficiales de transferencia (`SC.012`) y prevención de fraude (`SC.035`).
 
 ---
 
@@ -490,6 +526,18 @@ Tu objetivo es tomar decisiones basadas únicamente en el horario en que el usua
   ➔ Envía: "Entiendo. Le transferiré de vuelta con nuestro asistente principal para guiarle con su solicitud."
   ✔ Acción: Asigna la conversación de vuelta al orquestador principal: **`@Max`** (o `@Orquestador Maestro Max`).
 ```
+
+* **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
+  * **Obtener Reglas de Negocio:**
+    * **Método:** `GET`
+    * **URL:** `https://[orbit-domain]/api/v1/rules?codes=RNE.55&secret=[webhook_secret]`
+    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+    * **Resultado:** Devuelve las reglas y horarios vigentes del departamento de Prevención de Fraudes.
+  * **Obtener Scripts y Diálogos:**
+    * **Método:** `GET`
+    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.032,SC.035,SC.041&secret=[webhook_secret]`
+    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+    * **Resultado:** Devuelve los textos oficiales de fuera de horario (`SC.032`), prevención de fraude (`SC.035`) and despedida (`SC.041`).
 
 * **Configuración de la Acción HTTP (`Notificar_Fraudes`):**
   * **Método:** `POST`
@@ -580,6 +628,18 @@ Verifica el horario en que el usuario se comunica (hora centro de Estados Unidos
   ✔ Envía: "Entiendo. Le transferiré de vuelta con nuestro asistente principal para guiarle con su solicitud."
   ✔ Acción: Asigna la conversación de vuelta al orquestador principal: **`@Max`** (o `@Orquestador Maestro Max`).
 ```
+
+* **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
+  * **Obtener Reglas de Negocio:**
+    * **Método:** `GET`
+    * **URL:** `https://[orbit-domain]/api/v1/rules?codes=RNE.55&secret=[webhook_secret]`
+    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+    * **Resultado:** Devuelve las reglas y horarios vigentes del departamento de BSA Monitoring.
+  * **Obtener Scripts y Diálogos:**
+    * **Método:** `GET`
+    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.032,SC.035,SC.041&secret=[webhook_secret]`
+    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+    * **Resultado:** Devuelve los textos oficiales de fuera de horario (`SC.032`), sospecha/fraude (`SC.035`) y despedida (`SC.041`).
 
 * **Configuración de la Acción HTTP (`Notificar_BSA`):**
   * **Método:** `POST`
