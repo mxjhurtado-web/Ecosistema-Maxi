@@ -996,8 +996,8 @@ Para mantener la redacción conversacional centralizada y dinámica en Google Sh
 
 ### A. Endpoint General para Scripts de Diálogo
 * **Método:** `GET`
-* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts`
-* **Query Parameters:** `codes` (lista separada por comas, ej. `SC.001,CU.A1`)
+* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.001,CU.A1&secret=maxi-secret-2025`
+* **Query Parameters:** `codes` (lista separada por comas) y `secret` (token de autenticación)
 * **Ejemplo de Respuesta:**
   ```json
   {
@@ -1008,8 +1008,8 @@ Para mantener la redacción conversacional centralizada y dinámica en Google Sh
 
 ### B. Endpoint para Reglas de Negocio
 * **Método:** `GET`
-* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules`
-* **Query Parameters:** `codes` (ej. `RNE.01,RNE.02`)
+* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.01,RNE.02&secret=maxi-secret-2025`
+* **Query Parameters:** `codes` (lista separada por comas) y `secret` (token de autenticación)
 * **Ejemplo de Respuesta:**
   ```json
   {
@@ -1019,7 +1019,7 @@ Para mantener la redacción conversacional centralizada y dinámica en Google Sh
 
 ### C. Sincronización Manual (Google Sheets ➔ ORBIT Cache)
 * **Método:** `POST`
-* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts/sync`
+* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts/sync?secret=maxi-secret-2025`
 * **Descripción:** Borra el caché de scripts y reglas en Redis, forzando a ORBIT a consultar en tiempo real los Google Sheets en la siguiente petición.
 * **Google Sheets Utilizados:**
   * **Reglas de Negocio (ID):** `1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw`
