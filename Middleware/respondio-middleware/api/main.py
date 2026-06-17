@@ -732,7 +732,7 @@ async def check_transaction_status(
             conn.close()
             logger.info(f"✅ Record found via PostgreSQL for code {codigo_envio}")
         except Exception as db_err:
-            logger.error(f"PostgreSQL query failed: {db_err}. Trying REST API fallback...")
+            logger.info(f"PostgreSQL query fallback active: {db_err}. Trying REST API fallback...")
             record = None
             
     # Fallback to Supabase REST API
