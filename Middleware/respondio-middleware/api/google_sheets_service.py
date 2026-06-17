@@ -587,7 +587,7 @@ class GoogleSheetsService:
                 return None
             creds.refresh(Request())
             
-            url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:E100"
+            url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:G150"
             headers = {
                 "Authorization": f"Bearer {creds.token}",
                 "Content-Type": "application/json"
@@ -596,7 +596,7 @@ class GoogleSheetsService:
             async with httpx.AsyncClient() as client:
                 response = await client.get(url, headers=headers)
                 if response.status_code != 200:
-                    url_fallback = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/'Hoja 1'!A1:E100"
+                    url_fallback = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/'Hoja 1'!A1:G150"
                     response = await client.get(url_fallback, headers=headers)
                     
                 if response.status_code != 200:
@@ -631,29 +631,67 @@ class GoogleSheetsService:
                 continue
                 
             first_col = cols[0].upper()
+            
+            # Backward compatibility for old divider headers
             if "PAGOS DE BILL" in first_col:
                 current_type = "bill"
                 continue
             elif "RECARGAS" in first_col:
                 current_type = "recarga"
                 continue
-            elif first_col == "ESTATUS" or "PERFIL DE CLIENTE" in first_col or "SCRIPT" in first_col:
+            elif first_col in ["ESTATUS", "CATEGORIA", "CATEGORÍA"]:
+                # Header row
+                continue
+            elif len(cols) > 1 and ("PERFIL DE CLIENTE" in cols[1].upper() or "CASOS" in cols[1].upper()):
                 # Header row
                 continue
                 
-            estatus = cols[0]
-            perfil = cols[1] if len(cols) > 1 else ""
-            script = cols[2] if len(cols) > 2 else ""
-            derivacion = cols[3] if len(cols) > 3 else ""
-            
+            # If it's the new 7-column sheet layout
+            # Columns: Categoria, Casos, Tipo de status, Status, Tipo de perfil, Código Script, Script Servicio al cliente
+            if len(cols) >= 6:
+                categoria = cols[0]
+                casos = cols[1]
+                tipo_status = cols[2]
+                estatus = cols[3]
+                perfil = cols[4]
+                
+                code_script = cols[5]
+                script = cols[6] if len(cols) > 6 else ""
+                
+                # Determine type
+                casos_upper = casos.upper()
+                if "BILL" in casos_upper or "BILL" in tipo_status.upper() or "BILL" in estatus.upper():
+                    row_type = "bill"
+                elif "RECARGA" in casos_upper:
+                    row_type = "recarga"
+                else:
+                    row_type = "remesa"
+                    
+                # Determine derivation based on code_script
+                if code_script == "SC.012":
+                    deriv = "Cumplimiento"
+                elif code_script == "SC.035":
+                    deriv = "Prevencion de Fraudes"
+                elif code_script in ["SC.024.1", "SC.025"]:
+                    deriv = "Servicio al Cliente"
+                else:
+                    deriv = "NA"
+            else:
+                # Old 4-column layout
+                estatus = cols[0]
+                perfil = cols[1] if len(cols) > 1 else ""
+                script = cols[2] if len(cols) > 2 else ""
+                deriv = cols[3] if len(cols) > 3 else ""
+                row_type = current_type
+                
             if not estatus:
                 continue
                 
-            rules[current_type].append({
+            rules[row_type].append({
                 "estatus": estatus,
                 "perfil": perfil,
                 "script": script,
-                "derivacion": derivacion
+                "derivacion": deriv
             })
             
         return rules
