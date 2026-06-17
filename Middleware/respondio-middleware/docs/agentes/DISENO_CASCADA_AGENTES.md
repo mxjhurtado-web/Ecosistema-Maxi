@@ -28,6 +28,17 @@ Todos los agentes IA (Maestro y Especialistas) comparten las siguientes directiv
 
 * **Nombre de Configuración:** `Max` (Orquestador Maestro)
 * **Acciones a Habilitar:** `Assign to agent or team` (Asignar a agente o equipo).
+  * **Asignar a agente o equipo (Assign to agent or team):**
+    * Configurar según intenciones:
+      * Si es consulta de estatus o rastreo ➔ `@VerificadorEstatus`
+      * Si es cancelación de Money Order físico ➔ `@CancelacionMoneyOrder`
+      * Si es consulta de historial de envíos ➔ `@HistorialEnvios`
+      * Si es cancelación de remesa electrónica ➔ `@CancelacionEnvio`
+      * Si es modificación de datos de envío ➔ `@ModificacionDatos`
+      * Si es dudas o aclaración de pagos ➔ `@CoordinacionPago`
+      * Si es sospecha de fraude, estafa o robo ➔ `@DerivacionFraudes`
+      * Si es sospecha de actividad ilegal o lavado ➔ `@DerivacionBSA`
+      * Si es disputa o exige hablar con un humano ➔ `@Asesores Servicio al Cliente` (Handoff directo)
 * **Prompt de Instrucciones (Copy-Paste):**
 
 ```markdown
@@ -113,7 +124,20 @@ Si no puedes determinar la intención después de analizar el contexto, llama a 
 ## 🟢 2. Agentes de Fase 1 (Especialistas Directos)
 
 ### A. Verificador de Estatus de Envío (`@VerificadorEstatus` o `@AgenteEstatus`)
-* **Acciones a Habilitar:** `Update Contact fields`, `Assign to agent or team`, `Close conversation`.
+* **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo), `Close conversation` (Cerrar conversaciones).
+  * **Campos de Contacto a Actualizar (Update Contact Fields):**
+    * `nombre_beneficiario` (Texto): Nombre del destinatario del envío.
+    * `departamento_destino` (Texto): Mapeado dinámicamente desde el backend (`derivacion`).
+    * `requiere_handoff_humano` (Booleano): Configurado a `true` si el estatus requiere transferencia o si falla la validación.
+    * `motivo_handoff` (Texto): Razón detallada de la escalación (ej: `Verify Hold KYC`, `Match fallido tras 3 intentos`, etc.).
+    * `csat_calificacion` (Numérico): Calificación del servicio (1-5) si el flujo concluye con éxito.
+    * `csat_comentario` (Texto): Feedback provisto por el usuario en caso de baja calificación.
+  * **Asignar a agente o equipo (Assign to agent or team):**
+    * Si la derivación del backend es "Cumplimiento" ➔ `@AgenteComunicador`
+    * Si la derivación del backend es "Prevencion de Fraudes" ➔ `@DerivacionFraudes`
+    * Si la derivación del backend es "Servicio al Cliente" o "NA" (con solicitud de ayuda humana) ➔ Grupo de soporte humano `@Asesores Servicio al Cliente`
+  * **Cerrar conversaciones (Close conversation):**
+    * Habilitado para ejecutarse si el usuario no requiere más ayuda tras recibir su estatus (Fase 5) o por inactividad.
 * **Prompt de Instrucciones (Copy-Paste):**
 
 ```markdown
@@ -250,7 +274,18 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
 ---
 
 ### B. Cancelación de Money Order (`@CancelacionMoneyOrder`)
-* **Acciones a Habilitar:** `Update Contact fields`, `Assign to agent or team`, `Close conversation`.
+* **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo), `Close conversation` (Cerrar conversaciones).
+  * **Campos de Contacto a Actualizar (Update Contact Fields):**
+    * `codigo_envio` (Texto): Folio/Número de serie del Money Order.
+    * `motivo_cancelacion` (Texto): Razón por la cual se cancela.
+    * `csat_calificacion` (Numérico): Calificación del servicio (1-5) al concluir.
+    * `csat_comentario` (Texto): Feedback por baja calificación.
+  * **Asignar a agente o equipo (Assign to agent or team):**
+    * Si es fraude ➔ `@DerivacionFraudes`
+    * Si requiere handoff o se completa la captura de datos ➔ `@Asesores Servicio al Cliente`
+    * Si desiste o desvía el tema ➔ `@Max` (Bucle de retorno)
+  * **Cerrar conversaciones (Close conversation):**
+    * Habilitado si el usuario desiste o tras completar el flujo de despedida/CSAT.
 * **Prompt de Instrucciones (Copy-Paste):**
 
 ```markdown
@@ -294,7 +329,16 @@ Solicita uno a uno de forma atenta:
 ---
 
 ### C. Historial de Envíos (`@HistorialEnvios`)
-* **Acciones a Habilitar:** `Assign to agent or team`, `Close conversation`.
+* **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo), `Close conversation` (Cerrar conversaciones).
+  * **Campos de Contacto a Actualizar (Update Contact Fields):**
+    * `csat_calificacion` (Numérico): Calificación del servicio (1-5) al concluir.
+    * `csat_comentario` (Texto): Feedback por baja calificación.
+  * **Asignar a agente o equipo (Assign to agent or team):**
+    * Si es fraude ➔ `@DerivacionFraudes`
+    * Si requiere asistencia humana o tiene ticket previo/nuevo ➔ `@Asesores Servicio al Cliente`
+    * Si cambia de tema ➔ `@Max` (Bucle de retorno)
+  * **Cerrar conversaciones (Close conversation):**
+    * Habilitado al mostrar los movimientos de forma exitosa y despedirse del usuario.
 * **Prompt de Instrucciones (Copy-Paste):**
 
 ```markdown
@@ -339,7 +383,19 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
 ## 🔵 3. Agentes de Fase 2 (Especialistas Planificados)
 
 ### A. Cancelación de Envío de Dinero (`@CancelacionEnvio`)
-* **Acciones a Habilitar:** `Update Contact fields`, `Assign to agent or team`, `Close conversation`.
+* **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo), `Close conversation` (Cerrar conversaciones).
+  * **Campos de Contacto a Actualizar (Update Contact Fields):**
+    * `codigo_envio` (Texto): Código de transacción de la remesa (`CE...`).
+    * `motivo_cancelacion` (Texto): Motivo de la cancelación del envío.
+    * `csat_calificacion` (Numérico): Calificación del servicio (1-5) al concluir.
+    * `csat_comentario` (Texto): Feedback por baja calificación.
+  * **Asignar a agente o equipo (Assign to agent or team):**
+    * Si es fraude ➔ `@DerivacionFraudes` (Urgente)
+    * Si es reembolso/devolución (`Unclaimed Hold`) ➔ `@Asesores Servicio al Cliente`
+    * Si es otra cancelación estándar ➔ `@AgenteComunicador` (Cumplimiento)
+    * Si cambia de tema ➔ `@Max` (Bucle de retorno)
+  * **Cerrar conversaciones (Close conversation):**
+    * Habilitado si el usuario desiste o tras completar la despedida.
 * **Prompt de Instrucciones (Copy-Paste):**
 
 ```markdown
@@ -381,7 +437,14 @@ Si el cliente menciona que sospecha haber sido estafado, engañado, víctima de 
 ---
 
 ### B. Modificación de Datos del Envío (`@ModificacionDatos`)
-* **Acciones a Habilitar:** `Update Contact fields`, `Assign to agent or team`.
+* **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo).
+  * **Campos de Contacto a Actualizar (Update Contact Fields):**
+    * `codigo_envio` (Texto): Código de transacción de la remesa (`CE...`).
+    * `datos_modificacion` (Texto): Las correcciones exactas solicitadas por el cliente.
+  * **Asignar a agente o equipo (Assign to agent or team):**
+    * Si es fraude ➔ `@DerivacionFraudes`
+    * Si requiere canalizar a revisión de datos ➔ `@AgenteComunicador` (Cumplimiento)
+    * Si cambia de tema ➔ `@Max` (Bucle de retorno)
 * **Prompt de Instrucciones (Copy-Paste):**
 
 ```markdown
@@ -422,7 +485,14 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
 ---
 
 ### C. Coordinación de Pago (`@CoordinacionPago`)
-* **Acciones a Habilitar:** `Update Contact fields`, `Assign to agent or team`.
+* **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo).
+  * **Campos de Contacto a Actualizar (Update Contact Fields):**
+    * `codigo_envio` (Texto): Referencia o cuenta de pago.
+    * `observaciones_pago` (Texto): Detalle del reclamo o discrepancia.
+  * **Asignar a agente o equipo (Assign to agent or team):**
+    * Si es fraude ➔ `@DerivacionFraudes`
+    * Si requiere transferir al área de aclaraciones ➔ `@AgenteComunicador` (Cobranza / BSA / Otros)
+    * Si cambia de tema ➔ `@Max` (Bucle de retorno)
 * **Prompt de Instrucciones (Copy-Paste):**
 
 ```markdown
@@ -465,7 +535,21 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
 ## 🟡 3. Agentes de Fase 2 (Derivación y Horarios Especiales)
 
 ### D. Derivación a Prevención de Fraudes (`@DerivacionFraudes`)
-* **Acciones a Habilitar:** `Update Contact fields`, `Assign to agent or team`, `Close conversation`.
+* **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo), `Close conversation` (Cerrar conversaciones).
+  * **Campos de Contacto a Actualizar (Update Contact Fields):**
+    * `departamento_destino` (Texto): Fijo a `"Prevención de Fraudes"`.
+    * `resumen_ejecutivo` (Texto): Resumen completo generado del caso de fraude.
+    * `requiere_handoff_humano` (Booleano): Configurado a `true`.
+    * `motivo_handoff` (Texto): Fijo a `"Fraude detectado por cliente/agente"`.
+    * `csat_calificacion` (Numérico): Calificación del servicio (1-5) si el flujo concluye con éxito.
+    * `csat_comentario` (Texto): Feedback por baja calificación.
+  * **Asignar a agente o equipo (Assign to agent or team):**
+    * Si es horario hábil (Categoría A) ➔ Especialista de Fraudes (`@Hurtado`)
+    * Si es fuera de horario hábil pero dentro de horario general (Categoría B) ➔ `@Asesores Servicio al Cliente`
+    * Si es fuera de horario (Categoría C) ➔ Se mantiene abierta y encolada en `@Asesores Servicio al Cliente`
+    * Si no aplica a fraude ➔ `@Max` (Bucle de retorno)
+  * **Cerrar conversaciones (Close conversation):**
+    * Habilitado si se transfiere a un especialista fuera de horario o tras la despedida.
 * **Prompt de Instrucciones (Copy-Paste):**
 
 ```markdown
@@ -564,7 +648,21 @@ Tu objetivo es tomar decisiones basadas únicamente en el horario en que el usua
 ---
 
 ### E. Derivación a BSA Monitoring (`@DerivacionBSA`)
-* **Acciones a Habilitar:** `Update Contact fields`, `Assign to agent or team`, `Close conversation`.
+* **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo), `Close conversation` (Cerrar conversaciones).
+  * **Campos de Contacto a Actualizar (Update Contact Fields):**
+    * `departamento_destino` (Texto): Fijo a `"BSA Monitoring"`.
+    * `resumen_ejecutivo` (Texto): Resumen completo generado del caso de sospecha BSA/AML.
+    * `requiere_handoff_humano` (Booleano): Configurado a `true`.
+    * `motivo_handoff` (Texto): Fijo a `"Sospecha de actividad inusual / BSA"`.
+    * `csat_calificacion` (Numérico): Calificación del servicio (1-5) si el flujo concluye con éxito.
+    * `csat_comentario` (Texto): Feedback por baja calificación.
+  * **Asignar a agente o equipo (Assign to agent or team):**
+    * Si es horario hábil (Categoría A) ➔ Especialista de BSA (`@Depto. de Cumplimiento` o analista correspondiente)
+    * Si es fuera de horario hábil pero dentro de horario general (Categoría B) ➔ `@Asesores Servicio al Cliente`
+    * Si es fuera de horario (Categoría C) ➔ Se mantiene abierta y encolada en `@Asesores Servicio al Cliente`
+    * Si no aplica a BSA ➔ `@Max` (Bucle de retorno)
+  * **Cerrar conversaciones (Close conversation):**
+    * Habilitado si se transfiere a un especialista fuera de horario o tras la despedida.
 * **Prompt de Instrucciones (Copy-Paste):**
 
 ```markdown
@@ -700,3 +798,36 @@ Para mantener la redacción conversacional centralizada y dinámica en Google Sh
   * **Reglas de Negocio (ID):** `1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw`
   * **Scripts SC (ID):** `18VE3tdVt4E-eNrf0dD4zlk1aLV2nfv9_ncdUvLPaNic`
 
+
+
+---
+
+## 📋 5. Glosario de Campos de Contacto (Contact Fields) Personalizados
+
+Para permitir el correcto flujo de información y almacenamiento de telemetría y encuestas en el middleware ORBIT y en la plataforma de Respond.io, se deben crear y mapear los siguientes campos personalizados:
+
+### A. Campos Transaccionales y de Modificación
+1. **`nombre_beneficiario`** (Texto):
+   * *Descripción:* Nombre completo de la persona que recibe el dinero. Se utiliza para la verificación de identidad del estatus del envío o para registrar la corrección en el flujo de modificación.
+2. **`motivo_cancelacion`** (Texto):
+   * *Descripción:* Razón provista por el cliente para solicitar la cancelación de un Money Order o de una remesa electrónica (ej. "Error de beneficiario", "Ya no se requiere", etc.).
+3. **`datos_modificacion`** (Texto):
+   * *Descripción:* Detalle textual de los cambios requeridos sobre un envío activo recopilados por `@ModificacionDatos` (ej. corregir apellido, segundo nombre, etc.).
+4. **`observaciones_pago`** (Texto):
+   * *Descripción:* Comentarios y descripción detallada de la discrepancia sobre cobros, tarifas o conciliaciones recopilados por `@CoordinacionPago`.
+
+### B. Campos de Enrutamiento y Handoff
+5. **`departamento_destino`** (Texto):
+   * *Descripción:* El departamento técnico u operativo al cual se enruta la conversación de forma definitiva (ej. `Cumplimiento`, `Prevención de Fraudes`, `BSA Monitoring`, `Servicio al Cliente`, `Cobranza`, `Cheques`, `Soporte Técnico`, `Ventas Internas`).
+6. **`resumen_ejecutivo`** (Texto):
+   * *Descripción:* Bloque estructurado de texto generado automáticamente por la IA para resumir el caso (contiene Timestamp, ID, canal, y frases clave) para que el asesor humano tenga contexto de inmediato.
+7. **`requiere_handoff_humano`** (Booleano):
+   * *Descripción:* Flag o bandera de control (`true`/`false`) que determina si el flujo requiere ser asignado obligatoriamente a una cola humana de atención.
+8. **`motivo_handoff`** (Texto):
+   * *Descripción:* Razón corta de la transferencia de la conversación (ej. "Match fallido de identidad tras 3 intentos", "Fraude reportado en horario hábil", etc.).
+
+### C. Campos de Calidad y Satisfacción (CSAT)
+9. **`csat_calificacion`** (Numérico / Entero):
+   * *Descripción:* Calificación de satisfacción del cliente recolectada al finalizar una atención resuelta (escala del 1 al 5).
+10. **`csat_comentario`** (Texto):
+   * *Descripción:* Comentarios o feedback de texto libre capturados de forma obligatoria (`RNE.63`) si el usuario otorga una baja calificación (1, 2 o 3).
