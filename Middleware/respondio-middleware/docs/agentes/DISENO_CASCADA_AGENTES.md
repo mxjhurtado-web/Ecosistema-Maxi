@@ -228,6 +228,18 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
     }
     ```
 
+* **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
+  * **Obtener Reglas de Negocio:**
+    * **Método:** `GET`
+    * **URL:** `https://[orbit-domain]/api/v1/rules?codes=RNE.10,RNE.13&secret=[webhook_secret]`
+    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+    * **Resultado:** Devuelve las políticas vigentes de rastreo directamente desde el Google Sheet de Reglas.
+  * **Obtener Scripts y Diálogos:**
+    * **Método:** `GET`
+    * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.008,SC.009,SC.012,SC.034,SC.041&secret=[webhook_secret]`
+    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+    * **Resultado:** Devuelve los textos oficiales de confirmación, fallos de coincidencia, despedida y transferencia desde el Google Sheet de Scripts de SC.
+
 ---
 
 ### B. Cancelación de Money Order (`@CancelacionMoneyOrder`)
