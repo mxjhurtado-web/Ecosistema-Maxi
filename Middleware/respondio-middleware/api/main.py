@@ -616,6 +616,8 @@ async def check_transaction_status(
     contact_id = request.contact_id
     contact_name = request.contact_name
     
+    logger.info(f"📥 Received status check request: {request.dict()}")
+    
     metadata = request.metadata or {}
     codigo_envio = request.codigo_envio or metadata.get("codigo_envio")
     perfil = request.perfil or metadata.get("perfil") or metadata.get("perfil_usuario")
