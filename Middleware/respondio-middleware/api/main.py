@@ -612,20 +612,26 @@ async def check_transaction_status(
         logger.warning("❌ Invalid webhook secret in status check")
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
         
-    user_text = request.user_text
-    contact_id = request.contact_id
-    contact_name = request.contact_name
-    
     logger.info(f"📥 Received status check request: {request.dict()}")
+
+    def sanitize_input(v: Any) -> Optional[str]:
+        if v is None:
+            return None
+        v_str = str(v).strip().strip(",").strip()
+        if v_str in [",", "%", "", "null", "None"] or v_str.startswith("$"):
+            return None
+        return v_str
+
+    user_text = sanitize_input(request.user_text) or ""
+    contact_id = sanitize_input(request.contact_id) or "-1"
+    contact_name = sanitize_input(request.contact_name)
     
     metadata = request.metadata or {}
-    codigo_envio = request.codigo_envio or metadata.get("codigo_envio")
-    perfil = request.perfil or metadata.get("perfil") or metadata.get("perfil_usuario")
+    codigo_envio = sanitize_input(request.codigo_envio) or sanitize_input(metadata.get("codigo_envio"))
+    perfil = sanitize_input(request.perfil) or sanitize_input(metadata.get("perfil")) or sanitize_input(metadata.get("perfil_usuario"))
     
     if perfil:
-        perfil = str(perfil).upper().strip()
-        if perfil.startswith("$") or perfil == "%":
-            perfil = "CLIENTE"
+        perfil = perfil.upper()
     else:
         perfil = "CLIENTE"
         
@@ -811,21 +817,17 @@ async def check_transaction_status(
             
     # Name Validation (only for remesas and client/beneficiary profiles)
     if table_type == "remesa" and perfil in ["CLIENTE", "BENEFICIARIO", "REMITENTE"]:
-        user_sender = request.nombre_remitente or metadata.get("nombre_remitente")
-        user_beneficiary = request.nombre_beneficiario or metadata.get("nombre_beneficiario")
+        def sanitize_name(v: Any) -> Optional[str]:
+            if v is None:
+                return None
+            v_str = str(v).strip().strip(",").strip()
+            if v_str in [",", "%", "", "null", "None"] or v_str.startswith("$"):
+                return None
+            return v_str
+            
+        user_sender = sanitize_name(request.nombre_remitente or metadata.get("nombre_remitente"))
+        user_beneficiary = sanitize_name(request.nombre_beneficiario or metadata.get("nombre_beneficiario"))
         
-        # Clean placeholders and wildcards
-        if user_sender and (str(user_sender).strip().startswith("$") or str(user_sender).strip() == "%"):
-            user_sender = None
-        if user_beneficiary and (str(user_beneficiary).strip().startswith("$") or str(user_beneficiary).strip() == "%"):
-            user_beneficiary = None
-            
-        # Clean empty strings
-        if user_sender and not str(user_sender).strip():
-            user_sender = None
-        if user_beneficiary and not str(user_beneficiary).strip():
-            user_beneficiary = None
-            
         # Fallback to user_text ONLY if BOTH are unresolved/missing
         if not user_sender and not user_beneficiary:
             user_sender = user_text
