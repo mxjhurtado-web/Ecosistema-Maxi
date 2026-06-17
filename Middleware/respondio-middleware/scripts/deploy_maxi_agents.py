@@ -30,29 +30,17 @@ vt_prompt = get_agent_content("Agente VT", "config_agente_vt.md")
 status_prompt = get_agent_content("Agente Estatus", "config_agente_status.md")
 verificador_prompt = get_agent_content("Agente Verificador", "config_agente_verificador.md")
 generador_prompt = get_agent_content("Agente Generador", "config_agente_generador.md")
+derivacion_fraudes_prompt = get_agent_content("Agente Derivacion Fraudes", "config_derivacion_fraudes.md")
+derivacion_bsa_prompt = get_agent_content("Agente Derivacion BSA", "config_derivacion_bsa.md")
+comunicador_prompt = get_agent_content("Agente Comunicador", "config_agente_comunicador.md")
+
+
+
 
 agents = [
     {
         "name": "MAXI_ORQUESTADOR",
-        "system_prompt": """Orquestador MaxiSend v2.0
-Rol: Eres el Orquestador de Inteligencia Artificial de MaxiSend. Tu objetivo es recibir cualquier entrada del usuario (texto, audio o imagen), identificar su intención y canalizarlo a la "Rama" (Path) correcta sin utilizar menús numéricos o de botones, a menos que sea estrictamente necesario para una selección final.
-
-Contexto Operativo:
-- Validación de Horario: Lun-Vie (9am-9pm), Sab-Dom (9am-7pm) CST.
-- Privacidad y Seguridad: Primera interacción del día con el aviso legal (A1).
-
-I. Clasificación de Intenciones (Routing)
-- PATH_SOPORTE_ENVIO: Problemas con envíos existentes.
-- PATH_ESTATUS_ENVIO: Consultas de "¿Dónde está mi dinero?".
-- PATH_REALIZAR_ENVIO: Intención de mandar dinero nuevo o tasas de cambio.
-- PATH_PAGO_BILL: Pago de servicios.
-- PATH_RECARGA: Recargas telefónicas.
-- PATH_HISTORIAL: Transacciones pasadas.
-- PATH_HUMANO: Frustración o agente.
-
-II. Multimodalidad
-- Imágenes: Extraer Claim Codes de recibos -> PATH_ESTATUS_ENVIO. Facturas -> PATH_PAGO_BILL.
-- Audio: Buscar verbos clave ("enviar", "pagar", "ayuda").""",
+        "system_prompt": orquestador_prompt or "Error loading prompt",
         "readonly": False,
         "is_orchestrator": True,
         "specific_rules": {
@@ -116,6 +104,55 @@ II. Multimodalidad
         "specific_rules": {
             "folio_pattern": "MMDDAAAAXX",
             "db_registration": "mandatory"
+        },
+        "knowledge_sources": [],
+        "web_search_enabled": False
+    },
+    {
+        "name": "MAXI_DERIVACION_FRAUDES",
+        "system_prompt": derivacion_fraudes_prompt or "Error loading prompt",
+        "readonly": False,
+        "is_orchestrator": False,
+        "specific_rules": {
+            "department": "Prevención de Fraudes",
+            "hours": {
+                "monday_to_sunday": "08:00-23:00"
+            }
+        },
+        "knowledge_sources": [],
+        "web_search_enabled": False
+    },
+    {
+        "name": "MAXI_DERIVACION_BSA",
+        "system_prompt": derivacion_bsa_prompt or "Error loading prompt",
+        "readonly": False,
+        "is_orchestrator": False,
+        "specific_rules": {
+            "department": "BSA Monitoring",
+            "hours": {
+                "monday_to_friday": "08:00-19:00",
+                "saturday": "08:00-18:00"
+            }
+        },
+        "knowledge_sources": [],
+        "web_search_enabled": False
+    },
+    {
+        "name": "MAXI_COMUNICADOR",
+        "system_prompt": comunicador_prompt or "Error loading prompt",
+        "readonly": False,
+        "is_orchestrator": False,
+        "specific_rules": {
+            "department": "Soporte Interno / Departamentos",
+            "actions": [
+                "Notificar_Agent_Oversight",
+                "Notificar_Capacitacion",
+                "Notificar_Cumplimiento",
+                "Notificar_Cobranza",
+                "Notificar_Cheques",
+                "Notificar_Soporte_Tecnico",
+                "Notificar_Ventas_Internas"
+            ]
         },
         "knowledge_sources": [],
         "web_search_enabled": False

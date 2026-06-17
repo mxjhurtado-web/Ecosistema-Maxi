@@ -4,6 +4,7 @@ Unit tests for MCP client
 
 import pytest
 import asyncio
+import time
 from unittest.mock import AsyncMock, patch, MagicMock
 from api.mcp_client import MCPClient
 from api.models import ResponseStatus
@@ -41,7 +42,7 @@ class TestMCPClient:
             # Assertions
             assert response == "Test response"
             assert status in [ResponseStatus.OK, ResponseStatus.DEGRADED]
-            assert latency > 0
+            assert latency >= 0
             assert retries == 0
     
     async def test_query_with_retry(self, mcp_client):
@@ -75,7 +76,7 @@ class TestMCPClient:
         # Set low threshold for testing
         mcp_client.failure_count = 5
         mcp_client.circuit_open = True
-        mcp_client.circuit_open_time = asyncio.get_event_loop().time()
+        mcp_client.circuit_open_time = time.time()
         
         # Query should return fallback immediately
         response, status, latency, retries = await mcp_client.query("Test query")

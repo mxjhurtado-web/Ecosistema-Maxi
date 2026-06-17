@@ -35,6 +35,13 @@ class Settings(BaseSettings):
     WEBHOOK_SECRET: str = "change-me-in-production"
     RATE_LIMIT_PER_MINUTE: int = 100
     
+    # Google Sheets Integration
+    GOOGLE_SHEET_ID_REGLAS: str = "1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw"
+    GOOGLE_SHEET_ID_SCRIPTS: str = "18VE3tdVt4E-eNrf0dD4zlk1aLV2nfv9_ncdUvLPaNic"
+    
+    # Supabase (PostgreSQL)
+    SUPABASE_URI: Optional[str] = "postgresql://postgres:PruebaBoot2025.*@db.tzlomvpugmrpdfatscxe.supabase.co:5432/postgres"
+    
     # Redis
     REDIS_URL: Optional[str] = None
     REDIS_HOST: str = "localhost"

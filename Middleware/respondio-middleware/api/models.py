@@ -67,7 +67,7 @@ class RespondioRequest(BaseModel):
     conversation_id: str = Field(..., description="ID de la conversación")
     contact_id: str = Field(..., description="ID del contacto")
     channel: str = Field(..., description="Canal (whatsapp, telegram, etc)")
-    user_text: str = Field(..., description="Texto del usuario")
+    user_text: str = Field(..., min_length=1, description="Texto del usuario")
     media: Optional[List[MediaItem]] = Field(default_factory=list, description="Archivos multimedia adjuntos")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Metadata adicional")
 
@@ -137,7 +137,7 @@ class MCPRequest(BaseModel):
 class MCPResponse(BaseModel):
     """Response desde el MCP"""
     response: str = Field(..., description="Respuesta del MCP")
-    confidence: Optional[float] = Field(None, description="Confianza de la respuesta")
+    confidence: Optional[float] = Field(0.95, description="Confianza de la respuesta")
 
     class Config:
         json_schema_extra = {
@@ -292,4 +292,28 @@ class GoogleChatNotificationRequest(BaseModel):
     space_id: Optional[str] = Field(None, description="ID del espacio (spaces/XXXX) para envío directo")
     media_url: Optional[str] = Field(None, description="URL de la imagen/archivo adjunto a incluir")
     contact_id: Optional[str] = Field(None, description="ID del contacto de Respond.io para emparejar caché")
+
+
+class StatusCheckRequest(BaseModel):
+    """Request structure for status routing check"""
+    contact_id: str = Field(..., description="ID del contacto en Respond.io")
+    user_text: str = Field(..., description="Mensaje del usuario")
+    contact_name: Optional[str] = Field(None, description="Nombre del contacto")
+    contact_phone: Optional[str] = Field(None, description="Teléfono del contacto")
+    nombre_remitente: Optional[str] = Field(None, description="Nombre del remitente ingresado")
+    nombre_beneficiario: Optional[str] = Field(None, description="Nombre del beneficiario ingresado")
+    codigo_envio: Optional[str] = Field(None, description="Código de envío si ya está extraído")
+    perfil: Optional[str] = Field(default="CLIENTE", description="Perfil del usuario (CLIENTE, BENEFICIARIO, AGENTE)")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Metadata adicional")
+
+
+class StatusCheckResponse(BaseModel):
+    """Response structure for status routing check"""
+    status: str = Field(..., description="Estatus del procesamiento ('success' o 'error')")
+    reply_text: str = Field(..., description="Mensaje de respuesta para el usuario")
+    derivacion: str = Field(..., description="Departamento al que se deriva el contacto")
+    validation_success: bool = Field(..., description="Si el código de envío y los nombres fueron validados")
+    transaction_status: Optional[str] = Field(None, description="Estatus original de la transacción en la base de datos")
+    client_profile: Optional[str] = Field(None, description="Perfil final determinado para el usuario")
+
 

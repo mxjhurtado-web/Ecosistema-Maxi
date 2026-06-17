@@ -2,7 +2,6 @@
 Email service for ORBIT alerts using aiosmtplib.
 """
 
-import aiosmtplib
 from email.message import EmailMessage
 import logging
 from .config import settings
@@ -33,6 +32,7 @@ class EmailService:
             message["Subject"] = f"🚨 ORBIT Alert: {subject}"
             message.set_content(body)
             
+            import aiosmtplib
             await aiosmtplib.send(
                 message,
                 hostname=self.host,

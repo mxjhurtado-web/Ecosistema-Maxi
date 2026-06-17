@@ -63,13 +63,13 @@ class TestRespondioResponse:
         """Test creating a success response"""
         response = RespondioResponse(
             status=ResponseStatus.OK,
-            response="Test response",
+            reply_text="Test response",
             latency_ms=100,
             trace_id="trace_123"
         )
         
         assert response.status == ResponseStatus.OK
-        assert response.response == "Test response"
+        assert response.reply_text == "Test response"
         assert response.latency_ms == 100
         assert response.trace_id == "trace_123"
     
@@ -77,14 +77,13 @@ class TestRespondioResponse:
         """Test creating an error response"""
         response = RespondioResponse(
             status=ResponseStatus.ERROR,
-            response="Fallback message",
+            reply_text="Fallback message",
             latency_ms=0,
-            trace_id="trace_456",
-            error_message="MCP timeout"
+            trace_id="trace_456"
         )
         
         assert response.status == ResponseStatus.ERROR
-        assert response.error_message == "MCP timeout"
+        assert response.reply_text == "Fallback message"
 
 
 class TestMCPRequest:

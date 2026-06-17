@@ -3,6 +3,8 @@ Integration tests for API endpoints
 """
 
 import pytest
+from datetime import datetime
+from unittest.mock import patch, AsyncMock, MagicMock
 from fastapi.testclient import TestClient
 from api.main import app
 from api.config import settings
@@ -266,3 +268,297 @@ class TestGoogleChatNotifyEndpoint:
         # Verify that the target space and formatted text are correct
         args, kwargs = self.mock_send.call_args
         assert "📄 *Adjunto:*" in kwargs.get("message")
+
+
+class TestStatusCheckEndpoint:
+    """Test /api/v1/status/check endpoint"""
+
+    @pytest.fixture(autouse=True)
+    def setup_mocks(self):
+        # Mock Redis
+        self.mock_redis = AsyncMock()
+        self.mock_redis.get.return_value = None
+        self.patcher_redis = patch("api.main.get_redis_client", AsyncMock(return_value=self.mock_redis))
+        self.patcher_redis.start()
+        
+        # Mock httpx.AsyncClient
+        self.mock_httpx = AsyncMock()
+        self.patcher_httpx = patch("httpx.AsyncClient.get", self.mock_httpx)
+        self.patcher_httpx.start()
+        
+        # Prevent actual psycopg2 connection
+        self.original_uri = settings.SUPABASE_URI
+        settings.SUPABASE_URI = None
+
+        yield
+        
+        self.patcher_redis.stop()
+        self.patcher_httpx.stop()
+        settings.SUPABASE_URI = self.original_uri
+
+    def test_unauthorized(self, client):
+        """Test status check unauthorized without correct secret"""
+        response = client.post(
+            "/api/v1/status/check",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "ver CE12345678"
+            }
+        )
+        assert response.status_code == 401
+
+    def test_code_not_found_first_attempt(self, client):
+        """Test status check when code is not found on first attempt"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = []
+        self.mock_httpx.return_value = mock_response
+        self.mock_redis.get.return_value = None
+
+        response = client.post(
+            f"/api/v1/status/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "ver CE12345678"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["derivacion"] == "NA"
+        assert "No encontré resultados" in data["reply_text"]
+        assert data["validation_success"] is False
+        self.mock_redis.set.assert_called_with("status_attempts:test_contact", "1", ex=3600)
+
+    def test_code_not_found_second_attempt(self, client):
+        """Test status check when code is not found on second attempt (limit reached)"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = []
+        self.mock_httpx.return_value = mock_response
+        self.mock_redis.get.return_value = b"1"
+
+        response = client.post(
+            f"/api/v1/status/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "ver CE12345678"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["derivacion"] == "Servicio al Cliente"
+        assert "No fue posible procesar su solicitud" in data["reply_text"]
+        assert data["validation_success"] is False
+        self.mock_redis.set.assert_any_call("status_attempts:test_contact", "0", ex=3600)
+
+    def test_successful_remesa_paid(self, client):
+        """Test successful lookup for remesa status PAGADO"""
+        record = {
+            "Codigo_de_envio": "CE12345678",
+            "status": "PAGADO",
+            "Nombre_Cliente": "JUAN",
+            "Cliente_ Apellido_Paterno": "PEREZ",
+            "Cliente_Apellido_Materno": "GOMEZ",
+            "Beneficiario_Nombre": "MARIA",
+            "Benerificario_Primer_Apellido": "RODRIGUEZ",
+            "Beneficiario_Segundo_Apellido": ""
+        }
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [record]
+        self.mock_httpx.return_value = mock_response
+
+        response = client.post(
+            f"/api/v1/status/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "ver CE12345678",
+                "nombre_remitente": "JUAN PEREZ",
+                "perfil": "CLIENTE"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["derivacion"] == "NA"
+        assert "pagado" in data["reply_text"].lower()
+        assert data["validation_success"] is True
+
+    def test_name_mismatch_first_attempt(self, client):
+        """Test status check when names don't match on first attempt"""
+        record = {
+            "Codigo_de_envio": "CE12345678",
+            "status": "PAYMENT READY",
+            "Nombre_Cliente": "JUAN",
+            "Cliente_ Apellido_Paterno": "PEREZ",
+            "Cliente_Apellido_Materno": "GOMEZ",
+            "Beneficiario_Nombre": "MARIA",
+            "Benerificario_Primer_Apellido": "RODRIGUEZ",
+            "Beneficiario_Segundo_Apellido": ""
+        }
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [record]
+        self.mock_httpx.return_value = mock_response
+        self.mock_redis.get.return_value = None
+
+        response = client.post(
+            f"/api/v1/status/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "ver CE12345678",
+                "nombre_remitente": "WRONG SENDER NAME",
+                "perfil": "CLIENTE"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["derivacion"] == "NA"
+        assert "no coinciden con nuestros registros" in data["reply_text"]
+        assert data["validation_success"] is False
+        self.mock_redis.set.assert_any_call("name_attempts:test_contact", "1", ex=3600)
+
+    def test_name_mismatch_second_attempt(self, client):
+        """Test status check when names don't match on second attempt (handoff)"""
+        record = {
+            "Codigo_de_envio": "CE12345678",
+            "status": "PAYMENT READY",
+            "Nombre_Cliente": "JUAN",
+            "Cliente_ Apellido_Paterno": "PEREZ",
+            "Cliente_Apellido_Materno": "GOMEZ",
+            "Beneficiario_Nombre": "MARIA",
+            "Benerificario_Primer_Apellido": "RODRIGUEZ",
+            "Beneficiario_Segundo_Apellido": ""
+        }
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [record]
+        self.mock_httpx.return_value = mock_response
+        self.mock_redis.get.return_value = b"1"
+
+        response = client.post(
+            f"/api/v1/status/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "ver CE12345678",
+                "nombre_remitente": "WRONG SENDER NAME",
+                "perfil": "CLIENTE"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["derivacion"] == "Servicio al Cliente"
+        assert "No fue posible validar su identidad" in data["reply_text"]
+        assert data["validation_success"] is False
+        self.mock_redis.set.assert_any_call("name_attempts:test_contact", "0", ex=3600)
+
+    def test_compliance_hours_routing_open(self, client):
+        """Test compliance hold routing during business hours"""
+        record = {
+            "Codigo_de_envio": "CE12345678",
+            "status": "VERIFY HOLD (O)",
+            "Nombre_Cliente": "JUAN",
+            "Cliente_ Apellido_Paterno": "PEREZ",
+            "Cliente_Apellido_Materno": "GOMEZ",
+            "Beneficiario_Nombre": "MARIA",
+            "Benerificario_Primer_Apellido": "RODRIGUEZ",
+            "Beneficiario_Segundo_Apellido": ""
+        }
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [record]
+        self.mock_httpx.return_value = mock_response
+
+        # Mock get_central_time to return a time during working hours
+        mock_dt = datetime(2026, 6, 16, 12, 0, 0)
+        from unittest.mock import patch
+        with patch("api.main.get_central_time", return_value=mock_dt):
+            response = client.post(
+                f"/api/v1/status/check?secret={settings.WEBHOOK_SECRET}",
+                json={
+                    "contact_id": "test_contact",
+                    "user_text": "ver CE12345678",
+                    "nombre_remitente": "JUAN PEREZ",
+                    "perfil": "CLIENTE"
+                }
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["derivacion"] == "Cumplimiento"
+            assert "Cumplimiento" in data["reply_text"]
+
+    def test_compliance_hours_routing_closed(self, client):
+        """Test compliance hold routing outside business hours"""
+        record = {
+            "Codigo_de_envio": "CE12345678",
+            "status": "VERIFY HOLD (O)",
+            "Nombre_Cliente": "JUAN",
+            "Cliente_ Apellido_Paterno": "PEREZ",
+            "Cliente_Apellido_Materno": "GOMEZ",
+            "Beneficiario_Nombre": "MARIA",
+            "Benerificario_Primer_Apellido": "RODRIGUEZ",
+            "Beneficiario_Segundo_Apellido": ""
+        }
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [record]
+        self.mock_httpx.return_value = mock_response
+
+        # Mock get_central_time to return a time outside working hours (e.g. 1:00 AM)
+        mock_dt = datetime(2026, 6, 16, 1, 0, 0)
+        from unittest.mock import patch
+        with patch("api.main.get_central_time", return_value=mock_dt):
+            response = client.post(
+                f"/api/v1/status/check?secret={settings.WEBHOOK_SECRET}",
+                json={
+                    "contact_id": "test_contact",
+                    "user_text": "ver CE12345678",
+                    "nombre_remitente": "JUAN PEREZ",
+                    "perfil": "CLIENTE"
+                }
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["derivacion"] == "Fuera de Horario Depto"
+            assert "por el momento no se encuentra disponible" in data["reply_text"]
+
+    def test_emergency_overflow_kyc_routing(self, client):
+        """Test RNE.56 emergency routing for KYC holds when Fraud is closed but SC is open"""
+        record = {
+            "Codigo_de_envio": "CE12345678",
+            "status": "VERIFY HOLD (KYC)",
+            "Nombre_Cliente": "JUAN",
+            "Cliente_ Apellido_Paterno": "PEREZ",
+            "Cliente_Apellido_Materno": "GOMEZ",
+            "Beneficiario_Nombre": "MARIA",
+            "Benerificario_Primer_Apellido": "RODRIGUEZ",
+            "Beneficiario_Segundo_Apellido": ""
+        }
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [record]
+        self.mock_httpx.return_value = mock_response
+
+        from unittest.mock import patch
+        
+        def mock_check_dept(depto, dt):
+            if "PREVENCION" in depto or "FRAUD" in depto:
+                return False
+            if "SERVICIO" in depto or "SC" in depto:
+                return True
+            return False
+
+        with patch("api.main.check_department_hours", side_effect=mock_check_dept):
+            response = client.post(
+                f"/api/v1/status/check?secret={settings.WEBHOOK_SECRET}",
+                json={
+                    "contact_id": "test_contact",
+                    "user_text": "ver CE12345678",
+                    "nombre_remitente": "JUAN PEREZ",
+                    "perfil": "CLIENTE"
+                }
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["derivacion"] == "Servicio al Cliente"
+            assert "Desborde de Emergencia por Horario" in data["reply_text"]
+

@@ -460,6 +460,119 @@ class GoogleSheetsService:
             logger.error(f"Error reading document from Google Drive: {str(e)}")
             return None
 
+    async def fetch_official_scripts(self, spreadsheet_id: str) -> Optional[dict]:
+        """Fetch official scripts from Google Sheets and return as key-value pairs (Code -> Text)"""
+        config = await config_manager.get_google_chat_config()
+        sa_b64 = config.sa_json_b64
+        
+        if not sa_b64:
+            logger.warning("Google Sheets script fetch skipped: Service Account credentials not configured")
+            return None
+            
+        try:
+            creds = await self._get_credentials(sa_b64)
+            if not creds:
+                logger.error("Failed to load credentials for Google Sheets script fetch")
+                return None
+                
+            creds.refresh(Request())
+            
+            # Fetch from default tab A1:H150
+            url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:H150"
+            headers = {
+                "Authorization": f"Bearer {creds.token}",
+                "Content-Type": "application/json"
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers)
+                if response.status_code != 200:
+                    # Try Hoja 1 tab explicitly
+                    url_fallback = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/'Hoja 1'!A1:H150"
+                    response = await client.get(url_fallback, headers=headers)
+                    
+                if response.status_code != 200:
+                    logger.error(f"Failed to fetch scripts from Google Sheets ({response.status_code}): {response.text}")
+                    return None
+                    
+                data = response.json()
+                rows = data.get("values", [])
+                
+                if not rows:
+                    logger.warning("Google Sheets scripts is empty")
+                    return None
+                
+                scripts = {}
+                for row in rows:
+                    if len(row) > 6:
+                        code = row[5].strip()
+                        text = row[6].strip()
+                        if code and text and (code.startswith("SC") or code.startswith("CU")):
+                            normalized_code = code.replace(" ", "")
+                            scripts[normalized_code] = text
+                            
+                return scripts
+                
+        except Exception as e:
+            logger.error(f"Failed to fetch or parse scripts from Google Sheets: {str(e)}")
+            return None
+
+    async def fetch_business_rules(self, spreadsheet_id: str) -> Optional[dict]:
+        """Fetch business rules from Google Sheets and return as key-value pairs (Code -> Description)"""
+        config = await config_manager.get_google_chat_config()
+        sa_b64 = config.sa_json_b64
+        
+        if not sa_b64:
+            logger.warning("Google Sheets rules fetch skipped: Service Account credentials not configured")
+            return None
+            
+        try:
+            creds = await self._get_credentials(sa_b64)
+            if not creds:
+                logger.error("Failed to load credentials for Google Sheets rules fetch")
+                return None
+                
+            creds.refresh(Request())
+            
+            url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:H150"
+            headers = {
+                "Authorization": f"Bearer {creds.token}",
+                "Content-Type": "application/json"
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers)
+                if response.status_code != 200:
+                    url_fallback = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/'Hoja 1'!A1:H150"
+                    response = await client.get(url_fallback, headers=headers)
+                    
+                if response.status_code != 200:
+                    logger.error(f"Failed to fetch rules from Google Sheets ({response.status_code}): {response.text}")
+                    return None
+                    
+                data = response.json()
+                rows = data.get("values", [])
+                
+                if not rows:
+                    logger.warning("Google Sheets rules is empty")
+                    return None
+                
+                rules = {}
+                for row in rows:
+                    if len(row) > 6:
+                        code = row[5].strip()
+                        desc = row[6].strip()
+                        if code and desc and (code.startswith("RNE") or code.startswith("COL")):
+                            normalized_code = code.replace(" ", "")
+                            rules[normalized_code] = desc
+                            
+                return rules
+                
+        except Exception as e:
+            logger.error(f"Failed to fetch or parse rules from Google Sheets: {str(e)}")
+            return None
+
 
 # Singleton instance
 google_sheets_service = GoogleSheetsService()
+

@@ -8,7 +8,8 @@ from fastapi.responses import JSONResponse
 import httpx
 import time
 import uuid
-from datetime import datetime
+import re
+from datetime import datetime, timedelta, timezone
 import logging
 import json
 import os
@@ -21,7 +22,9 @@ from .models import (
     RespondioResponse,
     ResponseStatus,
     RequestLog,
-    HealthResponse
+    HealthResponse,
+    StatusCheckRequest,
+    StatusCheckResponse
 )
 from .config import settings
 from .mcp_client import mcp_client
@@ -474,8 +477,519 @@ async def webhook(
 
 
 # ============================================================
+# Helpers for Status Check and Routing (Plan 3)
+# ============================================================
+
+def get_central_time() -> datetime:
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo("America/Chicago"))
+    except Exception:
+        try:
+            from zoneinfo import ZoneInfo
+            return datetime.now(ZoneInfo("America/Mexico_City"))
+        except Exception:
+            return datetime.now(timezone.utc) - timedelta(hours=5)
+
+
+def is_within_hours(dt: datetime, start_h: int, start_m: int, end_h: int, end_m: int, days: list = None) -> bool:
+    if days is not None and dt.weekday() not in days:
+        return False
+    current_time_minutes = dt.hour * 60 + dt.minute
+    start_minutes = start_h * 60 + start_m
+    end_minutes = end_h * 60 + end_m
+    return start_minutes <= current_time_minutes <= end_minutes
+
+
+def check_department_hours(depto: str, dt: datetime) -> bool:
+    depto = depto.upper()
+    if "CUMPLIMIENTO" in depto:
+        # Lun-Dom: 08:00 a 23:00 hrs
+        return is_within_hours(dt, 8, 0, 23, 0)
+    elif "COBRANZA" in depto:
+        # Lun-Vie: 08:00 a 23:00, Sab: 08:00 a 22:00, Dom: 09:00 a 21:00
+        w = dt.weekday()
+        if w in range(0, 5):
+            return is_within_hours(dt, 8, 0, 23, 0)
+        elif w == 5:
+            return is_within_hours(dt, 8, 0, 22, 0)
+        else:
+            return is_within_hours(dt, 9, 0, 21, 0)
+    elif "OVERSIGHT" in depto:
+        # Lun-Vie: 08:00 a 19:00, Sab: 08:00 a 18:00
+        w = dt.weekday()
+        if w in range(0, 5):
+            return is_within_hours(dt, 8, 0, 19, 0)
+        elif w == 5:
+            return is_within_hours(dt, 8, 0, 18, 0)
+        return False
+    elif "CAPACITACION" in depto:
+        # Lun-Vie: 08:00 a 21:00
+        return is_within_hours(dt, 8, 0, 21, 0, days=list(range(0, 5)))
+    elif "CHEQUES" in depto:
+        # Lun-Vie: 09:00 a 23:00, Sab: 09:00 a 22:00, Dom: 10:00 a 19:00
+        w = dt.weekday()
+        if w in range(0, 5):
+            return is_within_hours(dt, 9, 0, 23, 0)
+        elif w == 5:
+            return is_within_hours(dt, 9, 0, 22, 0)
+        else:
+            return is_within_hours(dt, 10, 0, 19, 0)
+    elif "TECNICO" in depto:
+        # Lun-Dom: 07:00 a 23:00
+        return is_within_hours(dt, 7, 0, 23, 0)
+    elif "VENTAS" in depto:
+        # Lun-Vie: 07:00 a 20:00, Sab: 07:00 a 18:00, Dom: 07:00 a 16:00
+        w = dt.weekday()
+        if w in range(0, 5):
+            return is_within_hours(dt, 7, 0, 20, 0)
+        elif w == 5:
+            return is_within_hours(dt, 7, 0, 18, 0)
+        else:
+            return is_within_hours(dt, 7, 0, 16, 0)
+    elif "SERVICIO AL CLIENTE" in depto or "SC" in depto:
+        # Lun-Vie: 09:00 a 21:00, Sab-Dom: 09:00 a 19:00
+        w = dt.weekday()
+        if w in range(0, 5):
+            return is_within_hours(dt, 9, 0, 21, 0)
+        else:
+            return is_within_hours(dt, 9, 0, 19, 0)
+    elif "FRAUD" in depto or "PREVENCION DE FRAUDES" in depto:
+        # Lun-Dom: 08:00 a 23:00
+        return is_within_hours(dt, 8, 0, 23, 0)
+    elif "BSA" in depto:
+        # Lun-Vie: 08:00 a 19:00, Sab: 08:00 a 18:00
+        w = dt.weekday()
+        if w in range(0, 5):
+            return is_within_hours(dt, 8, 0, 19, 0)
+        elif w == 5:
+            return is_within_hours(dt, 8, 0, 18, 0)
+        return False
+    return True
+
+
+def extraer_codigo_router(texto: str) -> Optional[str]:
+    texto_limpio = re.sub(r'https?://\S+', '', texto)
+    patrones = [
+        r'\bCE\d{8,}\b',
+        r'\bTRK\d{6,}\b',
+        r'\b[A-Z]{2}\d{8,}\b',
+        r'\b[A-Z0-9]{8,}\b'
+    ]
+    for patron in patrones:
+        m = re.search(patron, texto_limpio.upper())
+        if m:
+            code = m.group()
+            if code.isalpha():
+                continue
+            return code
+    return None
+
+
+def match_names(user_name: str, db_name: str) -> bool:
+    if not user_name or not db_name:
+        return False
+    user_words = set(re.findall(r'\w+', user_name.lower()))
+    db_words = set(re.findall(r'\w+', db_name.lower()))
+    intersection = user_words.intersection(db_words)
+    return len(intersection) >= 1
+
+
+@app.post("/api/v1/status/check", response_model=StatusCheckResponse)
+async def check_transaction_status(
+    request: StatusCheckRequest,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
+):
+    """
+    Endpoint for deterministic status checking and routing (Plan 3).
+    Validates webhook secret, checks attempt limits in Redis, queries Supabase,
+    and applies compliance / business rules for department routing.
+    """
+    # Validate secret
+    incoming_secret = x_webhook_secret or secret
+    if incoming_secret != settings.WEBHOOK_SECRET:
+        logger.warning("❌ Invalid webhook secret in status check")
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+        
+    user_text = request.user_text
+    contact_id = request.contact_id
+    
+    metadata = request.metadata or {}
+    codigo_envio = request.codigo_envio or metadata.get("codigo_envio")
+    perfil = request.perfil or metadata.get("perfil") or metadata.get("perfil_usuario")
+    
+    if perfil:
+        perfil = str(perfil).upper().strip()
+    else:
+        perfil = "CLIENTE"
+        
+    if not codigo_envio:
+        codigo_envio = extraer_codigo_router(user_text)
+        
+    # Get Redis client
+    redis = None
+    try:
+        redis = await get_redis_client()
+    except Exception as redis_err:
+        logger.warning(f"Redis connection not available for status check: {redis_err}")
+        
+    # Attempt counter key in Redis
+    attempts_key = f"status_attempts:{contact_id}"
+    attempts = 0
+    if redis:
+        try:
+            attempts_val = await redis.get(attempts_key)
+            attempts = int(attempts_val.decode('utf-8')) if attempts_val else 0
+        except Exception as e:
+            logger.error(f"Error reading status attempts from Redis: {e}")
+            
+    if not codigo_envio:
+        attempts += 1
+        if redis:
+            try:
+                await redis.set(attempts_key, str(attempts), ex=3600)
+            except Exception as e:
+                logger.error(f"Error setting status attempts to Redis: {e}")
+                
+        if attempts >= 2:
+            if redis:
+                try:
+                    await redis.set(attempts_key, "0", ex=3600)
+                except Exception as e:
+                    logger.error(f"Error resetting attempts in Redis: {e}")
+            return StatusCheckResponse(
+                status="success",
+                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
+                derivacion="Servicio al Cliente",
+                validation_success=False
+            )
+        else:
+            return StatusCheckResponse(
+                status="success",
+                reply_text="No encontré resultados con los datos proporcionados. ¿Podría verificarlos y compartirlos nuevamente, por favor?",
+                derivacion="NA",
+                validation_success=False
+            )
+            
+    # Query database
+    record = None
+    table_type = None # "remesa" or "bill"
+    
+    # Try PostgreSQL first
+    if settings.SUPABASE_URI:
+        try:
+            import psycopg2
+            conn = psycopg2.connect(settings.SUPABASE_URI)
+            cursor = conn.cursor()
+            
+            if codigo_envio.startswith("TRK"):
+                cursor.execute('SELECT * FROM "bill_payments" WHERE "Tracking_Number" = %s;', (codigo_envio,))
+                row = cursor.fetchone()
+                if row:
+                    colnames = [desc[0] for desc in cursor.description]
+                    record = dict(zip(colnames, row))
+                    table_type = "bill"
+            else:
+                cursor.execute('SELECT * FROM "Base_completa" WHERE "Codigo_de_envio" = %s;', (codigo_envio,))
+                row = cursor.fetchone()
+                if row:
+                    colnames = [desc[0] for desc in cursor.description]
+                    record = dict(zip(colnames, row))
+                    table_type = "remesa"
+                    
+            cursor.close()
+            conn.close()
+            logger.info(f"✅ Record found via PostgreSQL for code {codigo_envio}")
+        except Exception as db_err:
+            logger.error(f"PostgreSQL query failed: {db_err}. Trying REST API fallback...")
+            record = None
+            
+    # Fallback to Supabase REST API
+    if not record:
+        try:
+            supabase_url = os.getenv("SUPABASE_URL", "https://tzlomvpugmrpdfatscxe.supabase.co")
+            supabase_anon_key = os.getenv(
+                "SUPABASE_ANON_KEY",
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6bG9tdnB1Z21ycGRmYXRzY3hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjI3MjcsImV4cCI6MjA4OTMzODcyN30.aH-p2YbLa8LPlnMVsZMlELsxFWwSSLZMA_LPpRz5DU8"
+            )
+            headers = {
+                "apikey": supabase_anon_key,
+                "Authorization": f"Bearer {supabase_anon_key}",
+                "Content-Type": "application/json"
+            }
+            async with httpx.AsyncClient(timeout=10) as client:
+                if codigo_envio.startswith("TRK"):
+                    url = f"{supabase_url}/rest/v1/bill_payments"
+                    params = {
+                        "Tracking_Number": f"ilike.{codigo_envio}",
+                        "select": "*",
+                        "limit": "1"
+                    }
+                    res = await client.get(url, headers=headers, params=params)
+                    res.raise_for_status()
+                    data = res.json()
+                    if data:
+                        record = data[0]
+                        table_type = "bill"
+                else:
+                    url = f"{supabase_url}/rest/v1/Base_completa"
+                    params = {
+                        "Codigo_de_envio": f"ilike.{codigo_envio}",
+                        "select": "*",
+                        "limit": "1"
+                    }
+                    res = await client.get(url, headers=headers, params=params)
+                    res.raise_for_status()
+                    data = res.json()
+                    if data:
+                        record = data[0]
+                        table_type = "remesa"
+            if record:
+                logger.info(f"✅ Record found via REST API for code {codigo_envio}")
+        except Exception as rest_err:
+            logger.error(f"Supabase REST API query failed: {rest_err}")
+            
+    if not record:
+        attempts += 1
+        if redis:
+            try:
+                await redis.set(attempts_key, str(attempts), ex=3600)
+            except Exception as e:
+                logger.error(f"Error setting attempts in Redis: {e}")
+                
+        if attempts >= 2:
+            if redis:
+                try:
+                    await redis.set(attempts_key, "0", ex=3600)
+                except Exception as e:
+                    logger.error(f"Error resetting attempts in Redis: {e}")
+            return StatusCheckResponse(
+                status="success",
+                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
+                derivacion="Servicio al Cliente",
+                validation_success=False
+            )
+        else:
+            return StatusCheckResponse(
+                status="success",
+                reply_text="No encontré resultados con los datos proporcionados. ¿Podría verificarlos y compartirlos nuevamente, por favor?",
+                derivacion="NA",
+                validation_success=False
+            )
+            
+    # Reset attempts since code was successfully found
+    if redis:
+        try:
+            await redis.set(attempts_key, "0", ex=3600)
+        except Exception as e:
+            logger.error(f"Error resetting code attempts in Redis: {e}")
+            
+    # Name Validation (only for remesas and client/beneficiary profiles)
+    if table_type == "remesa" and perfil in ["CLIENTE", "BENEFICIARIO", "REMITENTE"]:
+        user_sender = request.nombre_remitente or metadata.get("nombre_remitente")
+        user_beneficiary = request.nombre_beneficiario or metadata.get("nombre_beneficiario")
+        
+        # Name columns handling database typos and spaces
+        db_sender = f"{record.get('Nombre_Cliente', '')} {record.get('Cliente_ Apellido_Paterno', '')} {record.get('Cliente_Apellido_Materno', '')}".strip()
+        db_beneficiary = f"{record.get('Beneficiario_Nombre', '')} {record.get('Benerificario_Primer_Apellido', '')} {record.get('Beneficiario_Segundo_Apellido', '')}".strip()
+        
+        db_sender = re.sub(r'\s+', ' ', db_sender)
+        db_beneficiary = re.sub(r'\s+', ' ', db_beneficiary)
+        
+        if user_sender or user_beneficiary:
+            sender_ok = True
+            beneficiary_ok = True
+            
+            if user_sender:
+                sender_ok = match_names(user_sender, db_sender)
+            if user_beneficiary:
+                beneficiary_ok = match_names(user_beneficiary, db_beneficiary)
+                
+            if not sender_ok or not beneficiary_ok:
+                name_attempts_key = f"name_attempts:{contact_id}"
+                name_attempts = 0
+                if redis:
+                    try:
+                        name_attempts_val = await redis.get(name_attempts_key)
+                        name_attempts = int(name_attempts_val.decode('utf-8')) if name_attempts_val else 0
+                    except Exception as e:
+                        logger.error(f"Error reading name attempts: {e}")
+                        
+                name_attempts += 1
+                if redis:
+                    try:
+                        await redis.set(name_attempts_key, str(name_attempts), ex=3600)
+                    except Exception as e:
+                        logger.error(f"Error saving name attempts: {e}")
+                        
+                if name_attempts >= 2:
+                    if redis:
+                        try:
+                            await redis.set(name_attempts_key, "0", ex=3600)
+                        except Exception as e:
+                            logger.error(f"Error resetting name attempts: {e}")
+                    return StatusCheckResponse(
+                        status="success",
+                        reply_text="No fue posible validar su identidad con la información proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
+                        derivacion="Servicio al Cliente",
+                        validation_success=False
+                    )
+                else:
+                    return StatusCheckResponse(
+                        status="success",
+                        reply_text="Los nombres proporcionados no coinciden con nuestros registros por seguridad. Por favor verifíquelos y compártalos nuevamente.",
+                        derivacion="NA",
+                        validation_success=False
+                    )
+                    
+    # Reset name attempts on success
+    if redis:
+        try:
+            await redis.set(f"name_attempts:{contact_id}", "0", ex=3600)
+        except Exception as e:
+            logger.error(f"Error resetting name attempts: {e}")
+            
+    # 3. Rule Crossing (Matrix)
+    status_db = record.get("status") or record.get("Estatus") or ""
+    status_clean = status_db.strip()
+    status_upper = status_clean.upper()
+    
+    derivacion = "NA"
+    reply_text = ""
+    
+    ct_now = get_central_time()
+    
+    if table_type == "remesa":
+        # Exclusion (RNE.57 / RNE.58)
+        if status_upper in ["DETENIDO", "CONTACTAR AGENTE"]:
+            if perfil == "BENEFICIARIO":
+                reply_text = "Por seguridad, su solicitud debe ser atendida fuera de este canal. Por favor, solicite a la persona que le realizó el envío que acuda a la agencia donde realizó la operación. Gracias."
+            else:
+                reply_text = "Por seguridad, su solicitud debe ser atendida fuera de este canal. Por favor, acuda a la agencia donde realizó el envío para recibir la atención requerida. Muchas gracias."
+            derivacion = "Exclusion"
+            
+            return StatusCheckResponse(
+                status="success",
+                reply_text=reply_text,
+                derivacion=derivacion,
+                validation_success=True,
+                transaction_status=status_clean,
+                client_profile=perfil
+            )
+            
+        if perfil == "BENEFICIARIO":
+            transitorios_beneficiary = [
+                "CANCEL STAND BY", "CANCEL IN PROCESS", "CANCEL ACCEPTED", "STAND BY", 
+                "PENDING GATEWAY RESPONSE", "TRANSFER ACCEPTED", "VERIFY HOLD (S)", 
+                "VERIFY HOLD (DP)", "UPDATE IN PROGRESS", "ORIGIN/PENDING PAYMENT", 
+                "RETURNED", "UNCLAIMED HOLD"
+            ]
+            
+            is_guayaquil_cash = (status_upper == "STAND BY") and (record.get("Transferencia_Pagador") == "Banco de Guayaquil")
+            
+            if status_upper in transitorios_beneficiary and not is_guayaquil_cash:
+                reply_text = "Por seguridad, solo podemos compartir los detalles del envío con la persona que lo realizó. Por favor, contáctela y pídale que se comunique con nosotros para darle la asistencia necesaria. Muchas gracias."
+                derivacion = "NA"
+            elif status_upper in ["PAID", "PAGADO"]:
+                reply_text = "Verificando el estatus de la operación, el envío aparece en el sistema como pagado."
+                derivacion = "NA"
+            elif status_upper in ["PAYMENT READY", "PAYMENT READY "] or is_guayaquil_cash:
+                reply_text = "Verificando el estatus de la operación, el envío está disponible para cobro."
+                derivacion = "NA"
+            elif status_upper in ["REJECTED", "CANCELLED"]:
+                reply_text = "Verificando el estatus de la operación, lamentablemente el envío no pudo ser procesado exitosamente."
+                derivacion = "NA"
+            elif "VERIFY HOLD" in status_upper or "GATEWAY INFO" in status_upper:
+                reply_text = "Por seguridad, solo podemos compartir los detalles del envío con la persona que lo realizó. Por favor, contáctela y pídale que se comunique con nosotros para darle la asistencia necesaria. Muchas gracias."
+                derivacion = "NA"
+            else:
+                reply_text = f"El estatus de su transacción es {status_clean}."
+                derivacion = "NA"
+        else:
+            # Perfil is REMITENTE/CLIENTE or AGENTE
+            compliance_holds = ["GATEWAY INFO REQUIRED", "VERIFY HOLD (O)", "VERIFY HOLD (D)", "VERIFY HOLD (K)"]
+            
+            if status_upper in compliance_holds:
+                if check_department_hours("CUMPLIMIENTO", ct_now):
+                    derivacion = "Cumplimiento"
+                    reply_text = "Entiendo su solicitud. Este caso requiere atención de un área especializada (Cumplimiento). Canalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible."
+                else:
+                    derivacion = "Fuera de Horario Depto"
+                    reply_text = "Entiendo su solicitud. Su caso requiere atención de un área especializada y por el momento no se encuentra disponible. Se notificó sobre su caso y se comunicarán con usted en cuanto reinicien operaciones. Gracias por su paciencia."
+            elif "VERIFY HOLD (KYC)" in status_upper:
+                if check_department_hours("PREVENCION DE FRAUDES", ct_now):
+                    derivacion = "Fraudes"
+                    reply_text = "Entiendo su solicitud. Este caso requiere atención de un área especializada (Prevención de Fraudes). Canalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible."
+                else:
+                    # Emergency overflow (RNE.56)
+                    if check_department_hours("SERVICIO AL CLIENTE", ct_now):
+                        derivacion = "Servicio al Cliente"
+                        reply_text = "Entiendo la situación. Su solicitud es de alta prioridad para nosotros, lo comunicaré inmediatamente con un asesor de Servicio al Cliente para darle atención urgente (Desborde de Emergencia por Horario)."
+                    else:
+                        derivacion = "Fuera de Horario SC"
+                        reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
+            elif status_upper in ["PAID", "PAGADO"]:
+                reply_text = "Verificando el estatus de la operación, el envío aparece en el sistema como pagado."
+                derivacion = "NA"
+            elif status_upper in ["PAYMENT READY", "PAYMENT READY "]:
+                reply_text = "Verificando el estatus de la operación, el envío está disponible para cobro."
+                derivacion = "NA"
+            elif status_upper in ["REJECTED", "CANCELLED"]:
+                reply_text = "Verificando el estatus de la operación, lamentablemente el envío no pudo ser procesado exitosamente."
+                derivacion = "NA"
+            elif status_upper == "UNCLAIMED HOLD":
+                if check_department_hours("SERVICIO AL CLIENTE", ct_now):
+                    derivacion = "Servicio al Cliente"
+                    reply_text = "El plazo para cobrar el envío ya pasó, lo transferiré con un asesor de Servicio al Cliente para recibir asistencia personalizada. Por favor, espere mientras lo comunico."
+                else:
+                    derivacion = "Fuera de Horario SC"
+                    reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
+            elif status_upper in [
+                "CANCEL STAND BY", "CANCEL IN PROCESS", "CANCEL ACCEPTED", "STAND BY", 
+                "PENDING GATEWAY RESPONSE", "TRANSFER ACCEPTED", "VERIFY HOLD (S)", 
+                "VERIFY HOLD (DP)", "UPDATE IN PROGRESS", "ORIGIN/PENDING PAYMENT", "RETURNED"
+            ]:
+                if check_department_hours("SERVICIO AL CLIENTE", ct_now):
+                    derivacion = "Servicio al Cliente"
+                    reply_text = "El envío se encuentra en un estado de procesamiento transitorio, lo transferiré con un asesor de Servicio al Cliente para verificar la situación específica. Por favor, espere."
+                else:
+                    derivacion = "Fuera de Horario SC"
+                    reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
+            else:
+                reply_text = f"El estatus de su transacción es {status_clean}."
+                derivacion = "NA"
+    else:
+        # Table type is "bill"
+        if status_upper in ["PAID", "ENTREGADO"]:
+            reply_text = "Verificando el estatus de la operación, el pago se realizó exitosamente."
+            derivacion = "NA"
+        elif status_upper in ["CANCELLED", "CANCELADO"]:
+            reply_text = "Verificando el estatus de la operación, lamentablemente el pago no se procesó exitosamente."
+            derivacion = "NA"
+        else:
+            # Transitorio / Pending / Retrasado
+            if check_department_hours("SERVICIO AL CLIENTE", ct_now):
+                derivacion = "Servicio al Cliente"
+                reply_text = "Su pago no ha sido procesado de forma definitiva aún, lo transferiré con un asesor de Servicio al Cliente para recibir asistencia personalizada. Por favor, espere."
+            else:
+                derivacion = "Fuera de Horario SC"
+                reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
+                
+    return StatusCheckResponse(
+        status="success",
+        reply_text=reply_text,
+        derivacion=derivacion,
+        validation_success=True,
+        transaction_status=status_clean,
+        client_profile=perfil
+    )
+
+
+# ============================================================
 # Health Check Endpoints
 # ============================================================
+
 
 @app.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse)
 async def health_check():
@@ -578,6 +1092,130 @@ async def get_knowledge():
             {"name": "Panel de Control Render", "url": "https://dashboard.render.com"}
         ]
     }
+
+
+# ============================================================
+# Official Scripts & Business Rules (Google Sheets Integration)
+# ============================================================
+
+@app.get("/api/v1/scripts")
+async def get_scripts(codes: str):
+    """
+    Get official script verbatims from Google Sheets (cached in Redis).
+    Query parameter `codes` is a comma-separated list of script codes (e.g. "SC.001,CU.A1").
+    """
+    codes_list = [c.strip().upper().replace(" ", "") for c in codes.split(",") if c.strip()]
+    if not codes_list:
+        raise HTTPException(status_code=400, detail="Missing codes query parameter")
+        
+    redis = None
+    try:
+        redis = await get_redis_client()
+    except Exception as redis_err:
+        logger.warning(f"Redis client not available in get_scripts: {redis_err}")
+        
+    cached_scripts = None
+    if redis:
+        try:
+            cached_val = await redis.get("google_sheets:scripts_cache")
+            if cached_val:
+                cached_scripts = json.loads(cached_val.decode('utf-8'))
+        except Exception as e:
+            logger.error(f"Error reading scripts cache from Redis: {e}")
+            
+    if not cached_scripts:
+        logger.info(f"🔄 Fetching scripts from Google Sheet ID: {settings.GOOGLE_SHEET_ID_SCRIPTS}")
+        from .google_sheets_service import google_sheets_service
+        try:
+            cached_scripts = await google_sheets_service.fetch_official_scripts(settings.GOOGLE_SHEET_ID_SCRIPTS)
+            if cached_scripts and redis:
+                try:
+                    await redis.setex("google_sheets:scripts_cache", 3600, json.dumps(cached_scripts))
+                    logger.info("Saved scripts to Redis cache (3600s TTL)")
+                except Exception as cache_err:
+                    logger.error(f"Failed to cache scripts in Redis: {cache_err}")
+        except Exception as sheet_err:
+            logger.error(f"Failed to fetch scripts from Google Sheets: {sheet_err}")
+            
+    if not cached_scripts:
+        try:
+            with open("api/compliance_scripts.json", "r", encoding="utf-8") as f:
+                cached_scripts = json.load(f)
+        except Exception:
+            cached_scripts = {}
+            
+    response_data = {}
+    for code in codes_list:
+        response_data[code] = cached_scripts.get(code, f"[Script {code} not found]")
+        
+    return response_data
+
+
+@app.get("/api/v1/rules")
+async def get_rules(codes: str):
+    """
+    Get business rules from Google Sheets (cached in Redis).
+    Query parameter `codes` is a comma-separated list of rule codes (e.g. "RNE.01,RNE.02").
+    """
+    codes_list = [c.strip().upper().replace(" ", "") for c in codes.split(",") if c.strip()]
+    if not codes_list:
+        raise HTTPException(status_code=400, detail="Missing codes query parameter")
+        
+    redis = None
+    try:
+        redis = await get_redis_client()
+    except Exception as redis_err:
+        logger.warning(f"Redis client not available in get_rules: {redis_err}")
+        
+    cached_rules = None
+    if redis:
+        try:
+            cached_val = await redis.get("google_sheets:rules_cache")
+            if cached_val:
+                cached_rules = json.loads(cached_val.decode('utf-8'))
+        except Exception as e:
+            logger.error(f"Error reading rules cache from Redis: {e}")
+            
+    if not cached_rules:
+        logger.info(f"🔄 Fetching rules from Google Sheet ID: {settings.GOOGLE_SHEET_ID_REGLAS}")
+        from .google_sheets_service import google_sheets_service
+        try:
+            cached_rules = await google_sheets_service.fetch_business_rules(settings.GOOGLE_SHEET_ID_REGLAS)
+            if cached_rules and redis:
+                try:
+                    await redis.setex("google_sheets:rules_cache", 3600, json.dumps(cached_rules))
+                    logger.info("Saved rules to Redis cache (3600s TTL)")
+                except Exception as cache_err:
+                    logger.error(f"Failed to cache rules in Redis: {cache_err}")
+        except Exception as sheet_err:
+            logger.error(f"Failed to fetch rules from Google Sheets: {sheet_err}")
+            
+    if not cached_rules:
+        cached_rules = {}
+        
+    response_data = {}
+    for code in codes_list:
+        response_data[code] = cached_rules.get(code, f"[Rule {code} not found]")
+        
+    return response_data
+
+
+@app.post("/api/v1/scripts/sync")
+async def sync_scripts_and_rules():
+    """Manual sync to clear cache and force reloading sheets"""
+    redis = None
+    try:
+        redis = await get_redis_client()
+    except Exception as redis_err:
+        raise HTTPException(status_code=500, detail=f"Redis not available: {redis_err}")
+        
+    try:
+        await redis.delete("google_sheets:scripts_cache")
+        await redis.delete("google_sheets:rules_cache")
+        logger.info("Cleared scripts and rules cache in Redis")
+        return {"status": "success", "message": "Cache cleared. Next request will fetch fresh data from Google Sheets."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to clear cache: {e}")
 
 
 # ============================================================
