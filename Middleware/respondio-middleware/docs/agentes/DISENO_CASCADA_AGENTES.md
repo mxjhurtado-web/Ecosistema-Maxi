@@ -27,7 +27,10 @@ Todos los agentes IA (Maestro y Especialistas) comparten las siguientes directiv
 ## 🧠 1. Agente Maestro — Max (`@Max`)
 
 * **Nombre de Configuración:** `Max` (Orquestador Maestro)
-* **Acciones a Habilitar:** `Assign to agent or team` (Asignar a agente o equipo).
+* **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo).
+  * **Campos de Contacto a Actualizar (Update Contact Fields):**
+    * `perfil_usuario` (Texto): Asignar perfil detectado (`Remitente`, `Beneficiario` o `Agente Autorizado`).
+    * `canal_entrada` (Texto): Canal por el que ingresa la interacción (ej: `WhatsApp`).
   * **Asignar a agente o equipo (Assign to agent or team):**
     * Configurar según intenciones:
       * Si es consulta de estatus o rastreo ➔ `@VerificadorEstatus`
@@ -127,6 +130,8 @@ Si no puedes determinar la intención después de analizar el contexto, llama a 
 * **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo), `Close conversation` (Cerrar conversaciones).
   * **Campos de Contacto a Actualizar (Update Contact Fields):**
     * `nombre_beneficiario` (Texto): Nombre del destinatario del envío.
+    * `perfil_usuario` (Texto): Actualizar o ratificar el perfil del usuario (`Remitente`, `Beneficiario` o `Agente Autorizado`).
+    * `intentos_fallidos_matching` (Numérico): Contador de fallos acumulados en la sesión activa.
     * `departamento_destino` (Texto): Mapeado dinámicamente desde el backend (`derivacion`).
     * `requiere_handoff_humano` (Booleano): Configurado a `true` si el estatus requiere transferencia o si falla la validación.
     * `motivo_handoff` (Texto): Razón detallada de la escalación (ej: `Verify Hold KYC`, `Match fallido tras 3 intentos`, etc.).
@@ -277,6 +282,7 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
 * **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo), `Close conversation` (Cerrar conversaciones).
   * **Campos de Contacto a Actualizar (Update Contact Fields):**
     * `codigo_envio` (Texto): Folio/Número de serie del Money Order.
+    * `monto_giro` (Texto/Número): El monto en dólares del Money Order.
     * `motivo_cancelacion` (Texto): Razón por la cual se cancela.
     * `csat_calificacion` (Numérico): Calificación del servicio (1-5) al concluir.
     * `csat_comentario` (Texto): Feedback por baja calificación.
@@ -386,6 +392,7 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
 * **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo), `Close conversation` (Cerrar conversaciones).
   * **Campos de Contacto a Actualizar (Update Contact Fields):**
     * `codigo_envio` (Texto): Código de transacción de la remesa (`CE...`).
+    * `monto_giro` (Texto/Número): El monto en dólares del envío a cancelar (opcional).
     * `motivo_cancelacion` (Texto): Motivo de la cancelación del envío.
     * `csat_calificacion` (Numérico): Calificación del servicio (1-5) al concluir.
     * `csat_comentario` (Texto): Feedback por baja calificación.
@@ -809,25 +816,33 @@ Para permitir el correcto flujo de información y almacenamiento de telemetría 
 ### A. Campos Transaccionales y de Modificación
 1. **`nombre_beneficiario`** (Texto):
    * *Descripción:* Nombre completo de la persona que recibe el dinero. Se utiliza para la verificación de identidad del estatus del envío o para registrar la corrección en el flujo de modificación.
-2. **`motivo_cancelacion`** (Texto):
+2. **`monto_giro`** (Texto/Número):
+   * *Descripción:* El monto en dólares reportado en la transacción o Money Order a cancelar o reclamar.
+3. **`motivo_cancelacion`** (Texto):
    * *Descripción:* Razón provista por el cliente para solicitar la cancelación de un Money Order o de una remesa electrónica (ej. "Error de beneficiario", "Ya no se requiere", etc.).
-3. **`datos_modificacion`** (Texto):
+4. **`datos_modificacion`** (Texto):
    * *Descripción:* Detalle textual de los cambios requeridos sobre un envío activo recopilados por `@ModificacionDatos` (ej. corregir apellido, segundo nombre, etc.).
-4. **`observaciones_pago`** (Texto):
+5. **`observaciones_pago`** (Texto):
    * *Descripción:* Comentarios y descripción detallada de la discrepancia sobre cobros, tarifas o conciliaciones recopilados por `@CoordinacionPago`.
 
-### B. Campos de Enrutamiento y Handoff
-5. **`departamento_destino`** (Texto):
+### B. Campos de Enrutamiento, Handoff y Telemetría
+6. **`perfil_usuario`** (Texto):
+   * *Descripción:* Almacena de forma persistente el perfil del usuario identificado en la interacción (`Remitente`, `Beneficiario` o `Agente Autorizado`).
+7. **`intentos_fallidos_matching`** (Numérico):
+   * *Descripción:* Contador de fallos acumulados por el usuario al ingresar datos de validación de identidad en la sesión activa actual.
+8. **`canal_entrada`** (Texto):
+   * *Descripción:* Identificador de origen de la conversación (ej: `WhatsApp`, `SMS`, `Webchat`) para segmentación y reportes de volumen.
+9. **`departamento_destino`** (Texto):
    * *Descripción:* El departamento técnico u operativo al cual se enruta la conversación de forma definitiva (ej. `Cumplimiento`, `Prevención de Fraudes`, `BSA Monitoring`, `Servicio al Cliente`, `Cobranza`, `Cheques`, `Soporte Técnico`, `Ventas Internas`).
-6. **`resumen_ejecutivo`** (Texto):
+10. **`resumen_ejecutivo`** (Texto):
    * *Descripción:* Bloque estructurado de texto generado automáticamente por la IA para resumir el caso (contiene Timestamp, ID, canal, y frases clave) para que el asesor humano tenga contexto de inmediato.
-7. **`requiere_handoff_humano`** (Booleano):
+11. **`requiere_handoff_humano`** (Booleano):
    * *Descripción:* Flag o bandera de control (`true`/`false`) que determina si el flujo requiere ser asignado obligatoriamente a una cola humana de atención.
-8. **`motivo_handoff`** (Texto):
+12. **`motivo_handoff`** (Texto):
    * *Descripción:* Razón corta de la transferencia de la conversación (ej. "Match fallido de identidad tras 3 intentos", "Fraude reportado en horario hábil", etc.).
 
 ### C. Campos de Calidad y Satisfacción (CSAT)
-9. **`csat_calificacion`** (Numérico / Entero):
+13. **`csat_calificacion`** (Numérico / Entero):
    * *Descripción:* Calificación de satisfacción del cliente recolectada al finalizar una atención resuelta (escala del 1 al 5).
-10. **`csat_comentario`** (Texto):
+14. **`csat_comentario`** (Texto):
    * *Descripción:* Comentarios o feedback de texto libre capturados de forma obligatoria (`RNE.63`) si el usuario otorga una baja calificación (1, 2 o 3).
