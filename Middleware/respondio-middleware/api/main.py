@@ -965,7 +965,6 @@ async def check_transaction_status(
             
         rules_list = status_rules.get(type_key, [])
         perfil_upper = perfil.upper().strip()
-        norm_profile = "REMITENTE O AGENTE" if perfil_upper in ["CLIENTE", "REMITENTE", "AGENTE"] else "BENEFICIARIO"
         
         pagador_str = str(record.get("Transferencia_Pagador", "")).lower()
         payment_type = "cash"
@@ -975,11 +974,23 @@ async def check_transaction_status(
         elif "home" in pagador_str or "domicilio" in pagador_str:
             payment_type = "home delivery"
             
+        def profile_matches(u_prof: str, r_prof: str) -> bool:
+            if not r_prof:
+                return True
+            u_p = u_prof.upper().strip()
+            r_p = r_prof.upper().strip()
+            if "REMITE" in r_p or "AGENTE" in r_p or "BENEFICIARIO" in r_p:
+                if u_p in ["CLIENTE", "REMITENTE", "AGENTE"]:
+                    return "REMITE" in r_p or "AGENTE" in r_p
+                elif u_p == "BENEFICIARIO":
+                    return "BENEFICIARIO" in r_p
+            return u_p == r_p
+
         for rule in rules_list:
             rule_estatus = rule["estatus"].lower().strip()
-            rule_profile = rule["perfil"].upper().strip()
+            rule_profile = rule["perfil"]
             
-            if rule_profile and rule_profile != norm_profile:
+            if not profile_matches(perfil_upper, rule_profile):
                 continue
                 
             # Exact status match
