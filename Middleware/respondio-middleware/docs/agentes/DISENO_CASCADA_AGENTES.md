@@ -119,6 +119,7 @@ Si no puedes determinar la intención después de analizar el contexto, realiza 
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
     * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.001,CU.A1,SC.004,SC.005,SC.006,SC.012,SC.031,SC.031.1,SC.034,SC.035,SC.037&secret=[webhook_secret]`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de bienvenida (`SC.001`), privacidad (`CU.A1`), menús (`SC.004`/`SC.005`), inactividad (`SC.006`/`SC.037`), disputas (`SC.031`/`SC.031.1`), transferencia (`SC.012`), fallback (`SC.034`) y fraude (`SC.035`).
 
@@ -240,6 +241,7 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
 * **Configuración de la Acción HTTP (`ConsultarEstatus`):**
   * **Método:** `POST`
   * **URL:** `https://[orbit-domain]/api/v1/status/check?secret=[webhook_secret]`
+  * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción de forma automática únicamente cuando el usuario haya confirmado de manera activa la consulta de estatus y cuentes con el código de envío, perfil de usuario y validaciones de nombres requeridas.`
   * **Cuerpo JSON:**
     ```json
     {
@@ -268,11 +270,13 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
   * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
     * **Método:** `GET`
     * **URL:** `https://[orbit-domain]/api/v1/rules?codes=RNE.10,RNE.13&secret=[webhook_secret]`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve las políticas vigentes de rastreo directamente desde el Google Sheet de Reglas.
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
     * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.008,SC.009,SC.011,SC.012,SC.012.1,SC.032,SC.034,SC.041&secret=[webhook_secret]`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de confirmación (`SC.008`), solicitud de datos (`SC.009`/`SC.011`), transferencia (`SC.012`/`SC.012.1`), fallo de coincidencia (`SC.034`), cortesía (`SC.032`) y despedida (`SC.041`).
 
@@ -329,6 +333,7 @@ Solicita uno a uno de forma atenta:
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
     * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.013,SC.035&secret=[webhook_secret]`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia/cancelación (`SC.013`) y prevención de fraude (`SC.035`).
 
@@ -381,6 +386,7 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
     * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.014,SC.018,SC.035&secret=[webhook_secret]`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de soporte con ticket (`SC.014`), sin ticket (`SC.018`) y prevención de fraude (`SC.035`).
 
@@ -438,6 +444,7 @@ Si el cliente menciona que sospecha haber sido estafado, engañado, víctima de 
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
     * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.012,SC.015,SC.035&secret=[webhook_secret]`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia (`SC.012`), reembolso/devolución (`SC.015`) y prevención de fraude (`SC.035`).
 
@@ -486,6 +493,7 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
     * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.012,SC.035&secret=[webhook_secret]`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia (`SC.012`) and prevención de fraude (`SC.035`).
 
@@ -534,6 +542,7 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
     * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.012,SC.035&secret=[webhook_secret]`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia (`SC.012`) y prevención de fraude (`SC.035`).
 
@@ -629,17 +638,20 @@ Tu objetivo es tomar decisiones basadas únicamente en el horario en que el usua
   * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
     * **Método:** `GET`
     * **URL:** `https://[orbit-domain]/api/v1/rules?codes=RNE.55&secret=[webhook_secret]`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve las reglas y horarios vigentes del departamento de Prevención de Fraudes.
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
     * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.032,SC.035,SC.041&secret=[webhook_secret]`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de fuera de horario (`SC.032`), prevención de fraude (`SC.035`) and despedida (`SC.041`).
 
 * **Configuración de la Acción HTTP (`Notificar_Fraudes`):**
   * **Método:** `POST`
   * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+  * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción para enviar una alerta inmediata de fraude al canal de Google Chat, incluyendo el timestamp, ID de conversación, teléfono del cliente y detalles del caso.`
   * **Cuerpo JSON:**
     ```json
     {
@@ -745,17 +757,20 @@ Verifica el horario en que el usuario se comunica (hora centro de Estados Unidos
   * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
     * **Método:** `GET`
     * **URL:** `https://[orbit-domain]/api/v1/rules?codes=RNE.55&secret=[webhook_secret]`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve las reglas y horarios vigentes del departamento de BSA Monitoring.
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
     * **URL:** `https://[orbit-domain]/api/v1/scripts?codes=SC.032,SC.035,SC.041&secret=[webhook_secret]`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de fuera de horario (`SC.032`), sospecha/fraude (`SC.035`) y despedida (`SC.041`).
 
 * **Configuración de la Acción HTTP (`Notificar_BSA`):**
   * **Método:** `POST`
   * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+  * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción para enviar una alerta inmediata de actividad sospechosa (BSA/AML) al canal de Google Chat, incluyendo el timestamp, ID de conversación y descripción del caso.`
   * **Cuerpo JSON:**
     ```json
     {
