@@ -1,6 +1,6 @@
 # Manual Técnico de Prompts: Arquitectura en Cascada MaxiBot v3.0
 
-Este documento contiene los **7 prompts definitivos** listos para copiar y pegar en los AI Agents de Respond.io, integrando la regla universal de seguridad contra fraudes para derivar de inmediato al usuario **`@Hurtado`** y la lógica de bucle cerrado para regresar a **`@Max`**.
+Este documento contiene los **10 prompts definitivos** (1 Orquestador Maestro y 9 Agentes Especialistas) listos para copiar y pegar en los AI Agents de Respond.io, integrando la regla universal de seguridad contra fraudes para derivar de inmediato al usuario **`@Hurtado`** y la lógica de bucle cerrado para regresar a **`@Max`**.
 
 ---
 
