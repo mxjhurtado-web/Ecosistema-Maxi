@@ -622,10 +622,31 @@ async def check_transaction_status(
     
     if perfil:
         perfil = str(perfil).upper().strip()
+        if perfil.startswith("$") or perfil == "%":
+            perfil = "CLIENTE"
     else:
         perfil = "CLIENTE"
         
-    if not codigo_envio:
+    # Clean and validate the provided transaction code format
+    is_valid_code = False
+    if codigo_envio:
+        codigo_str = str(codigo_envio).strip().upper()
+        # A valid code must match one of our expected patterns and not be a wildcard or variable placeholder
+        if not codigo_str.startswith("$") and codigo_str != "%" and len(codigo_str) >= 6:
+            patrones = [
+                r'^CE\d{8,}$',
+                r'^TRK\d{6,}$',
+                r'^[A-Z]{2}\d{8,}$',
+                r'^[A-Z0-9]{8,}$'
+            ]
+            for patron in patrones:
+                if re.match(patron, codigo_str):
+                    if not codigo_str.isalpha(): # Ensure it's not purely alphabetic
+                        codigo_envio = codigo_str
+                        is_valid_code = True
+                        break
+
+    if not is_valid_code:
         codigo_envio = extraer_codigo_router(user_text)
         
     # Get Redis client
@@ -791,6 +812,23 @@ async def check_transaction_status(
         user_sender = request.nombre_remitente or metadata.get("nombre_remitente")
         user_beneficiary = request.nombre_beneficiario or metadata.get("nombre_beneficiario")
         
+        # Clean placeholders and wildcards
+        if user_sender and (str(user_sender).strip().startswith("$") or str(user_sender).strip() == "%"):
+            user_sender = None
+        if user_beneficiary and (str(user_beneficiary).strip().startswith("$") or str(user_beneficiary).strip() == "%"):
+            user_beneficiary = None
+            
+        # Clean empty strings
+        if user_sender and not str(user_sender).strip():
+            user_sender = None
+        if user_beneficiary and not str(user_beneficiary).strip():
+            user_beneficiary = None
+            
+        # Fallback to user_text ONLY if BOTH are unresolved/missing
+        if not user_sender and not user_beneficiary:
+            user_sender = user_text
+            user_beneficiary = user_text
+            
         # Name columns handling database typos and spaces
         db_sender = f"{record.get('Nombre_Cliente', '')} {record.get('Cliente_ Apellido_Paterno', '')} {record.get('Cliente_Apellido_Materno', '')}".strip()
         db_beneficiary = f"{record.get('Beneficiario_Nombre', '')} {record.get('Benerificario_Primer_Apellido', '')} {record.get('Beneficiario_Segundo_Apellido', '')}".strip()
