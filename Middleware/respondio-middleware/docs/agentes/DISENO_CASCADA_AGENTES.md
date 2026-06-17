@@ -201,6 +201,33 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
   ➔ Asigna la conversación de vuelta al orquestador principal: **`@Max`** (o `@Orquestador Maestro Max`).
 ```
 
+* **Configuración de la Acción HTTP (`ConsultarEstatus`):**
+  * **Método:** `POST`
+  * **URL:** `https://[orbit-domain]/api/v1/status/check?secret=[webhook_secret]`
+  * **Cuerpo JSON:**
+    ```json
+    {
+      "contact_id": "$contact.id",
+      "contact_name": "$contact.name",
+      "user_text": "$message.message",
+      "codigo_envio": "$codigo_envio",
+      "perfil": "$perfil",
+      "nombre_remitente": "$nombre_remitente",
+      "nombre_beneficiario": "$nombre_beneficiario"
+    }
+    ```
+  * **Respuesta Esperada (JSON):**
+    ```json
+    {
+      "status": "success",
+      "reply_text": "El envío se encuentra en proceso... [Mensaje del Excel]",
+      "derivacion": "Servicio al Cliente", // O "Fraudes", "Cumplimiento", "NA", "cerrar-Servicio al Cliente"
+      "validation_success": true,
+      "transaction_status": "PAID",
+      "client_profile": "CLIENTE"
+    }
+    ```
+
 ---
 
 ### B. Cancelación de Money Order (`@CancelacionMoneyOrder`)
@@ -375,7 +402,19 @@ Si el usuario menciona estafa, fraude, engaño, robo o transacciones sospechosas
 
 # BUCLE DE RETORNO AL MAESTRO (CRÍTICO)
 - Si el usuario te hace una pregunta fuera de tu especialidad, cambia de tema o no puedes resolver su duda tras 2 interacciones:
-  ➔ Envía: "Entiendo su solicitud. PermÃ# CONTEXTO
+  ➔ Envía: "Entiendo su solicitud. Permítame transferirle de vuelta a nuestro orquestador principal para que le guíe adecuadamente."
+  ➔ Acción: Asigna la conversación de vuelta a @Max
+
+---
+
+## 🟡 3. Agentes de Fase 2 (Derivación y Horarios Especiales)
+
+### D. Derivación a Prevención de Fraudes (`@DerivacionFraudes`)
+* **Acciones a Habilitar:** `Update Contact fields`, `Assign to agent or team`, `Close conversation`.
+* **Prompt de Instrucciones (Copy-Paste):**
+
+```markdown
+# CONTEXTO
 Eres el Agente Especialista en derivar casos al Departamento de Fraudes y/o al equipo de Servicio a Clientes de Maxitransfers en el sistema "Derivación Fraudes v3.1".
 Tu objetivo es tomar decisiones basadas únicamente en el horario en que el usuario se comunica y en los horarios operativos definidos.
 
@@ -439,6 +478,21 @@ Tu objetivo es tomar decisiones basadas únicamente en el horario en que el usua
   ➔ Envía: "Entiendo. Le transferiré de vuelta con nuestro asistente principal para guiarle con su solicitud."
   ✔ Acción: Asigna la conversación de vuelta al orquestador principal: **`@Max`** (o `@Orquestador Maestro Max`).
 ```
+
+* **Configuración de la Acción HTTP (`Notificar_Fraudes`):**
+  * **Método:** `POST`
+  * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+  * **Cuerpo JSON:**
+    ```json
+    {
+      "message": "🚨 *ALERTA DE FRAUDE/ESTAFA*\n\n👤 *Cliente:* $contact.name\n📞 *Contacto:* $contact.phone\n📝 *Detalle:* $agent.mensaje_notificacion",
+      "level": "$agent.nivel_alerta",
+      "destino": "fraudes",
+      "space_id": "spaces/AAQAQM9pDpg",
+      "contact_id": "$contact.id"
+    }
+    ```
+  * **Nota:** Se puede configurar el campo `destino` como `"fraudes"` para ruteo semántico o `space_id` como `"spaces/AAQAQM9pDpg"` para direccionamiento explícito a la sala correspondiente.
 
 ---
 
@@ -515,6 +569,21 @@ Verifica el horario en que el usuario se comunica (hora centro de Estados Unidos
   ✔ Acción: Asigna la conversación de vuelta al orquestador principal: **`@Max`** (o `@Orquestador Maestro Max`).
 ```
 
+* **Configuración de la Acción HTTP (`Notificar_BSA`):**
+  * **Método:** `POST`
+  * **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
+  * **Cuerpo JSON:**
+    ```json
+    {
+      "message": "🚨 *ALERTA DE DERIVACIÓN URGENTE (BSA/AML)*\n\n👤 *Cliente:* $contact.name\n📞 *Contacto:* $contact.phone\n📝 *Detalle:* $agent.mensaje_notificacion",
+      "level": "$agent.nivel_alerta",
+      "destino": "bsa",
+      "space_id": "spaces/AAQA3WL2JIk",
+      "contact_id": "$contact.id"
+    }
+    ```
+  * **Nota:** Se puede configurar el campo `destino` como `"bsa"` para ruteo semántico o `space_id` como `"spaces/AAQA3WL2JIk"` para direccionamiento explícito a la sala correspondiente.
+
 ---
 
 ## 📞 4. Guía de Integración Técnica y Llamadas HTTP (Plan 3)
@@ -552,60 +621,3 @@ Para mantener la redacción conversacional centralizada y dinámica en Google Sh
   * **Reglas de Negocio (ID):** `1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw`
   * **Scripts SC (ID):** `18VE3tdVt4E-eNrf0dD4zlk1aLV2nfv9_ncdUvLPaNic`
 
-### D. Llamada HTTP para Notificación de Fraude (Notificar_Fraudes)
-* **Método:** `POST`
-* **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
-* **Cuerpo JSON:**
-  ```json
-  {
-    "message": "🚨 *ALERTA DE FRAUDE/ESTAFA*\n\n👤 *Cliente:* $contact.name\n📞 *Contacto:* $contact.phone\n📝 *Detalle:* $agent.mensaje_notificacion",
-    "level": "$agent.nivel_alerta",
-    "destino": "fraudes",
-    "space_id": "spaces/AAQAQM9pDpg",
-    "contact_id": "$contact.id"
-  }
-  ```
-* **Nota:** Se puede configurar el campo `destino` como `"fraudes"` para ruteo semántico o `space_id` como `"spaces/AAQAQM9pDpg"` para direccionamiento explícito a la sala correspondiente.
-
-
-### E. Llamada HTTP para Notificación de BSA (Notificar_BSA)
-* **Método:** `POST`
-* **URL:** `https://[orbit-domain]/google-chat/notify?secret=[webhook_secret]`
-* **Cuerpo JSON:**
-  ```json
-  {
-    "message": "🚨 *ALERTA DE DERIVACIÓN URGENTE (BSA/AML)*\n\n👤 *Cliente:* $contact.name\n📞 *Contacto:* $contact.phone\n📝 *Detalle:* $agent.mensaje_notificacion",
-    "level": "$agent.nivel_alerta",
-    "destino": "bsa",
-    "space_id": "spaces/AAQA3WL2JIk",
-    "contact_id": "$contact.id"
-  }
-  ```
-* **Nota:** Se puede configurar el campo `destino` como `"bsa"` para ruteo semántico o `space_id` como `"spaces/AAQA3WL2JIk"` para direccionamiento explícito a la sala correspondiente.
-
-### F. Llamada HTTP para Consulta de Estatus (ConsultarEstatus)
-* **Método:** `POST`
-* **URL:** `https://[orbit-domain]/api/v1/status/check?secret=[webhook_secret]`
-* **Cuerpo JSON:**
-  ```json
-  {
-    "contact_id": "$contact.id",
-    "contact_name": "$contact.name",
-    "user_text": "$message.message",
-    "codigo_envio": "$codigo_envio",
-    "perfil": "$perfil",
-    "nombre_remitente": "$nombre_remitente",
-    "nombre_beneficiario": "$nombre_beneficiario"
-  }
-  ```
-* **Respuesta Esperada (JSON):**
-  ```json
-  {
-    "status": "success",
-    "reply_text": "El envío se encuentra en proceso... [Mensaje del Excel]",
-    "derivacion": "Servicio al Cliente", // O "Fraudes", "Cumplimiento", "NA", "cerrar-Servicio al Cliente"
-    "validation_success": true,
-    "transaction_status": "PAID",
-    "client_profile": "CLIENTE"
-  }
-  ```
