@@ -572,6 +572,92 @@ class GoogleSheetsService:
             logger.error(f"Failed to fetch or parse rules from Google Sheets: {str(e)}")
             return None
 
+    async def fetch_status_rules(self, spreadsheet_id: str) -> Optional[dict]:
+        """Fetch status routing rules from Google Sheets and return grouped by transaction type"""
+        config = await config_manager.get_google_chat_config()
+        sa_b64 = config.sa_json_b64
+        
+        if not sa_b64:
+            logger.warning("Google Sheets status rules fetch skipped: Service Account credentials not configured")
+            return None
+            
+        try:
+            creds = await self._get_credentials(sa_b64)
+            if not creds:
+                return None
+            creds.refresh(Request())
+            
+            url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:E100"
+            headers = {
+                "Authorization": f"Bearer {creds.token}",
+                "Content-Type": "application/json"
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers)
+                if response.status_code != 200:
+                    url_fallback = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/'Hoja 1'!A1:E100"
+                    response = await client.get(url_fallback, headers=headers)
+                    
+                if response.status_code != 200:
+                    logger.error(f"Failed to fetch status rules from Google Sheets ({response.status_code}): {response.text}")
+                    return None
+                    
+                data = response.json()
+                rows = data.get("values", [])
+                
+                if not rows:
+                    logger.warning("Google Sheets status rules is empty")
+                    return None
+                    
+                return self._parse_status_rows(rows)
+                
+        except Exception as e:
+            logger.error(f"Failed to fetch or parse status rules from Google Sheets: {str(e)}")
+            return None
+
+    def _parse_status_rows(self, rows) -> dict:
+        """Parse raw status sheet rows into a structured dict grouped by type"""
+        rules = {
+            "remesa": [],
+            "bill": [],
+            "recarga": []
+        }
+        
+        current_type = "remesa"
+        for row in rows:
+            cols = [str(x).strip() if x is not None else "" for x in row]
+            if not any(cols):
+                continue
+                
+            first_col = cols[0].upper()
+            if "PAGOS DE BILL" in first_col:
+                current_type = "bill"
+                continue
+            elif "RECARGAS" in first_col:
+                current_type = "recarga"
+                continue
+            elif first_col == "ESTATUS" or "PERFIL DE CLIENTE" in first_col or "SCRIPT" in first_col:
+                # Header row
+                continue
+                
+            estatus = cols[0]
+            perfil = cols[1] if len(cols) > 1 else ""
+            script = cols[2] if len(cols) > 2 else ""
+            derivacion = cols[3] if len(cols) > 3 else ""
+            
+            if not estatus:
+                continue
+                
+            rules[current_type].append({
+                "estatus": estatus,
+                "perfil": perfil,
+                "script": script,
+                "derivacion": derivacion
+            })
+            
+        return rules
+
 
 # Singleton instance
 google_sheets_service = GoogleSheetsService()

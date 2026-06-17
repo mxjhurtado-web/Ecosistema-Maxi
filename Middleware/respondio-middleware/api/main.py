@@ -614,6 +614,7 @@ async def check_transaction_status(
         
     user_text = request.user_text
     contact_id = request.contact_id
+    contact_name = request.contact_name
     
     metadata = request.metadata or {}
     codigo_envio = request.codigo_envio or metadata.get("codigo_envio")
@@ -860,122 +861,303 @@ async def check_transaction_status(
     
     ct_now = get_central_time()
     
-    if table_type == "remesa":
-        # Exclusion (RNE.57 / RNE.58)
-        if status_upper in ["DETENIDO", "CONTACTAR AGENTE"]:
-            if perfil == "BENEFICIARIO":
-                reply_text = "Por seguridad, su solicitud debe ser atendida fuera de este canal. Por favor, solicite a la persona que le realizó el envío que acuda a la agencia donde realizó la operación. Gracias."
-            else:
-                reply_text = "Por seguridad, su solicitud debe ser atendida fuera de este canal. Por favor, acuda a la agencia donde realizó el envío para recibir la atención requerida. Muchas gracias."
-            derivacion = "Exclusion"
-            
-            return StatusCheckResponse(
-                status="success",
-                reply_text=reply_text,
-                derivacion=derivacion,
-                validation_success=True,
-                transaction_status=status_clean,
-                client_profile=perfil
-            )
-            
+    # Check for hardcoded critical exclusion first (RNE.57 / RNE.58)
+    if status_upper in ["DETENIDO", "CONTACTAR AGENTE"]:
         if perfil == "BENEFICIARIO":
-            transitorios_beneficiary = [
-                "CANCEL STAND BY", "CANCEL IN PROCESS", "CANCEL ACCEPTED", "STAND BY", 
-                "PENDING GATEWAY RESPONSE", "TRANSFER ACCEPTED", "VERIFY HOLD (S)", 
-                "VERIFY HOLD (DP)", "UPDATE IN PROGRESS", "ORIGIN/PENDING PAYMENT", 
-                "RETURNED", "UNCLAIMED HOLD"
-            ]
-            
-            is_guayaquil_cash = (status_upper == "STAND BY") and (record.get("Transferencia_Pagador") == "Banco de Guayaquil")
-            
-            if status_upper in transitorios_beneficiary and not is_guayaquil_cash:
-                reply_text = "Por seguridad, solo podemos compartir los detalles del envío con la persona que lo realizó. Por favor, contáctela y pídale que se comunique con nosotros para darle la asistencia necesaria. Muchas gracias."
-                derivacion = "NA"
-            elif status_upper in ["PAID", "PAGADO"]:
-                reply_text = "Verificando el estatus de la operación, el envío aparece en el sistema como pagado."
-                derivacion = "NA"
-            elif status_upper in ["PAYMENT READY", "PAYMENT READY "] or is_guayaquil_cash:
-                reply_text = "Verificando el estatus de la operación, el envío está disponible para cobro."
-                derivacion = "NA"
-            elif status_upper in ["REJECTED", "CANCELLED"]:
-                reply_text = "Verificando el estatus de la operación, lamentablemente el envío no pudo ser procesado exitosamente."
-                derivacion = "NA"
-            elif "VERIFY HOLD" in status_upper or "GATEWAY INFO" in status_upper:
-                reply_text = "Por seguridad, solo podemos compartir los detalles del envío con la persona que lo realizó. Por favor, contáctela y pídale que se comunique con nosotros para darle la asistencia necesaria. Muchas gracias."
-                derivacion = "NA"
-            else:
-                reply_text = f"El estatus de su transacción es {status_clean}."
-                derivacion = "NA"
+            reply_text = "Por seguridad, su solicitud debe ser atendida fuera de este canal. Por favor, solicite a la persona que le realizó el envío que acuda a la agencia donde realizó la operación. Gracias."
         else:
-            # Perfil is REMITENTE/CLIENTE or AGENTE
-            compliance_holds = ["GATEWAY INFO REQUIRED", "VERIFY HOLD (O)", "VERIFY HOLD (D)", "VERIFY HOLD (K)"]
+            reply_text = "Por seguridad, su solicitud debe ser atendida fuera de este canal. Por favor, acuda a la agencia donde realizó el envío para recibir la atención requerida. Muchas gracias."
+        derivacion = "Exclusion"
+        return StatusCheckResponse(
+            status="success",
+            reply_text=reply_text,
+            derivacion=derivacion,
+            validation_success=True,
+            transaction_status=status_clean,
+            client_profile=perfil
+        )
+        
+    # Fetch status rules (from Google Sheets or local fallback)
+    status_rules = None
+    if settings.GOOGLE_SHEET_ID_ESTATUS:
+        if redis:
+            try:
+                cached_val = await redis.get("google_sheets:status_cache")
+                if cached_val:
+                    status_rules = json.loads(cached_val.decode('utf-8'))
+            except Exception as e:
+                logger.error(f"Error reading status rules cache: {e}")
+                
+        if not status_rules:
+            from .google_sheets_service import google_sheets_service
+            status_rules = await google_sheets_service.fetch_status_rules(settings.GOOGLE_SHEET_ID_ESTATUS)
+            if status_rules and redis:
+                try:
+                    await redis.setex("google_sheets:status_cache", 3600, json.dumps(status_rules))
+                except Exception as e:
+                    logger.error(f"Error caching status rules in Redis: {e}")
+                    
+    # Local fallback for development / test
+    import sys
+    if not status_rules and "pytest" not in sys.modules:
+        local_excel = r"C:\Users\User\Downloads\ESTATUS ENVIOS.xlsx"
+        if os.path.exists(local_excel):
+            try:
+                import pandas as pd
+                df_local = pd.read_excel(local_excel, header=None)
+                local_rows = []
+                for _, r in df_local.iterrows():
+                    local_rows.append([x if pd.notna(x) else "" for x in r])
+                from .google_sheets_service import google_sheets_service
+                status_rules = google_sheets_service._parse_status_rows(local_rows)
+                logger.info(f"Loaded status rules from local fallback: {local_excel}")
+            except Exception as exc:
+                logger.warning(f"Failed to read local status rules fallback: {exc}")
+                
+    matched_rule = None
+    if status_rules:
+        type_key = "bill" if table_type == "bill" else "remesa"
+        # Determine if it's recarga
+        if metadata.get("tipo_transaccion") == "recarga" or "recarga" in user_text.lower():
+            type_key = "recarga"
             
-            if status_upper in compliance_holds:
-                if check_department_hours("CUMPLIMIENTO", ct_now):
-                    derivacion = "Cumplimiento"
-                    reply_text = "Entiendo su solicitud. Este caso requiere atención de un área especializada (Cumplimiento). Canalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible."
+        rules_list = status_rules.get(type_key, [])
+        perfil_upper = perfil.upper().strip()
+        norm_profile = "REMITENTE O AGENTE" if perfil_upper in ["CLIENTE", "REMITENTE", "AGENTE"] else "BENEFICIARIO"
+        
+        pagador_str = str(record.get("Transferencia_Pagador", "")).lower()
+        payment_type = "cash"
+        # Determine payment type from pagador name / record
+        if "banco" in pagador_str or "cuenta" in pagador_str or "ahorro" in pagador_str:
+            payment_type = "cuenta"
+        elif "home" in pagador_str or "domicilio" in pagador_str:
+            payment_type = "home delivery"
+            
+        for rule in rules_list:
+            rule_estatus = rule["estatus"].lower().strip()
+            rule_profile = rule["perfil"].upper().strip()
+            
+            if rule_profile and rule_profile != norm_profile:
+                continue
+                
+            # Exact status match
+            if status_upper.lower() == rule_estatus:
+                matched_rule = rule
+                break
+                
+            # Heuristics for Paid / Payment Ready / Stand by
+            if "paid" in status_upper.lower() or "pagado" in status_upper.lower():
+                if "paid" in rule_estatus:
+                    if "home delivery" in rule_estatus and payment_type == "home delivery":
+                        matched_rule = rule
+                        break
+                    elif "cuenta" in rule_estatus and payment_type == "cuenta":
+                        matched_rule = rule
+                        break
+                    elif ("cash" in rule_estatus or "doméstico" in rule_estatus or "domestico" in rule_estatus) and payment_type == "cash":
+                        matched_rule = rule
+                        break
+                        
+            if "stand by" in status_upper.lower() or "payment ready" in status_upper.lower():
+                is_guayaquil = "guayaquil" in pagador_str
+                if is_guayaquil and "guayaquil" in rule_estatus:
+                    status_type_matches = ("stand by" in status_upper.lower() and "stand by" in rule_estatus) or \
+                                          ("payment ready" in status_upper.lower() and "payment ready" in rule_estatus)
+                    if status_type_matches:
+                        if "home delivery" in rule_estatus and payment_type == "home delivery":
+                            matched_rule = rule
+                            break
+                        elif "cuenta" in rule_estatus and payment_type == "cuenta":
+                            matched_rule = rule
+                            break
+                        elif ("cash" in rule_estatus or "doméstico" in rule_estatus or "domestico" in rule_estatus) and payment_type == "cash":
+                            matched_rule = rule
+                            break
+                elif not is_guayaquil:
+                    if "stand by" in status_upper.lower() and "excepto" in rule_estatus:
+                        matched_rule = rule
+                        break
+                    elif "payment ready" in status_upper.lower() and "payment ready" in rule_estatus and "guayaquil" not in rule_estatus:
+                        matched_rule = rule
+                        break
+                        
+            # Substring match (e.g. "verify hold (o)")
+            if rule_estatus in status_upper.lower() or status_upper.lower() in rule_estatus:
+                if ("kyc" in rule_estatus) == ("kyc" in status_upper.lower()):
+                    matched_rule = rule
+                    break
+
+    if matched_rule:
+        deriv_raw = matched_rule["derivacion"].strip()
+        script_text = matched_rule["script"]
+        
+        # Clean script text (replace quotes and name placeholder)
+        clean_name = contact_name or "Cliente"
+        script_text = script_text.replace("“", "").replace("”", "").replace('"', "")
+        script_text = script_text.replace("Sr./Srita._________", clean_name).replace("Sr./Srita.____", clean_name)
+        reply_text = script_text
+        
+        # Normalize derivation output and check operating hours
+        if "CUMPLIMIENTO" in deriv_raw.upper():
+            if check_department_hours("CUMPLIMIENTO", ct_now):
+                derivacion = "Cumplimiento"
+            else:
+                derivacion = "Fuera de Horario Depto"
+                reply_text = (
+                    f"{reply_text}\n\n"
+                    "Entiendo su solicitud. Su caso requiere atención de un área especializada (Cumplimiento) y por el momento no se encuentra disponible. "
+                    "Se notificó sobre su caso y se comunicarán con usted en cuanto reinicien operaciones. Gracias por su paciencia."
+                )
+        elif "FRAUDE" in deriv_raw.upper():
+            if check_department_hours("PREVENCION DE FRAUDES", ct_now):
+                derivacion = "Fraudes"
+            else:
+                if check_department_hours("SERVICIO AL CLIENTE", ct_now):
+                    derivacion = "Servicio al Cliente"
+                    reply_text = (
+                        f"{reply_text}\n\n"
+                        "Entiendo la situación. Su solicitud es de alta prioridad para nosotros, lo comunicaré inmediatamente con un asesor de "
+                        "Servicio al Cliente para darle atención urgente."
+                    )
                 else:
-                    derivacion = "Fuera de Horario Depto"
-                    reply_text = "Entiendo su solicitud. Su caso requiere atención de un área especializada y por el momento no se encuentra disponible. Se notificó sobre su caso y se comunicarán con usted en cuanto reinicien operaciones. Gracias por su paciencia."
-            elif "VERIFY HOLD (KYC)" in status_upper:
-                if check_department_hours("PREVENCION DE FRAUDES", ct_now):
-                    derivacion = "Fraudes"
-                    reply_text = "Entiendo su solicitud. Este caso requiere atención de un área especializada (Prevención de Fraudes). Canalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible."
+                    derivacion = "Fuera de Horario SC"
+                    reply_text = (
+                        f"{reply_text}\n\n"
+                        "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto "
+                        "retomemos el servicio. Gracias por su paciencia."
+                    )
+        elif "SERVICIO AL CLIENTE" in deriv_raw.upper() or "SERVICIO A CLIENTE" in deriv_raw.upper() or "CERRAR-SERVICIO AL CLIENTE" in deriv_raw.upper():
+            if check_department_hours("SERVICIO AL CLIENTE", ct_now):
+                derivacion = "cerrar-Servicio al Cliente" if "CERRAR" in deriv_raw.upper() else "Servicio al Cliente"
+            else:
+                derivacion = "Fuera de Horario SC"
+                reply_text = (
+                    f"{reply_text}\n\n"
+                    "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto "
+                    "retomemos el servicio. Gracias por su paciencia."
+                )
+        else:
+            # Default is NA / none
+            derivacion = "NA"
+    else:
+        # Fallback to standard hardcoded logic if no sheet rule is found
+        logger.warning(f"No status rule found for status={status_clean}, perfil={perfil}, pagador={record.get('Transferencia_Pagador')}")
+        if table_type == "remesa":
+            # Exclusion (RNE.57 / RNE.58)
+            if status_upper in ["DETENIDO", "CONTACTAR AGENTE"]:
+                if perfil == "BENEFICIARIO":
+                    reply_text = "Por seguridad, su solicitud debe ser atendida fuera de este canal. Por favor, solicite a la persona que le realizó el envío que acuda a la agencia donde realizó la operación. Gracias."
                 else:
-                    # Emergency overflow (RNE.56)
+                    reply_text = "Por seguridad, su solicitud debe ser atendida fuera de este canal. Por favor, acuda a la agencia donde realizó el envío para recibir la atención requerida. Muchas gracias."
+                derivacion = "Exclusion"
+                
+                return StatusCheckResponse(
+                    status="success",
+                    reply_text=reply_text,
+                    derivacion=derivacion,
+                    validation_success=True,
+                    transaction_status=status_clean,
+                    client_profile=perfil
+                )
+                
+            if perfil == "BENEFICIARIO":
+                transitorios_beneficiary = [
+                    "CANCEL STAND BY", "CANCEL IN PROCESS", "CANCEL ACCEPTED", "STAND BY", 
+                    "PENDING GATEWAY RESPONSE", "TRANSFER ACCEPTED", "VERIFY HOLD (S)", 
+                    "VERIFY HOLD (DP)", "UPDATE IN PROGRESS", "ORIGIN/PENDING PAYMENT", 
+                    "RETURNED", "UNCLAIMED HOLD"
+                ]
+                
+                is_guayaquil_cash = (status_upper == "STAND BY") and (record.get("Transferencia_Pagador") == "Banco de Guayaquil")
+                
+                if status_upper in transitorios_beneficiary and not is_guayaquil_cash:
+                    reply_text = "Por seguridad, solo podemos compartir los detalles del envío con la persona que lo realizó. Por favor, contáctela y pídale que se comunique con nosotros para darle la asistencia necesaria. Muchas gracias."
+                    derivacion = "NA"
+                elif status_upper in ["PAID", "PAGADO"]:
+                    reply_text = "Verificando el estatus de la operación, el envío aparece en el sistema como pagado."
+                    derivacion = "NA"
+                elif status_upper in ["PAYMENT READY", "PAYMENT READY "] or is_guayaquil_cash:
+                    reply_text = "Verificando el estatus de la operación, el envío está disponible para cobro."
+                    derivacion = "NA"
+                elif status_upper in ["REJECTED", "CANCELLED"]:
+                    reply_text = "Verificando el estatus de la operación, lamentablemente el envío no pudo ser procesado exitosamente."
+                    derivacion = "NA"
+                elif "VERIFY HOLD" in status_upper or "GATEWAY INFO" in status_upper:
+                    reply_text = "Por seguridad, solo podemos compartir los detalles del envío con la persona que lo realizó. Por favor, contáctela y pídale que se comunique con nosotros para darle la asistencia necesaria. Muchas gracias."
+                    derivacion = "NA"
+                else:
+                    reply_text = f"El estatus de su transacción es {status_clean}."
+                    derivacion = "NA"
+            else:
+                # Perfil is REMITENTE/CLIENTE or AGENTE
+                compliance_holds = ["GATEWAY INFO REQUIRED", "VERIFY HOLD (O)", "VERIFY HOLD (D)", "VERIFY HOLD (K)"]
+                
+                if status_upper in compliance_holds:
+                    if check_department_hours("CUMPLIMIENTO", ct_now):
+                        derivacion = "Cumplimiento"
+                        reply_text = "Entiendo su solicitud. Este caso requiere atención de un área especializada (Cumplimiento). Canalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible."
+                    else:
+                        derivacion = "Fuera de Horario Depto"
+                        reply_text = "Entiendo su solicitud. Su caso requiere atención de un área especializada y por el momento no se encuentra disponible. Se notificó sobre su caso y se comunicarán con usted en cuanto reinicien operaciones. Gracias por su paciencia."
+                elif "VERIFY HOLD (KYC)" in status_upper:
+                    if check_department_hours("PREVENCION DE FRAUDES", ct_now):
+                        derivacion = "Fraudes"
+                        reply_text = "Entiendo su solicitud. Este caso requiere atención de un área especializada (Prevención de Fraudes). Canalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible."
+                    else:
+                        # Emergency overflow (RNE.56)
+                        if check_department_hours("SERVICIO AL CLIENTE", ct_now):
+                            derivacion = "Servicio al Cliente"
+                            reply_text = "Entiendo la situación. Su solicitud es de alta prioridad para nosotros, lo comunicaré inmediatamente con un asesor de Servicio al Cliente para darle atención urgente (Desborde de Emergencia por Horario)."
+                        else:
+                            derivacion = "Fuera de Horario SC"
+                            reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
+                elif status_upper in ["PAID", "PAGADO"]:
+                    reply_text = "Verificando el estatus de la operación, el envío aparece en el sistema como pagado."
+                    derivacion = "NA"
+                elif status_upper in ["PAYMENT READY", "PAYMENT READY "]:
+                    reply_text = "Verificando el estatus de la operación, el envío está disponible para cobro."
+                    derivacion = "NA"
+                elif status_upper in ["REJECTED", "CANCELLED"]:
+                    reply_text = "Verificando el estatus de la operación, lamentablemente el envío no pudo ser procesado exitosamente."
+                    derivacion = "NA"
+                elif status_upper == "UNCLAIMED HOLD":
                     if check_department_hours("SERVICIO AL CLIENTE", ct_now):
                         derivacion = "Servicio al Cliente"
-                        reply_text = "Entiendo la situación. Su solicitud es de alta prioridad para nosotros, lo comunicaré inmediatamente con un asesor de Servicio al Cliente para darle atención urgente (Desborde de Emergencia por Horario)."
+                        reply_text = "El plazo para cobrar el envío ya pasó, lo transferiré con un asesor de Servicio al Cliente para recibir asistencia personalizada. Por favor, espere mientras lo comunico."
                     else:
                         derivacion = "Fuera de Horario SC"
                         reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
-            elif status_upper in ["PAID", "PAGADO"]:
-                reply_text = "Verificando el estatus de la operación, el envío aparece en el sistema como pagado."
-                derivacion = "NA"
-            elif status_upper in ["PAYMENT READY", "PAYMENT READY "]:
-                reply_text = "Verificando el estatus de la operación, el envío está disponible para cobro."
-                derivacion = "NA"
-            elif status_upper in ["REJECTED", "CANCELLED"]:
-                reply_text = "Verificando el estatus de la operación, lamentablemente el envío no pudo ser procesado exitosamente."
-                derivacion = "NA"
-            elif status_upper == "UNCLAIMED HOLD":
-                if check_department_hours("SERVICIO AL CLIENTE", ct_now):
-                    derivacion = "Servicio al Cliente"
-                    reply_text = "El plazo para cobrar el envío ya pasó, lo transferiré con un asesor de Servicio al Cliente para recibir asistencia personalizada. Por favor, espere mientras lo comunico."
+                elif status_upper in [
+                    "CANCEL STAND BY", "CANCEL IN PROCESS", "CANCEL ACCEPTED", "STAND BY", 
+                    "PENDING GATEWAY RESPONSE", "TRANSFER ACCEPTED", "VERIFY HOLD (S)", 
+                    "VERIFY HOLD (DP)", "UPDATE IN PROGRESS", "ORIGIN/PENDING PAYMENT", "RETURNED"
+                ]:
+                    if check_department_hours("SERVICIO AL CLIENTE", ct_now):
+                        derivacion = "Servicio al Cliente"
+                        reply_text = "El envío se encuentra en un estado de procesamiento transitorio, lo transferiré con un asesor de Servicio al Cliente para verificar la situación específica. Por favor, espere."
+                    else:
+                        derivacion = "Fuera de Horario SC"
+                        reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
                 else:
-                    derivacion = "Fuera de Horario SC"
-                    reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
-            elif status_upper in [
-                "CANCEL STAND BY", "CANCEL IN PROCESS", "CANCEL ACCEPTED", "STAND BY", 
-                "PENDING GATEWAY RESPONSE", "TRANSFER ACCEPTED", "VERIFY HOLD (S)", 
-                "VERIFY HOLD (DP)", "UPDATE IN PROGRESS", "ORIGIN/PENDING PAYMENT", "RETURNED"
-            ]:
-                if check_department_hours("SERVICIO AL CLIENTE", ct_now):
-                    derivacion = "Servicio al Cliente"
-                    reply_text = "El envío se encuentra en un estado de procesamiento transitorio, lo transferiré con un asesor de Servicio al Cliente para verificar la situación específica. Por favor, espere."
-                else:
-                    derivacion = "Fuera de Horario SC"
-                    reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
-            else:
-                reply_text = f"El estatus de su transacción es {status_clean}."
-                derivacion = "NA"
-    else:
-        # Table type is "bill"
-        if status_upper in ["PAID", "ENTREGADO"]:
-            reply_text = "Verificando el estatus de la operación, el pago se realizó exitosamente."
-            derivacion = "NA"
-        elif status_upper in ["CANCELLED", "CANCELADO"]:
-            reply_text = "Verificando el estatus de la operación, lamentablemente el pago no se procesó exitosamente."
-            derivacion = "NA"
+                    reply_text = f"El estatus de su transacción es {status_clean}."
+                    derivacion = "NA"
         else:
-            # Transitorio / Pending / Retrasado
-            if check_department_hours("SERVICIO AL CLIENTE", ct_now):
-                derivacion = "Servicio al Cliente"
-                reply_text = "Su pago no ha sido procesado de forma definitiva aún, lo transferiré con un asesor de Servicio al Cliente para recibir asistencia personalizada. Por favor, espere."
+            # Table type is "bill"
+            if status_upper in ["PAID", "ENTREGADO"]:
+                reply_text = "Verificando el estatus de la operación, el pago se realizó exitosamente."
+                derivacion = "NA"
+            elif status_upper in ["CANCELLED", "CANCELADO"]:
+                reply_text = "Verificando el estatus de la operación, lamentablemente el pago no se procesó exitosamente."
+                derivacion = "NA"
             else:
-                derivacion = "Fuera de Horario SC"
-                reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
-                
+                # Transitorio / Pending / Retrasado
+                if check_department_hours("SERVICIO AL CLIENTE", ct_now):
+                    derivacion = "Servicio al Cliente"
+                    reply_text = "Su pago no ha sido procesado de forma definitiva aún, lo transferiré con un asesor de Servicio al Cliente para recibir asistencia personalizada. Por favor, espere."
+                else:
+                    derivacion = "Fuera de Horario SC"
+                    reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
+
     return StatusCheckResponse(
         status="success",
         reply_text=reply_text,
