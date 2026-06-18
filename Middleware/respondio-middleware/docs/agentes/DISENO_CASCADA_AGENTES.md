@@ -128,14 +128,16 @@ Antes de asignar a cualquier agente o equipo, actualiza los campos del contacto:
 - Eres el director. Todos los agentes pueden regresar casos a ti si no pueden resolverlos.
 ```
 
+---
+```
+
 * **Llamadas HTTP para Consulta Dinámica de Diálogos:**
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL base:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?secret=maxi-secret-2025`
-    * **Parámetro de consulta (Query Parameter):** `codes` (Mapeado de forma dinámica al código de script que el Agente IA decida solicitar, e.g. "SC.001,CU.A1" o "SC.035").
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción de forma automática únicamente cuando necesites obtener los diálogos oficiales y textos verbatim de la base de datos para responder al usuario. Debes pasar los códigos requeridos de forma dinámica en el parámetro de consulta 'codes'.`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.001,CU.A1,SC.004,SC.005,SC.006,SC.012,SC.031,SC.031.1,SC.034,SC.035,SC.037&secret=maxi-secret-2025`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve un JSON con los textos oficiales solicitados (bienvenida, privacidad, menús, inactividad, disputas, transferencia, fallback y fraude).
+    * **Resultado:** Devuelve los textos oficiales de bienvenida (`SC.001`), privacidad (`CU.A1`), menús (`SC.004`/`SC.005`), inactividad (`SC.006`/`SC.037`), disputas (`SC.031`/`SC.031.1`), transferencia (`SC.012`), fallback (`SC.034`) y fraude (`SC.035`).
 
 ---
 
@@ -186,8 +188,8 @@ Para consultar el estatus, recopila obligatoriamente de la conversación o varia
 
 **INSTRUCCIÓN DE CONTROL DE HISTORIAL:**
 - **IGNORAR HISTORIAL DE SESIONES ANTERIORES:** Ignora por completo códigos o nombres de conversaciones anteriores que ya fueron cerradas. Evalúa solo la sesión activa actual.
-- **Consulta Dinámica de Reglas:** Realiza la llamada HTTP **Consulta Dinámica de Reglas** (`GET /api/v1/rules?codes=RNE.10,RNE.13`) de forma silenciosa para validar políticas de estatus e identidad.
-- **Si los datos ya constan en la sesión activa:** NO ejecutes la acción HTTP de inmediato. Solicita primero una confirmación activa. Realiza la llamada HTTP **Consulta Dinámica de Diálogos** (`GET /api/v1/scripts?codes=SC.008`) de forma silenciosa y usa el script para guiar al usuario.
+- **Llamar a ORBIT para Reglas:** Ejecuta `GET /api/v1/rules?codes=RNE.10,RNE.13` para validar políticas de estatus e identidad.
+- **Si los datos ya constan en la sesión activa:** NO ejecutes la acción HTTP de inmediato. Solicita primero una confirmación activa. Llama a ORBIT (`GET /api/v1/scripts?codes=SC.008`) y usa el script para guiar al usuario.
 - **Si faltan datos en la sesión activa:** Solicítalos amablemente (puedes apoyarte en `SC.009` o `SC.011` según corresponda) y, una vez provistos, pide la confirmación activa antes de ejecutar la acción HTTP.
 
 ### Fase 2: Consulta y Verificación de Seguridad (Matching de Nombres)
@@ -197,8 +199,8 @@ Para consultar el estatus, recopila obligatoriamente de la conversación o varia
    - **Reglas de Seguridad Estrictas:**
      - **Confidencialidad:** Si los nombres no coinciden, **NO reveles ni des pistas** de los nombres correctos del registro.
      - **Match Exitoso:** Responde al usuario utilizando **EXACTAMENTE el mensaje de texto provisto en el campo `reply_text`** de la respuesta HTTP (asegurándote de remover cualquier etiqueta `[SENDER: ...]` o `[BENEFICIARY: ...]` si están presentes). **NO debes parafrasear, resumir ni agregar texto de tu propia autoría** a este mensaje. Tras enviarlo, procede de inmediato a la Fase 3.
-     - **Match Fallido:** Realiza la llamada HTTP **Consulta Dinámica de Diálogos** (`GET /api/v1/scripts?codes=SC.034`) de forma silenciosa y responde usando ese script verbatim.
-     - **Límite de Intentos (3 Fallos):** Si el cliente falla la validación 3 veces en la sesión actual, realiza la llamada HTTP **Consulta Dinámica de Diálogos** (`GET /api/v1/scripts?codes=SC.012.1`) de forma silenciosa, envía el script verbatim y transfiere de inmediato usando la acción **"Asignar a agente o equipo"** para soporte humano.
+     - **Match Fallido:** Llama a ORBIT (`GET /api/v1/scripts?codes=SC.034`) y responde usando ese script verbatim.
+     - **Límite de Intentos (3 Fallos):** Si el cliente falla la validación 3 veces en la sesión actual, llama a ORBIT (`GET /api/v1/scripts?codes=SC.012.1`), envía el script verbatim y transfiere de inmediato usando la acción **"Asignar a agente o equipo"** para soporte humano.
 
 ### Fase 3: Clasificación y Enrutamiento (Matriz de Estatus)
 Una vez enviado al usuario el mensaje exacto de `reply_text`, realiza de forma silenciosa en Respond.io la derivación o cierre correspondiente de acuerdo al valor del campo `derivacion` (el cual también se mapea a `departamento_destino` en los campos del contacto):
@@ -221,7 +223,7 @@ Una vez enviado al usuario el mensaje exacto de `reply_text`, realiza de forma s
 
 ### Fase 5: Cierre de Conversación
 Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacción tras la confirmación de la Fase 4:
-1. Realiza la llamada HTTP **Consulta Dinámica de Diálogos** (`GET /api/v1/scripts?codes=SC.041`) de forma silenciosa para obtener el script de despedida.
+1. Llama a ORBIT (`GET /api/v1/scripts?codes=SC.041`) para obtener el script de despedida.
 2. Despídete amablemente enviando dicho script verbatim.
 3. Activa la acción **"Cerrar conversaciones"** inmediatamente.
 
@@ -246,11 +248,11 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
     {
       "contact_id": "$contact.id",
       "contact_name": "$contact.name",
-      "user_text": "$message.text",
-      "codigo_envio": "$agent.codigo_envio",
-      "perfil": "$agent.perfil",
-      "nombre_remitente": "$agent.nombre_remitente",
-      "nombre_beneficiario": "$agent.nombre_beneficiario"
+      "user_text": "$message.message",
+      "codigo_envio": "$codigo_envio",
+      "perfil": "$perfil",
+      "nombre_remitente": "$nombre_remitente",
+      "nombre_beneficiario": "$nombre_beneficiario"
     }
     ```
   * **Respuesta Esperada (JSON):**
@@ -268,18 +270,16 @@ Si el cliente indica que no tiene más dudas o si corresponde cerrar la interacc
 * **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
   * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
     * **Método:** `GET`
-    * **URL base:** `https://orbit-api-ewov.onrender.com/api/v1/rules?secret=maxi-secret-2025`
-    * **Parámetro de consulta (Query Parameter):** `codes` (Mapeado de forma dinámica al código de la regla de negocio, e.g. "RNE.10,RNE.13").
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción de forma automática únicamente cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias desde la base de datos. Debes pasar los códigos requeridos en el parámetro de consulta 'codes'.`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.10,RNE.13&secret=maxi-secret-2025`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve las políticas vigentes de rastreo directamente desde el Google Sheet de Reglas.
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL base:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?secret=maxi-secret-2025`
-    * **Parámetro de consulta (Query Parameter):** `codes` (Mapeado de forma dinámica, e.g. "SC.008,SC.009,SC.011,SC.012,SC.012.1,SC.032,SC.034,SC.041").
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción de forma automática únicamente cuando necesites obtener los diálogos oficiales y textos verbatim de la base de datos para responder al usuario. Debes pasar los códigos requeridos de forma dinámica en el parámetro de consulta 'codes'.`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.008,SC.009,SC.011,SC.012,SC.012.1,SC.032,SC.034,SC.041&secret=maxi-secret-2025`
+    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales solicitados (confirmación, solicitud de datos, transferencia, fallos, despedida, etc.).
+    * **Resultado:** Devuelve los textos oficiales de confirmación (`SC.008`), solicitud de datos (`SC.009`/`SC.011`), transferencia (`SC.012`/`SC.012.1`), fallo de coincidencia (`SC.034`), cortesía (`SC.032`) y despedida (`SC.041`).
 
 ---
 
@@ -997,8 +997,8 @@ Para mantener la redacción conversacional centralizada y dinámica en Google Sh
 
 ### A. Endpoint General para Scripts de Diálogo
 * **Método:** `GET`
-* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.001,CU.A1&secret=maxi-secret-2025`
-* **Query Parameters:** `codes` (lista separada por comas) y `secret` (token de autenticación)
+* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts`
+* **Query Parameters:** `codes` (lista separada por comas, ej. `SC.001,CU.A1`)
 * **Ejemplo de Respuesta:**
   ```json
   {
@@ -1009,8 +1009,8 @@ Para mantener la redacción conversacional centralizada y dinámica en Google Sh
 
 ### B. Endpoint para Reglas de Negocio
 * **Método:** `GET`
-* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.01,RNE.02&secret=maxi-secret-2025`
-* **Query Parameters:** `codes` (lista separada por comas) y `secret` (token de autenticación)
+* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules`
+* **Query Parameters:** `codes` (ej. `RNE.01,RNE.02`)
 * **Ejemplo de Respuesta:**
   ```json
   {
@@ -1020,7 +1020,7 @@ Para mantener la redacción conversacional centralizada y dinámica en Google Sh
 
 ### C. Sincronización Manual (Google Sheets ➔ ORBIT Cache)
 * **Método:** `POST`
-* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts/sync?secret=maxi-secret-2025`
+* **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts/sync`
 * **Descripción:** Borra el caché de scripts y reglas en Redis, forzando a ORBIT a consultar en tiempo real los Google Sheets en la siguiente petición.
 * **Google Sheets Utilizados:**
   * **Reglas de Negocio (ID):** `1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw`
