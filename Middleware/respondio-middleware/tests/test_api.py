@@ -562,3 +562,124 @@ class TestStatusCheckEndpoint:
             assert data["derivacion"] == "Servicio al Cliente"
             assert "Desborde de Emergencia por Horario" in data["reply_text"]
 
+    def test_status_check_stale_data_isolation(self, client):
+        """Test status check ignores stale data when session active but code/names not in session text"""
+        # Mock Redis get to return "hola" (session active, but code/names missing)
+        async def mock_redis_get(key):
+            if "session_text" in key:
+                return b"hola"
+            return None
+            
+        self.mock_redis.get.side_effect = mock_redis_get
+
+        response = client.post(
+            f"/api/v1/status/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "",
+                "nombre_remitente": "JUAN PEREZ",
+                "codigo_envio": "CE12345678",
+                "perfil": "CLIENTE"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["derivacion"] == "NA"
+        assert "No encontré resultados" in data["reply_text"]
+        assert data["validation_success"] is False
+
+    def test_status_check_fresh_data_in_session(self, client):
+        """Test status check accepts data when present in session text"""
+        # Mock Redis get to return session text containing the code and name
+        async def mock_redis_get(key):
+            if "session_text" in key:
+                return b"hola, mi codigo es CE12345678 y soy JUAN PEREZ"
+            return None
+            
+        self.mock_redis.get.side_effect = mock_redis_get
+
+        record = {
+            "Codigo_de_envio": "CE12345678",
+            "status": "PAGADO",
+            "Nombre_Cliente": "JUAN",
+            "Cliente_ Apellido_Paterno": "PEREZ",
+            "Cliente_Apellido_Materno": "GOMEZ",
+            "Beneficiario_Nombre": "MARIA",
+            "Benerificario_Primer_Apellido": "RODRIGUEZ",
+            "Beneficiario_Segundo_Apellido": ""
+        }
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.value = [record]
+        mock_response.json.return_value = [record]
+        self.mock_httpx.return_value = mock_response
+
+        response = client.post(
+            f"/api/v1/status/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "",
+                "nombre_remitente": "JUAN PEREZ",
+                "codigo_envio": "CE12345678",
+                "perfil": "CLIENTE"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["derivacion"] == "NA"
+        assert "pagado" in data["reply_text"].lower()
+        assert data["validation_success"] is True
+
+
+class TestGlobalWebhookSessionTracking:
+    """Test session text tracking and greeting cleanup in global webhook"""
+    
+    @pytest.fixture(autouse=True)
+    def setup_mocks(self):
+        self.mock_redis = AsyncMock()
+        self.mock_redis.get.return_value = None
+        self.patcher_redis = patch("api.main.get_redis_client", AsyncMock(return_value=self.mock_redis))
+        self.patcher_redis.start()
+        yield
+        self.patcher_redis.stop()
+
+    def test_global_webhook_saves_session_text(self, client):
+        """Test global webhook saves message text to Redis session text"""
+        response = client.post(
+            f"/webhook?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact": {"id": "test_contact_123"},
+                "message": {
+                    "messageId": "msg_001",
+                    "message": {
+                        "type": "text",
+                        "text": "quiero ver mi estatus"
+                    }
+                }
+            }
+        )
+        assert response.status_code == 200
+        self.mock_redis.get.assert_any_call("contact:session_text:test_contact_123")
+        self.mock_redis.set.assert_any_call("contact:session_text:test_contact_123", "quiero ver mi estatus", ex=7200)
+
+    def test_global_webhook_greeting_clears_keys(self, client):
+        """Test global webhook greeting clears old Redis keys"""
+        response = client.post(
+            f"/webhook?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact": {"id": "test_contact_123"},
+                "message": {
+                    "messageId": "msg_002",
+                    "message": {
+                        "type": "text",
+                        "text": "hola"
+                    }
+                }
+            }
+        )
+        assert response.status_code == 200
+        self.mock_redis.delete.assert_any_call("contact:session_text:test_contact_123")
+        self.mock_redis.delete.assert_any_call("contact:last_image:test_contact_123")
+        self.mock_redis.delete.assert_any_call("status_attempts:test_contact_123")
+        self.mock_redis.delete.assert_any_call("name_attempts:test_contact_123")
+

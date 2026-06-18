@@ -122,9 +122,7 @@ async def webhook(
         )
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
 
-    # Check if this is a native/global Respond.io webhook payload
     is_global_webhook = "contact" in request and "message" in request
-    
     if is_global_webhook:
         contact_id = str(request["contact"].get("id"))
         logger.info(f"📨 Global webhook received for contact {contact_id}")
@@ -134,6 +132,24 @@ async def webhook(
             logger.info(f"📨 Global Webhook Payload: {json.dumps(request)}")
         except Exception as log_err:
             logger.warning(f"Could not stringify payload: {log_err}. Raw: {request}")
+
+        # Extract text from global webhook message
+        user_msg_text = None
+        if "message" in request and isinstance(request["message"], dict):
+            inner_msg = request["message"].get("message")
+            if isinstance(inner_msg, dict):
+                user_msg_text = inner_msg.get("text")
+        
+        if user_msg_text:
+            user_msg_text = str(user_msg_text).strip()
+            
+        # Detect if the incoming message is a greeting to clean the session
+        is_greeting = False
+        if user_msg_text:
+            text_lower = user_msg_text.lower().strip()
+            greetings = ["hola", "buenos dias", "buenos días", "buenas tardes", "buenas noches", "hello", "hi", "buen dia", "buen día"]
+            if text_lower in greetings:
+                is_greeting = True
 
         # Recursively find image/pdf URL in the payload
         def find_image_url(obj) -> Optional[str]:
@@ -157,15 +173,35 @@ async def webhook(
 
         image_url = find_image_url(request)
                 
-        if image_url:
-            try:
-                from shared.redis_client import get_redis_client
-                redis = await get_redis_client()
+        # Redis operations for global webhook caching & cleanup
+        try:
+            redis = await get_redis_client()
+            
+            # 1. Clean stale variables if a new greeting is received
+            if is_greeting:
+                logger.info(f"🧹 Clearing stale Redis variables for contact {contact_id} due to greeting")
+                await redis.delete(f"contact:session_text:{contact_id}")
+                await redis.delete(f"contact:last_image:{contact_id}")
+                await redis.delete(f"status_attempts:{contact_id}")
+                await redis.delete(f"name_attempts:{contact_id}")
+                
+            # 2. Append new message text to session text
+            if user_msg_text:
+                session_text_key = f"contact:session_text:{contact_id}"
+                existing_bytes = await redis.get(session_text_key)
+                existing_text = existing_bytes.decode('utf-8') if existing_bytes else ""
+                new_text = f"{existing_text}\n{user_msg_text}".strip()
+                await redis.set(session_text_key, new_text, ex=7200)  # 2 hours TTL
+                logger.info(f"💾 [GLOBAL CACHE] Saved session text for contact {contact_id}: {user_msg_text}")
+                
+            # 3. Cache image/pdf URL if present
+            if image_url:
                 cache_key = f"contact:last_image:{contact_id}"
                 await redis.set(cache_key, image_url, ex=3600)
                 logger.info(f"💾 [GLOBAL CACHE] Saved last image URL for contact {contact_id}: {image_url}")
-            except Exception as re_err:
-                logger.warning(f"Failed to cache global image in Redis: {re_err}")
+                
+        except Exception as re_err:
+            logger.warning(f"Failed to process Redis operations in global webhook: {re_err}")
                 
         return RespondioResponse(
             status=ResponseStatus.OK,
@@ -215,7 +251,6 @@ async def webhook(
             is_pdf = "pdf" in mime_lower or url_lower.endswith(".pdf")
             if (is_img or is_pdf) and item.url:
                 try:
-                    from shared.redis_client import get_redis_client
                     redis = await get_redis_client()
                     cache_key = f"contact:last_image:{request.contact_id}"
                     await redis.set(cache_key, item.url, ex=3600)
@@ -635,6 +670,41 @@ async def check_transaction_status(
     else:
         perfil = "CLIENTE"
         
+    # Get Redis client early
+    redis = None
+    try:
+        redis = await get_redis_client()
+    except Exception as redis_err:
+        logger.warning(f"Redis connection not available for status check: {redis_err}")
+
+    # Check for variable freshness using Redis session text
+    if redis and contact_id != "-1":
+        try:
+            session_text_bytes = await redis.get(f"contact:session_text:{contact_id}")
+            if session_text_bytes is not None:
+                session_text = session_text_bytes.decode('utf-8')
+                
+                # 1. Validate code freshness
+                code_fresh = False
+                if codigo_envio:
+                    clean_code = re.sub(r'[^A-Z0-9]', '', codigo_envio.upper())
+                    clean_session = re.sub(r'[^A-Z0-9]', '', session_text.upper())
+                    clean_user_text = re.sub(r'[^A-Z0-9]', '', user_text.upper())
+                    if clean_code in clean_session or clean_code in clean_user_text:
+                        code_fresh = True
+                        
+                # Check for receipt image in the session
+                if not code_fresh:
+                    img_cached = await redis.get(f"contact:last_image:{contact_id}")
+                    if img_cached:
+                        code_fresh = True
+                        
+                if codigo_envio and not code_fresh:
+                    logger.info(f"🚫 Ignoring old/historical code {codigo_envio} for contact {contact_id}")
+                    codigo_envio = None
+        except Exception as e:
+            logger.error(f"Error checking session text freshness in Redis: {e}")
+
     # Clean and validate the provided transaction code format
     is_valid_code = False
     if codigo_envio:
@@ -656,13 +726,6 @@ async def check_transaction_status(
 
     if not is_valid_code:
         codigo_envio = extraer_codigo_router(user_text)
-        
-    # Get Redis client
-    redis = None
-    try:
-        redis = await get_redis_client()
-    except Exception as redis_err:
-        logger.warning(f"Redis connection not available for status check: {redis_err}")
         
     # Attempt counter key in Redis
     attempts_key = f"status_attempts:{contact_id}"
@@ -828,6 +891,32 @@ async def check_transaction_status(
         user_sender = sanitize_name(request.nombre_remitente or metadata.get("nombre_remitente"))
         user_beneficiary = sanitize_name(request.nombre_beneficiario or metadata.get("nombre_beneficiario"))
         
+        # Check freshness of names if session text exists in Redis
+        if redis and contact_id != "-1":
+            try:
+                session_text_bytes = await redis.get(f"contact:session_text:{contact_id}")
+                if session_text_bytes is not None:
+                    session_text = session_text_bytes.decode('utf-8').upper()
+                    clean_user_text = user_text.upper()
+                    
+                    def is_fresh(name_str: Optional[str]) -> bool:
+                        if not name_str:
+                            return False
+                        words = [w for w in re.findall(r'\w+', name_str.upper()) if len(w) > 2]
+                        if not words:
+                            return False
+                        return any(w in session_text or w in clean_user_text for w in words)
+                        
+                    if user_sender and not is_fresh(user_sender):
+                        logger.info(f"🚫 Ignoring old/historical sender name {user_sender} for contact {contact_id}")
+                        user_sender = None
+                        
+                    if user_beneficiary and not is_fresh(user_beneficiary):
+                        logger.info(f"🚫 Ignoring old/historical beneficiary name {user_beneficiary} for contact {contact_id}")
+                        user_beneficiary = None
+            except Exception as e:
+                logger.error(f"Error checking name freshness in Redis: {e}")
+
         # Fallback to user_text ONLY if BOTH are unresolved/missing
         if not user_sender and not user_beneficiary:
             user_sender = user_text
