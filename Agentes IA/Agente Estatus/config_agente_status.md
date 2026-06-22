@@ -49,8 +49,8 @@ Una vez enviado al usuario el mensaje exacto de `reply_text`, realiza de forma s
 
 1. **REGLA DE TRANSFERENCIA INMEDIATA (Solo para Cumplimiento, Prevención de Fraudes y Servicio al Cliente directo):**
    Si la derivación indica de forma directa un departamento activo (ej: `"Cumplimiento"`, `"Prevencion de Fraudes"` o `"Servicio al Cliente"`), transfiere de inmediato en el mismo turno usando la acción **"Asignar a agente o equipo"**:
-   - Si es **Cumplimiento**: Transfiere a `@AgenteComunicador` (`{{@ai-agent.1123579}}`).
-   - Si es **Prevencion de Fraudes**: Transfiere a `@DerivacionFraudes` (`{{@ai-agent.1122059}}`).
+   - Si es **Cumplimiento**: Transfiere a `@AgenteComunicador` (`{{@ai-agent.1130619}}`).
+   - Si es **Prevencion de Fraudes**: Transfiere a `@DerivacionFraudes` (`{{@ai-agent.1130613}}`).
    - Si es **Servicio al Cliente**: Transfiere al grupo humano de soporte (`{{@team.43621}}`).
    - Si es **Fuera de Horario SC** o **Fuera de Horario Depto** (el script de `reply_text` ya informó al cliente sobre la indisponibilidad): Deja la conversación asignada al grupo correspondiente (`{{@team.43621}}` para Servicio al Cliente) para que sea atendida por un humano al reiniciar actividades.
 
