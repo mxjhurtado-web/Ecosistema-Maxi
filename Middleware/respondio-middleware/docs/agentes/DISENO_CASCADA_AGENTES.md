@@ -657,7 +657,7 @@ Tu objetivo es tomar decisiones basadas únicamente en el horario en que el usua
     ```json
     {
       "message": "🚨 *ALERTA DE FRAUDE/ESTAFA*\n\n👤 *Cliente:* $contact.name\n📞 *Contacto:* $contact.phone\n📝 *Detalle:* $agent.mensaje_notificacion",
-      "level": "$contact.nivel_alerta",
+      "level": "$agent.nivel_alerta",
       "destino": "fraudes",
       "space_id": "spaces/AAQAQM9pDpg",
       "contact_id": "$contact.id"
@@ -776,7 +776,7 @@ Verifica el horario en que el usuario se comunica (hora centro de Estados Unidos
     ```json
     {
       "message": "🚨 *ALERTA DE DERIVACIÓN URGENTE (BSA/AML)*\n\n👤 *Cliente:* $contact.name\n📞 *Contacto:* $contact.phone\n📝 *Detalle:* $agent.mensaje_notificacion",
-      "level": "$contact.nivel_alerta",
+      "level": "$agent.nivel_alerta",
       "destino": "bsa",
       "space_id": "spaces/AAQA3WL2JIk",
       "contact_id": "$contact.id"
@@ -814,7 +814,7 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
    Está **estrictamente prohibido** ejecutar la acción HTTP si falta alguno de los siguientes datos mínimos. Si faltan, pídelos uno a uno de forma educada:
    * **Oversight, Capacitación, Cobranza, Cheques, Soporte y Ventas**: Nombre del usuario, Número de agencia (Hermes) y Contexto del reporte.
    * **Cumplimiento**: Nombre, Número de agencia o Código de envío (Claim Code) y Contexto (motivo del bloqueo o tipo de documentos).
-5. **ACTUALIZAR VARIABLES**: Guarda la información recopilada en `$contact.resumen_solicitud` (resumen) y `$contact.intencion_solicitud` (intención).
+5. **ACTUALIZAR VARIABLES**: Guarda la información recopilada en las variables de acción `resumen_solicitud` (resumen) e `intencion_solicitud` (intención).
 6. **ARCHIVOS ADJUNTOS**: Recibe solo imágenes (capturas, INE) o PDFs. **Los audios están estrictamente descartados** para reportes.
 7. **PROHIBIDO CERRAR**: Mantén el chat abierto hasta completar el flujo.
 
@@ -874,7 +874,7 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
     * **Cuerpo JSON:**
       ```json
       {
-        "message": "🛡️ *REPORTE DE AGENT OVERSIGHT*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Resumen:* $contact.resumen_solicitud",
+        "message": "🛡️ *REPORTE DE AGENT OVERSIGHT*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
         "level": "WARNING",
         "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
         "contact_id": "$contact.id"
@@ -888,7 +888,7 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
     * **Cuerpo JSON:**
       ```json
       {
-        "message": "🎓 *REPORTE DE CAPACITACIÓN*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Resumen:* $contact.resumen_solicitud",
+        "message": "🎓 *REPORTE DE CAPACITACIÓN*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
         "level": "INFO",
         "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
         "contact_id": "$contact.id"
@@ -902,8 +902,8 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
     * **Cuerpo JSON:**
       ```json
       {
-        "message": "⚖️ *REPORTE DE CUMPLIMIENTO (AML/KYC)*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Resumen:* $contact.resumen_solicitud",
-        "level": "$contact.nivel_alerta",
+        "message": "⚖️ *REPORTE DE CUMPLIMIENTO (AML/KYC)*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
+        "level": "$agent.nivel_alerta",
         "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
         "contact_id": "$contact.id"
       }
@@ -916,8 +916,8 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
     * **Cuerpo JSON:**
       ```json
       {
-        "message": "💰 *REPORTE DE COBRANZA*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Resumen:* $contact.resumen_solicitud",
-        "level": "$contact.nivel_alerta",
+        "message": "💰 *REPORTE DE COBRANZA*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
+        "level": "$agent.nivel_alerta",
         "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
         "contact_id": "$contact.id"
       }
@@ -930,7 +930,7 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
     * **Cuerpo JSON:**
       ```json
       {
-        "message": "🎫 *REPORTE DE CHEQUES*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Resumen:* $contact.resumen_solicitud",
+        "message": "🎫 *REPORTE DE CHEQUES*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
         "level": "INFO",
         "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
         "contact_id": "$contact.id"
@@ -944,7 +944,7 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
     * **Cuerpo JSON:**
       ```json
       {
-        "message": "🛠️ *REPORTE DE SOPORTE TÉCNICO*\n\n👤 *Usuario:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Detalle:* $contact.resumen_solicitud",
+        "message": "🛠️ *REPORTE DE SOPORTE TÉCNICO*\n\n👤 *Usuario:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Detalle:* $agent.resumen_solicitud",
         "level": "INFO",
         "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
         "contact_id": "$contact.id"
@@ -958,7 +958,7 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
     * **Cuerpo JSON:**
       ```json
       {
-        "message": "💼 *REPORTE DE VENTAS INTERNAS*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Detalle:* $contact.resumen_solicitud",
+        "message": "💼 *REPORTE DE VENTAS INTERNAS*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Detalle:* $agent.resumen_solicitud",
         "level": "SUCCESS",
         "space_id": "spaces/TU_ID_DE_ESPACIO_VENTAS",
         "contact_id": "$contact.id"

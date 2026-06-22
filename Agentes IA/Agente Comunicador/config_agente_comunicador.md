@@ -30,8 +30,8 @@ Debes activar las siguientes **7 acciones HTTP individuales** en la sección de 
 
 Para cumplir con las políticas de control, **todas** las llamadas HTTP deben de proveer de forma obligatoria la siguiente información al middleware:
 * **Contacto:** Nombre y teléfono del usuario ($contact.name y $contact.phone).
-* **Resumen de la solicitud:** Detalle o contexto provisto por el usuario ($contact.resumen_solicitud).
-* **Intención:** Categoría u objetivo de la consulta ($contact.intencion_solicitud).
+* **Resumen de la solicitud:** Detalle o contexto provisto por el usuario ($agent.resumen_solicitud).
+* **Intención:** Categoría u objetivo de la consulta ($agent.intencion_solicitud).
 * **Adjuntos (Imágenes y PDFs):** Mediante el sistema de caché asíncrono, si el usuario sube un archivo adjunto (imagen o documento PDF), ORBIT lo extraerá automáticamente de Redis mediante el `contact_id`. **Los audios y otros formatos son descartados por seguridad.**
 
 A solicitud del equipo, configuramos el parámetro **`space_id`** como el identificador principal en cada cuerpo JSON. De esta forma, si cambian de grupo de Google Chat en el futuro, podrán actualizar el ID de espacio directamente en Respond.io sin necesidad de modificar el código del middleware.
@@ -51,7 +51,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "🛡️ *REPORTE DE AGENT OVERSIGHT*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Resumen:* $contact.resumen_solicitud",
+      "message": "🛡️ *REPORTE DE AGENT OVERSIGHT*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "WARNING",
       "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
       "contact_id": "$contact.id"
@@ -76,7 +76,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "🎓 *REPORTE DE CAPACITACIÓN*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Resumen:* $contact.resumen_solicitud",
+      "message": "🎓 *REPORTE DE CAPACITACIÓN*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "INFO",
       "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
       "contact_id": "$contact.id"
@@ -102,8 +102,8 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "⚖️ *REPORTE DE CUMPLIMIENTO (AML/KYC)*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Resumen:* $contact.resumen_solicitud",
-      "level": "$contact.nivel_alerta",
+      "message": "⚖️ *REPORTE DE CUMPLIMIENTO (AML/KYC)*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
+      "level": "$agent.nivel_alerta",
       "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
       "contact_id": "$contact.id"
     }
@@ -128,8 +128,8 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "💰 *REPORTE DE COBRANZA*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Resumen:* $contact.resumen_solicitud",
-      "level": "$contact.nivel_alerta",
+      "message": "💰 *REPORTE DE COBRANZA*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
+      "level": "$agent.nivel_alerta",
       "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
       "contact_id": "$contact.id"
     }
@@ -153,7 +153,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "🎫 *REPORTE DE CHEQUES*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Resumen:* $contact.resumen_solicitud",
+      "message": "🎫 *REPORTE DE CHEQUES*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "INFO",
       "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
       "contact_id": "$contact.id"
@@ -178,7 +178,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "🛠️ *REPORTE DE SOPORTE TÉCNICO*\n\n👤 *Usuario:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Detalle:* $contact.resumen_solicitud",
+      "message": "🛠️ *REPORTE DE SOPORTE TÉCNICO*\n\n👤 *Usuario:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Detalle:* $agent.resumen_solicitud",
       "level": "INFO",
       "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
       "contact_id": "$contact.id"
@@ -203,7 +203,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "💼 *REPORTE DE VENTAS INTERNAS*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $contact.intencion_solicitud\n📝 *Detalle:* $contact.resumen_solicitud",
+      "message": "💼 *REPORTE DE VENTAS INTERNAS*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Detalle:* $agent.resumen_solicitud",
       "level": "SUCCESS",
       "space_id": "spaces/TU_ID_DE_ESPACIO_VENTAS",
       "contact_id": "$contact.id"
@@ -235,7 +235,7 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
    Está **estrictamente prohibido** ejecutar la acción HTTP si falta alguno de los siguientes datos mínimos. Si faltan, pídelos uno a uno de forma educada:
    * **Oversight, Capacitación, Cobranza, Cheques, Soporte y Ventas**: Nombre del usuario, Número de agencia (Hermes) y Contexto del reporte.
    * **Cumplimiento**: Nombre, Número de agencia o Código de envío (Claim Code) y Contexto (motivo del bloqueo o tipo de documentos).
-5. **ACTUALIZAR VARIABLES**: Guarda la información recopilada en `$contact.resumen_solicitud` (resumen) y `$contact.intencion_solicitud` (intención).
+5. **ACTUALIZAR VARIABLES**: Guarda la información recopilada en las variables de acción `resumen_solicitud` (resumen) e `intencion_solicitud` (intención).
 6. **ARCHIVOS ADJUNTOS**: Recibe solo imágenes (capturas, INE) o PDFs. **Los audios están estrictamente descartados** para reportes.
 7. **PROHIBIDO CERRAR**: Mantén el chat abierto hasta completar el flujo.
 
