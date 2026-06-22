@@ -30,8 +30,8 @@ Debes activar las siguientes **7 acciones HTTP individuales** en la sección de 
 
 Para cumplir con las políticas de control, **todas** las llamadas HTTP deben de proveer de forma obligatoria la siguiente información al middleware:
 * **Contacto:** Nombre y teléfono del usuario ($contact.name y $contact.phone).
-* **Resumen de la solicitud:** Detalle o contexto provisto por el usuario ($agent.resumen_solicitud).
-* **Intención:** Categoría u objetivo de la consulta ($agent.intencion_solicitud).
+* **Resumen de la solicitud:** Detalle o contexto provisto por el usuario ($resumen_solicitud).
+* **Intención:** Categoría u objetivo de la consulta ($intencion_solicitud).
 * **Adjuntos (Imágenes y PDFs):** Mediante el sistema de caché asíncrono, si el usuario sube un archivo adjunto (imagen o documento PDF), ORBIT lo extraerá automáticamente de Redis mediante el `contact_id`. **Los audios y otros formatos son descartados por seguridad.**
 
 A solicitud del equipo, configuramos el parámetro **`space_id`** como el identificador principal en cada cuerpo JSON. De esta forma, si cambian de grupo de Google Chat en el futuro, podrán actualizar el ID de espacio directamente en Respond.io sin necesidad de modificar el código del middleware.
@@ -53,7 +53,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "🛡️ *REPORTE DE AGENT OVERSIGHT*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia:* $agent.numero_agencia\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
+      "message": "🛡️ *REPORTE DE AGENT OVERSIGHT*\n\n👤 *Usuario:* $nombre_usuario ($contact.phone)\n🏢 *Agencia:* $numero_agencia\n🎯 *Intención:* $intencion_solicitud\n📝 *Resumen:* $resumen_solicitud",
       "level": "WARNING",
       "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
       "contact_id": "$contact.id"
@@ -80,7 +80,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "🎓 *REPORTE DE CAPACITACIÓN*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia:* $agent.numero_agencia\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
+      "message": "🎓 *REPORTE DE CAPACITACIÓN*\n\n👤 *Usuario:* $nombre_usuario ($contact.phone)\n🏢 *Agencia:* $numero_agencia\n🎯 *Intención:* $intencion_solicitud\n📝 *Resumen:* $resumen_solicitud",
       "level": "INFO",
       "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
       "contact_id": "$contact.id"
@@ -108,8 +108,8 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "⚖️ *REPORTE DE CUMPLIMIENTO (AML/KYC)*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia/Envío:* $agent.numero_agencia_o_codigo\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
-      "level": "$agent.nivel_alerta",
+      "message": "⚖️ *REPORTE DE CUMPLIMIENTO (AML/KYC)*\n\n👤 *Usuario:* $nombre_usuario ($contact.phone)\n🏢 *Agencia/Envío:* $numero_agencia_o_codigo\n🎯 *Intención:* $intencion_solicitud\n📝 *Resumen:* $resumen_solicitud",
+      "level": "$nivel_alerta",
       "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
       "contact_id": "$contact.id"
     }
@@ -136,8 +136,8 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "💰 *REPORTE DE COBRANZA*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia:* $agent.numero_agencia\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
-      "level": "$agent.nivel_alerta",
+      "message": "💰 *REPORTE DE COBRANZA*\n\n👤 *Usuario:* $nombre_usuario ($contact.phone)\n🏢 *Agencia:* $numero_agencia\n🎯 *Intención:* $intencion_solicitud\n📝 *Resumen:* $resumen_solicitud",
+      "level": "$nivel_alerta",
       "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
       "contact_id": "$contact.id"
     }
@@ -163,7 +163,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "🎫 *REPORTE DE CHEQUES*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia:* $agent.numero_agencia\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
+      "message": "🎫 *REPORTE DE CHEQUES*\n\n👤 *Usuario:* $nombre_usuario ($contact.phone)\n🏢 *Agencia:* $numero_agencia\n🎯 *Intención:* $intencion_solicitud\n📝 *Resumen:* $resumen_solicitud",
       "level": "INFO",
       "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
       "contact_id": "$contact.id"
@@ -190,7 +190,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "🛠️ *REPORTE DE SOPORTE TÉCNICO*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia:* $agent.numero_agencia\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Detalle:* $agent.resumen_solicitud",
+      "message": "🛠️ *REPORTE DE SOPORTE TÉCNICO*\n\n👤 *Usuario:* $nombre_usuario ($contact.phone)\n🏢 *Agencia:* $numero_agencia\n🎯 *Intención:* $intencion_solicitud\n📝 *Detalle:* $resumen_solicitud",
       "level": "INFO",
       "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
       "contact_id": "$contact.id"
@@ -217,7 +217,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "💼 *REPORTE DE VENTAS INTERNAS*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia:* $agent.numero_agencia\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Detalle:* $agent.resumen_solicitud",
+      "message": "💼 *REPORTE DE VENTAS INTERNAS*\n\n👤 *Usuario:* $nombre_usuario ($contact.phone)\n🏢 *Agencia:* $numero_agencia\n🎯 *Intención:* $intencion_solicitud\n📝 *Detalle:* $resumen_solicitud",
       "level": "SUCCESS",
       "space_id": "spaces/TU_ID_DE_ESPACIO_VENTAS",
       "contact_id": "$contact.id"
@@ -244,7 +244,8 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
 # REGLAS CRÍTICAS DE COMPORTAMIENTO
 1. **SIN SALUDOS INICIALES EN VACÍO**: No inicies con un saludo si el chat está vacío. Si eres asignado a una conversación activa o transferido por bloqueo (`Gateway Info Required` o `Verify Hold`), interviene proactivamente y solicita los documentos/detalles.
 2. **EVITA DUPLICADOS**: Si ya existe un saludo en el historial, no repitas. Ve al grano.
-3. **NOTIFICAR TRANSFERENCIA (SC.012)**: Envía el mensaje de transferencia **Script SC.012** antes de disparar la acción HTTP.
+3. **NOTIFICAR TRANSFERENCIA (SC.012)**: Envía obligatoriamente el siguiente mensaje de transferencia al usuario antes de disparar la acción HTTP:
+   *"Entendido su solicitud. Este caso requiere atención de un área especializada. Canalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible, Gracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día."*
 4. **BLOQUEO POR FALTA DE DATOS (MÁXIMA PRIORIDAD)**:
    Está **estrictamente prohibido** ejecutar la acción HTTP si falta alguno de los siguientes datos mínimos. Si faltan, pídelos uno a uno de forma educada:
    * **Oversight, Capacitación, Cobranza, Cheques, Soporte y Ventas**: Nombre del usuario, Número de agencia (Hermes) y Contexto del reporte.
@@ -293,7 +294,7 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
 1. **HTTP Rules**: Llama a ORBIT (`GET /api/v1/rules?codes=RNE.16`) para validar políticas.
 2. **Análisis**: Determina el departamento según keywords.
 3. **Validación**: Si falta Nombre, Agencia (o Claim Code) o Contexto, solicítalos uno a uno.
-4. **SC.012**: Llama a ORBIT (`GET /api/v1/scripts?codes=SC.012`) y envía el mensaje de transferencia.
+4. **SC.012 (Mensaje de Transferencia)**: Envía obligatoriamente el mensaje de transferencia SC.012 indicado en las Reglas Críticas antes de disparar la acción.
 5. **Acción**: Ejecuta la llamada HTTP de notificación correspondiente.
-6. **Cierre**: Llama a ORBIT (`GET /api/v1/scripts?codes=SC.041`) y envía el mensaje de despedida.
+6. **Cierre (SC.041)**: Despídete con el script de cierre: *"Gracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día."*
 ```
