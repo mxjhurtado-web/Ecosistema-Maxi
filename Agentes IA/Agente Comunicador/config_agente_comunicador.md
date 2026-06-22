@@ -41,6 +41,8 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
 * **¿Cuándo y cómo debe realizarse esta acción? (Prompt de Activación):**
   > *Use this action when the agent requests an authorized agent letter or reports receiving an IRS audit notification.*
 * **Variables requeridas por el agente (Information needed):**
+  * **`nombre_usuario`** (Format: `Text`): *Nombre completo del usuario.*
+  * **`numero_agencia`** (Format: `Text`): *Número o código de la agencia.*
   * **`resumen_solicitud`** (Format: `Text`): *Resumen claro de la auditoría o carta solicitada.*
   * **`intencion_solicitud`** (Format: `Text`): *Ej. "Solicitud de Carta Autorizada" o "Auditoría del IRS".*
 * **Configuración del API:**
@@ -51,7 +53,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "🛡️ *REPORTE DE AGENT OVERSIGHT*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
+      "message": "🛡️ *REPORTE DE AGENT OVERSIGHT*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia:* $agent.numero_agencia\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "WARNING",
       "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
       "contact_id": "$contact.id"
@@ -66,6 +68,8 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
 * **¿Cuándo y cómo debe realizarse esta acción? (Prompt de Activación):**
   > *Use this action when the agent requests support with the annual anti-money laundering (BSA/CFPB) training or claims a missing diploma.*
 * **Variables requeridas por el agente (Information needed):**
+  * **`nombre_usuario`** (Format: `Text`): *Nombre completo del usuario.*
+  * **`numero_agencia`** (Format: `Text`): *Número o código de la agencia.*
   * **`resumen_solicitud`** (Format: `Text`): *Detalles del curso, diploma o entrenamiento.*
   * **`intencion_solicitud`** (Format: `Text`): *Ej. "Capacitación Anual Antilavado" o "Reclamo de Diploma BSA".*
 * **Configuración del API:**
@@ -76,7 +80,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "🎓 *REPORTE DE CAPACITACIÓN*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
+      "message": "🎓 *REPORTE DE CAPACITACIÓN*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia:* $agent.numero_agencia\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "INFO",
       "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
       "contact_id": "$contact.id"
@@ -91,6 +95,8 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
 * **¿Cuándo y cómo debe realizarse esta acción? (Prompt de Activación):**
   > *Use this action when a compliance concern, KYC block, AML warning, or identity document submission needs to be sent to Cumplimiento.*
 * **Variables requeridas por el agente (Information needed):**
+  * **`nombre_usuario`** (Format: `Text`): *Nombre completo del usuario.*
+  * **`numero_agencia_o_codigo`** (Format: `Text`): *Número de agencia o código de envío.*
   * **`resumen_solicitud`** (Format: `Text`): *Detalles del bloqueo KYC o de la documentación enviada.*
   * **`intencion_solicitud`** (Format: `Text`): *Ej. "Bloqueo KYC", "Documentación de Identidad" o "Lavado de Dinero (AML)".*
   * **`nivel_alerta`** (Format: `Text`): *Establecer en 'WARNING' o 'INFO'.*
@@ -102,7 +108,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "⚖️ *REPORTE DE CUMPLIMIENTO (AML/KYC)*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
+      "message": "⚖️ *REPORTE DE CUMPLIMIENTO (AML/KYC)*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia/Envío:* $agent.numero_agencia_o_codigo\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "$agent.nivel_alerta",
       "space_id": "spaces/TU_ID_DE_ESPACIO_CUMPLIMIENTO",
       "contact_id": "$contact.id"
@@ -117,6 +123,8 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
 * **¿Cuándo y cómo debe realizarse esta acción? (Prompt de Activación):**
   > *Use this action when the agent inquires about their balance, has discrepancies, submits a deposit slip, or requests reactivation of a suspended agency.*
 * **Variables requeridas por el agente (Information needed):**
+  * **`nombre_usuario`** (Format: `Text`): *Nombre completo del usuario.*
+  * **`numero_agencia`** (Format: `Text`): *Número o código de la agencia.*
   * **`resumen_solicitud`** (Format: `Text`): *Detalles sobre el balance, suspensión o reactivación.*
   * **`intencion_solicitud`** (Format: `Text`): *Ej. "Consulta de Balance", "Reactivación de Agencia" o "Envío de Comprobante".*
   * **`nivel_alerta`** (Format: `Text`): *Establecer en 'WARNING' o 'INFO'.*
@@ -128,7 +136,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "💰 *REPORTE DE COBRANZA*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
+      "message": "💰 *REPORTE DE COBRANZA*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia:* $agent.numero_agencia\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "$agent.nivel_alerta",
       "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
       "contact_id": "$contact.id"
@@ -143,6 +151,8 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
 * **¿Cuándo y cómo debe realizarse esta acción? (Prompt de Activación):**
   > *Use this action when the agent requires reviewing a cheque status, cancelling a cheque, or learning the reason for a cheque rejection.*
 * **Variables requeridas por el agente (Information needed):**
+  * **`nombre_usuario`** (Format: `Text`): *Nombre completo del usuario.*
+  * **`numero_agencia`** (Format: `Text`): *Número o código de la agencia.*
   * **`resumen_solicitud`** (Format: `Text`): *Detalles del cheque, estatus, cancelación o rechazo.*
   * **`intencion_solicitud`** (Format: `Text`): *Ej. "Cancelación de Cheque" o "Incidencia de Cheque".*
 * **Configuración del API:**
@@ -153,7 +163,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "🎫 *REPORTE DE CHEQUES*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
+      "message": "🎫 *REPORTE DE CHEQUES*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia:* $agent.numero_agencia\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Resumen:* $agent.resumen_solicitud",
       "level": "INFO",
       "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
       "contact_id": "$contact.id"
@@ -168,6 +178,8 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
 * **¿Cuándo y cómo debe realizarse esta acción? (Prompt de Activación):**
   > *Use this action for system issues, Hermes access errors, login errors, password resets, hardware failures, or database adjustments.*
 * **Variables requeridas por el agente (Information needed):**
+  * **`nombre_usuario`** (Format: `Text`): *Nombre completo del usuario.*
+  * **`numero_agencia`** (Format: `Text`): *Número o código de la agencia Hermes.*
   * **`resumen_solicitud`** (Format: `Text`): *Detalles del problema técnico de hardware, software o acceso.*
   * **`intencion_solicitud`** (Format: `Text`): *Ej. "Acceso a Hermes", "Falla de Impresora" o "Error de Contraseña".*
 * **Configuración del API:**
@@ -178,7 +190,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "🛠️ *REPORTE DE SOPORTE TÉCNICO*\n\n👤 *Usuario:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Detalle:* $agent.resumen_solicitud",
+      "message": "🛠️ *REPORTE DE SOPORTE TÉCNICO*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia:* $agent.numero_agencia\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Detalle:* $agent.resumen_solicitud",
       "level": "INFO",
       "space_id": "spaces/TU_ID_DE_ESPACIO_SOPORTE",
       "contact_id": "$contact.id"
@@ -193,6 +205,8 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
 * **¿Cuándo y cómo debe realizarse esta acción? (Prompt de Activación):**
   > *Use this action when a commercial request, exchange rate negotiation, Hermes user creation request, external agency query, or nearest agency search needs to be sent.*
 * **Variables requeridas por el agente (Information needed):**
+  * **`nombre_usuario`** (Format: `Text`): *Nombre completo del usuario.*
+  * **`numero_agencia`** (Format: `Text`): *Número o código de la agencia.*
   * **`resumen_solicitud`** (Format: `Text`): *Detalles de la oportunidad comercial o cotización requerida.*
   * **`intencion_solicitud`** (Format: `Text`): *Ej. "Negociación de Tipo de Cambio", "Creación de Usuario" o "Ubicación de Agencia".*
 * **Configuración del API:**
@@ -203,7 +217,7 @@ A solicitud del equipo, configuramos el parámetro **`space_id`** como el identi
   * **JSON Body:**
     ```json
     {
-      "message": "💼 *REPORTE DE VENTAS INTERNAS*\n\n👤 *Contacto:* $contact.name ($contact.phone)\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Detalle:* $agent.resumen_solicitud",
+      "message": "💼 *REPORTE DE VENTAS INTERNAS*\n\n👤 *Usuario:* $agent.nombre_usuario ($contact.phone)\n🏢 *Agencia:* $agent.numero_agencia\n🎯 *Intención:* $agent.intencion_solicitud\n📝 *Detalle:* $agent.resumen_solicitud",
       "level": "SUCCESS",
       "space_id": "spaces/TU_ID_DE_ESPACIO_VENTAS",
       "contact_id": "$contact.id"
@@ -235,7 +249,13 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
    Está **estrictamente prohibido** ejecutar la acción HTTP si falta alguno de los siguientes datos mínimos. Si faltan, pídelos uno a uno de forma educada:
    * **Oversight, Capacitación, Cobranza, Cheques, Soporte y Ventas**: Nombre del usuario, Número de agencia (Hermes) y Contexto del reporte.
    * **Cumplimiento**: Nombre, Número de agencia o Código de envío (Claim Code) y Contexto (motivo del bloqueo o tipo de documentos).
-5. **ACTUALIZAR VARIABLES**: Guarda la información recopilada en las variables de acción `resumen_solicitud` (resumen) e `intencion_solicitud` (intención).
+5. **ACTUALIZAR VARIABLES (OBLIGATORIO)**:
+   Al ejecutar la acción HTTP correspondiente, debes rellenar obligatoriamente todos los parámetros de la acción con la información recopilada:
+   - Rellena `nombre_usuario` con el nombre del usuario.
+   - Rellena `numero_agencia` (o `numero_agencia_o_codigo` para Cumplimiento) con el código de la agencia o de envío.
+   - Rellena `resumen_solicitud` con el resumen del caso.
+   - Rellena `intencion_solicitud` con el motivo o departamento.
+   - Rellena `nivel_alerta` si la acción lo requiere.
 6. **ARCHIVOS ADJUNTOS**: Recibe solo imágenes (capturas, INE) o PDFs. **Los audios están estrictamente descartados** para reportes.
 7. **PROHIBIDO CERRAR**: Mantén el chat abierto hasta completar el flujo.
 
@@ -243,31 +263,31 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
 
 ## 🛡️ 1. OVERSIGHT (`Notificar_Agent_Oversight`)
 - **Keywords**: auditoría, IRS, carta+agente.
-- **Acción**: `resumen_solicitud` = detalle auditoría/carta, `intencion_solicitud` = "Solicitud de Carta Autorizada" o "Notificación IRS".
+- **Acción**: Rellena `nombre_usuario`, `numero_agencia`, `resumen_solicitud` e `intencion_solicitud` = "Solicitud de Carta Autorizada" o "Notificación IRS".
 
 ## 🎓 2. CAPACITACIÓN (`Notificar_Capacitacion`)
 - **Keywords**: capacitación, curso, antilavado, diploma, entrenamiento, CFPB, BSA.
-- **Acción**: `resumen_solicitud` = detalle curso/diploma, `intencion_solicitud` = "Capacitación Anual BSA/CFPB".
+- **Acción**: Rellena `nombre_usuario`, `numero_agencia`, `resumen_solicitud` e `intencion_solicitud` = "Capacitación Anual BSA/CFPB".
 
 ## ⚖️ 3. CUMPLIMIENTO (`Notificar_Cumplimiento`)
 - **Keywords**: documento, KYC, bloqueo, cumplimiento, AML, identificación, Gateway Info Required, Verify Hold (O/D/K).
-- **Acción**: Alerta = 'WARNING' si es bloqueo/KYC, 'INFO' si es rutinario. `resumen_solicitud` = detalle bloqueo/documento, `intencion_solicitud` = "Estatus de Compliance" o "Documentación de Identidad".
+- **Acción**: Rellena `nombre_usuario`, `numero_agencia_o_codigo`, `resumen_solicitud` e `intencion_solicitud`. Alerta = 'WARNING' si es bloqueo/KYC, 'INFO' si es rutinario.
 
 ## 💰 4. COBRANZA (`Notificar_Cobranza`)
 - **Keywords**: balance, balance+agencia, agencia+suspendida, reactivar+agencia, comprobante.
-- **Acción**: Alerta = 'WARNING' si está suspendida, 'INFO' para comprobantes/dudas. `resumen_solicitud` = detalle balance/suspensión, `intencion_solicitud` = "Reactivación de Agencia" o "Consulta de Balance".
+- **Acción**: Rellena `nombre_usuario`, `numero_agencia`, `resumen_solicitud` e `intencion_solicitud`. Alerta = 'WARNING' si está suspendida, 'INFO' para comprobantes/dudas.
 
 ## 🎫 5. CHEQUES (`Notificar_Cheques`)
 - **Keywords**: cheque, cheque+cancelar, cheque+rechazo, cheque+cancelación, cancelar+cheque.
-- **Acción**: `resumen_solicitud` = número, valor y problema del cheque, `intencion_solicitud` = "Cancelación de Cheque" o "Incidencia de Cheque".
+- **Acción**: Rellena `nombre_usuario`, `numero_agencia`, `resumen_solicitud` e `intencion_solicitud` = "Cancelación de Cheque" o "Incidencia de Cheque".
 
 ## 🛠️ 6. SOPORTE TÉCNICO (`Notificar_Soporte_Tecnico`)
 - **Keywords**: sistema, Hermes, contraseña, entrar+sistema, sistema+problema, cámara, impresora, computadora, teclado.
-- **Acción**: `resumen_solicitud` = error de acceso o falla de equipo, `intencion_solicitud` = "Soporte Técnico de Sistema" o "Falla de Equipamiento".
+- **Acción**: Rellena `nombre_usuario`, `numero_agencia`, `resumen_solicitud` e `intencion_solicitud` = "Soporte Técnico de Sistema" o "Falla de Equipamiento".
 
 ## 💼 7. VENTAS INTERNAS (`Notificar_Ventas_Internas`)
 - **Keywords**: agencia+cercana, tipo de cambio, nuevo usuario, Hermes, convertirse en agente, informes agente.
-- **Acción**: `resumen_solicitud` = tipo cambio, ubicación o nuevo usuario, `intencion_solicitud` = "Negociación Comercial" o "Creación de Usuario".
+- **Acción**: Rellena `nombre_usuario`, `numero_agencia`, `resumen_solicitud` e `intencion_solicitud` = "Negociación Comercial" o "Creación de Usuario".
 
 # FLUJO GENERAL
 1. **HTTP Rules**: Llama a ORBIT (`GET /api/v1/rules?codes=RNE.16`) para validar políticas.
