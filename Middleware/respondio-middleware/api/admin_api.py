@@ -666,6 +666,16 @@ async def google_chat_notify_handler(
         else:
             target_space = settings.GOOGLE_CHATS_DEFAULT_SPACE
 
+    # Validate target space_id if provided or resolved, to prevent double-slashes or hitting API with placeholder space name
+    if target_space:
+        target_space_str = str(target_space).strip()
+        if "TU_ID_DE_ESPACIO" in target_space_str or target_space_str == "spaces/":
+            logger.warning(f"⚠️ Invalid target space_id requested: '{target_space}'")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid space_id '{target_space}'. Please verify space_id is configured correctly in Respond.io HTTP Request body."
+            )
+
             
     # Determine target message and media
     message_text = request.message
