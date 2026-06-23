@@ -1515,7 +1515,13 @@ async def get_rules(codes: str):
             logger.error(f"Failed to fetch rules from Google Sheets: {sheet_err}")
             
     if not cached_rules:
-        cached_rules = {}
+        try:
+            with open("api/compliance_rules.json", "r", encoding="utf-8") as f:
+                cached_rules = json.load(f)
+            logger.info("Loaded rules from local fallback compliance_rules.json")
+        except Exception as e:
+            logger.error(f"Failed to load local fallback rules: {e}")
+            cached_rules = {}
         
     response_data = {}
     for code in codes_list:

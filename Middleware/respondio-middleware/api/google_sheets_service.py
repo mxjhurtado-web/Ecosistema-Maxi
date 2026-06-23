@@ -503,14 +503,20 @@ class GoogleSheetsService:
                     return None
                 
                 scripts = {}
+                logger.info(f"Fetched {len(rows)} rows from Google Sheet scripts. First row: {rows[0] if rows else 'None'}")
                 for row in rows:
-                    if len(row) > 6:
-                        code = row[5].strip()
-                        text = row[6].strip()
-                        if code and text and (code.startswith("SC") or code.startswith("CU")):
-                            normalized_code = code.replace(" ", "")
-                            scripts[normalized_code] = text
-                            
+                    cells = [str(x).strip() if x is not None else "" for x in row]
+                    for idx, cell in enumerate(cells):
+                        # Match SC.xxx or CU.xxx
+                        if cell.startswith("SC.") or cell.startswith("CU."):
+                            code = cell.replace(" ", "").upper()
+                            text = ""
+                            if idx + 1 < len(cells):
+                                text = cells[idx + 1]
+                            if code and text:
+                                scripts[code] = text
+                                
+                logger.info(f"Successfully parsed {len(scripts)} scripts. Keys: {list(scripts.keys())}")
                 return scripts
                 
         except Exception as e:
@@ -558,14 +564,20 @@ class GoogleSheetsService:
                     return None
                 
                 rules = {}
+                logger.info(f"Fetched {len(rows)} rows from Google Sheet rules. First row: {rows[0] if rows else 'None'}")
                 for row in rows:
-                    if len(row) > 6:
-                        code = row[5].strip()
-                        desc = row[6].strip()
-                        if code and desc and (code.startswith("RNE") or code.startswith("COL")):
-                            normalized_code = code.replace(" ", "")
-                            rules[normalized_code] = desc
-                            
+                    cells = [str(x).strip() if x is not None else "" for x in row]
+                    for idx, cell in enumerate(cells):
+                        # Match RNE.xxx or COL.xxx
+                        if cell.startswith("RNE.") or cell.startswith("COL."):
+                            code = cell.replace(" ", "").upper()
+                            text = ""
+                            if idx + 1 < len(cells):
+                                text = cells[idx + 1]
+                            if code and text:
+                                rules[code] = text
+                                
+                logger.info(f"Successfully parsed {len(rules)} rules. Keys: {list(rules.keys())}")
                 return rules
                 
         except Exception as e:
