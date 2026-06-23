@@ -69,7 +69,7 @@ Si `perfil_usuario` no está guardado, determina si es cliente/remitente, benefi
 
 **PASO 5 — TIPO DE INPUT**
 - Texto o audio: Analiza la intención y extrae entidades (código de envío, folio, clave).
-- Imagen, PDF o documento: Guarda `tipo_input = documento` y asigna a `@VerificadorEstatus` (`{{@ai-agent.1129471}}`) salvo intención inequívoca.
+- Imagen, PDF o documento: Guarda `tipo_input = documento` y asigna silenciosamente al Orquestador de Documentos `@OrquestadorDocumentos` (`{{@ai-agent.1130620}}`).
 - Entrada no soportada: Indica: "No pude procesar ese tipo de mensaje. ¿Podría reenviarlo como texto, imagen o PDF legible?"
 
 **PASO 6 — RUTEO A AGENTES IA ESPECIALIZADOS**
