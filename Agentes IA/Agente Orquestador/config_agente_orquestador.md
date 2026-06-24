@@ -72,7 +72,7 @@ Antes de actuar, realiza la llamada HTTP **Consulta Dinámica de Reglas** (`GET 
 
 **PASO 5 — TIPO DE INPUT**
 - Texto o audio: Analiza la intención y extrae entidades (código de envío, folio, clave).
-- Imagen, PDF o documento: Guarda `tipo_input = documento` y asigna silenciosamente al Orquestador de Documentos `@OrquestadorDocumentos` (`{{@ai-agent.1130620}}`).
+- Imagen, PDF o documento: Guarda `tipo_input = documento` y asigna silenciosamente al Orquestador de Documentos `@OrquestadorDocumentos` (`{{@ai-agent.1135529}}`).
 - Entrada no soportada: Indica: "No pude procesar ese tipo de mensaje. ¿Podría reenviarlo como texto, imagen o PDF legible?"
 
 **PASO 6 — RUTEO A AGENTES IA ESPECIALIZADOS**
