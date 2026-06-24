@@ -2,6 +2,26 @@
 
 Este agente se encarga de analizar visualmente todos los archivos, fotos, PDFs e imágenes que envíe el usuario, clasificar el tipo de documento de negocio al que corresponden, actualizar las variables del contacto y enrutar la conversación silenciosamente al agente especializado.
 
+## Acciones de Respond.io a Habilitar
+* **Nombre de Configuración:** `Orquestador de Documentos` (Orquestador Multimodal)
+* **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo), `Close conversation` (Cerrar conversaciones).
+  * **Campos de Contacto a Actualizar:**
+    - `tipo_input` (Texto): Asignar `"documento"`.
+    - `intencion_usuario` (Texto): Asignar la intención detectada de la matriz.
+    - `resumen_ejecutivo` (Texto): Síntesis visual de lo que muestra el archivo.
+    - `intentos_fallidos_doc` (Numérico): Contador de fallos acumulados en la sesión.
+  * **Asignar a agente o equipo (Assign to agent or team):**
+    Configurar según intenciones:
+    - Si es consulta de estatus o rastreo (`estatus_transaccion`) ➔ **`@VerificadorEstatus`** (`{{@ai-agent.1129471}}`)
+    - Si es cancelación de Money Order físico (`cancelacion_money_order`) ➔ **`@CancelacionMoneyOrder`** (`{{@ai-agent.1130467}}`)
+    - Si es consulta de historial de envíos (`historial_envios`) ➔ **`@HistorialEnvios`** (`{{@ai-agent.1130490}}`)
+    - Si es cancelación de remesa electrónica (`cancelacion_envio`) ➔ **`@CancelacionEnvio`** (`{{@ai-agent.1130493}}`)
+    - Si es modificación de datos de envío (`modificacion_datos`) ➔ **`@ModificacionDatos`** (`{{@ai-agent.1130499}}`)
+    - Si es dudas o aclaración de pagos (`pagos_bill_recarga_deposito`) ➔ **`@CoordinacionPago`** (`{{@ai-agent.1130509}}`)
+    - Si es sospecha de fraude, estafa o robo (`fraude_estafa`) ➔ **`@DerivacionFraudes`** (`{{@ai-agent.1130613}}`)
+    - Si es sospecha de actividad ilegal o lavado (`actividad_sospechosa`) ➔ **`@DerivacionBSA`** (`{{@ai-agent.1130618}}`)
+    - Si es disputa o exige hablar con un humano (`hablar_con_humano` / `disputa_reclamo_reg_e`) ➔ **`@Asesores Servicio al Cliente`** (`{{@team.43621}}`) (Handoff directo)
+
 ---
 
 ## 1. Prompt de Sistema (Instrucciones — Copy-Paste en Respond.io)
