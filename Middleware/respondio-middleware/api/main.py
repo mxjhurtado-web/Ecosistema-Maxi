@@ -1619,12 +1619,44 @@ async def check_bill_status(
 
     matched_rule = None
     if status_rules:
-        # Match rules against database status
+        # Match rules against database status and profile
+        perfil_upper = perfil.upper().strip()
+        
+        def profile_matches(u_prof: str, r_prof: str) -> bool:
+            if not r_prof:
+                return True
+            u_p = u_prof.upper().strip()
+            r_p = r_prof.upper().strip()
+            if "REMITE" in r_p or "AGENTE" in r_p or "BENEFICIARIO" in r_p:
+                if u_p in ["CLIENTE", "REMITENTE", "AGENTE"]:
+                    return "REMITE" in r_p or "AGENTE" in r_p
+                elif u_p == "BENEFICIARIO":
+                    return "BENEFICIARIO" in r_p
+            return u_p == r_p
+
         for rule in status_rules:
             rule_status = rule["status"].lower().strip()
-            if status_clean.lower() in rule_status:
-                if not matched_rule or rule["derivacion"] == "NA":
-                    matched_rule = rule
+            rule_profile = rule.get("perfil", "")
+            db_status = status_clean.lower().strip()
+            
+            # Check profile first
+            if not profile_matches(perfil_upper, rule_profile):
+                continue
+                
+            is_match = (db_status == rule_status) or (db_status in rule_status) or (rule_status in db_status)
+            
+            # Translation equivalents:
+            if not is_match:
+                if db_status in ["cancelled", "cancelado"] and rule_status in ["cancelled", "cancelado"]:
+                    is_match = True
+                elif db_status in ["paid", "entregado", "pagado"] and rule_status in ["paid", "entregado", "pagado"]:
+                    is_match = True
+                elif db_status in ["origin", "creado", "creada", "transitorio", "pendiente"] and rule_status in ["origin", "creado", "creada", "transitorio", "pendiente"]:
+                    is_match = True
+            
+            if is_match:
+                matched_rule = rule
+                break
 
     # Local fallback if sheet rules fetching failed
     if not matched_rule:
@@ -1637,7 +1669,7 @@ async def check_bill_status(
         elif status_upper in ["CANCELLED", "CANCELADO"]:
             matched_rule = {
                 "script": "Verificando el estatus de la operación, lamentablemente el pago no se procesó exitosamente.",
-                "derivacion": "NA"
+                "derivacion": "Servicio al Cliente"
             }
         else: # Origin / Transitorio
             matched_rule = {
