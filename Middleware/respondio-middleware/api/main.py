@@ -24,7 +24,9 @@ from .models import (
     RequestLog,
     HealthResponse,
     StatusCheckRequest,
-    StatusCheckResponse
+    StatusCheckResponse,
+    BillCheckRequest,
+    BillCheckResponse
 )
 from .config import settings
 from .mcp_client import mcp_client
@@ -630,6 +632,44 @@ def match_names(user_name: str, db_name: str) -> bool:
     return len(intersection) >= 1
 
 
+def match_biller(user_biller: str, db_biller: str) -> bool:
+    if not user_biller or not db_biller:
+        return False
+    generic_words = {
+        "power", "electric", "service", "services", "gas", "water", "utility", 
+        "utilities", "internet", "phone", "tv", "cable", "energy", "trash", 
+        "waste", "management", "co", "company", "inc", "corp", "payment", 
+        "payments", "bill", "bills", "system", "systems", "mobile"
+    }
+    user_words = set(w for w in re.findall(r'\w+', user_biller.lower()) if w not in generic_words)
+    db_words = set(w for w in re.findall(r'\w+', db_biller.lower()) if w not in generic_words)
+    
+    if not user_words or not db_words:
+        user_words = set(re.findall(r'\w+', user_biller.lower()))
+        db_words = set(re.findall(r'\w+', db_biller.lower()))
+        
+    intersection = user_words.intersection(db_words)
+    return len(intersection) >= 1
+
+
+def match_customer_name(user_name: str, db_first: str, db_paterno: str, db_materno: str) -> bool:
+    if not user_name:
+        return False
+    user_words = set(re.findall(r'\w+', user_name.lower()))
+    
+    first_words = set(re.findall(r'\w+', (db_first or "").lower()))
+    surname_words = set(re.findall(r'\w+', f"{db_paterno or ''} {db_materno or ''}".lower()))
+    
+    if first_words and surname_words:
+        has_first_match = len(user_words.intersection(first_words)) >= 1
+        has_surname_match = len(user_words.intersection(surname_words)) >= 1
+        return has_first_match and has_surname_match
+    else:
+        all_db_words = first_words.union(surname_words)
+        return len(user_words.intersection(all_db_words)) >= 1
+
+
+
 @app.post("/api/v1/status/check", response_model=StatusCheckResponse)
 async def check_transaction_status(
     request: StatusCheckRequest,
@@ -777,7 +817,7 @@ async def check_transaction_status(
             cursor = conn.cursor()
             
             if codigo_envio.startswith("TRK"):
-                cursor.execute('SELECT * FROM "bill_payments" WHERE "Tracking_Number" = %s;', (codigo_envio,))
+                cursor.execute('SELECT * FROM "Pago de Bill" WHERE "tracking_number" = %s;', (codigo_envio,))
                 row = cursor.fetchone()
                 if row:
                     colnames = [desc[0] for desc in cursor.description]
@@ -813,9 +853,9 @@ async def check_transaction_status(
             }
             async with httpx.AsyncClient(timeout=10) as client:
                 if codigo_envio.startswith("TRK"):
-                    url = f"{supabase_url}/rest/v1/bill_payments"
+                    url = f"{supabase_url}/rest/v1/Pago%20de%20Bill"
                     params = {
-                        "Tracking_Number": f"ilike.{codigo_envio}",
+                        "tracking_number": f"ilike.{codigo_envio}",
                         "select": "*",
                         "limit": "1"
                     }
@@ -1303,6 +1343,340 @@ async def check_transaction_status(
     return StatusCheckResponse(
         status="success",
         reply_text=reply_text,
+        derivacion=derivacion,
+        validation_success=True,
+        transaction_status=status_clean,
+        client_profile=perfil
+    )
+
+
+@app.post("/api/v1/bill/check", response_model=BillCheckResponse)
+async def check_bill_status(
+    request: BillCheckRequest,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
+):
+    """
+    Endpoint for validating bill payments, checking name & biller matching,
+    applying sheet-based status scripts and department routing.
+    """
+    # 1. Validate secret
+    incoming_secret = x_webhook_secret or secret
+    if incoming_secret != settings.WEBHOOK_SECRET:
+        logger.warning("❌ Invalid webhook secret in bill status check")
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+        
+    logger.info(f"📥 Received bill check request: {request.dict()}")
+
+    def sanitize_input(v: Any) -> Optional[str]:
+        if v is None:
+            return None
+        v_str = str(v).strip().strip(",").strip()
+        if v_str in [",", "%", "", "null", "None"] or v_str.startswith("$"):
+            return None
+        return v_str
+
+    user_text = sanitize_input(request.user_text) or ""
+    contact_id = sanitize_input(request.contact_id) or "-1"
+    contact_name = sanitize_input(request.contact_name)
+    
+    metadata = request.metadata or {}
+    tracking_number = sanitize_input(request.tracking_number) or sanitize_input(metadata.get("tracking_number"))
+    biller = sanitize_input(request.biller) or sanitize_input(metadata.get("biller"))
+    nombre_completo_customer = sanitize_input(request.nombre_completo_customer) or sanitize_input(metadata.get("nombre_completo_customer"))
+    perfil = sanitize_input(request.perfil) or sanitize_input(metadata.get("perfil")) or sanitize_input(metadata.get("perfil_usuario"))
+    
+    if perfil:
+        perfil = perfil.upper()
+    else:
+        perfil = "CLIENTE"
+        
+    # Get Redis client
+    redis = None
+    try:
+        redis = await get_redis_client()
+    except Exception as redis_err:
+        logger.warning(f"Redis connection not available for bill check: {redis_err}")
+
+    # Attempts handling for tracking_number / key lookup
+    attempts_key = f"bill_attempts:{contact_id}"
+    attempts = 0
+    if redis:
+        try:
+            attempts_val = await redis.get(attempts_key)
+            attempts = int(attempts_val.decode('utf-8')) if attempts_val else 0
+        except Exception as e:
+            logger.error(f"Error reading bill attempts from Redis: {e}")
+
+    # If tracking_number is missing, handle error/re-verification
+    if not tracking_number:
+        attempts += 1
+        if redis:
+            try:
+                await redis.set(attempts_key, str(attempts), ex=3600)
+            except Exception as e:
+                logger.error(f"Error setting bill attempts in Redis: {e}")
+                
+        if attempts >= 2:
+            if redis:
+                try:
+                    await redis.set(attempts_key, "0", ex=3600)
+                except Exception as e:
+                    logger.error(f"Error resetting bill attempts: {e}")
+            return BillCheckResponse(
+                status="success",
+                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
+                derivacion="Servicio al Cliente",
+                validation_success=False
+            )
+        else:
+            return BillCheckResponse(
+                status="success",
+                reply_text="No encontré resultados con los datos proporcionados. ¿Podría verificarlos y compartirlos nuevamente, por favor?",
+                derivacion="NA",
+                validation_success=False
+            )
+
+    # Reset attempts since tracking_number was provided
+    if redis:
+        try:
+            await redis.set(attempts_key, "0", ex=3600)
+        except Exception as e:
+            logger.error(f"Error resetting bill attempts: {e}")
+
+    # Query database for the record
+    record = None
+    if settings.SUPABASE_URI:
+        try:
+            import psycopg2
+            conn = psycopg2.connect(settings.SUPABASE_URI)
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM public."Pago de Bill" WHERE "tracking_number" = %s;', (tracking_number,))
+            row = cursor.fetchone()
+            if row:
+                colnames = [desc[0] for desc in cursor.description]
+                record = dict(zip(colnames, row))
+            cursor.close()
+            conn.close()
+            logger.info(f"✅ Bill record found via PostgreSQL for tracking_number {tracking_number}")
+        except Exception as db_err:
+            logger.info(f"PostgreSQL query fallback active for bill: {db_err}. Trying REST API fallback...")
+            record = None
+
+    if not record:
+        try:
+            supabase_url = os.getenv("SUPABASE_URL", "https://tzlomvpugmrpdfatscxe.supabase.co")
+            supabase_anon_key = os.getenv(
+                "SUPABASE_ANON_KEY",
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6bG9tdnB1Z21ycGRmYXRzY3hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjI3MjcsImV4cCI6MjA4OTMzODcyN30.aH-p2YbLa8LPlnMVsZMlELsxFWwSSLZMA_LPpRz5DU8"
+            )
+            headers = {
+                "apikey": supabase_anon_key,
+                "Authorization": f"Bearer {supabase_anon_key}",
+                "Content-Type": "application/json"
+            }
+            async with httpx.AsyncClient(timeout=10) as client:
+                url = f"{supabase_url}/rest/v1/Pago%20de%20Bill"
+                params = {
+                    "tracking_number": f"ilike.{tracking_number}",
+                    "select": "*",
+                    "limit": "1"
+                }
+                res = await client.get(url, headers=headers, params=params)
+                res.raise_for_status()
+                data = res.json()
+                if data:
+                    record = data[0]
+            if record:
+                logger.info(f"✅ Bill record found via REST API for tracking_number {tracking_number}")
+        except Exception as rest_err:
+            logger.error(f"Supabase REST API bill query failed: {rest_err}")
+
+    # If record not found
+    if not record:
+        attempts += 1
+        if redis:
+            try:
+                await redis.set(attempts_key, str(attempts), ex=3600)
+            except Exception as e:
+                logger.error(f"Error saving bill attempts: {e}")
+        if attempts >= 2:
+            if redis:
+                try:
+                    await redis.set(attempts_key, "0", ex=3600)
+                except Exception as e:
+                    logger.error(f"Error resetting attempts: {e}")
+            return BillCheckResponse(
+                status="success",
+                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
+                derivacion="Servicio al Cliente",
+                validation_success=False
+            )
+        else:
+            return BillCheckResponse(
+                status="success",
+                reply_text="No encontré resultados con los datos proporcionados. ¿Podría verificarlos y compartirlos nuevamente, por favor?",
+                derivacion="NA",
+                validation_success=False
+            )
+
+    # 2. Identity Verification: match Biller and Customer Name
+    db_biller = record.get("biller", "")
+    db_customer_name = f"{record.get('nombre_o_nombres', '')} {record.get('apellido_paterno', '')} {record.get('apellido_materno', '')}".strip()
+    db_customer_name = re.sub(r'\s+', ' ', db_customer_name)
+    
+    user_biller = biller
+    user_customer = nombre_completo_customer
+    
+    biller_ok = False
+    customer_ok = False
+    
+    if user_biller:
+        biller_ok = match_biller(user_biller, db_biller)
+    if user_customer:
+        customer_ok = match_customer_name(
+            user_customer,
+            record.get("nombre_o_nombres", ""),
+            record.get("apellido_paterno", ""),
+            record.get("apellido_materno", "")
+        )
+        
+    validation_key = f"bill_val_attempts:{contact_id}"
+    val_attempts = 0
+    if redis:
+        try:
+            val_attempts_val = await redis.get(validation_key)
+            val_attempts = int(val_attempts_val.decode('utf-8')) if val_attempts_val else 0
+        except Exception as e:
+            logger.error(f"Error reading validation attempts: {e}")
+
+    if not biller_ok or not customer_ok:
+        val_attempts += 1
+        if redis:
+            try:
+                await redis.set(validation_key, str(val_attempts), ex=3600)
+            except Exception as e:
+                logger.error(f"Error saving validation attempts: {e}")
+                
+        if val_attempts >= 2:
+            if redis:
+                try:
+                    await redis.set(validation_key, "0", ex=3600)
+                except Exception as e:
+                    logger.error(f"Error resetting validation attempts: {e}")
+            return BillCheckResponse(
+                status="success",
+                reply_text="No fue posible validar su identidad con la información proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
+                derivacion="Servicio al Cliente",
+                validation_success=False
+            )
+        else:
+            return BillCheckResponse(
+                status="success",
+                reply_text="Los datos proporcionados (biller o nombre de cliente) no coinciden con nuestros registros. Por favor verifíquelos y compártalos nuevamente.",
+                derivacion="NA",
+                validation_success=False
+            )
+
+    # Reset validation attempts on success
+    if redis:
+        try:
+            await redis.set(validation_key, "0", ex=3600)
+        except Exception as e:
+            logger.error(f"Error resetting validation attempts: {e}")
+
+    # 3. Rule Crossing (Matrix)
+    status_db = record.get("status") or ""
+    status_clean = status_db.strip()
+    status_upper = status_clean.upper()
+    
+    # Fetch status rules from Google Sheets
+    status_rules = None
+    sheet_id = settings.GOOGLE_SHEET_ID_BILL_ESTATUS or "16fB_MGtha0NUtp5mge7UwvHcWo1NYVnOGVv6Yntv9xo"
+    if sheet_id:
+        if redis:
+            try:
+                cached_val = await redis.get("google_sheets:bill_status_cache")
+                if cached_val:
+                    status_rules = json.loads(cached_val.decode('utf-8'))
+            except Exception as e:
+                logger.error(f"Error reading bill status rules cache: {e}")
+                
+        if not status_rules:
+            from .google_sheets_service import google_sheets_service
+            status_rules = await google_sheets_service.fetch_bill_status_rules(sheet_id)
+            if status_rules and redis:
+                try:
+                    await redis.setex("google_sheets:bill_status_cache", 3600, json.dumps(status_rules))
+                except Exception as e:
+                    logger.error(f"Error caching bill status rules in Redis: {e}")
+
+    matched_rule = None
+    if status_rules:
+        # Match rules against database status
+        for rule in status_rules:
+            rule_status = rule["status"].lower().strip()
+            if status_clean.lower() in rule_status:
+                if not matched_rule or rule["derivacion"] == "NA":
+                    matched_rule = rule
+
+    # Local fallback if sheet rules fetching failed
+    if not matched_rule:
+        logger.warning(f"No sheet status rule matched for bill status={status_clean}. Using local fallback.")
+        if status_upper in ["PAID", "ENTREGADO"]:
+            matched_rule = {
+                "script": "Verificando el estatus de la operación, el pago se realizó exitosamente.",
+                "derivacion": "NA"
+            }
+        elif status_upper in ["CANCELLED", "CANCELADO"]:
+            matched_rule = {
+                "script": "Verificando el estatus de la operación, lamentablemente el pago no se procesó exitosamente.",
+                "derivacion": "NA"
+            }
+        else: # Origin / Transitorio
+            matched_rule = {
+                "script": "Su pago no ha sido procesado, lo transferiré con un asesor para recibir asistencia personalizada. Por favor, espere mientras lo comunico.",
+                "derivacion": "Servicio al Cliente"
+            }
+
+    script_text = matched_rule["script"]
+    deriv_raw = matched_rule["derivacion"].strip()
+    
+    # Clean script text
+    clean_name = contact_name or "Cliente"
+    script_text = script_text.replace("“", "").replace("”", "").replace('"', "")
+    script_text = script_text.replace("Sr./Srita._________", clean_name).replace("Sr./Srita.____", clean_name)
+    
+    # Process Derivacion and Reply Text
+    derivacion = "NA"
+    reply_text = script_text
+    ct_now = get_central_time()
+    
+    if "SERVICIO AL CLIENTE" in deriv_raw.upper() or "SERVICIO A CLIENTE" in deriv_raw.upper():
+        if check_department_hours("SERVICIO AL CLIENTE", ct_now):
+            derivacion = "Servicio al Cliente"
+        else:
+            derivacion = "Fuera de Horario SC"
+            reply_text = (
+                f"{reply_text}\n\n"
+                "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto "
+                "retomemos el servicio. Gracias por su paciencia."
+            )
+    else:
+        derivacion = "NA"
+        # Offer customer support transfer since it is NA
+        reply_text = (
+            f"{reply_text}\n\n"
+            "¿Le gustaría que lo comuniquemos con un asesor de servicio al cliente?"
+        )
+
+    # Prepend safety headers
+    safety_header = f"[BILLER: {db_biller}] [NOMBRE DEL CUSTOMER: {db_customer_name}] [STATUS: {status_clean}] "
+    reply_text_with_header = safety_header + reply_text
+
+    return BillCheckResponse(
+        status="success",
+        reply_text=reply_text_with_header,
         derivacion=derivacion,
         validation_success=True,
         transaction_status=status_clean,

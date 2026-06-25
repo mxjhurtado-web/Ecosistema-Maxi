@@ -317,3 +317,26 @@ class StatusCheckResponse(BaseModel):
     client_profile: Optional[str] = Field(None, description="Perfil final determinado para el usuario")
 
 
+class BillCheckRequest(BaseModel):
+    """Request structure for bill check"""
+    contact_id: str = Field(..., description="ID del contacto en Respond.io")
+    user_text: str = Field(..., description="Mensaje del usuario")
+    contact_name: Optional[str] = Field(None, description="Nombre del contacto")
+    tracking_number: Optional[str] = Field(None, description="Tracking number del bill payment")
+    biller: Optional[str] = Field(None, description="Nombre del biller")
+    nombre_completo_customer: Optional[str] = Field(None, description="Nombre completo del customer")
+    perfil: Optional[str] = Field(default="CLIENTE", description="Perfil del usuario (CLIENTE, BENEFICIARIO, AGENTE)")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Metadata adicional")
+
+
+class BillCheckResponse(BaseModel):
+    """Response structure for bill check"""
+    status: str = Field(..., description="Estatus del procesamiento ('success' o 'error')")
+    reply_text: str = Field(..., description="Mensaje de respuesta para el usuario")
+    derivacion: str = Field(..., description="Departamento al que se deriva el contacto")
+    validation_success: bool = Field(..., description="Si la validación fue exitosa")
+    transaction_status: Optional[str] = Field(None, description="Estatus original de la transacción en la base de datos")
+    client_profile: Optional[str] = Field(None, description="Perfil final determinado para el usuario")
+
+
+
