@@ -1961,8 +1961,10 @@ async def sync_scripts_and_rules():
     try:
         await redis.delete("google_sheets:scripts_cache")
         await redis.delete("google_sheets:rules_cache")
-        logger.info("Cleared scripts and rules cache in Redis")
-        return {"status": "success", "message": "Cache cleared. Next request will fetch fresh data from Google Sheets."}
+        await redis.delete("google_sheets:status_cache")
+        await redis.delete("google_sheets:bill_status_cache")
+        logger.info("Cleared scripts, rules, status, and bill status caches in Redis")
+        return {"status": "success", "message": "All Google Sheet caches cleared. Next request will fetch fresh data from Google Sheets."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to clear cache: {e}")
 

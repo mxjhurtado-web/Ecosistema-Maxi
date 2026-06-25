@@ -89,3 +89,5 @@ class TestScriptsAndRules:
         # Verify keys were deleted
         mock_redis.delete.assert_any_call("google_sheets:scripts_cache")
         mock_redis.delete.assert_any_call("google_sheets:rules_cache")
+        mock_redis.delete.assert_any_call("google_sheets:status_cache")
+        mock_redis.delete.assert_any_call("google_sheets:bill_status_cache")
