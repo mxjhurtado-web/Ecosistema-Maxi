@@ -719,12 +719,12 @@ Si el cliente no tiene más dudas o corresponde concluir:
       ```json
       {
         "contact_id": "$contact.id",
-        "user_text": "$message.text",
+        "user_text": "$message.message",
         "contact_name": "$contact.name",
-        "tracking_number": "$contact.fields.tracking_number",
-        "biller": "$contact.fields.biller",
-        "nombre_completo_customer": "$contact.fields.nombre_completo_customer",
-        "perfil": "$contact.fields.perfil_usuario"
+        "tracking_number": "$agent.tracking_number",
+        "biller": "$agent.Biller",
+        "nombre_completo_customer": "$agent.nombre_completo_costumer",
+        "perfil": "$perfil_usuario"
       }
       ```
     * **Resultado:** Devuelve el estatus cruzado con las reglas oficiales y las etiquetas de validación para revelación segura.
