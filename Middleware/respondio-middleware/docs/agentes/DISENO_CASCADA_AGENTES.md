@@ -728,6 +728,19 @@ Si el cliente no tiene más dudas o corresponde concluir:
       }
       ```
     * **Resultado:** Devuelve el estatus cruzado con las reglas oficiales y las etiquetas de validación para revelación segura.
+  * **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
+    * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
+      * **Método:** `GET`
+      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.10,RNE.13&secret=maxi-secret-2025`
+      * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
+      * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+      * **Resultado:** Devuelve las políticas vigentes de rastreo directamente desde el Google Sheet de Reglas.
+    * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
+      * **Método:** `GET`
+      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.008,SC.009,SC.011,SC.012,SC.012.1,SC.032,SC.034,SC.041&secret=maxi-secret-2025`
+      * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
+      * **Cuerpo JSON:** *Sin cuerpo (vacío)*
+      * **Resultado:** Devuelve los textos oficiales de confirmación (SC.008), solicitud de datos (SC.009/SC.011), transferencia (SC.012/SC.012.1), fallo de coincidencia (SC.034), cortesía (SC.032) y despedida (SC.041) para pagos de bill.
 
 ---
 
