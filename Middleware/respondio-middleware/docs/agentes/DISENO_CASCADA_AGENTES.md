@@ -713,7 +713,7 @@ Si el cliente no tiene más dudas o corresponde concluir:
 * **Llamadas HTTP para ConsultarBill:**
   * **Consultar Estatus de Pago de Bill (ConsultarBill):**
     * **Método:** `POST`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/bill/check`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/bill/check?secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando el usuario solicite consultar el estatus de un pago de bill y ya hayas recopilado el tracking_number, biller y nombre_completo_customer.`
     * **Cuerpo JSON:**
       ```json
