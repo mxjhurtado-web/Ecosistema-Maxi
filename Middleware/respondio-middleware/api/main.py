@@ -1619,6 +1619,7 @@ async def check_bill_status(
 
     matched_rule = None
     if status_rules:
+        logger.info(f"Loaded status_rules from cache/sheets: {status_rules}")
         # Match rules against database status and profile
         perfil_upper = perfil.upper().strip()
         
@@ -1676,6 +1677,8 @@ async def check_bill_status(
                 "script": "Su pago no ha sido procesado, lo transferiré con un asesor para recibir asistencia personalizada. Por favor, espere mientras lo comunico.",
                 "derivacion": "Servicio al Cliente"
             }
+    else:
+        logger.info(f"Matched rule from sheets: {matched_rule}")
 
     script_text = matched_rule["script"]
     deriv_raw = matched_rule["derivacion"].strip()
