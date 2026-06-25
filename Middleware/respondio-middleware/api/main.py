@@ -1683,10 +1683,6 @@ async def check_bill_status(
     script_text = matched_rule["script"]
     deriv_raw = matched_rule["derivacion"].strip()
     
-    # Force derivation to Servicio al Cliente for Cancelled and Origin statuses as requested by the user
-    if status_upper in ["CANCELLED", "CANCELADO", "ORIGIN"]:
-        deriv_raw = "Servicio al Cliente"
-    
     # Clean script text
     clean_name = contact_name or "Cliente"
     script_text = script_text.replace("“", "").replace("”", "").replace('"', "")

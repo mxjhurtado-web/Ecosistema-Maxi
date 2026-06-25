@@ -767,8 +767,9 @@ class TestBillCheckEndpoint:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["derivacion"] == "Servicio al Cliente"
+        assert data["derivacion"] == "NA"
         assert "no se procesó exitosamente" in data["reply_text"]
+        assert "¿Le gustaría que lo comuniquemos con un asesor de servicio al cliente?" in data["reply_text"]
         assert data["validation_success"] is True
 
     @patch("api.google_sheets_service.google_sheets_service.fetch_bill_status_rules", new_callable=AsyncMock)
