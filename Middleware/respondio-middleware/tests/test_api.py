@@ -683,3 +683,141 @@ class TestGlobalWebhookSessionTracking:
         self.mock_redis.delete.assert_any_call("status_attempts:test_contact_123")
         self.mock_redis.delete.assert_any_call("name_attempts:test_contact_123")
 
+
+class TestBillCheckEndpoint:
+    """Test /api/v1/bill/check endpoint"""
+
+    @pytest.fixture(autouse=True)
+    def setup_mocks(self):
+        # Mock Redis
+        self.mock_redis = AsyncMock()
+        self.mock_redis.get.return_value = None
+        self.patcher_redis = patch("api.main.get_redis_client", AsyncMock(return_value=self.mock_redis))
+        self.patcher_redis.start()
+        
+        # Mock httpx.AsyncClient
+        self.mock_httpx = AsyncMock()
+        self.patcher_httpx = patch("httpx.AsyncClient.get", self.mock_httpx)
+        self.patcher_httpx.start()
+        
+        # Prevent actual psycopg2 connection
+        self.original_uri = settings.SUPABASE_URI
+        settings.SUPABASE_URI = None
+
+        yield
+        
+        self.patcher_redis.stop()
+        self.patcher_httpx.stop()
+        settings.SUPABASE_URI = self.original_uri
+
+    def test_unauthorized(self, client):
+        """Test bill status check unauthorized without correct secret"""
+        response = client.post(
+            "/api/v1/bill/check",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "",
+                "tracking_number": "TRK12345678"
+            }
+        )
+        assert response.status_code == 401
+
+    @patch("api.google_sheets_service.google_sheets_service.fetch_bill_status_rules", new_callable=AsyncMock)
+    def test_bill_check_cancelled_derives_to_sc(self, mock_fetch_rules, client):
+        """Test that Cancelled bill status is forced to derive to Servicio al Cliente"""
+        # Mock Supabase return record
+        record = {
+            "tracking_number": "TRK97226012",
+            "biller": "MetroGas Natural Gas Service",
+            "nombre_o_nombres": "Enrique Alicia",
+            "apellido_paterno": "Ruiz",
+            "apellido_materno": "Cruz",
+            "status": "Cancelled"
+        }
+        
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [record]
+        self.mock_httpx.return_value = mock_response
+
+        # Mock Google Sheets rules
+        mock_fetch_rules.return_value = [
+            {
+                "categoria": "Solicitud de status",
+                "derivacion": "NA",
+                "caso": "Pago de bill",
+                "tipo_status": "No transitorio",
+                "status": "Cancelled - Pago de Bill",
+                "perfil": "Remitente o Agente",
+                "code_script": "SC.027",
+                "script": "Verificando el estatus de la operación, lamentablemente el pago no se procesó exitosamente."
+            }
+        ]
+
+        response = client.post(
+            f"/api/v1/bill/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "",
+                "tracking_number": "TRK97226012",
+                "biller": "MetroGas",
+                "nombre_completo_customer": "Enrique Alicia Ruiz Cruz",
+                "perfil": "CLIENTE"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["derivacion"] == "Servicio al Cliente"
+        assert "no se procesó exitosamente" in data["reply_text"]
+        assert data["validation_success"] is True
+
+    @patch("api.google_sheets_service.google_sheets_service.fetch_bill_status_rules", new_callable=AsyncMock)
+    def test_bill_check_origin_derives_to_sc(self, mock_fetch_rules, client):
+        """Test that Origin bill status derives to Servicio al Cliente"""
+        # Mock Supabase return record
+        record = {
+            "tracking_number": "TRK23756669",
+            "biller": "MetroGas Natural Gas Service",
+            "nombre_o_nombres": "Enrique Alicia",
+            "apellido_paterno": "Ruiz",
+            "apellido_materno": "Cruz",
+            "status": "Origin"
+        }
+        
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [record]
+        self.mock_httpx.return_value = mock_response
+
+        # Mock Google Sheets rules
+        mock_fetch_rules.return_value = [
+            {
+                "categoria": "Solicitud de status / Consulta de status en Chronos",
+                "derivacion": "Servicio al Cliente",
+                "caso": "Pago de bill",
+                "tipo_status": "Transitorio",
+                "status": "Origin- Pago de Bill",
+                "perfil": "Remitente o Agente",
+                "code_script": "SC.028",
+                "script": "Su pago no ha sido procesado, lo transferiré con un asesor para recibir asistencia personalizada. Por favor, espere mientras lo comunico."
+            }
+        ]
+
+        response = client.post(
+            f"/api/v1/bill/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "",
+                "tracking_number": "TRK23756669",
+                "biller": "MetroGas",
+                "nombre_completo_customer": "Enrique Alicia Ruiz Cruz",
+                "perfil": "CLIENTE"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["derivacion"] == "Servicio al Cliente"
+        assert "no ha sido procesado" in data["reply_text"]
+        assert data["validation_success"] is True
+
+
