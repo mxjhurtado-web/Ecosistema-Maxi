@@ -693,7 +693,10 @@ async def check_transaction_status(
         if v is None:
             return None
         v_str = str(v).strip().strip(",").strip()
-        if v_str in [",", "%", "", "null", "None"] or v_str.startswith("$"):
+        if (v_str in [",", "%", "", "null", "None"] or 
+            v_str.startswith("$") or 
+            "{{" in v_str or 
+            "}}" in v_str):
             return None
         return v_str
 
@@ -1372,7 +1375,10 @@ async def check_bill_status(
         if v is None:
             return None
         v_str = str(v).strip().strip(",").strip()
-        if v_str in [",", "%", "", "null", "None"] or v_str.startswith("$"):
+        if (v_str in [",", "%", "", "null", "None"] or 
+            v_str.startswith("$") or 
+            "{{" in v_str or 
+            "}}" in v_str):
             return None
         return v_str
 
