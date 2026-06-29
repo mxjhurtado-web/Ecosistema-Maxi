@@ -339,4 +339,19 @@ class BillCheckResponse(BaseModel):
     client_profile: Optional[str] = Field(None, description="Perfil final determinado para el usuario")
 
 
+class CSATLogRequest(BaseModel):
+    """Request structure for CSAT logging"""
+    contact_id: str = Field(..., description="ID del contacto en Respond.io")
+    contact_name: str = Field(..., description="Nombre del contacto")
+    rating: int = Field(..., description="Calificación de la encuesta (1 al 5)")
+    comment: Optional[str] = Field(None, description="Comentario o feedback del cliente")
+    assigned_agent: Optional[str] = Field(None, description="Nombre del agente previo que atendió")
+
+
+class CSATLogResponse(BaseModel):
+    """Response structure for CSAT logging"""
+    status: str = Field(..., description="Estado de la operación ('success' o 'error')")
+    message: str = Field(..., description="Mensaje explicativo")
+
+
 

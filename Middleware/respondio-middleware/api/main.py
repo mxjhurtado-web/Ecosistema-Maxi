@@ -26,7 +26,9 @@ from .models import (
     StatusCheckRequest,
     StatusCheckResponse,
     BillCheckRequest,
-    BillCheckResponse
+    BillCheckResponse,
+    CSATLogRequest,
+    CSATLogResponse
 )
 from .config import settings
 from .mcp_client import mcp_client
@@ -796,14 +798,14 @@ async def check_transaction_status(
                     logger.error(f"Error resetting attempts in Redis: {e}")
             return StatusCheckResponse(
                 status="success",
-                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
+                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con uno de nuestros asesores. Por favor espere un momento...",
                 derivacion="Servicio al Cliente",
                 validation_success=False
             )
         else:
             return StatusCheckResponse(
                 status="success",
-                reply_text="No encontré resultados con los datos proporcionados. ¿Podría verificarlos y compartirlos nuevamente, por favor?",
+                reply_text="No he podido localizar la información con los datos que me ha proporcionado. Por favor, confirmelos y escríbalos nuevamente.",
                 derivacion="NA",
                 validation_success=False
             )
@@ -902,14 +904,14 @@ async def check_transaction_status(
                     logger.error(f"Error resetting attempts in Redis: {e}")
             return StatusCheckResponse(
                 status="success",
-                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
+                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con uno de nuestros asesores. Por favor espere un momento...",
                 derivacion="Servicio al Cliente",
                 validation_success=False
             )
         else:
             return StatusCheckResponse(
                 status="success",
-                reply_text="No encontré resultados con los datos proporcionados. ¿Podría verificarlos y compartirlos nuevamente, por favor?",
+                reply_text="No he podido localizar la información con los datos que me ha proporcionado. Por favor, confirmelos y escríbalos nuevamente.",
                 derivacion="NA",
                 validation_success=False
             )
@@ -1256,19 +1258,19 @@ async def check_transaction_status(
                 is_guayaquil_cash = (status_upper == "STAND BY") and (record.get("Transferencia_Pagador") == "Banco de Guayaquil")
                 
                 if status_upper in transitorios_beneficiary and not is_guayaquil_cash:
-                    reply_text = "Por seguridad, solo podemos compartir los detalles del envío con la persona que lo realizó. Por favor, contáctela y pídale que se comunique con nosotros para darle la asistencia necesaria. Muchas gracias."
+                    reply_text = "Entendemos su consulta. Sin embargo, por motivos de seguridad, únicamente podemos compartir información de la operación con la persona que realizó el envío. \n\nLe sugerimos pedirle que nos contacte directamente por este medio para poder ayudarle de forma adecuada.\nGracias por su comprensión."
                     derivacion = "NA"
                 elif status_upper in ["PAID", "PAGADO"]:
-                    reply_text = "Verificando el estatus de la operación, el envío aparece en el sistema como pagado."
+                    reply_text = "Verificando la información, el envío aparece en el sistema como pagado."
                     derivacion = "NA"
                 elif status_upper in ["PAYMENT READY", "PAYMENT READY "] or is_guayaquil_cash:
-                    reply_text = "Verificando el estatus de la operación, el envío está disponible para cobro."
+                    reply_text = "Verificando la información, el envío está disponible para cobro."
                     derivacion = "NA"
                 elif status_upper in ["REJECTED", "CANCELLED"]:
-                    reply_text = "Verificando el estatus de la operación, lamentablemente el envío no pudo ser procesado exitosamente."
+                    reply_text = "Verificando la información, lamentablemente el envío no pudo ser procesado exitosamente. \n¿Le gustaría que lo comunique con un asesor?"
                     derivacion = "NA"
                 elif "VERIFY HOLD" in status_upper or "GATEWAY INFO" in status_upper:
-                    reply_text = "Por seguridad, solo podemos compartir los detalles del envío con la persona que lo realizó. Por favor, contáctela y pídale que se comunique con nosotros para darle la asistencia necesaria. Muchas gracias."
+                    reply_text = "Entendemos su consulta. Sin embargo, por motivos de seguridad, únicamente podemos compartir información de la operación con la persona que realizó el envío. \n\nLe sugerimos pedirle que nos contacte directamente por este medio para poder ayudarle de forma adecuada.\nGracias por su comprensión."
                     derivacion = "NA"
                 else:
                     reply_text = f"El estatus de su transacción es {status_clean}."
@@ -1297,18 +1299,18 @@ async def check_transaction_status(
                             derivacion = "Fuera de Horario SC"
                             reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
                 elif status_upper in ["PAID", "PAGADO"]:
-                    reply_text = "Verificando el estatus de la operación, el envío aparece en el sistema como pagado."
+                    reply_text = "Verificando la información, el envío aparece en el sistema como pagado."
                     derivacion = "NA"
                 elif status_upper in ["PAYMENT READY", "PAYMENT READY "]:
-                    reply_text = "Verificando el estatus de la operación, el envío está disponible para cobro."
+                    reply_text = "Verificando la información, el envío está disponible para cobro."
                     derivacion = "NA"
                 elif status_upper in ["REJECTED", "CANCELLED"]:
-                    reply_text = "Verificando el estatus de la operación, lamentablemente el envío no pudo ser procesado exitosamente."
+                    reply_text = "Verificando la información, lamentablemente el envío no pudo ser procesado exitosamente. \n¿Le gustaría que lo comunique con un asesor?"
                     derivacion = "NA"
                 elif status_upper == "UNCLAIMED HOLD":
                     if check_department_hours("SERVICIO AL CLIENTE", ct_now):
                         derivacion = "Servicio al Cliente"
-                        reply_text = "El plazo para cobrar el envío ya pasó, lo transferiré con un asesor de Servicio al Cliente para recibir asistencia personalizada. Por favor, espere mientras lo comunico."
+                        reply_text = "El plazo para cobrar el envío ha expirado, lo transferiré con un asesor. Por favor, espere un momento..."
                     else:
                         derivacion = "Fuera de Horario SC"
                         reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
@@ -1319,7 +1321,7 @@ async def check_transaction_status(
                 ]:
                     if check_department_hours("SERVICIO AL CLIENTE", ct_now):
                         derivacion = "Servicio al Cliente"
-                        reply_text = "El envío se encuentra en un estado de procesamiento transitorio, lo transferiré con un asesor de Servicio al Cliente para verificar la situación específica. Por favor, espere."
+                        reply_text = "Su operación está siendo procesada, lo transferiré con un asesor para verificar la situación específica. Por favor, espere un momento..."
                     else:
                         derivacion = "Fuera de Horario SC"
                         reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
@@ -1431,14 +1433,14 @@ async def check_bill_status(
                     logger.error(f"Error resetting bill attempts: {e}")
             return BillCheckResponse(
                 status="success",
-                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
+                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con uno de nuestros asesores. Por favor espere un momento...",
                 derivacion="Servicio al Cliente",
                 validation_success=False
             )
         else:
             return BillCheckResponse(
                 status="success",
-                reply_text="No encontré resultados con los datos proporcionados. ¿Podría verificarlos y compartirlos nuevamente, por favor?",
+                reply_text="No he podido localizar la información con los datos que me ha proporcionado. Por favor, confirmelos y escríbalos nuevamente.",
                 derivacion="NA",
                 validation_success=False
             )
@@ -1514,14 +1516,14 @@ async def check_bill_status(
                     logger.error(f"Error resetting attempts: {e}")
             return BillCheckResponse(
                 status="success",
-                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
+                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con uno de nuestros asesores. Por favor espere un momento...",
                 derivacion="Servicio al Cliente",
                 validation_success=False
             )
         else:
             return BillCheckResponse(
                 status="success",
-                reply_text="No encontré resultados con los datos proporcionados. ¿Podría verificarlos y compartirlos nuevamente, por favor?",
+                reply_text="No he podido localizar la información con los datos que me ha proporcionado. Por favor, confirmelos y escríbalos nuevamente.",
                 derivacion="NA",
                 validation_success=False
             )
@@ -1723,6 +1725,53 @@ async def check_bill_status(
         transaction_status=status_clean,
         client_profile=perfil
     )
+
+
+@app.post("/api/v1/csat/log", response_model=CSATLogResponse)
+async def log_csat_feedback(
+    request: CSATLogRequest,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
+):
+    """
+    Endpoint to log CSAT survey feedback directly to Google Sheets
+    using the Service Account.
+    """
+    incoming_secret = x_webhook_secret or secret
+    if incoming_secret != settings.WEBHOOK_SECRET:
+        logger.warning("❌ Invalid webhook secret in CSAT logging")
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+
+    logger.info(f"📥 Received CSAT log request: {request.dict()}")
+
+    try:
+        from api.google_sheets_service import GoogleSheetsService
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        # Get local MX/Central timestamp
+        tz = ZoneInfo("America/Mexico_City")
+        timestamp_str = datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
+
+        sheets_service = GoogleSheetsService()
+        success = await sheets_service.append_csat_log(
+            timestamp=timestamp_str,
+            contact_id=request.contact_id,
+            contact_name=request.contact_name,
+            rating=request.rating,
+            comment=request.comment or "",
+            assigned_agent=request.assigned_agent or "Desconocido"
+        )
+
+        if success:
+            return CSATLogResponse(status="success", message="CSAT logged successfully to Google Sheets")
+        else:
+            raise HTTPException(status_code=500, detail="Failed to write CSAT row to Google Sheets")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in CSAT logging endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 
 # ============================================================

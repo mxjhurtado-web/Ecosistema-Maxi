@@ -254,6 +254,60 @@ class GoogleSheetsService:
             logger.error(f"Failed to append log row to Google Sheets: {str(e)}")
             return False
 
+    async def append_csat_log(
+        self,
+        timestamp: str,
+        contact_id: str,
+        contact_name: str,
+        rating: int,
+        comment: str,
+        assigned_agent: str
+    ) -> bool:
+        """Append a CSAT response row to the designated Google Sheet"""
+        config = await config_manager.get_google_chat_config()
+        sa_b64 = config.sa_json_b64
+        
+        if not sa_b64:
+            logger.warning("Google Sheet CSAT logging skipped: Service Account credentials not configured")
+            return False
+            
+        try:
+            creds = await self._get_credentials(sa_b64)
+            if not creds:
+                logger.error("Failed to load credentials for Google Sheets")
+                return False
+                
+            creds.refresh(Request())
+            
+            spreadsheet_id = "1cpHiHYIHYZcDHdxgGrW5RD1ufefo_ROzqO4FwMRtG9Y"
+            
+            append_url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:append?valueInputOption=USER_ENTERED"
+            headers = {
+                "Authorization": f"Bearer {creds.token}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "values": [[
+                    timestamp,
+                    contact_id,
+                    contact_name,
+                    rating,
+                    comment,
+                    assigned_agent
+                ]]
+            }
+            async with httpx.AsyncClient() as client:
+                response = await client.post(append_url, json=payload, headers=headers)
+                if response.status_code == 200:
+                    logger.info(f"📊 CSAT log appended to Google Sheet for contact {contact_id}")
+                    return True
+                else:
+                    logger.error(f"Failed to append CSAT log to Google Sheets ({response.status_code}): {response.text}")
+                    return False
+        except Exception as e:
+            logger.error(f"Failed to append CSAT log to Google Sheets: {str(e)}")
+            return False
+
     async def fetch_faq_data(self, spreadsheet_id: str) -> Optional[str]:
         """Fetch FAQ data from a Google Sheet and format it as a knowledge base block for Gemini"""
         config = await config_manager.get_google_chat_config()

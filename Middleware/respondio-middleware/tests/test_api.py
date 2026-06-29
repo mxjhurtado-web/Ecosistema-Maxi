@@ -325,7 +325,7 @@ class TestStatusCheckEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["derivacion"] == "NA"
-        assert "No encontré resultados" in data["reply_text"]
+        assert "No he podido localizar" in data["reply_text"]
         assert data["validation_success"] is False
         self.mock_redis.set.assert_called_with("status_attempts:test_contact", "1", ex=3600)
 
@@ -585,7 +585,7 @@ class TestStatusCheckEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["derivacion"] == "NA"
-        assert "No encontré resultados" in data["reply_text"]
+        assert "No he podido localizar" in data["reply_text"]
         assert data["validation_success"] is False
 
     def test_status_check_fresh_data_in_session(self, client):
@@ -820,5 +820,60 @@ class TestBillCheckEndpoint:
         assert data["derivacion"] == "Servicio al Cliente"
         assert "no ha sido procesado" in data["reply_text"]
         assert data["validation_success"] is True
+
+
+class TestCSATLogEndpoint:
+    """Unit tests for POST /api/v1/csat/log endpoint"""
+
+    @patch("api.google_sheets_service.GoogleSheetsService.append_csat_log")
+    def test_csat_log_success(self, mock_append, client):
+        """Test successful CSAT logging"""
+        mock_append.return_value = True
+
+        response = client.post(
+            f"/api/v1/csat/log?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "12345",
+                "contact_name": "Juan Perez",
+                "rating": 5,
+                "comment": "Excelente atencion",
+                "assigned_agent": "@VerificadorEstatus"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert "logged successfully" in data["message"]
+        mock_append.assert_called_once()
+
+    def test_csat_log_invalid_secret(self, client):
+        """Test CSAT logging with invalid secret"""
+        response = client.post(
+            "/api/v1/csat/log?secret=wrong-secret",
+            json={
+                "contact_id": "12345",
+                "contact_name": "Juan Perez",
+                "rating": 5
+            }
+        )
+        assert response.status_code == 401
+
+    @patch("api.google_sheets_service.GoogleSheetsService.append_csat_log")
+    def test_csat_log_sheets_failure(self, mock_append, client):
+        """Test CSAT logging when Google Sheets writing fails"""
+        mock_append.return_value = False
+
+        response = client.post(
+            f"/api/v1/csat/log?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "12345",
+                "contact_name": "Juan Perez",
+                "rating": 2,
+                "comment": "Tardo mucho",
+                "assigned_agent": "ASESOR HUMAN"
+            }
+        )
+        assert response.status_code == 500
+
 
 
