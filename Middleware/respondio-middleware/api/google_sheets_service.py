@@ -840,6 +840,82 @@ class GoogleSheetsService:
             
         return rules
 
+    async def fetch_topup_status_rules(self, spreadsheet_id: str) -> Optional[list]:
+        """Fetch mobile top-up status rules from Google Sheets and return parsed rules list"""
+        config = await config_manager.get_google_chat_config()
+        sa_b64 = config.sa_json_b64
+        
+        if not sa_b64:
+            logger.warning("Google Sheets top-up status rules fetch skipped: Service Account credentials not configured")
+            return None
+            
+        try:
+            creds = await self._get_credentials(sa_b64)
+            if not creds:
+                return None
+            creds.refresh(Request())
+            
+            url = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/A1:H150"
+            headers = {
+                "Authorization": f"Bearer {creds.token}",
+                "Content-Type": "application/json"
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers)
+                if response.status_code != 200:
+                    url_fallback = f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/'Hoja 1'!A1:H150"
+                    response = await client.get(url_fallback, headers=headers)
+                    
+                if response.status_code != 200:
+                    logger.error(f"Failed to fetch top-up status rules from Google Sheets ({response.status_code}): {response.text}")
+                    return None
+                    
+                data = response.json()
+                rows = data.get("values", [])
+                
+                if not rows:
+                    logger.warning("Google Sheets top-up status rules is empty")
+                    return None
+                    
+                return self._parse_topup_status_rows(rows)
+                
+        except Exception as e:
+            logger.error(f"Failed to fetch or parse top-up status rules from Google Sheets: {str(e)}")
+            return None
+
+    def _parse_topup_status_rows(self, rows) -> list:
+        """Parse raw top-up status sheet rows into a structured list of dicts"""
+        rules = []
+        # Expecting headers: Categoria, Derivación a Departamento, Caso, Tipo de status, Status, Tipo de perfil, Código Script, Script Servicio al cliente
+        for idx, row in enumerate(rows):
+            if idx == 0:
+                continue
+            cols = [str(x).strip() if x is not None else "" for x in row]
+            if not any(cols) or len(cols) < 5:
+                continue
+            
+            categoria = cols[0]
+            derivacion = cols[1] if len(cols) > 1 else "NA"
+            caso = cols[2] if len(cols) > 2 else ""
+            tipo_status = cols[3] if len(cols) > 3 else ""
+            status = cols[4] if len(cols) > 4 else ""
+            perfil = cols[5] if len(cols) > 5 else ""
+            code_script = cols[6] if len(cols) > 6 else ""
+            script = cols[7] if len(cols) > 7 else ""
+            
+            rules.append({
+                "categoria": categoria,
+                "derivacion": derivacion,
+                "caso": caso,
+                "tipo_status": tipo_status,
+                "status": status,
+                "perfil": perfil,
+                "code_script": code_script,
+                "script": script
+            })
+        return rules
+
 
 # Singleton instance
 google_sheets_service = GoogleSheetsService()

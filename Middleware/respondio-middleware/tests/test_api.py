@@ -876,4 +876,187 @@ class TestCSATLogEndpoint:
         assert response.status_code == 500
 
 
+class TestTopupCheckEndpoint:
+    """Test /api/v1/topup/check endpoint"""
+
+    @pytest.fixture(autouse=True)
+    def setup_mocks(self):
+        # Mock Redis
+        self.mock_redis = AsyncMock()
+        self.mock_redis.get.return_value = None
+        self.patcher_redis = patch("api.main.get_redis_client", AsyncMock(return_value=self.mock_redis))
+        self.patcher_redis.start()
+        
+        yield
+        
+        self.patcher_redis.stop()
+
+    @patch("psycopg2.connect")
+    @patch("api.google_sheets_service.google_sheets_service.fetch_topup_status_rules", new_callable=AsyncMock)
+    def test_topup_check_paid_success(self, mock_fetch_rules, mock_connect, client):
+        """Test successful top-up status check for Paid status"""
+        # Mock DB record
+        mock_cursor = MagicMock()
+        mock_cursor.description = [
+            ("Date of Top UP",), ("Agent Code",), ("Agent Name",), 
+            ("Customer Number",), ("Cellular Number",), ("Folio",), 
+            ("Transaction ID",), ("Status",), ("Carrier",), 
+            ("Wholesale Price",), ("Retail Price",), ("Country",)
+        ]
+        mock_cursor.fetchone.return_value = (
+            '2026-03-01', 'AG001', 'Juan Perez', 10001, 5510000001, 'FOL001', 'TXN0001', 'Paid', 'Telcel', 90, 100, 'Mexico'
+        )
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_connect.return_value = mock_conn
+
+        # Mock Google Sheets rules
+        mock_fetch_rules.return_value = [
+            {
+                "categoria": "Solicitud de status",
+                "derivacion": "NA",
+                "caso": "Recarga telefónica",
+                "tipo_status": "No transitorio",
+                "status": "Paid- Recarga Telefónica",
+                "perfil": "Remitente o Agente",
+                "code_script": "SC.024",
+                "script": "Verificando la información, la recarga se realizó exitosamente."
+            }
+        ]
+
+        response = client.post(
+            f"/api/v1/topup/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "",
+                "transaction_id": "TXN0001",
+                "customer_number": "10001",
+                "cellular_number": "5510000001",
+                "perfil": "CLIENTE"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert "exitosamente" in data["reply_text"]
+        assert data["derivacion"] == "NA"
+        assert data["validation_success"] is True
+        assert data["transaction_status"] == "Paid"
+
+    @patch("psycopg2.connect")
+    @patch("api.google_sheets_service.google_sheets_service.fetch_topup_status_rules", new_callable=AsyncMock)
+    def test_topup_check_cancelled_success(self, mock_fetch_rules, mock_connect, client):
+        """Test successful top-up status check for Cancelled status"""
+        mock_cursor = MagicMock()
+        mock_cursor.description = [
+            ("Date of Top UP",), ("Agent Code",), ("Agent Name",), 
+            ("Customer Number",), ("Cellular Number",), ("Folio",), 
+            ("Transaction ID",), ("Status",), ("Carrier",), 
+            ("Wholesale Price",), ("Retail Price",), ("Country",)
+        ]
+        mock_cursor.fetchone.return_value = (
+            '2026-03-01', 'AG001', 'Juan Perez', 10001, 5510000001, 'FOL001', 'TXN0001', 'Cancell', 'Telcel', 90, 100, 'Mexico'
+        )
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_connect.return_value = mock_conn
+
+        # Mock Google Sheets rules
+        mock_fetch_rules.return_value = [
+            {
+                "categoria": "Solicitud de status",
+                "derivacion": "NA",
+                "caso": "Recarga telefónica",
+                "tipo_status": "No transitorio",
+                "status": "Cancelled - Recarga Telefónica",
+                "perfil": "Remitente o Agente",
+                "code_script": "SC.025",
+                "script": "Verificando la información, la recarga no se procesó exitosamente.\n¿Le gustaría que lo comunique con un asesor?"
+            }
+        ]
+
+        response = client.post(
+            f"/api/v1/topup/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "",
+                "transaction_id": "TXN0001",
+                "customer_number": "10001",
+                "cellular_number": "5510000001",
+                "perfil": "CLIENTE"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert "no se procesó exitosamente" in data["reply_text"]
+        assert data["derivacion"] == "NA"
+        assert data["validation_success"] is True
+
+    @patch("psycopg2.connect")
+    def test_topup_check_validation_failure(self, mock_connect, client):
+        """Test top-up check when validation of numbers fails (mismatch)"""
+        # DB returns valid record
+        mock_cursor = MagicMock()
+        mock_cursor.description = [
+            ("Customer Number",), ("Cellular Number",)
+        ]
+        # Return different cellular number (9999999999 instead of 5510000001)
+        mock_cursor.fetchone.return_value = (10001, 9999999999)
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_connect.return_value = mock_conn
+
+        # 1st fail: should return SC.029 / re-verification
+        response = client.post(
+            f"/api/v1/topup/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "",
+                "transaction_id": "TXN0001",
+                "customer_number": "10001",
+                "cellular_number": "5510000001",
+                "perfil": "CLIENTE"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["derivacion"] == "NA"
+        assert "No he podido localizar" in data["reply_text"]
+        assert data["validation_success"] is False
+
+    @patch("psycopg2.connect")
+    def test_topup_check_validation_mismatch_limit_reached(self, mock_connect, client):
+        """Test top-up check when validation limits (2 attempts) are reached"""
+        mock_cursor = MagicMock()
+        mock_cursor.description = [
+            ("Customer Number",), ("Cellular Number",)
+        ]
+        mock_cursor.fetchone.return_value = (10001, 9999999999)
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_connect.return_value = mock_conn
+
+        # Mock Redis to return val_attempts = 1
+        self.mock_redis.get.return_value = b"1"
+
+        response = client.post(
+            f"/api/v1/topup/check?secret={settings.WEBHOOK_SECRET}",
+            json={
+                "contact_id": "test_contact",
+                "user_text": "",
+                "transaction_id": "TXN0001",
+                "customer_number": "10001",
+                "cellular_number": "5510000001",
+                "perfil": "CLIENTE"
+            }
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["derivacion"] == "Servicio al Cliente"
+        assert "No fue posible procesar" in data["reply_text"]
+        assert data["validation_success"] is False
+
+
+
 

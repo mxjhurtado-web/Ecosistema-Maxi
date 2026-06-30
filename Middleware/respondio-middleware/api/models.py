@@ -354,4 +354,26 @@ class CSATLogResponse(BaseModel):
     message: str = Field(..., description="Mensaje explicativo")
 
 
+class TopupCheckRequest(BaseModel):
+    """Request structure for mobile top-up check"""
+    contact_id: str = Field(..., description="ID del contacto en Respond.io")
+    user_text: str = Field(..., description="Mensaje del usuario")
+    contact_name: Optional[str] = Field(None, description="Nombre del contacto")
+    transaction_id: Optional[str] = Field(None, description="ID de transacción / Folio de recarga")
+    customer_number: Optional[str] = Field(None, description="Número telefónico del cliente")
+    cellular_number: Optional[str] = Field(None, description="Número telefónico destino de recarga")
+    perfil: Optional[str] = Field(default="CLIENTE", description="Perfil del usuario (CLIENTE, BENEFICIARIO, AGENTE)")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Metadata adicional")
+
+
+class TopupCheckResponse(BaseModel):
+    """Response structure for mobile top-up check"""
+    status: str = Field(..., description="Estatus del procesamiento ('success' o 'error')")
+    reply_text: str = Field(..., description="Mensaje de respuesta para el usuario")
+    derivacion: str = Field(..., description="Departamento al que se deriva el contacto")
+    validation_success: bool = Field(..., description="Si la validación fue exitosa")
+    transaction_status: Optional[str] = Field(None, description="Estatus original de la transacción en la base de datos")
+    client_profile: Optional[str] = Field(None, description="Perfil final determinado para el usuario")
+
+
 

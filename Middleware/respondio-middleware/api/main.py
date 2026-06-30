@@ -28,7 +28,9 @@ from .models import (
     BillCheckRequest,
     BillCheckResponse,
     CSATLogRequest,
-    CSATLogResponse
+    CSATLogResponse,
+    TopupCheckRequest,
+    TopupCheckResponse
 )
 from .config import settings
 from .mcp_client import mcp_client
@@ -1772,6 +1774,335 @@ async def log_csat_feedback(
     except Exception as e:
         logger.error(f"Error in CSAT logging endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+
+@app.post("/api/v1/topup/check", response_model=TopupCheckResponse)
+async def check_topup_status(
+    request: TopupCheckRequest,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
+):
+    """
+    Endpoint for validating mobile top-up checks, verifying customer number & cellular number,
+    applying sheet-based status rules and department routing.
+    """
+    # 1. Validate secret
+    incoming_secret = x_webhook_secret or secret
+    if incoming_secret != settings.WEBHOOK_SECRET:
+        logger.warning("❌ Invalid webhook secret in top-up status check")
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+        
+    logger.info(f"📥 Received top-up check request: {request.dict()}")
+
+    def sanitize_input(v: Any) -> Optional[str]:
+        if v is None:
+            return None
+        v_str = str(v).strip().strip(",").strip()
+        if (v_str in [",", "%", "", "null", "None"] or 
+            v_str.startswith("$") or 
+            "{{" in v_str or 
+            "}}" in v_str):
+            return None
+        return v_str
+
+    user_text = sanitize_input(request.user_text) or ""
+    contact_id = sanitize_input(request.contact_id) or "-1"
+    contact_name = sanitize_input(request.contact_name)
+    
+    metadata = request.metadata or {}
+    transaction_id = sanitize_input(request.transaction_id) or sanitize_input(metadata.get("transaction_id"))
+    customer_number = sanitize_input(request.customer_number) or sanitize_input(metadata.get("customer_number"))
+    cellular_number = sanitize_input(request.cellular_number) or sanitize_input(metadata.get("cellular_number"))
+    perfil = sanitize_input(request.perfil) or sanitize_input(metadata.get("perfil")) or sanitize_input(metadata.get("perfil_usuario"))
+    
+    if perfil:
+        perfil = perfil.upper()
+    else:
+        perfil = "CLIENTE"
+        
+    # Get Redis client
+    redis = None
+    try:
+        redis = await get_redis_client()
+    except Exception as redis_err:
+        logger.warning(f"Redis connection not available for top-up check: {redis_err}")
+
+    # Attempts keys
+    attempts_key = f"topup_attempts:{contact_id}"
+    validation_key = f"topup_val_attempts:{contact_id}"
+    
+    attempts = 0
+    val_attempts = 0
+    if redis:
+        try:
+            attempts_val = await redis.get(attempts_key)
+            attempts = int(attempts_val.decode('utf-8')) if attempts_val else 0
+            
+            val_attempts_val = await redis.get(validation_key)
+            val_attempts = int(val_attempts_val.decode('utf-8')) if val_attempts_val else 0
+        except Exception as e:
+            logger.error(f"Error reading top-up attempts from Redis: {e}")
+
+    # If transaction_id is missing, handle error/re-verification
+    if not transaction_id:
+        attempts += 1
+        if redis:
+            try:
+                await redis.set(attempts_key, str(attempts), ex=3600)
+            except Exception as e:
+                logger.error(f"Error setting top-up attempts in Redis: {e}")
+                
+        if attempts >= 2:
+            if redis:
+                try:
+                    await redis.set(attempts_key, "0", ex=3600)
+                except Exception as e:
+                    logger.error(f"Error resetting top-up attempts: {e}")
+            return TopupCheckResponse(
+                status="success",
+                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.",
+                derivacion="Servicio al Cliente",
+                validation_success=False
+            )
+        else:
+            return TopupCheckResponse(
+                status="success",
+                reply_text="No he podido localizar la información con los datos que me ha proporcionado. Por favor, confirmelos y escríbalos nuevamente para realizar una nueva consulta.",
+                derivacion="NA",
+                validation_success=False
+            )
+
+    # Reset lookup attempts since transaction_id was provided
+    if redis:
+        try:
+            await redis.set(attempts_key, "0", ex=3600)
+        except Exception as e:
+            logger.error(f"Error resetting top-up attempts: {e}")
+
+    # Query database for the record
+    record = None
+    if settings.SUPABASE_URI:
+        try:
+            import psycopg2
+            conn = psycopg2.connect(settings.SUPABASE_URI)
+            cursor = conn.cursor()
+            # Double quotes because of column spaces / casing
+            cursor.execute('SELECT * FROM public."Recargas" WHERE "Transaction ID" = %s;', (transaction_id,))
+            row = cursor.fetchone()
+            if row:
+                colnames = [desc[0] for desc in cursor.description]
+                record = dict(zip(colnames, row))
+            cursor.close()
+            conn.close()
+            logger.info(f"✅ Top-up record found via PostgreSQL for transaction_id {transaction_id}")
+        except Exception as db_err:
+            logger.error(f"PostgreSQL query failed for top-up: {db_err}")
+            record = None
+
+    if not record:
+        # Not found
+        val_attempts += 1
+        if redis:
+            try:
+                await redis.set(validation_key, str(val_attempts), ex=3600)
+            except Exception as e:
+                logger.error(f"Error saving validation attempts in Redis: {e}")
+                
+        if val_attempts >= 2:
+            if redis:
+                try:
+                    await redis.set(validation_key, "0", ex=3600)
+                except Exception as e:
+                    logger.error(f"Error resetting validation attempts: {e}")
+            return TopupCheckResponse(
+                status="success",
+                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.",
+                derivacion="Servicio al Cliente",
+                validation_success=False
+            )
+        else:
+            return TopupCheckResponse(
+                status="success",
+                reply_text="No he podido localizar la información con los datos que me ha proporcionado. Por favor, confirmelos y escríbalos nuevamente para realizar una nueva consulta.",
+                derivacion="NA",
+                validation_success=False
+            )
+
+    # Identity Verification: match Customer Number and Cellular Number
+    db_customer = record.get("Customer Number")
+    db_cellular = record.get("Cellular Number")
+    
+    # Clean non-digits and parse as int for robust comparison
+    def clean_phone_to_int(val: Any) -> Optional[int]:
+        if val is None:
+            return None
+        cleaned = re.sub(r"\D", "", str(val))
+        return int(cleaned) if cleaned else None
+
+    user_customer_cleaned = clean_phone_to_int(customer_number)
+    user_cellular_cleaned = clean_phone_to_int(cellular_number)
+    
+    db_customer_cleaned = clean_phone_to_int(db_customer)
+    db_cellular_cleaned = clean_phone_to_int(db_cellular)
+    
+    customer_ok = (user_customer_cleaned == db_customer_cleaned) if (user_customer_cleaned is not None and db_customer_cleaned is not None) else False
+    cellular_ok = (user_cellular_cleaned == db_cellular_cleaned) if (user_cellular_cleaned is not None and db_cellular_cleaned is not None) else False
+    
+    if not customer_ok or not cellular_ok:
+        val_attempts += 1
+        if redis:
+            try:
+                await redis.set(validation_key, str(val_attempts), ex=3600)
+            except Exception as e:
+                logger.error(f"Error saving validation attempts: {e}")
+                
+        if val_attempts >= 2:
+            if redis:
+                try:
+                    await redis.set(validation_key, "0", ex=3600)
+                except Exception as e:
+                    logger.error(f"Error resetting validation attempts: {e}")
+            return TopupCheckResponse(
+                status="success",
+                reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.",
+                derivacion="Servicio al Cliente",
+                validation_success=False
+            )
+        else:
+            return TopupCheckResponse(
+                status="success",
+                reply_text="No he podido localizar la información con los datos que me ha proporcionado. Por favor, confirmelos y escríbalos nuevamente para realizar una nueva consulta.",
+                derivacion="NA",
+                validation_success=False
+            )
+
+    # Reset attempts upon successful match
+    if redis:
+        try:
+            await redis.set(validation_key, "0", ex=3600)
+        except Exception as e:
+            logger.error(f"Error resetting validation attempts: {e}")
+
+    # Match rules from Google Sheets
+    status_rules = None
+    sheet_id = settings.GOOGLE_SHEET_ID_TOPUP_ESTATUS or "1E3pNthg7myh7tgjEnb_TIxCnTLFi_gzWlcxk2LOdNCs"
+    if sheet_id:
+        if redis:
+            try:
+                cached_val = await redis.get("google_sheets:topup_status_cache")
+                if cached_val:
+                    status_rules = json.loads(cached_val.decode('utf-8'))
+            except Exception as e:
+                logger.error(f"Error reading top-up status rules cache: {e}")
+                
+        if not status_rules:
+            from .google_sheets_service import google_sheets_service
+            status_rules = await google_sheets_service.fetch_topup_status_rules(sheet_id)
+            if status_rules and redis:
+                try:
+                    await redis.setex("google_sheets:topup_status_cache", 3600, json.dumps(status_rules))
+                except Exception as e:
+                    logger.error(f"Error caching top-up status rules: {e}")
+
+    # Determine status matching
+    db_status = str(record.get("Status", "")).strip()
+    status_clean = db_status
+    if db_status.lower() == "cancell":
+        status_clean = "Cancelled"  # normalize to Cancelled to match sheet "Cancelled - Recarga Telefónica"
+
+    perfil_upper = perfil.upper().strip()
+    
+    def profile_matches(u_prof: str, r_prof: str) -> bool:
+        if not r_prof:
+            return True
+        u_p = u_prof.upper().strip()
+        r_p = r_prof.upper().strip()
+        if "REMITE" in r_p or "AGENTE" in r_p or "BENEFICIARIO" in r_p:
+            if u_p in ["CLIENTE", "REMITENTE", "AGENTE"]:
+                return "REMITE" in r_p or "AGENTE" in r_p
+            elif u_p == "BENEFICIARIO":
+                return "BENEFICIARIO" in r_p
+        return u_p == r_p
+
+    # Decidir si buscamos Solicitud de status o Consulta de status en Chronos
+    user_intent = metadata.get("intencion_usuario") or ""
+    category_to_match = "Solicitud de status"
+    if user_intent and "estatus" not in user_intent.lower() and "status" not in user_intent.lower():
+        category_to_match = "Consulta de status en Chronos"
+
+    matched_rule = None
+    if status_rules:
+        logger.info(f"Loaded top-up status_rules: {status_rules}")
+        for rule in status_rules:
+            rule_status = rule["status"].lower().strip()
+            rule_profile = rule.get("perfil", "")
+            rule_category = rule.get("categoria", "").lower().strip()
+            
+            # Match profile
+            if not profile_matches(perfil_upper, rule_profile):
+                continue
+                
+            # Match category
+            if category_to_match.lower().strip() not in rule_category:
+                continue
+                
+            # Match status
+            is_match = (status_clean.lower() == rule_status) or (status_clean.lower() in rule_status) or (rule_status in status_clean.lower())
+            if not is_match:
+                if status_clean.lower() in ["cancell", "cancelled"] and "cancel" in rule_status:
+                    is_match = True
+                elif status_clean.lower() == "paid" and "paid" in rule_status:
+                    is_match = True
+                    
+            if is_match:
+                matched_rule = rule
+                break
+
+    # Local fallback
+    if not matched_rule:
+        logger.warning(f"No sheet status rule matched for topup status={status_clean}. Using local fallback.")
+        if status_clean.lower() == "paid":
+            matched_rule = {
+                "script": "Verificando la información, la recarga se realizó exitosamente.",
+                "derivacion": "NA"
+            }
+        else:
+            matched_rule = {
+                "script": "Verificando la información, la recarga no se procesó exitosamente.\n¿Le gustaría que lo comunique con un asesor?",
+                "derivacion": "NA"
+            }
+
+    script_text = matched_rule["script"]
+    deriv_raw = matched_rule["derivacion"].strip()
+    
+    derivacion = "NA"
+    reply_text = script_text
+    
+    if "SERVICIO AL CLIENTE" in deriv_raw.upper() or "SERVICIO A CLIENTE" in deriv_raw.upper():
+        from .main import check_department_hours, get_central_time
+        ct_now = get_central_time()
+        if check_department_hours("SERVICIO AL CLIENTE", ct_now):
+            derivacion = "Servicio al Cliente"
+        else:
+            derivacion = "Fuera de Horario SC"
+            reply_text = (
+                f"{reply_text}\n\n"
+                "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto "
+                "retomemos el servicio. Gracias por su paciencia."
+            )
+            
+    # Prepend safety headers
+    safety_header = f"[TRANSACTION ID: {transaction_id}] [CUSTOMER NUMBER: {db_customer}] [CELLULAR NUMBER: {db_cellular}] [STATUS: {db_status}] "
+    reply_text_with_header = safety_header + reply_text
+
+    return TopupCheckResponse(
+        status="success",
+        reply_text=reply_text_with_header,
+        derivacion=derivacion,
+        validation_success=True,
+        transaction_status=db_status,
+        client_profile=perfil
+    )
 
 
 # ============================================================

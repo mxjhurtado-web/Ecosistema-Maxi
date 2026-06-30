@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     GOOGLE_SHEET_ID_SCRIPTS: str = "18VE3tdVt4E-eNrf0dD4zlk1aLV2nfv9_ncdUvLPaNic"
     GOOGLE_SHEET_ID_ESTATUS: Optional[str] = "14BdjBuXPXPkjXMKS-955fA6bNw5qRMv5IWCNhMZGIXc"
     GOOGLE_SHEET_ID_BILL_ESTATUS: Optional[str] = "16fB_MGtha0NUtp5mge7UwvHcWo1NYVnOGVv6Yntv9xo"
+    GOOGLE_SHEET_ID_TOPUP_ESTATUS: Optional[str] = "1E3pNthg7myh7tgjEnb_TIxCnTLFi_gzWlcxk2LOdNCs"
+    
     
     # Supabase (PostgreSQL)
     SUPABASE_URI: Optional[str] = "postgresql://postgres:PruebaBoot2025.*@db.tzlomvpugmrpdfatscxe.supabase.co:5432/postgres"
