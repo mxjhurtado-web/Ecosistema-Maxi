@@ -1504,11 +1504,13 @@ Tu única función es aplicar la encuesta de satisfacción de servicio al client
   * **A. Obtener Scripts CSAT:**
     * **Método:** `GET`
     * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.034,SC.035,SC.036&secret=maxi-secret-2025`
+    * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica los scripts de escala de satisfacción (SC.034), solicitud de comentario (SC.035) y despedida oficial (SC.036).`
     * **Resultado:** Devuelve las plantillas de encuesta (`SC.034`), retroalimentación (`SC.035`) y despedida (`SC.036`).
 
   * **B. Registrar Calificación en Google Sheets:**
     * **Método:** `POST`
     * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/csat/log?secret=maxi-secret-2025`
+    * **Instrucción de Configuración:** `Ejecuta esta acción al finalizar la recolección de la encuesta para registrar la calificación (1 al 5), el comentario y el agente previo que atendió la conversación en la hoja de cálculo de Google Sheets.`
     * **Cuerpo JSON:**
       ```json
       {
