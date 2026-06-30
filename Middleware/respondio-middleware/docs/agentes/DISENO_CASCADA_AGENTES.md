@@ -130,8 +130,8 @@ Identifica la intención, actualiza `intencion_usuario` y asigna al especialista
   *Keywords soporte interno:* `auditoría`, `IRS`, `carta+agente`, `capacitación`, `antilavado`, `diploma`, `CFPB`, `KYC`, `bloqueo`, `AML`, `balance`, `agencia+suspendida`, `reactivar+agencia`, `cheque`, `sistema`, `Hermes`, `contraseña`, `tipo de cambio`, `nuevo usuario`, `convertirse en agente`, `soporte técnico`, `falla`, `computadora`, `compu`, `impresora`, `cámara`, `teclado`, `no funciona`, `no prende`, `configurar`, `equipo técnico`, `mouse`.
 
 **PASO 7 — RUTEO A EQUIPOS HUMANOS** (`{{@team.43621}}`)
-- Disputas / Reg-E: Llama a **Consulta Dinámica de Diálogos** con `codes=SC.031`, envía el script verbatim y transfiere.
-- Privacidad: Llama a **Consulta Dinámica de Diálogos** con `codes=SC.019`, envía el script verbatim y transfiere.
+- Disputas / Reg-E: Llama a **Consulta Dinámica de Diálogos** con `codes=SC.013`, envía el script verbatim y transfiere.
+- Privacidad: Llama a **Consulta Dinámica de Diálogos** con `codes=SC.013`, envía el script verbatim y transfiere.
 - Solicitud humana explícita: Transfiere respetando horario L-V 09-21, S-D 09-19 CT. Fuera de horario, informa y deja en cola.
 
 **PASO 8 — CAMPOS OBLIGATORIOS ANTES DEL HANDOFF**
@@ -171,7 +171,7 @@ Antes de asignar a cualquier agente/equipo, actualiza: `perfil_usuario`, `intenc
     * `intentos_fallidos_matching` (Numérico): Contador de fallos acumulados en la sesión activa.
     * `departamento_destino` (Texto): Mapeado dinámicamente desde el backend (`derivacion`).
     * `requiere_handoff_humano` (Booleano): Configurado a `true` si el estatus requiere transferencia o si falla la validación.
-    * `motivo_handoff` (Texto): Razón detallada de la escalación (ej: `Verify Hold KYC`, `Match fallido tras 3 intentos`, etc.).
+    * `motivo_handoff` (Texto): Razón detallada de la escalación (ej: `Verify Hold KYC`, `Match fallido tras 2 intentos`, etc.).
     * `csat_agente_previo` (Texto): Guardar `"@VerificadorEstatus"` para identificar el origen en la encuesta.
   * **Asignar a agente o equipo (Assign to agent or team):**
     * Si la derivación del backend es "Cumplimiento" ➔ `@AgenteComunicador`
@@ -296,13 +296,13 @@ Si el cliente no tiene más dudas, desiste de realizar otra consulta o responde 
 * **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
   * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
     * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.10,RNE.14,RNE.19,RNE.40,RNE.41,RNE.42,RNE.49,RNE.56,RNE.57,RNE.59&secret=maxi-secret-2025`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.10,RNE.13,RNE.19,RNE.26,RNE.27,RNE.28,RNE.29,RNE.30,RNE.31,RNE.32,RNE.33,RNE.34,RNE.35,RNE.36,RNE.37,RNE.38,RNE.39,RNE.49,RNE.56,RNE.57,RNE.59&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve las políticas vigentes de rastreo directamente desde el Google Sheet de Reglas.
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.007,SC.008,SC.009,SC.010,SC.012,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.008,SC.010.1,SC.012,SC.013,SC.021,SC.022,SC.023,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de confirmación (`SC.008`), solicitud de datos (`SC.009`/`SC.010`), primer fallo matching (`SC.029`), transferencia por 2 fallos (`SC.012`), ayuda adicional (`SC.033`) y despedida (`SC.036`).
@@ -726,13 +726,13 @@ Si el cliente no tiene más dudas, desiste de realizar otra consulta o responde 
   * **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
     * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
       * **Método:** `GET`
-      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.10,RNE.14,RNE.19,RNE.40,RNE.41,RNE.42,RNE.49,RNE.56,RNE.57,RNE.59&secret=maxi-secret-2025`
+      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.10,RNE.13,RNE.19,RNE.26,RNE.27,RNE.28,RNE.29,RNE.30,RNE.31,RNE.32,RNE.33,RNE.34,RNE.35,RNE.36,RNE.37,RNE.38,RNE.39,RNE.49,RNE.56,RNE.57,RNE.59&secret=maxi-secret-2025`
       * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
       * **Cuerpo JSON:** *Sin cuerpo (vacío)*
       * **Resultado:** Devuelve las políticas vigentes de rastreo directamente desde el Google Sheet de Reglas.
     * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
       * **Método:** `GET`
-      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.007,SC.008,SC.009,SC.010,SC.012,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
+      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.008,SC.010.1,SC.012,SC.013,SC.021,SC.022,SC.023,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
       * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
       * **Cuerpo JSON:** *Sin cuerpo (vacío)*
       * **Resultado:** Devuelve los textos oficiales de confirmación (`SC.008`), solicitud de datos de bill (`SC.010.1`), intentos fallidos y transferencia (`SC.012`), transferencia general (`SC.013`), scripts específicos de bill (`SC.021`/`SC.022`/`SC.023`), primer fallo (`SC.029`), ayuda adicional (`SC.033`) y despedida (`SC.036`).
@@ -814,7 +814,7 @@ Tu objetivo es tomar decisiones basadas únicamente en el horario en que el usua
 2. ACCIONES POR CATEGORÍA DE HORARIO
 
 * **Si el horario corresponde a la Categoría A:**
-  - 2.1. Realiza la llamada HTTP **Consulta Dinámica de Diálogos** (`GET /api/v1/scripts?codes=SC.030,SC.036,SC.027`) de forma silenciosa para obtener los scripts oficiales.
+  - 2.1. Realiza la llamada HTTP **Consulta Dinámica de Diálogos** (`GET /api/v1/scripts?codes=SC.001,SC.002,SC.013,SC.027,SC.030,SC.036`) de forma silenciosa para obtener los scripts oficiales.
   - 2.2. Envía al usuario de forma textual el script **SC.030** ("Entiendo la situación. Su solicitud es de alta prioridad para nosotros, lo comunicará inmediatamente con un asesor para darle atención urgente.").
   - 2.3. Ejecuta la acción HTTP `Notificar_Fraudes` con nivel de alerta 'ERROR', enviando el resumen (Timestamp, ID de conversación, Datos del usuario, Historial de mensaje) a Google Chat.
   - 2.4. Envía al usuario el script **SC.036** ("Gracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día.").
@@ -851,7 +851,7 @@ Tu objetivo es tomar decisiones basadas únicamente en el horario en que el usua
     * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.027,SC.030,SC.036&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de fuera de horario (`SC.032`), prevención de fraude (`SC.030`) and despedida (`SC.036`).
+    * **Resultado:** Devuelve los textos oficiales de fuera de horario (`SC.027`), prevención de fraude (`SC.030`) and despedida (`SC.036`).
 
 * **Configuración de la Acción HTTP (`Notificar_Fraudes`):**
   * **Método:** `POST`
@@ -947,7 +947,7 @@ Verifica el horario en que el usuario se comunica (hora centro de Estados Unidos
 2. ACCIONES POR CATEGORÍA DE HORARIO
 
 * **Si el horario corresponde a la Categoría A:**
-  - 2.1. Realiza la llamada HTTP **Consulta Dinámica de Diálogos** (`GET /api/v1/scripts?codes=SC.030,SC.036,SC.027`) de forma silenciosa para obtener los scripts oficiales.
+  - 2.1. Realiza la llamada HTTP **Consulta Dinámica de Diálogos** (`GET /api/v1/scripts?codes=SC.001,SC.002,SC.013,SC.027,SC.030,SC.036`) de forma silenciosa para obtener los scripts oficiales.
   - 2.2. Envía al usuario de forma textual el script **SC.030** ("Entiendo la situación. Su solicitud es de alta prioridad para nosotros, lo comunicará inmediatamente con un asesor para darle atención urgente.").
   - 2.3. Ejecuta la acción HTTP `Notificar_BSA` con nivel de alerta 'ERROR', enviando el resumen (Timestamp, ID de conversación, Datos del usuario, Historial de mensaje) a Google Chat.
   - 2.4. Envía al usuario el script **SC.036** ("Gracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día.").
@@ -984,7 +984,7 @@ Verifica el horario en que el usuario se comunica (hora centro de Estados Unidos
     * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.027,SC.030,SC.036&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de fuera de horario (`SC.032`), sospecha/fraude (`SC.030`) y despedida (`SC.036`).
+    * **Resultado:** Devuelve los textos oficiales de fuera de horario (`SC.027`), sospecha/fraude (`SC.030`) y despedida (`SC.036`).
 
 * **Configuración de la Acción HTTP (`Notificar_BSA`):**
   * **Método:** `POST`
@@ -1044,7 +1044,7 @@ Eres el Agente Comunicador de MAXI. Tu único propósito es interactuar con el u
 1. **SIN SALUDOS INICIALES EN VACÍO**: No inicies con un saludo si el chat está vacío. Si eres asignado a una conversación activa o transferido por bloqueo (`Gateway Info Required` o `Verify Hold`), interviene proactivamente y solicita los documentos/detalles.
 2. **EVITA DUPLICADOS**: Si ya existe un saludo en el historial, no repitas. Ve al grano.
 3. **NOTIFICAR TRANSFERENCIA (SC.011)**: Envía obligatoriamente el siguiente mensaje de transferencia al usuario antes de disparar la acción HTTP:
-   *"Entendido su solicitud. Este caso requiere atención de un área especializada. Canalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible, Gracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día."*
+   *Recupera el script SC.011 mediante Consulta Dinámica de Diálogos y envíalo verbatim antes de ejecutar la notificación HTTP.*
 4. **BLOQUEO POR FALTA DE DATOS (MÁXIMA PRIORIDAD)**:
    Está **estrictamente prohibido** ejecutar la acción HTTP si falta alguno de los siguientes datos mínimos. Si faltan, pídelos uno a uno de forma educada:
    * **Oversight, Capacitación, Cobranza, Cheques, Soporte y Ventas**: Nombre del usuario, Número de agencia (Hermes) y Contexto del reporte.
@@ -1318,7 +1318,7 @@ Si la imagen o documento recibido **no corresponde a ninguna** de las opciones d
 * **Llamadas HTTP para Consulta Dinámica de Diálogos:**
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.030,SC.036,SC.027&secret=maxi-secret-2025`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.001,SC.002,SC.013,SC.027,SC.030,SC.036&secret=maxi-secret-2025`
     * **Instrucción de Configuración:** `Ejecuta esta acción cuando necesites recuperar los scripts oficiales de input ilegible (`SC.001`), desborde (`SC.002`), transferencia general (`SC.013`), prevención de fraude (`SC.030`) o despedida (`SC.036`).`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de despedida (`SC.036`) y fraude (`SC.030`).
@@ -1449,7 +1449,7 @@ Si el cliente no tiene más dudas o responde negativamente a la oferta de ayuda 
 
     * **Consulta Dinámica de Diálogos (Obtener Scripts):**
       * **Método:** `GET`
-      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.008,SC.010.2,SC.012,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
+      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.008,SC.010.2,SC.012,SC.013,SC.024,SC.025,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
       * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica los scripts de diálogos de recargas y seguridad (SC.008, SC.010.2, SC.012, SC.029, SC.033, SC.036).`
       * **Cuerpo JSON:** *Sin cuerpo (vacío)*
       * **Resultado:** Devuelve las plantillas oficiales para diálogos y handoffs.
