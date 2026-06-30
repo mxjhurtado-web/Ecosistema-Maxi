@@ -34,12 +34,13 @@ Todos los agentes IA (Maestro y Especialistas) comparten las siguientes directiv
   * **Asignar a agente o equipo (Assign to agent or team):**
     * Configurar según intenciones:
       * estatus_transaccion ➔ **`@Chronos_Estatus`** (`{{@ai-agent.1129471}}`)
+      * estatus_pago_bill ➔ **`@VerificadorPagoBill`** (`{{@ai-agent.1130502}}`)
+      * estatus_recarga ➔ **`@VerificadorEstatusRecargas`**
       * cancelacion_money_order ➔ **`@Mora_MoneyOrder`** (`{{@ai-agent.1130467}}`)
       * historial_envios ➔ **`@Historial_Envios`** (`{{@ai-agent.1130490}}`)
       * cancelacion_envio ➔ **`@Nexo_OperacionEnvio`** (`{{@ai-agent.1130493}}`)
       * modificacion_datos ➔ **`@Nexo_OperacionEnvio`** (`{{@ai-agent.1130499}}`)
       * pagos_bill_recarga_deposito ➔ **`@Gaia_Pagos`** (`{{@ai-agent.1130509}}`)
-      * estatus_pago_bill ➔ **`@VerificadorPagoBill`** (`{{@ai-agent.1130502}}`)
       * fraude_estafa ➔ **`@DerivacionFraudes`** (`{{@ai-agent.1130613}}`)
       * actividad_sospechosa ➔ **`@DerivacionBSA`** (`{{@ai-agent.1130618}}`)
       * tipo_input=documento ➔ **`@OrquestadorDocumentos`** (`{{@ai-agent.1135529}}`)
@@ -117,7 +118,9 @@ Antes de actuar, realiza la llamada HTTP **Consulta Dinámica de Reglas** (`GET 
 
 **PASO 6 — RUTEO A AGENTES IA ESPECIALIZADOS**
 Identifica la intención, actualiza `intencion_usuario` y asigna al especialista en silencio:
-- `estatus_transaccion` → Rastreo de envíos, bill payments, recargas. Incluye intenciones implícitas (ej: *"no ha podido cobrar"*, *"no ha llegado"*, *"no lo pueden retirar"*, *"saber si ya cobraron"*, *"listo para cobro"*). ➔ Asigna a `@VerificadorEstatus` (`{{@ai-agent.1129471}}`).
+- `estatus_transaccion` → Rastreo de envíos de dinero (remesas). Incluye: *"no ha podido cobrar"*, *"no ha llegado"*, *"listo para cobro"*. ➔ Asigna a `@VerificadorEstatus` (`{{@ai-agent.1129471}}`).
+- `estatus_pago_bill` → Rastreo de pagos de bill/servicios. ➔ Asigna a `@VerificadorPagoBill` (`{{@ai-agent.1130502}}`).
+- `estatus_recarga` → Rastreo de recargas telefónicas. ➔ Asigna a `@VerificadorEstatusRecargas`.
 - `cancelacion_money_order` → Cancelación de Money Order físico ➔ Asigna a `@CancelacionMoneyOrder` (`{{@ai-agent.1130467}}`).
 - `historial_envios` → Historial de envíos ➔ Asigna a `@HistorialEnvios` (`{{@ai-agent.1130490}}`).
 - `cancelacion_envio` → Cancelación de giro/remesa ➔ Asigna a `@CancelacionEnvio` (`{{@ai-agent.1130493}}`).
