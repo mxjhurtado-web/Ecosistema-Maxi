@@ -1,0 +1,6 @@
+❌ Found blocks missing 'Instrucción de Configuración':
+ - Line 1441 in ### Fase 5: Cierre de Conversación (Handoff a Encuesta CSAT): * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
+ - Line 1447 in ### Fase 5: Cierre de Conversación (Handoff a Encuesta CSAT): * **Consulta Dinámica de Diálogos (Obtener Scripts):**
+ - Line 1532 in ### A. Endpoint General para Scripts de Diálogo: ---
+ - Line 1544 in ### B. Endpoint para Reglas de Negocio: * **Ejemplo de Respuesta:**
+ - Line 1555 in ### C. Sincronización Manual (Google Sheets ➔ ORBIT Cache): * **Ejemplo de Respuesta:**

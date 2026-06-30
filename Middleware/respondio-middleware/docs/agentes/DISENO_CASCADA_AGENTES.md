@@ -1440,12 +1440,14 @@ Si el cliente no tiene más dudas o responde negativamente a la oferta de ayuda 
     * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
       * **Método:** `GET`
       * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.10,RNE.15&secret=maxi-secret-2025`
+      * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica las reglas de negocio de recargas (RNE.10 y RNE.15).`
       * **Cuerpo JSON:** *Sin cuerpo (vacío)*
       * **Resultado:** Devuelve las reglas operativas y de horarios para recargas.
 
     * **Consulta Dinámica de Diálogos (Obtener Scripts):**
       * **Método:** `GET`
       * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.008,SC.010.2,SC.012,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
+      * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica los scripts de diálogos de recargas y seguridad (SC.008, SC.010.2, SC.012, SC.029, SC.033, SC.036).`
       * **Cuerpo JSON:** *Sin cuerpo (vacío)*
       * **Resultado:** Devuelve las plantillas oficiales para diálogos y handoffs.
 
