@@ -1,4 +1,4 @@
-# Manual Técnico de Prompts: Arquitectura en Cascada MaxiBot v4.5
+# Manual Técnico de Prompts: Arquitectura en Cascada para Agentes de Respond.io v4.5
 
 Este documento contiene los **14 prompts definitivos** (1 Orquestador Maestro, 1 Orquestador de Documentos y 12 Agentes Especialistas) listos para copiar y pegar en los AI Agents de Respond.io, integrando la regla universal de seguridad contra fraudes para derivar de inmediato al usuario **`@Hurtado`** y la lógica de bucle cerrado para regresar a **`@Max`**.
 
