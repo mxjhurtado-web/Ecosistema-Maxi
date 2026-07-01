@@ -223,7 +223,11 @@ Para consultar el estatus, recopila obligatoriamente de variables o chat:
 **INSTRUCCIONES DE OPERACIÓN Y REGLAS DE NEGOCIO:**
 - **Llamar a ORBIT para Reglas:** Ejecuta `GET /api/v1/rules?codes=RNE.10,RNE.13` para validar políticas de estatus e identidad.
 - **Si los datos ya constan en la sesión activa:** NO ejecutes la HTTP aún. Solicita confirmación activa con `SC.008`.
-- **Si faltan datos:** Solicítalos con `SC.009` o `SC.011`, y pide confirmación antes de la HTTP.
+- **Si faltan datos:** 
+  - Solicita o confirma la clave con `SC.008`.
+  - Si el usuario no ubica la clave, usa `SC.009` (imagen de referencia).
+  - Para solicitar nombres de remitente y beneficiario, usa `SC.010`.
+  - Usa `SC.011` únicamente para transferencia especializada.
 
 ### Fase 2: Consulta y Verificación de Seguridad (Matching de Nombres)
 1. Al recibir la confirmación ("Sí" o "Confirmar"), ejecuta la acción HTTP **"ConsultarEstatus"** usando el código de envío.
@@ -1460,14 +1464,14 @@ Si el cliente no tiene más dudas o responde negativamente a la oferta de ayuda 
     * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
       * **Método:** `GET`
       * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.10,RNE.15,RNE.19,RNE.24,RNE.43,RNE.44,RNE.49,RNE.56,RNE.57,RNE.59&secret=maxi-secret-2025`
-      * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica las reglas de negocio de recargas (RNE.10 y RNE.15).`
+      * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica las reglas de negocio de recargas (RNE.10, RNE.15, RNE.19, RNE.24, RNE.43, RNE.44, RNE.49, RNE.56, RNE.57, RNE.59).`
       * **Cuerpo JSON:** *Sin cuerpo (vacío)*
       * **Resultado:** Devuelve las reglas operativas y de horarios para recargas.
 
     * **Consulta Dinámica de Diálogos (Obtener Scripts):**
       * **Método:** `GET`
       * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.006.1,SC.008,SC.010.2,SC.012,SC.013,SC.024,SC.025,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
-      * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica los scripts de diálogos de recargas y seguridad (SC.008, SC.010.2, SC.012, SC.029, SC.033, SC.036).`
+      * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica los scripts de diálogos de recargas, continuidad y seguridad (SC.006.1, SC.008, SC.010.2, SC.012, SC.013, SC.024, SC.025, SC.029, SC.033, SC.036).`
       * **Cuerpo JSON:** *Sin cuerpo (vacío)*
       * **Resultado:** Devuelve las plantillas oficiales para diálogos y handoffs.
 
