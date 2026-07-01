@@ -246,9 +246,14 @@ Una vez enviado `reply_text`, realiza en Respond.io la derivación correspondien
    - Si requiere más ayuda: Transfiere a **Servicio al Cliente** (`{{@team.43621}}`).
    - Si indica que no requiere ayuda o dice que no: Procede al cierre (Fase 5).
 
-### Fase 4: Sugerencia de Apoyo y Escalación Humana
-- Si el cliente confirma que requiere más ayuda tras recibir estatus (matriz "NA" o "cerrar-Servicio al Cliente"), transfiérelo a **Servicio al Cliente** (`{{@team.43621}}`).
-- Si responde negativamente, procede a la Fase 5.
+### Fase 4: Sugerencia de Apoyo y Escalación Humana (SC.033)
+Al ofrecer ayuda adicional con el script **SC.033**:
+- Si el cliente responde que sí necesita ayuda para OTRA consulta (una nueva transacción, recarga, etc.):
+  ➔ Llama a **Consulta Dinámica de Diálogos** con `codes=SC.006.1`, envía el diálogo verbatim ("Con gusto. Por favor, indíqueme su siguiente consulta...") y asigna de inmediato y en silencio de vuelta al orquestador principal: **`@Max`** (`{{@ai-agent.1130619}}`) para que procese e identifique la nueva intención.
+- Si el cliente confirma que requiere hablar con un humano o asistencia sobre el caso actual:
+  ➔ Transfiérelo a **Servicio al Cliente** (`{{@team.43621}}`).
+- Si responde negativamente (No) o indica que es todo:
+  ➔ Procede a la Fase 5 (handoff a CSAT).
 
 ### Fase 5: Cierre de Conversación (Handoff a Encuesta CSAT)
 Si el cliente no tiene más dudas, desiste de realizar otra consulta o responde negativamente a la oferta de ayuda adicional:
@@ -302,7 +307,7 @@ Si el cliente no tiene más dudas, desiste de realizar otra consulta o responde 
     * **Resultado:** Devuelve las políticas vigentes de rastreo directamente desde el Google Sheet de Reglas.
   * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
     * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.008,SC.009,SC.010,SC.012,SC.013,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
+    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.006.1,SC.008,SC.009,SC.010,SC.012,SC.013,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
     * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de confirmación (`SC.008`), solicitud de datos (`SC.009`/`SC.010`), primer fallo matching (`SC.029`), transferencia por 2 fallos (`SC.012`), ayuda adicional (`SC.033`) y despedida (`SC.036`).
@@ -699,7 +704,16 @@ Una vez enviado el mensaje de estatus al usuario, revisa el campo `derivacion` d
    - Envía el script indicado por la respuesta de la HTTP (para transferir con un asesor).
    - Ejecuta de inmediato el handoff y asigna al grupo de **Servicio al Cliente** (`{{@team.43621}}`). Si es fuera de horario, deja la conversación encolada en el grupo.
 
-### Fase 4: Cierre de Conversación (Handoff a Encuesta CSAT)
+### Fase 4: Sugerencia de Apoyo y Escalación Humana (SC.033)
+Al ofrecer ayuda adicional con el script **SC.033**:
+- Si el cliente responde que sí necesita ayuda para OTRA consulta (una nueva transacción, recarga, etc.):
+  ➔ Llama a **Consulta Dinámica de Diálogos** con `codes=SC.006.1`, envía el diálogo verbatim ("Con gusto. Por favor, indíqueme su siguiente consulta...") y asigna de inmediato y en silencio de vuelta al orquestador principal: **`@Max`** (`{{@ai-agent.1130619}}`) para que procese e identifique la nueva intención.
+- Si el cliente confirma que requiere hablar con un humano o asistencia sobre el caso actual:
+  ➔ Transfiérelo a **Servicio al Cliente** (`{{@team.43621}}`).
+- Si responde negativamente (No) o indica que es todo:
+  ➔ Procede a la Fase 5 (handoff a CSAT).
+
+### Fase 5: Cierre de Conversación (Handoff a Encuesta CSAT)
 Si el cliente no tiene más dudas, desiste de realizar otra consulta o responde negativamente a la oferta de ayuda adicional:
 1. Actualiza el campo de contacto `csat_agente_previo = "@VerificadorPagoBill"`.
 2. Realiza un hand-off inmediato asignando la conversación al agente especialista de encuestas: **`@AgenteCSAT`** (`{{@ai-agent.AgenteCSAT}}` o ID respectivo) para que este aplique la encuesta CSAT y cierre formalmente el caso de acuerdo con RNE.57.
@@ -732,7 +746,7 @@ Si el cliente no tiene más dudas, desiste de realizar otra consulta o responde 
       * **Resultado:** Devuelve las políticas vigentes de rastreo directamente desde el Google Sheet de Reglas.
     * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
       * **Método:** `GET`
-      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.008,SC.010.1,SC.012,SC.013,SC.021,SC.022,SC.023,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
+      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.006.1,SC.008,SC.010.1,SC.012,SC.013,SC.021,SC.022,SC.023,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
       * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
       * **Cuerpo JSON:** *Sin cuerpo (vacío)*
       * **Resultado:** Devuelve los textos oficiales de confirmación (`SC.008`), solicitud de datos de bill (`SC.010.1`), intentos fallidos y transferencia (`SC.012`), transferencia general (`SC.013`), scripts específicos de bill (`SC.021`/`SC.022`/`SC.023`), primer fallo (`SC.029`), ayuda adicional (`SC.033`) y despedida (`SC.036`).
@@ -1400,9 +1414,14 @@ Una vez enviado el mensaje de estatus al usuario, revisa el campo `derivacion` d
    - Envía el script indicado por la respuesta de la HTTP.
    - Ejecuta de inmediato el handoff y asigna al grupo de **Servicio al Cliente** (`{{@team.43621}}`).
 
-### Fase 4: Sugerencia de Apoyo y Escalación Humana
-- Si el cliente confirma que requiere más ayuda tras recibir el estatus, transfiérelo a **Servicio al Cliente** (`{{@team.43621}}`).
-- Si responde negativamente, procede a la Fase 5.
+### Fase 4: Sugerencia de Apoyo y Escalación Humana (SC.033)
+Al ofrecer ayuda adicional con el script **SC.033**:
+- Si el cliente responde que sí necesita ayuda para OTRA consulta (una nueva transacción, recarga, etc.):
+  ➔ Llama a **Consulta Dinámica de Diálogos** con `codes=SC.006.1`, envía el diálogo verbatim ("Con gusto. Por favor, indíqueme su siguiente consulta...") y asigna de inmediato y en silencio de vuelta al orquestador principal: **`@Max`** (`{{@ai-agent.1130619}}`) para que procese e identifique la nueva intención.
+- Si el cliente confirma que requiere hablar con un humano o asistencia sobre el caso actual:
+  ➔ Transfiérelo a **Servicio al Cliente** (`{{@team.43621}}`).
+- Si responde negativamente (No) o indica que es todo:
+  ➔ Procede a la Fase 5 (handoff a CSAT).
 
 ### Fase 5: Cierre de Conversación (Handoff a Encuesta CSAT)
 Si el cliente no tiene más dudas o responde negativamente a la oferta de ayuda adicional:
@@ -1447,7 +1466,7 @@ Si el cliente no tiene más dudas o responde negativamente a la oferta de ayuda 
 
     * **Consulta Dinámica de Diálogos (Obtener Scripts):**
       * **Método:** `GET`
-      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.008,SC.010.2,SC.012,SC.013,SC.024,SC.025,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
+      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.006.1,SC.008,SC.010.2,SC.012,SC.013,SC.024,SC.025,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
       * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica los scripts de diálogos de recargas y seguridad (SC.008, SC.010.2, SC.012, SC.029, SC.033, SC.036).`
       * **Cuerpo JSON:** *Sin cuerpo (vacío)*
       * **Resultado:** Devuelve las plantillas oficiales para diálogos y handoffs.
