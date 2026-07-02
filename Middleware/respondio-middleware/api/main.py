@@ -1900,6 +1900,35 @@ async def check_topup_status(
             record = None
 
     if not record:
+        try:
+            supabase_url = os.getenv("SUPABASE_URL", "https://tzlomvpugmrpdfatscxe.supabase.co")
+            supabase_anon_key = os.getenv(
+                "SUPABASE_ANON_KEY",
+                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6bG9tdnB1Z21ycGRmYXRzY3hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjI3MjcsImV4cCI6MjA4OTMzODcyN30.aH-p2YbLa8LPlnMVsZMlELsxFWwSSLZMA_LPpRz5DU8"
+            )
+            headers = {
+                "apikey": supabase_anon_key,
+                "Authorization": f"Bearer {supabase_anon_key}",
+                "Content-Type": "application/json"
+            }
+            import httpx
+            async with httpx.AsyncClient(timeout=10) as client:
+                url = f"{supabase_url}/rest/v1/Recargas"
+                params = {
+                    "Transaction ID": f"ilike.{transaction_id}",
+                    "select": "*",
+                    "limit": "1"
+                }
+                res = await client.get(url, headers=headers, params=params)
+                res.raise_for_status()
+                data = res.json()
+                if data:
+                    record = data[0]
+                    logger.info(f"✅ Top-up record found via REST API for transaction_id {transaction_id}")
+        except Exception as rest_err:
+            logger.error(f"Supabase REST API query failed for top-up: {rest_err}")
+
+    if not record:
         # Not found
         val_attempts += 1
         if redis:
