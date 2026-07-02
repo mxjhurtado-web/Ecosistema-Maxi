@@ -23,7 +23,7 @@ import urllib.error
 import random
 
 # Configuración por defecto
-DEFAULT_BASE_URL = "http://localhost:8000"
+DEFAULT_BASE_URL = "https://orbit-api-ewov.onrender.com"
 DEFAULT_SECRET = "maxi-secret-2025"
 
 # Intentar auto-detectar secreto del archivo .env local
