@@ -674,6 +674,15 @@ def match_customer_name(user_name: str, db_first: str, db_paterno: str, db_mater
 
 
 
+
+def append_courtesy_sc33(reply_text: str, contact_name: str = None) -> str:
+    from .shared_logic import get_compliance_scripts
+    scripts = get_compliance_scripts()
+    sc33_template = scripts.get("SC.033", "[Nombre] ¿Hay algo más en lo que le pueda ayudar?.")
+    clean_name = contact_name or "Cliente"
+    sc33_text = sc33_template.replace("[Nombre]", clean_name).replace("“", "").replace("”", "").replace('"', "")
+    return f"{reply_text}\n\n{sc33_text}"
+
 @app.post("/api/v1/status/check", response_model=StatusCheckResponse)
 async def check_transaction_status(
     request: StatusCheckRequest,
@@ -1146,12 +1155,15 @@ async def check_transaction_status(
                     elif ("cash" in rule_estatus or "doméstico" in rule_estatus or "domestico" in rule_estatus) and payment_type == "cash":
                         matched_rule = rule
                         break
+                    elif rule_estatus == "paid" or rule_estatus == "pagado":
+                        matched_rule = rule
+                        break
                         
             if "stand by" in status_upper.lower() or "payment ready" in status_upper.lower():
                 is_guayaquil = "guayaquil" in pagador_str
                 if is_guayaquil and "guayaquil" in rule_estatus:
                     status_type_matches = ("stand by" in status_upper.lower() and "stand by" in rule_estatus) or \
-                                          ("payment ready" in status_upper.lower() and "payment ready" in rule_estatus)
+                                           ("payment ready" in status_upper.lower() and "payment ready" in rule_estatus)
                     if status_type_matches:
                         if "home delivery" in rule_estatus and payment_type == "home delivery":
                             matched_rule = rule
@@ -1167,8 +1179,18 @@ async def check_transaction_status(
                         matched_rule = rule
                         break
                     elif "payment ready" in status_upper.lower() and "payment ready" in rule_estatus and "guayaquil" not in rule_estatus:
-                        matched_rule = rule
-                        break
+                        if "home delivery" in rule_estatus and payment_type == "home delivery":
+                            matched_rule = rule
+                            break
+                        elif "cuenta" in rule_estatus and payment_type == "cuenta":
+                            matched_rule = rule
+                            break
+                        elif ("cash" in rule_estatus or "doméstico" in rule_estatus or "domestico" in rule_estatus) and payment_type == "cash":
+                            matched_rule = rule
+                            break
+                        elif rule_estatus == "payment ready" or rule_estatus == "payment ready ":
+                            matched_rule = rule
+                            break
                         
             # Substring match (e.g. "verify hold (o)")
             if rule_estatus in status_upper.lower() or status_upper.lower() in rule_estatus:
@@ -1346,6 +1368,25 @@ async def check_transaction_status(
                 else:
                     derivacion = "Fuera de Horario SC"
                     reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
+
+    # Force compliance overrides for UNCLAIMED HOLD (RNE.39 / RNE.37)
+    if status_upper == "UNCLAIMED HOLD":
+        scripts = get_compliance_scripts()
+        if perfil == "BENEFICIARIO":
+            reply_text = scripts.get("SC.019", "Entendemos su consulta. Sin embargo, por motivos de seguridad, únicamente podemos compartir información...")
+            derivacion = "NA"
+        else:
+            reply_text = scripts.get("SC.020", "El plazo para cobrar el envío ha expirado, lo transferiré con un asesor. Por favor, espere un momento.")
+            if check_department_hours("SERVICIO AL CLIENTE", ct_now):
+                derivacion = "Servicio al Cliente"
+            else:
+                derivacion = "Fuera de Horario SC"
+                sc27 = scripts.get("SC.027", "En este momento nuestros asesores no se encuentran disponibles...")
+                reply_text = f"{reply_text}\n\n{sc27}"
+
+    # Concatenate SC.033 for self-service final states (derivacion == "NA")
+    if derivacion == "NA":
+        reply_text = append_courtesy_sc33(reply_text, contact_name)
 
     return StatusCheckResponse(
         status="success",
@@ -1709,11 +1750,7 @@ async def check_bill_status(
             )
     else:
         derivacion = "NA"
-        # Offer customer support transfer since it is NA
-        reply_text = (
-            f"{reply_text}\n\n"
-            "¿Le gustaría que lo comuniquemos con un asesor de servicio al cliente?"
-        )
+        reply_text = append_courtesy_sc33(reply_text, request.contact_name)
 
     # Prepend safety headers
     safety_header = f"[BILLER: {db_biller}] [NOMBRE DEL CUSTOMER: {db_customer_name}] [STATUS: {status_clean}] "
@@ -2123,6 +2160,10 @@ async def check_topup_status(
     # Prepend safety headers
     safety_header = f"[TRANSACTION ID: {transaction_id}] [CUSTOMER NUMBER: {db_customer}] [CELLULAR NUMBER: {db_cellular}] [STATUS: {db_status}] "
     reply_text_with_header = safety_header + reply_text
+
+    if derivacion == "NA":
+        reply_text = append_courtesy_sc33(reply_text, request.contact_name)
+        reply_text_with_header = safety_header + reply_text
 
     return TopupCheckResponse(
         status="success",
