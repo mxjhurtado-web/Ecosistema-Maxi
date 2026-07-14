@@ -12,7 +12,7 @@
     reverse_proxy @backend localhost:8000
 
     # Serve compiled static frontend assets
-    root * /app/.web/_static
+    root * /app/.web/build/client
     route {
         try_files {path} {path}/ /404.html
         file_server
