@@ -243,9 +243,12 @@ REGLAS ESTRICTAS:
         full_context["agent_rules"] = agent_rules
         
         # --- DEVOPS MCP ROUTING (MAXIBOT) ---
+        # Solo rutear al DevOps MCP si SSO está activo Y tenemos un token de espacio válido.
+        # Si KC_USE_AUTH=False (modo de prueba/dev), caer en Gemini conversacional directamente.
         bot_name = full_context.get("bot_identity")
-        if bot_name == "MaxiBot" and self.gemini_api_key:
-            logger.info("🔧 Routing query to DevOps MCP for MaxiBot...")
+        space_token = full_context.get("space_token")
+        if bot_name == "MaxiBot" and self.gemini_api_key and settings.KC_USE_AUTH and space_token:
+            logger.info("🔧 Routing query to DevOps MCP for MaxiBot (SSO token available)...")
             response_text = await self._query_devops_mcp(user_text, full_context)
             
             # Post-processing for simulation logic
@@ -259,6 +262,8 @@ REGLAS ESTRICTAS:
                 2000,  # Estimated latency
                 0
             )
+        elif bot_name == "MaxiBot" and not settings.KC_USE_AUTH:
+            logger.info("🤖 MaxiBot en modo conversacional (KC_USE_AUTH=False). Usando Gemini directo...")
             
         # --- Emergency Mode / Direct Gemini Support ---
         if curr_config.emergency_mode and self.gemini_api_key:
