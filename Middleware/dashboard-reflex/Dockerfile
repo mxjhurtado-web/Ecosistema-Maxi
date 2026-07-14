@@ -1,41 +1,39 @@
-# Stage 0: Caddy binary
-FROM caddy:2.7-alpine AS caddy
-
 # Stage 1: Build static frontend assets
 FROM python:3.11-slim AS builder
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    curl gnupg unzip \
+# Install Node.js (needed for reflex frontend compilation)
+RUN apt-get update && apt-get install -y curl gnupg unzip \
     && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy source code
 COPY . .
 
-# Initialize reflex and compile frontend
+# Initialize and compile frontend to static files in .web/_static/
 RUN reflex init --loglevel debug
-RUN reflex export --frontend-only --no-zip 2>&1; echo "Export step finished"
+RUN reflex export --frontend-only --no-zip 2>&1; echo "--- Export step done ---"
 
-# Stage 2: Slim runtime
+# Stage 2: Lean runtime (no Node.js needed - backend serves pre-compiled static files)
 FROM python:3.11-slim
 WORKDIR /app
 
-# Caddy binary for serving static frontend
-COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
-
-# Python deps
+# Install Python dependencies only
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy compiled app from builder
+# Copy everything from builder (source + compiled .web/_static/)
 COPY --from=builder /app /app
 
-EXPOSE 10000
+# Render uses $PORT (default 10000)
 ENV PORT=10000
+ENV PYTHONUNBUFFERED=1
+EXPOSE 10000
 
-# Run backend + Caddy via CMD (shell form avoids exec permission issues)
-CMD sh -c 'reflex run --env prod --backend-only --loglevel warning & caddy run --config /app/Caddyfile --adapter caddyfile'
+# Reflex backend-only mode serves both the API and the pre-compiled static frontend
+CMD ["sh", "-c", "reflex run --env prod --backend-only --backend-host 0.0.0.0 --backend-port ${PORT:-10000} --loglevel warning"]
