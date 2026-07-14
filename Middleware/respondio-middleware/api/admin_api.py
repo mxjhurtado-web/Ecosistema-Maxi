@@ -613,12 +613,12 @@ async def google_chat_event_handler(request: Request):
                             )
                             status = query_status
                             mcp_latency_ms = latency
-                        
-                        if status == ResponseStatus.OK:
-                            resp_text = f"{mcp_resp}\n\n_🕒 Latencia: {latency}ms_"
-                        else:
-                            resp_text = f"⚠️ *Error del MCP*\n{mcp_resp}"
-                            error_message = "MCP error"
+                            
+                            if status == ResponseStatus.OK:
+                                resp_text = f"{mcp_resp}\n\n_🕒 Latencia: {latency}ms_"
+                            else:
+                                resp_text = f"⚠️ *Error del MCP*\n{mcp_resp}"
+                                error_message = "MCP error"
                     except Exception as e:
                         logger.error(f"❌ Error al consultar MCP desde Google Chat: {e}")
                         resp_text = f"Lo siento, ocurrió un error al procesar tu consulta: {str(e)}"
