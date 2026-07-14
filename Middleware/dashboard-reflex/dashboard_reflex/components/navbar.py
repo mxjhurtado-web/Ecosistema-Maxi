@@ -67,7 +67,7 @@ def navbar(page_title: str) -> rx.Component:
             
             # Refresh indicator
             rx.icon_button(
-                rx.icon("refresh-cw", size=15),
+                rx.icon("refresh_cw", size=15),
                 on_click=AppState.update_health,
                 variant="ghost",
                 style={"cursor": "pointer", "color": ACCENT_BLUE}

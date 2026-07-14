@@ -99,6 +99,13 @@ class AuthState(rx.State):
         if not self.is_authenticated:
             return rx.redirect("/login")
 
+    def check_admin(self):
+        """Check if authenticated and is admin/super_admin; if not, redirect accordingly."""
+        if not self.is_authenticated:
+            return rx.redirect("/login")
+        if not self.is_admin_or_higher:
+            return rx.redirect("/")
+
     @rx.var
     def is_super_admin(self) -> bool:
         return self.role == "super_admin"
@@ -106,3 +113,21 @@ class AuthState(rx.State):
     @rx.var
     def is_admin_or_higher(self) -> bool:
         return self.role in ["admin", "super_admin"]
+
+    def set_session(self, email: str, name: str, role: str):
+        """Set user session from external authentication like Keycloak."""
+        self.email = email
+        self.username = name
+        self.role = role
+        self.is_authenticated = True
+
+    def sso_redirect(self):
+        """Redirect browser to Keycloak login portal."""
+        kc_url = os.getenv("KC_SERVER_URL", "https://sso.maxilabs.net/auth")
+        realm = os.getenv("KC_REALM", "zeusDev")
+        client_id = os.getenv("KC_CLIENT_ID", "maxi-business-ai")
+        redirect_uri = os.getenv("KC_REDIRECT_URI", "https://orbit-dashboard-ewov.onrender.com/callback")
+        
+        url = f"{kc_url.rstrip('/')}/realms/{realm}/protocol/openid-connect/auth"
+        params = f"?client_id={client_id}&response_type=code&redirect_uri={redirect_uri}&scope=openid%20email%20profile"
+        return rx.redirect(url + params)

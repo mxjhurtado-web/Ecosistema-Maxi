@@ -109,7 +109,6 @@ def login_page() -> rx.Component:
                                     style={"width": "100%", "text_align": "center"}
                                 )
                             ),
-                            
                             # Submit button
                             rx.button(
                                 "Iniciar Sesión",
@@ -127,6 +126,42 @@ def login_page() -> rx.Component:
                                     "&_hover": {
                                         "transform": "translateY(-2px)",
                                         "box_shadow": f"0 6px 20px 0 rgba(0, 217, 255, 0.45)",
+                                    }
+                                }
+                            ),
+                            
+                            # Divider
+                            rx.hstack(
+                                rx.divider(style={"border_color": "rgba(255, 255, 255, 0.1)", "flex_grow": "1"}),
+                                rx.text("O", font_size="10px", color="#8E9BB8", style={"padding": "0 8px"}),
+                                rx.divider(style={"border_color": "rgba(255, 255, 255, 0.1)", "flex_grow": "1"}),
+                                width="100%",
+                                align_items="center",
+                                style={"margin": "8px 0"}
+                            ),
+                            
+                            # SSO Button
+                            rx.button(
+                                rx.hstack(
+                                    rx.icon("key-round", size=16),
+                                    rx.text("Iniciar con SSO Keycloak"),
+                                    spacing="2"
+                                ),
+                                type="button",
+                                on_click=AuthState.sso_redirect,
+                                width="100%",
+                                style={
+                                    "background": "rgba(255, 255, 255, 0.04)",
+                                    "border": "1px solid rgba(0, 217, 255, 0.15)",
+                                    "color": "#FFFFFF",
+                                    "border_radius": "8px",
+                                    "font_weight": "bold",
+                                    "padding": "12px 24px",
+                                    "cursor": "pointer",
+                                    "transition": "all 0.2s ease",
+                                    "&_hover": {
+                                        "background": "rgba(0, 217, 255, 0.08)",
+                                        "border_color": ACCENT_BLUE
                                     }
                                 }
                             ),
