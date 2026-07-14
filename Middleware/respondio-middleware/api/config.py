@@ -81,6 +81,7 @@ class Settings(BaseSettings):
     # Google Chat Settings
     GOOGLE_CHATS_SA_BASE64: Optional[str] = None
     GOOGLE_CHATS_DEFAULT_SPACE: Optional[str] = None
+    MAXIBOT_SA_BASE64: Optional[str] = None
     
     class Config:
         env_file = ".env"

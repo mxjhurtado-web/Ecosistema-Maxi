@@ -393,7 +393,7 @@ async def google_chat_event_handler(request: Request):
                         failed_count = 0
                         direct_cfg = GoogleChatAlertConfig(
                             enabled=True,
-                            sa_json_b64=settings.GOOGLE_CHATS_SA_BASE64 or "",
+                            sa_json_b64=settings.MAXIBOT_SA_BASE64 or settings.GOOGLE_CHATS_SA_BASE64 or "",
                             default_space_id=space_id
                         )
                         
@@ -580,7 +580,7 @@ async def google_chat_event_handler(request: Request):
             # Usamos la configuración directa importada localmente
             direct_cfg = GoogleChatAlertConfig(
                 enabled=True,
-                sa_json_b64=settings.GOOGLE_CHATS_SA_BASE64 or "",
+                sa_json_b64=settings.MAXIBOT_SA_BASE64 or settings.GOOGLE_CHATS_SA_BASE64 or "",
                 default_space_id=space_id
             )
             
