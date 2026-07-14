@@ -571,18 +571,48 @@ async def google_chat_event_handler(request: Request):
                         elif settings.MAXIBOT_SA_BASE64:
                             bot_identity = "MaxiBot"
                             
-                        mcp_resp, query_status, latency, _ = await mcp_client.query(
-                            user_text=text_query,
-                            context={
-                                "source": "google_chat", 
-                                "user": display_name,
-                                "bot_identity": bot_identity
-                            },
-                            agent_name=None
-                        )
+                        # Extraer correo del usuario para la validación SSO
+                        sender_obj = msg_obj_local.get("sender", {})
+                        user_email = sender_obj.get("email") or ""
                         
-                        status = query_status
-                        mcp_latency_ms = latency
+                        # Validación de roles de Keycloak
+                        is_authorized = True
+                        if bot_identity == "MaxiBot" and settings.KC_USE_AUTH:
+                            if not user_email:
+                                logger.warning("❌ Keycloak Auth is enabled but sender email is missing in payload.")
+                                is_authorized = False
+                                resp_text = "⚠️ *Acceso Denegado*\nNo se pudo verificar tu identidad porque el correo no está disponible en la petición."
+                                status = ResponseStatus.ERROR
+                                error_message = "Missing sender email"
+                            else:
+                                logger.info(f"🔐 Verificando rol de DevOps en Keycloak para: {user_email}...")
+                                from .auth import KeycloakAuthService
+                                kc_auth = KeycloakAuthService(
+                                    server_url=settings.KC_SERVER_URL,
+                                    realm=settings.KC_REALM,
+                                    client_id=settings.KC_CLIENT_ID,
+                                    client_secret=settings.KC_CLIENT_SECRET
+                                )
+                                has_role = await kc_auth.verify_user_has_role(user_email, "DevOps")
+                                if not has_role:
+                                    logger.warning(f"❌ Keycloak Auth: User {user_email} does NOT have DevOps role.")
+                                    is_authorized = False
+                                    resp_text = "⚠️ *Acceso Denegado*\nNo tienes los permisos requeridos (rol `DevOps`) en Keycloak para utilizar este bot conversacional."
+                                    status = ResponseStatus.ERROR
+                                    error_message = "Unauthorized (Keycloak DevOps role check failed)"
+                                    
+                        if is_authorized:
+                            mcp_resp, query_status, latency, _ = await mcp_client.query(
+                                user_text=text_query,
+                                context={
+                                    "source": "google_chat", 
+                                    "user": display_name,
+                                    "bot_identity": bot_identity
+                                },
+                                agent_name=None
+                            )
+                            status = query_status
+                            mcp_latency_ms = latency
                         
                         if status == ResponseStatus.OK:
                             resp_text = f"{mcp_resp}\n\n_🕒 Latencia: {latency}ms_"

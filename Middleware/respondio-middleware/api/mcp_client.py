@@ -242,6 +242,24 @@ REGLAS ESTRICTAS:
         full_context["system_prompt"] = system_prompt
         full_context["agent_rules"] = agent_rules
         
+        # --- DEVOPS MCP ROUTING (MAXIBOT) ---
+        bot_name = full_context.get("bot_identity")
+        if bot_name == "MaxiBot" and self.gemini_api_key:
+            logger.info("🔧 Routing query to DevOps MCP for MaxiBot...")
+            response_text = await self._query_devops_mcp(user_text, full_context)
+            
+            # Post-processing for simulation logic
+            mock_response = await self._simulate_logic(user_text, context, response_text)
+            if mock_response:
+                response_text = mock_response
+
+            return (
+                response_text,
+                ResponseStatus.OK,
+                2000,  # Estimated latency
+                0
+            )
+            
         # --- Emergency Mode / Direct Gemini Support ---
         if curr_config.emergency_mode and self.gemini_api_key:
             logger.info("🚨 Emergency Mode Active: Using Direct Gemini Fallback")
@@ -588,6 +606,80 @@ El usuario incluyó un enlace a un archivo de Google Drive/Docs (ID: **{doc_id}*
         except Exception as e:
             logger.error(f"Direct Gemini call failed: {str(e)}")
             return f"Error en conexión directa con Gemini: {str(e)}"
+
+    async def _query_devops_mcp(self, query: str, context: dict) -> str:
+        """Connect directly to the standard DevOps MCP server and run queries using Gemini"""
+        # 1. Obtener token de Keycloak
+        kc_token = None
+        
+        # Inicializar el servicio de autenticación de Keycloak si no existe pero los parámetros están configurados
+        if not self.kc_auth and settings.KC_SERVER_URL:
+            self.kc_auth = KeycloakAuthService(
+                server_url=settings.KC_SERVER_URL,
+                realm=settings.KC_REALM,
+                client_id=settings.KC_CLIENT_ID,
+                client_secret=settings.KC_CLIENT_SECRET
+            )
+            
+        if self.kc_auth:
+            try:
+                kc_token = await self.kc_auth.get_access_token()
+            except Exception as e:
+                logger.error(f"Failed to fetch Keycloak token for DevOps MCP: {e}")
+                
+        if not kc_token:
+            return "Error: No se pudo obtener el token de autenticación SSO de Keycloak para DevOps MCP."
+
+        # 2. Configurar headers y endpoint
+        devops_url = settings.DEVOPS_MCP_URL
+        headers = {
+            "Authorization": f"Bearer {kc_token}",
+            "X-Forwarded-Proto": "https"
+        }
+        
+        logger.info(f"🔗 Conectando al DevOps MCP: {devops_url}...")
+        
+        try:
+            from mcp.client.streamable_http import streamablehttp_client
+            from mcp import ClientSession
+            from google import genai
+            
+            # Formular el prompt con las instrucciones conversacionales del bot
+            system_prompt = context.get("system_prompt", "Usted es un asistente inteligente y amigable de DevOps.")
+            prompt_text = f"{system_prompt}\n\nPregunta del usuario: {query}"
+            
+            # Inicializar cliente de Google GenAI SDK con la API key
+            if not self.gemini_api_key:
+                return "Error: API Key de Gemini no configurada."
+                
+            gemini_client = genai.Client(api_key=self.gemini_api_key)
+            
+            # Conexión asíncrona mediante Server-Sent Events (SSE) al DevOps MCP
+            async with streamablehttp_client(devops_url, headers=headers) as streams:
+                read_stream, write_stream = streams[0], streams[1]
+                
+                async with ClientSession(read_stream, write_stream) as session:
+                    # Inicializar la negociación del protocolo
+                    await session.initialize()
+                    
+                    logger.info("🤖 Iniciando consulta con Gemini y sesión de herramientas MCP activa...")
+                    
+                    # Ejecutar loop de llamadas con Gemini usando la sesión MCP como herramientas
+                    response = await gemini_client.aio.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents=prompt_text,
+                        config=genai.types.GenerateContentConfig(
+                            temperature=0,
+                            tools=[session]
+                        )
+                    )
+                    
+                    logger.info("✅ Consulta completada exitosamente.")
+                    return response.text or "No recibí respuesta del modelo de IA."
+                    
+        except Exception as err:
+            logger.error(f"Error durante consulta al DevOps MCP: {str(err)}", exc_info=True)
+            return f"Error al procesar la consulta con DevOps MCP: {str(err)}"
 
     async def _simulate_logic(self, query: str, context: dict, response: str) -> Optional[str]:
         """Simulate database logic in memory for testing flows"""
