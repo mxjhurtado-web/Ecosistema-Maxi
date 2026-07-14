@@ -38,6 +38,12 @@ class TelemetryService:
             async def run_append():
                 try:
                     logger.info(f"📊 [Telemetry] Starting Google Sheets append_log for Trace={request_log.trace_id}, Channel={request_log.channel}...")
+                    
+                    # Determine spreadsheet override if channel is google_chat (MaxiBot)
+                    override_id = None
+                    if request_log.channel == "google_chat":
+                        override_id = settings.MAXIBOT_TELEMETRY_SHEET_ID
+                        
                     success = await google_sheets_service.append_log(
                         timestamp=timestamp_str,
                         trace_id=request_log.trace_id,
@@ -47,7 +53,8 @@ class TelemetryService:
                         user_text=request_log.user_text or "",
                         bot_response=request_log.mcp_response or request_log.error_message or "",
                         latency_ms=request_log.latency_ms,
-                        status=status_val
+                        status=status_val,
+                        override_spreadsheet_id=override_id
                     )
                     if success:
                         logger.info(f"📊 [Telemetry] Google Sheets append_log SUCCESS for Trace={request_log.trace_id}")

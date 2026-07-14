@@ -198,7 +198,8 @@ class GoogleSheetsService:
         user_text: str,
         bot_response: str,
         latency_ms: int,
-        status: str
+        status: str,
+        override_spreadsheet_id: Optional[str] = None
     ) -> bool:
         """Append a conversation log row to the Google Sheet"""
         config = await config_manager.get_google_chat_config()
@@ -218,7 +219,7 @@ class GoogleSheetsService:
             creds.refresh(Request())
             
             # 2. Get spreadsheet ID
-            spreadsheet_id = await self._get_spreadsheet_id(creds)
+            spreadsheet_id = override_spreadsheet_id or await self._get_spreadsheet_id(creds)
             if not spreadsheet_id:
                 logger.error("Failed to get spreadsheet ID")
                 return False
