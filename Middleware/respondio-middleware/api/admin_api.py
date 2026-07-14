@@ -557,9 +557,27 @@ async def google_chat_event_handler(request: Request):
                     try:
                         from .mcp_client import mcp_client
                         
+                        # Detectar la identidad del bot basada en las menciones del mensaje raw
+                        chat_data_local = chat_data_obj.get("chat", {}) if chat_data_obj else {}
+                        msg_payload_local = chat_data_local.get("messagePayload", {})
+                        msg_obj_local = msg_payload_local.get("message", {})
+                        raw_text_lower = (msg_obj_local.get("text") or "").lower()
+                        
+                        bot_identity = "ORBIT Bot"
+                        if "maxibot" in raw_text_lower:
+                            bot_identity = "MaxiBot"
+                        elif "orbit" in raw_text_lower:
+                            bot_identity = "ORBIT Bot"
+                        elif settings.MAXIBOT_SA_BASE64:
+                            bot_identity = "MaxiBot"
+                            
                         mcp_resp, query_status, latency, _ = await mcp_client.query(
                             user_text=text_query,
-                            context={"source": "google_chat", "user": display_name},
+                            context={
+                                "source": "google_chat", 
+                                "user": display_name,
+                                "bot_identity": bot_identity
+                            },
                             agent_name=None
                         )
                         

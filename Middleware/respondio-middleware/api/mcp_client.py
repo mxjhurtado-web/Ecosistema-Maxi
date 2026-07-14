@@ -328,9 +328,14 @@ REGLAS ESTRICTAS:
             except Exception as faq_err:
                 logger.error(f"Failed to fetch dynamic FAQ sheet: {str(faq_err)}")
 
-            conversational_prompt = """
+            # Obtener el nombre del bot dinámicamente desde el contexto
+            bot_name = "ORBIT Bot"
+            if context and isinstance(context, dict):
+                bot_name = context.get("bot_identity", "ORBIT Bot")
+
+            conversational_prompt = f"""
 ### GUÍA DE ATENCIÓN CONVERSACIONAL (AUTO-AGENTE) ###
-Usted es ORBIT Bot, el asistente inteligente y amigable de soporte e integración del ecosistema Maxi. Su tono debe ser sumamente cálido, natural, empático y servicial en español.
+Usted es {bot_name}, el asistente inteligente y amigable de soporte e integración del ecosistema Maxi. Su tono debe ser sumamente cálido, natural, empático y servicial en español.
 
 ### REGLAS DE ATENCIÓN FLEXIBLE:
 1. Si el usuario pregunta por temas corporativos, procesos o soporte de Maxi, use la base de conocimientos oficial provista abajo.
