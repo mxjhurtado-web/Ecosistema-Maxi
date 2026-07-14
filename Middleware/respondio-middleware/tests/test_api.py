@@ -772,9 +772,11 @@ class TestBillCheckEndpoint:
         assert "¿Hay algo más en lo que le pueda ayudar?" in data["reply_text"]
         assert data["validation_success"] is True
 
+    @patch("api.main.check_department_hours")
     @patch("api.google_sheets_service.google_sheets_service.fetch_bill_status_rules", new_callable=AsyncMock)
-    def test_bill_check_origin_derives_to_sc(self, mock_fetch_rules, client):
+    def test_bill_check_origin_derives_to_sc(self, mock_fetch_rules, mock_check_hours, client):
         """Test that Origin bill status derives to Servicio al Cliente"""
+        mock_check_hours.return_value = True
         # Mock Supabase return record
         record = {
             "tracking_number": "TRK23756669",
