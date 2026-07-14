@@ -609,24 +609,26 @@ El usuario incluyó un enlace a un archivo de Google Drive/Docs (ID: **{doc_id}*
 
     async def _query_devops_mcp(self, query: str, context: dict) -> str:
         """Connect directly to the standard DevOps MCP server and run queries using Gemini"""
-        # 1. Obtener token de Keycloak
-        kc_token = None
+        # 1. Obtener token de Keycloak (priorizar el token del espacio recibido)
+        kc_token = context.get("space_token") if context else None
         
-        # Inicializar el servicio de autenticación de Keycloak si no existe pero los parámetros están configurados
-        if not self.kc_auth and settings.KC_SERVER_URL:
-            self.kc_auth = KeycloakAuthService(
-                server_url=settings.KC_SERVER_URL,
-                realm=settings.KC_REALM,
-                client_id=settings.KC_CLIENT_ID,
-                client_secret=settings.KC_CLIENT_SECRET
-            )
-            
-        if self.kc_auth:
-            try:
-                kc_token = await self.kc_auth.get_access_token()
-            except Exception as e:
-                logger.error(f"Failed to fetch Keycloak token for DevOps MCP: {e}")
+        if not kc_token:
+            logger.info("🔑 No space_token provided in context, falling back to client credentials...")
+            # Inicializar el servicio de autenticación de Keycloak si no existe pero los parámetros están configurados
+            if not self.kc_auth and settings.KC_SERVER_URL:
+                self.kc_auth = KeycloakAuthService(
+                    server_url=settings.KC_SERVER_URL,
+                    realm=settings.KC_REALM,
+                    client_id=settings.KC_CLIENT_ID,
+                    client_secret=settings.KC_CLIENT_SECRET
+                )
                 
+            if self.kc_auth:
+                try:
+                    kc_token = await self.kc_auth.get_access_token()
+                except Exception as e:
+                    logger.error(f"Failed to fetch Keycloak token for DevOps MCP: {e}")
+                    
         if not kc_token:
             return "Error: No se pudo obtener el token de autenticación SSO de Keycloak para DevOps MCP."
 

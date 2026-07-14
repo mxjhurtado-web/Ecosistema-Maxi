@@ -254,6 +254,266 @@ async def test_google_chat(
         raise HTTPException(status_code=500, detail="Failed to send test message to Google Chat")
 
 
+def get_success_html(title: str, message: str) -> str:
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MaxiBot - {title}</title>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+            body {{
+                font-family: 'Outfit', sans-serif;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                background: radial-gradient(circle at top right, #1e293b, #0f172a);
+                color: #f8fafc;
+            }}
+            .card {{
+                background: rgba(30, 41, 59, 0.7);
+                backdrop-filter: blur(16px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 24px;
+                padding: 48px 32px;
+                max-width: 440px;
+                width: 90%;
+                text-align: center;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+                animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            }}
+            @keyframes fadeIn {{
+                from {{ opacity: 0; transform: translateY(20px); }}
+                to {{ opacity: 1; transform: translateY(0); }}
+            }}
+            .icon-wrapper {{
+                width: 80px;
+                height: 80px;
+                background: linear-gradient(135deg, #10b981, #059669);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 24px auto;
+                box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+            }}
+            .icon-wrapper svg {{
+                width: 40px;
+                height: 40px;
+                fill: white;
+            }}
+            h1 {{
+                font-size: 28px;
+                font-weight: 700;
+                margin: 0 0 16px 0;
+                background: linear-gradient(135deg, #34d399, #059669);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }}
+            p {{
+                font-size: 16px;
+                line-height: 1.6;
+                color: #94a3b8;
+                margin: 0 0 32px 0;
+            }}
+            .btn {{
+                display: inline-block;
+                background: linear-gradient(135deg, #3b82f6, #2563eb);
+                color: white;
+                text-decoration: none;
+                padding: 14px 28px;
+                border-radius: 12px;
+                font-weight: 600;
+                font-size: 15px;
+                transition: all 0.2s ease;
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            }}
+            .btn:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="icon-wrapper">
+                <svg viewBox="0 0 24 24">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                </svg>
+            </div>
+            <h1>{title}</h1>
+            <p>{message}</p>
+            <a href="https://chat.google.com" class="btn">Volver a Google Chat</a>
+        </div>
+    </body>
+    </html>
+    """
+
+def get_error_html(title: str, error_detail: str) -> str:
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MaxiBot - {title}</title>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+            body {{
+                font-family: 'Outfit', sans-serif;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                background: radial-gradient(circle at top right, #1e293b, #0f172a);
+                color: #f8fafc;
+            }}
+            .card {{
+                background: rgba(30, 41, 59, 0.7);
+                backdrop-filter: blur(16px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 24px;
+                padding: 48px 32px;
+                max-width: 440px;
+                width: 90%;
+                text-align: center;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+                animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            }}
+            @keyframes fadeIn {{
+                from {{ opacity: 0; transform: translateY(20px); }}
+                to {{ opacity: 1; transform: translateY(0); }}
+            }}
+            .icon-wrapper {{
+                width: 80px;
+                height: 80px;
+                background: linear-gradient(135deg, #ef4444, #dc2626);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 24px auto;
+                box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
+            }}
+            .icon-wrapper svg {{
+                width: 40px;
+                height: 40px;
+                fill: white;
+            }}
+            h1 {{
+                font-size: 28px;
+                font-weight: 700;
+                margin: 0 0 16px 0;
+                background: linear-gradient(135deg, #f87171, #dc2626);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }}
+            p {{
+                font-size: 16px;
+                line-height: 1.6;
+                color: #94a3b8;
+                margin: 0 0 32px 0;
+            }}
+            .btn {{
+                display: inline-block;
+                background: linear-gradient(135deg, #475569, #334155);
+                color: white;
+                text-decoration: none;
+                padding: 14px 28px;
+                border-radius: 12px;
+                font-weight: 600;
+                font-size: 15px;
+                transition: all 0.2s ease;
+                box-shadow: 0 4px 12px rgba(71, 85, 105, 0.3);
+            }}
+            .btn:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(71, 85, 105, 0.4);
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="icon-wrapper">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+            </div>
+            <h1>{title}</h1>
+            <p>{error_detail}</p>
+            <a href="https://chat.google.com" class="btn">Volver a intentar</a>
+        </div>
+    </body>
+    </html>
+    """
+
+@public_router.get("/google-chat/callback")
+async def google_chat_callback(code: str, state: str):
+    """Callback endpoint for Keycloak SSO authorization code flow"""
+    from fastapi.responses import HTMLResponse
+    from shared.redis_client import get_redis_client
+    import httpx
+    
+    logger.info(f"🔑 Received Keycloak callback. Code: {code[:10]}... | Space ID (state): {state}")
+    
+    try:
+        # 1. Exchange code for access token using authorization_code grant type
+        token_url = f"{settings.KC_SERVER_URL.rstrip('/')}/realms/{settings.KC_REALM}/protocol/openid-connect/token"
+        data = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": settings.KEYCLOAK_REDIRECT_URI,
+            "client_id": settings.KC_CLIENT_ID,
+            "client_secret": settings.KC_CLIENT_SECRET
+        }
+        
+        async with httpx.AsyncClient() as client:
+            token_resp = await client.post(token_url, data=data, timeout=10)
+            if token_resp.status_code != 200:
+                logger.error(f"❌ Failed to exchange authorization code ({token_resp.status_code}): {token_resp.text}")
+                return HTMLResponse(
+                    content=get_error_html("Error de autenticación", f"Keycloak respondió con error: {token_resp.text[:300]}"),
+                    status_code=400
+                )
+            
+            tokens = token_resp.json()
+            access_token = tokens.get("access_token")
+            
+            if not access_token:
+                logger.error("❌ Keycloak token response did not contain access_token")
+                return HTMLResponse(
+                    content=get_error_html("Error de token", "No se recibió un token de acceso válido de Keycloak."),
+                    status_code=400
+                )
+                
+            # 2. Save token in Redis
+            redis_client = await get_redis_client()
+            redis_key = f"gchat:space_token:{state}"
+            
+            # Save to Redis with 12 hour TTL (43200 seconds)
+            await redis_client.setex(redis_key, 43200, access_token)
+            logger.info(f"✅ Keycloak token successfully cached in Redis for space {state} (12h TTL)")
+            
+            # 3. Respond with a beautiful success page
+            return HTMLResponse(
+                content=get_success_html("¡Bot Activado con éxito!", "Tu inicio de sesión fue exitoso. MaxiBot ya se encuentra activo en este canal para todo el equipo por las próximas 12 horas.")
+            )
+            
+    except Exception as err:
+        logger.error(f"💥 Exception in Keycloak callback: {str(err)}", exc_info=True)
+        return HTMLResponse(
+            content=get_error_html("Error de Servidor", f"Ocurrió un error inesperado: {str(err)}"),
+            status_code=500
+        )
+
+
 # ============================================================
 # Google Chat Interactive Event Handler (Public)
 # ============================================================
@@ -571,35 +831,40 @@ async def google_chat_event_handler(request: Request):
                         elif settings.MAXIBOT_SA_BASE64:
                             bot_identity = "MaxiBot"
                             
-                        # Extraer correo del usuario para la validación SSO
-                        sender_obj = msg_obj_local.get("sender", {})
-                        user_email = sender_obj.get("email") or ""
-                        
-                        # Validación de roles de Keycloak
+                        # Validación de roles de Keycloak por Espacio
                         is_authorized = True
+                        token_str = None
+                        
                         if bot_identity == "MaxiBot" and settings.KC_USE_AUTH:
-                            if not user_email:
-                                logger.warning("❌ Keycloak Auth is enabled but sender email is missing in payload.")
+                            from shared.redis_client import get_redis_client
+                            redis_client = await get_redis_client()
+                            redis_key = f"gchat:space_token:{space_id}"
+                            space_token = await redis_client.get(redis_key)
+                            
+                            if not space_token:
+                                logger.info(f"❌ Keycloak Auth: Space {space_id} is not authenticated. Generating redirect URL...")
                                 is_authorized = False
-                                resp_text = "⚠️ *Acceso Denegado*\nNo se pudo verificar tu identidad porque el correo no está disponible en la petición."
-                                status = ResponseStatus.ERROR
-                                error_message = "Missing sender email"
-                            else:
-                                logger.info(f"🔐 Verificando rol de DevOps en Keycloak para: {user_email}...")
-                                from .auth import KeycloakAuthService
-                                kc_auth = KeycloakAuthService(
-                                    server_url=settings.KC_SERVER_URL,
-                                    realm=settings.KC_REALM,
-                                    client_id=settings.KC_CLIENT_ID,
-                                    client_secret=settings.KC_CLIENT_SECRET
+                                
+                                from urllib.parse import quote
+                                auth_url = (
+                                    f"{settings.KC_SERVER_URL.rstrip('/')}/realms/{settings.KC_REALM}/protocol/openid-connect/auth"
+                                    f"?client_id={settings.KC_CLIENT_ID}"
+                                    f"&response_type=code"
+                                    f"&redirect_uri={quote(settings.KEYCLOAK_REDIRECT_URI)}"
+                                    f"&scope=openid+profile+email"
+                                    f"&state={quote(space_id)}"
                                 )
-                                has_role = await kc_auth.verify_user_has_role(user_email, "DevOps")
-                                if not has_role:
-                                    logger.warning(f"❌ Keycloak Auth: User {user_email} does NOT have DevOps role.")
-                                    is_authorized = False
-                                    resp_text = "⚠️ *Acceso Denegado*\nNo tienes los permisos requeridos (rol `DevOps`) en Keycloak para utilizar este bot conversacional."
-                                    status = ResponseStatus.ERROR
-                                    error_message = "Unauthorized (Keycloak DevOps role check failed)"
+                                
+                                resp_text = (
+                                    f"🔐 *Activación Diaria Requerida*\n\n"
+                                    f"Para usar **MaxiBot** en este canal, un miembro del equipo debe autenticarse hoy con el SSO de la empresa:\n\n"
+                                    f"👉 *[Hacer clic aquí para Activar Bot en Keycloak]({auth_url})*\n\n"
+                                    f"_Nota: Una vez activado, todos en el grupo podrán usar el bot por las próximas 12 horas._"
+                                )
+                                status = ResponseStatus.ERROR
+                                error_message = "Space authentication required"
+                            else:
+                                token_str = space_token.decode("utf-8") if isinstance(space_token, bytes) else space_token
                                     
                         if is_authorized:
                             mcp_resp, query_status, latency, _ = await mcp_client.query(
@@ -607,7 +872,8 @@ async def google_chat_event_handler(request: Request):
                                 context={
                                     "source": "google_chat", 
                                     "user": display_name,
-                                    "bot_identity": bot_identity
+                                    "bot_identity": bot_identity,
+                                    "space_token": token_str
                                 },
                                 agent_name=None
                             )
