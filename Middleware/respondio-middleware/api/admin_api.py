@@ -831,11 +831,76 @@ async def google_chat_event_handler(request: Request):
                         elif settings.MAXIBOT_SA_BASE64:
                             bot_identity = "MaxiBot"
                             
-                        # Validación de roles de Keycloak por Espacio
+                        # Interceptar si el usuario pegó la URL de callback de localhost
                         is_authorized = True
                         token_str = None
                         
-                        if bot_identity == "MaxiBot" and settings.KC_USE_AUTH:
+                        if "code=" in text_query and ("state=" in text_query or "localhost:8080" in text_query):
+                            import urllib.parse as urlparse
+                            from urllib.parse import parse_qs
+                            import re
+                            
+                            # Buscar con regex para extraer el código y el estado (que es el space_id)
+                            code_match = re.search(r"[?&]code=([^&]+)", text_query)
+                            state_match = re.search(r"[?&]state=([^&]+)", text_query)
+                            
+                            code_val = code_match.group(1) if code_match else None
+                            state_val = state_match.group(1) if state_match else None
+                            
+                            if not code_val or not state_val:
+                                try:
+                                    parsed = urlparse.urlparse(text_query.strip())
+                                    params = parse_qs(parsed.query)
+                                    code_val = params.get("code", [None])[0]
+                                    state_val = params.get("state", [None])[0]
+                                except Exception:
+                                    pass
+                                    
+                            if code_val and state_val:
+                                state_val = urlparse.unquote(state_val)
+                                logger.info(f"📥 Interceptado código de activación manual. Intercambiando para espacio: {state_val}...")
+                                
+                                token_url = f"{settings.KC_SERVER_URL.rstrip('/')}/realms/{settings.KC_REALM}/protocol/openid-connect/token"
+                                data = {
+                                    "grant_type": "authorization_code",
+                                    "code": code_val,
+                                    "redirect_uri": "http://localhost:8080/callback",
+                                    "client_id": settings.KC_CLIENT_ID,
+                                    "client_secret": settings.KC_CLIENT_SECRET
+                                }
+                                
+                                import httpx
+                                async with httpx.AsyncClient() as client:
+                                    token_resp = await client.post(token_url, data=data, timeout=10)
+                                    if token_resp.status_code == 200:
+                                        tokens = token_resp.json()
+                                        access_token = tokens.get("access_token")
+                                        if access_token:
+                                            from shared.redis_client import get_redis_client
+                                            redis_client = await get_redis_client()
+                                            redis_key = f"gchat:space_token:{state_val}"
+                                            await redis_client.setex(redis_key, 43200, access_token)
+                                            
+                                            resp_text = (
+                                                f"✅ *¡Activación Exitosa!*\n\n"
+                                                f"MaxiBot ha sido habilitado para todo el equipo en este canal por las próximas 12 horas. "
+                                                f"¡Ya puedes realizar tus consultas DevOps directamente!"
+                                            )
+                                            status = ResponseStatus.OK
+                                        else:
+                                            resp_text = "❌ *Error de activación:* No se recibió un token de acceso válido de Keycloak."
+                                            status = ResponseStatus.ERROR
+                                    else:
+                                        resp_text = f"❌ *Error de activación:* Falló el intercambio de código en Keycloak ({token_resp.status_code}): {token_resp.text[:200]}"
+                                        status = ResponseStatus.ERROR
+                            else:
+                                resp_text = "❌ *Error:* No se pudieron extraer los parámetros de activación (`code` o `state`) de la URL provista."
+                                status = ResponseStatus.ERROR
+                                
+                            is_authorized = False
+                            
+                        # Validación de roles de Keycloak por Espacio
+                        if is_authorized and bot_identity == "MaxiBot" and settings.KC_USE_AUTH:
                             from shared.redis_client import get_redis_client
                             redis_client = await get_redis_client()
                             redis_key = f"gchat:space_token:{space_id}"
@@ -850,16 +915,18 @@ async def google_chat_event_handler(request: Request):
                                     f"{settings.KC_SERVER_URL.rstrip('/')}/realms/{settings.KC_REALM}/protocol/openid-connect/auth"
                                     f"?client_id={settings.KC_CLIENT_ID}"
                                     f"&response_type=code"
-                                    f"&redirect_uri={quote(settings.KEYCLOAK_REDIRECT_URI)}"
+                                    f"&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fcallback"
                                     f"&scope=openid+profile+email"
                                     f"&state={quote(space_id)}"
                                 )
                                 
                                 resp_text = (
                                     f"🔐 *Activación Diaria Requerida*\n\n"
-                                    f"Para usar **MaxiBot** en este canal, un miembro del equipo debe autenticarse hoy con el SSO de la empresa:\n\n"
-                                    f"👉 *[Hacer clic aquí para Activar Bot en Keycloak]({auth_url})*\n\n"
-                                    f"_Nota: Una vez activado, todos en el grupo podrán usar el bot por las próximas 12 horas._"
+                                    f"Para usar **MaxiBot** en este canal, un miembro del equipo debe autenticarse hoy en Keycloak:\n\n"
+                                    f"1. 👉 *[Hacer clic aquí para Iniciar Sesión en Keycloak]({auth_url})*\n"
+                                    f"2. Se abrirá una página web en blanco que dirá 'No se puede conectar' (esto es normal y esperado).\n"
+                                    f"3. Copia la dirección completa (URL) de la barra de navegación del navegador.\n"
+                                    f"4. Pégala aquí respondiendo a este mensaje para activar el bot en este grupo por 12 horas."
                                 )
                                 status = ResponseStatus.ERROR
                                 error_message = "Space authentication required"
