@@ -81,7 +81,7 @@ class GoogleChatService:
 
             url = f"https://chat.googleapis.com/v1/{target_space}/messages"
             headers = {
-                "Authorization": f"Bearer {self._credentials.token}",
+                "Authorization": f"Bearer {creds.token}",
                 "Content-Type": "application/json"
             }
             
