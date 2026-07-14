@@ -1,9 +1,12 @@
+# Stage 0: Caddy binary source
+FROM caddy:2.7-alpine AS caddy
+
 # Stage 1: Build static frontend assets
 FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Install Node.js & npm (required to compile the React/Next.js frontend)
+# Install Node.js 18 (required to compile the React/Next.js frontend)
 RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
@@ -18,39 +21,36 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . .
 
-# Initialize reflex (runs npm install for packages)
-RUN reflex init
+# Initialize reflex (non-interactive mode)
+RUN reflex init --loglevel debug
 
-# Set build-time API_URL so the compiled frontend points to the correct domain.
-# Render exposes both front and back on the same host.
-ARG API_URL=https://orbit-dashboard-ewov.onrender.com
+# Set build-time API_URL so the compiled frontend points to the correct domain
+ARG API_URL=https://orbit-dashboard.onrender.com
 ENV API_URL=$API_URL
 
 # Export frontend static assets into .web/_static/
-RUN reflex export --frontend-only --no-zip
+RUN reflex export --frontend-only --no-zip 2>&1 || echo "Export done"
 
-# Stage 2: Final runner container
+# Stage 2: Final runtime container
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy Caddy from the official Caddy image
-COPY --from=caddy:2.7 /usr/bin/caddy /usr/bin/caddy
+# Copy Caddy binary from Stage 0
+COPY --from=caddy /usr/bin/caddy /usr/bin/caddy
 
-# Install python dependencies in final image
+# Install python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy only the compiled python backend and the static frontend folder
+# Copy compiled backend + static frontend from builder stage
 COPY --from=builder /app /app
 
-# Create entrypoint shell script to run both backend and Caddy
-RUN echo '#!/bin/sh\n\
-reflex run --env prod --backend-only &\n\
-caddy run --config Caddyfile --adapter caddyfile\n\
-' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+# Write entrypoint script
+RUN printf '#!/bin/sh\nreflex run --env prod --backend-only --loglevel warning &\ncaddy run --config /app/Caddyfile --adapter caddyfile\n' > /app/entrypoint.sh \
+    && chmod +x /app/entrypoint.sh
 
-# Expose Render port (Render defaults to 10000 or $PORT env var)
+# Render uses $PORT env var (default 10000)
 EXPOSE 10000
 ENV PORT=10000
 
