@@ -23,7 +23,7 @@ class GoogleChatService:
             "https://www.googleapis.com/auth/chat.messages.create",
             "https://www.googleapis.com/auth/chat.bot"
         ]
-        self._credentials = None
+        self._credentials_cache = {}
 
     async def _get_credentials(self, sa_b64: str):
         """Decode SA and load credentials"""
@@ -62,18 +62,21 @@ class GoogleChatService:
             target_space = f"spaces/{target_space}"
 
         try:
-            if not self._credentials:
+            creds = self._credentials_cache.get(sa_b64)
+            if not creds:
                 logger.info(f"🔑 Cargando credenciales por primera vez para el espacio: {target_space}")
-                self._credentials = await self._get_credentials(sa_b64)
+                creds = await self._get_credentials(sa_b64)
+                if creds:
+                    self._credentials_cache[sa_b64] = creds
             
-            if not self._credentials:
+            if not creds:
                 logger.error("❌ No se pudieron obtener las credenciales de la Service Account")
                 return False
             
             # Refresh token solo si no es válido
-            if not self._credentials.valid:
+            if not creds.valid:
                 logger.info("🔄 Refrescando token de Google Auth...")
-                self._credentials.refresh(Request())
+                creds.refresh(Request())
                 logger.info("🎟️ Token refrescado con éxito")
 
             url = f"https://chat.googleapis.com/v1/{target_space}/messages"
