@@ -22,6 +22,8 @@ except Exception:
 class HomeState(rx.State):
     time_range: str = "Last 24 Hours"
     hours: int = 24
+    start_date: str = ""
+    end_date: str = ""
     stats_data: list[dict] = []
     recent_requests_data: list[dict] = []
     
@@ -54,8 +56,16 @@ class HomeState(rx.State):
     
     is_loading: bool = False
 
+    def set_start_date(self, val: str):
+        self.start_date = val
+
+    def set_end_date(self, val: str):
+        self.end_date = val
+
     async def change_time_range(self, range_val: str):
         self.time_range = range_val
+        if range_val == "Custom Range":
+            return
         hours_map = {
             "Last 24 Hours": 24,
             "Last 7 Days": 168,
@@ -71,12 +81,40 @@ class HomeState(rx.State):
         app_state = await self.get_state(AppState)
         await app_state.load_dashboard_summary()
         
+        # Determine query hours
+        query_hours = self.hours
+        is_custom = self.time_range == "Custom Range"
+        parsed_start = None
+        parsed_end = None
+        
+        if is_custom and self.start_date and self.end_date:
+            try:
+                parsed_start = datetime.strptime(self.start_date, "%Y-%m-%d")
+                parsed_end = datetime.strptime(self.end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+                
+                # Calculate hours between start_date and now
+                now = datetime.utcnow()
+                diff = now - parsed_start
+                query_hours = max(24, int(diff.total_seconds() / 3600) + 24)
+            except Exception as e:
+                print(f"Error parsing custom dates: {e}")
+                
         # Load hourly stats
-        stats = await api_client.get_stats(hours=self.hours)
+        stats = await api_client.get_stats(hours=query_hours)
         self.stats_data = []
         if stats:
             for item in stats:
                 hour_str = item.get("hour", "")
+                
+                # Filter records if Custom Range is selected
+                if is_custom and parsed_start and parsed_end:
+                    try:
+                        record_dt = datetime.fromisoformat(hour_str)
+                        if not (parsed_start <= record_dt <= parsed_end):
+                            continue
+                    except Exception:
+                        pass
+                
                 if isinstance(hour_str, str) and "T" in hour_str:
                     parts = hour_str.split("T")
                     date_part = parts[0][5:] # "07-14"
@@ -99,7 +137,24 @@ class HomeState(rx.State):
                 
         # Load recent requests
         recent = await api_client.get_recent_requests(limit=1000)
-        self.recent_requests_data = recent if recent else []
+        filtered_recent = []
+        if recent:
+            for r in recent:
+                ts_str = r.get("timestamp", "")
+                if is_custom and parsed_start and parsed_end:
+                    try:
+                        if "." in ts_str:
+                            ts_str_clean = ts_str.split(".")[0]
+                        else:
+                            ts_str_clean = ts_str
+                        record_dt = datetime.fromisoformat(ts_str_clean)
+                        if not (parsed_start <= record_dt <= parsed_end):
+                            continue
+                    except Exception:
+                        pass
+                filtered_recent.append(r)
+                
+        self.recent_requests_data = filtered_recent
         
         # Calculate Latency Percentiles
         latencies = [r.get("latency_ms", 0) for r in self.recent_requests_data if r.get("latency_ms")]
@@ -599,7 +654,7 @@ def home_page() -> rx.Component:
         # Controls / Filters Header
         rx.hstack(
             rx.select(
-                ["Last 24 Hours", "Last 7 Days", "Last 30 Days"],
+                ["Last 24 Hours", "Last 7 Days", "Last 30 Days", "Custom Range"],
                 value=HomeState.time_range,
                 on_change=HomeState.change_time_range,
                 style={
@@ -610,6 +665,45 @@ def home_page() -> rx.Component:
                     "padding": "6px 12px",
                     "cursor": "pointer"
                 }
+            ),
+            rx.cond(
+                HomeState.time_range == "Custom Range",
+                rx.hstack(
+                    rx.input(
+                        type="date",
+                        value=HomeState.start_date,
+                        on_change=HomeState.set_start_date,
+                        style={
+                            "background_color": rx.color_mode_cond("#FFFFFF", "#0C0F1D"),
+                            "border": f"1px solid {BORDER_COLOR}",
+                            "color": TEXT_COLOR,
+                            "border_radius": "8px",
+                            "padding": "4px 8px"
+                        }
+                    ),
+                    rx.text("a", color=TEXT_MUTED, font_size="13px", align_self="center"),
+                    rx.input(
+                        type="date",
+                        value=HomeState.end_date,
+                        on_change=HomeState.set_end_date,
+                        style={
+                            "background_color": rx.color_mode_cond("#FFFFFF", "#0C0F1D"),
+                            "border": f"1px solid {BORDER_COLOR}",
+                            "color": TEXT_COLOR,
+                            "border_radius": "8px",
+                            "padding": "4px 8px"
+                        }
+                    ),
+                    rx.button(
+                        "Filtrar",
+                        on_click=HomeState.load_data,
+                        variant="soft",
+                        color_scheme="indigo",
+                        style={"cursor": "pointer"}
+                    ),
+                    spacing="2",
+                    align_items="center"
+                )
             ),
             rx.spacer(),
             rx.button(

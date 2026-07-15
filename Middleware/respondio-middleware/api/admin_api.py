@@ -1482,7 +1482,7 @@ async def get_request_by_trace_id(
 
 @router.get("/telemetry/stats")
 async def get_stats(
-    hours: int = Query(default=24, le=168),  # Max 7 days
+    hours: int = Query(default=24, le=8760),  # Max 365 days
     _: DashboardUser = Depends(verify_admin_credentials)
 ):
     """Get hourly statistics"""
