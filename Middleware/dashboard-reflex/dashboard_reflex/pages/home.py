@@ -3,7 +3,7 @@ from dashboard_reflex.components.layout import protected_layout
 from dashboard_reflex.state.auth_state import AuthState
 from dashboard_reflex.state.app_state import AppState
 from dashboard_reflex.components.styling import (
-    GLASS_EFFECT, ACCENT_BLUE, ACCENT_PURPLE, BORDER_COLOR, TEXT_MUTED,
+    GLASS_EFFECT, ACCENT_BLUE, ACCENT_PURPLE, BORDER_COLOR, TEXT_MUTED, TEXT_COLOR,
     glass_container, status_badge
 )
 from dashboard_reflex.api.client import api_client
@@ -231,7 +231,7 @@ def stat_card(title: str, value: rx.Var, icon: str, description: str = "") -> rx
                 width="100%",
                 align_items="center"
             ),
-            rx.heading(value, size="7", style={"font_weight": "800", "color": "#FFFFFF", "margin_top": "8px"}),
+            rx.heading(value, size="7", style={"font_weight": "800", "color": TEXT_COLOR, "margin_top": "8px"}),
             rx.text(description, font_size="11px", color=TEXT_MUTED, style={"margin_top": "4px"}),
             spacing="1",
             align_items="start"
@@ -257,7 +257,7 @@ def home_page() -> rx.Component:
     # Chart cards
     volume_chart = glass_container(
         rx.vstack(
-            rx.heading("Volumen de Peticiones", size="4", style={"margin_bottom": "12px", "color": "#FFFFFF"}),
+            rx.heading("Volumen de Peticiones", size="4", style={"margin_bottom": "12px", "color": TEXT_COLOR}),
             rx.recharts.line_chart(
                 rx.recharts.line(data_key="respond_requests", name="Respond", stroke=ACCENT_BLUE, stroke_width=2),
                 rx.recharts.line(data_key="orbit_requests", name="Orbit Bot", stroke="#48BB78", stroke_width=2),
@@ -279,7 +279,7 @@ def home_page() -> rx.Component:
     
     latency_chart = glass_container(
         rx.vstack(
-            rx.heading("Tendencia de Latencia (ms)", size="4", style={"margin_bottom": "12px", "color": "#FFFFFF"}),
+            rx.heading("Tendencia de Latencia (ms)", size="4", style={"margin_bottom": "12px", "color": TEXT_COLOR}),
             rx.recharts.line_chart(
                 rx.recharts.line(data_key="avg_latency_ms", name="Promedio", stroke=ACCENT_BLUE, stroke_width=2),
                 rx.recharts.line(data_key="p95_latency_ms", name="P95", stroke=ACCENT_PURPLE, stroke_width=1.5, stroke_dasharray="4 4"),
@@ -300,7 +300,7 @@ def home_page() -> rx.Component:
     
     success_chart = glass_container(
         rx.vstack(
-            rx.heading("Éxito vs Errores", size="4", style={"margin_bottom": "12px", "color": "#FFFFFF"}),
+            rx.heading("Éxito vs Errores", size="4", style={"margin_bottom": "12px", "color": TEXT_COLOR}),
             rx.recharts.area_chart(
                 rx.recharts.area(data_key="success_count", stack_id="1", fill="rgba(16, 185, 129, 0.2)", stroke="#10B981", stroke_width=2),
                 rx.recharts.area(data_key="error_count", stack_id="1", fill="rgba(239, 68, 68, 0.2)", stroke="#EF4444", stroke_width=1.5),
@@ -320,7 +320,7 @@ def home_page() -> rx.Component:
     
     channel_chart = glass_container(
         rx.vstack(
-            rx.heading("Distribución por Canal", size="4", style={"margin_bottom": "12px", "color": "#FFFFFF"}),
+            rx.heading("Distribución por Canal", size="4", style={"margin_bottom": "12px", "color": TEXT_COLOR}),
             rx.hstack(
                 rx.recharts.pie_chart(
                     rx.recharts.pie(
@@ -349,7 +349,7 @@ def home_page() -> rx.Component:
     # Respond.io detailed categories chart
     respond_category_chart = glass_container(
         rx.vstack(
-            rx.heading("📊 Usabilidad de Respond.io (Scripts / Reglas / MCP / Handoffs)", size="4", style={"margin_bottom": "16px", "color": "#FFFFFF"}),
+            rx.heading("📊 Usabilidad de Respond.io (Scripts / Reglas / MCP / Handoffs)", size="4", style={"margin_bottom": "16px", "color": TEXT_COLOR}),
             rx.grid(
                 # Pie Chart
                 rx.vstack(
@@ -374,7 +374,7 @@ def home_page() -> rx.Component:
                 # Metrics breakdown list
                 rx.vstack(
                     rx.hstack(
-                        rx.text("Detalle de Interacciones (Hoy)", font_size="13px", font_weight="bold", color="#FFFFFF"),
+                        rx.text("Detalle de Interacciones (Hoy)", font_size="13px", font_weight="bold", color=TEXT_COLOR),
                         rx.spacer(),
                         rx.dialog.root(
                             rx.dialog.trigger(
@@ -564,21 +564,21 @@ def home_page() -> rx.Component:
     # MCP performance metrics grid
     mcp_performances = glass_container(
         rx.vstack(
-            rx.heading("⚡ Rendimiento DevOps MCP", size="4", style={"margin_bottom": "16px", "color": "#FFFFFF"}),
+            rx.heading("⚡ Rendimiento DevOps MCP", size="4", style={"margin_bottom": "16px", "color": TEXT_COLOR}),
             rx.grid(
                 rx.vstack(
                     rx.text("Latencia Promedio MCP", font_size="12px", color=TEXT_MUTED),
-                    rx.heading(HomeState.mcp_avg.to(str) + " ms", size="5", color="#FFFFFF"),
+                    rx.heading(HomeState.mcp_avg.to(str) + " ms", size="5", color=TEXT_COLOR),
                     align_items="center"
                 ),
                 rx.vstack(
                     rx.text("Latencia Mínima MCP", font_size="12px", color=TEXT_MUTED),
-                    rx.heading(HomeState.mcp_min.to(str) + " ms", size="5", color="#FFFFFF"),
+                    rx.heading(HomeState.mcp_min.to(str) + " ms", size="5", color=TEXT_COLOR),
                     align_items="center"
                 ),
                 rx.vstack(
                     rx.text("Latencia Máxima MCP", font_size="12px", color=TEXT_MUTED),
-                    rx.heading(HomeState.mcp_max.to(str) + " ms", size="5", color="#FFFFFF"),
+                    rx.heading(HomeState.mcp_max.to(str) + " ms", size="5", color=TEXT_COLOR),
                     align_items="center"
                 ),
                 rx.vstack(
@@ -603,9 +603,9 @@ def home_page() -> rx.Component:
                 value=HomeState.time_range,
                 on_change=HomeState.change_time_range,
                 style={
-                    "background_color": "#0C0F1D",
+                    "background_color": rx.color_mode_cond("#FFFFFF", "#0C0F1D"),
                     "border": f"1px solid {BORDER_COLOR}",
-                    "color": "#FFFFFF",
+                    "color": TEXT_COLOR,
                     "border_radius": "8px",
                     "padding": "6px 12px",
                     "cursor": "pointer"
@@ -614,7 +614,7 @@ def home_page() -> rx.Component:
             rx.spacer(),
             rx.button(
                 rx.hstack(
-                    rx.icon("refresh_cw", size=14),
+                    rx.icon("refresh-cw", size=14),
                     rx.text("Recargar Datos"),
                     spacing="2"
                 ),

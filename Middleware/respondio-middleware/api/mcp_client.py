@@ -95,12 +95,13 @@ class MCPClient:
                     )
                 
                 # Google Chat alert
-                chat_config = await config_manager.get_google_chat_config()
-                if chat_config.enabled and chat_config.alert_on_circuit_breaker:
+                if settings.GOOGLE_CHATS_SA_BASE64:
                     await google_chat_service.send_alert(
                         "Circuit Breaker Activado",
-                        f"El Circuit Breaker de ORBIT se ha abierto tras {self.failure_count} fallos consecutivos. El middleware está en modo de seguridad.",
-                        level="ERROR"
+                        f"El Circuit Breaker de ORBIT se ha abierto tras {self.failure_count} fallos consecutivos. El middleware está en modo de seguridad (retornando respuestas de respaldo).",
+                        level="ERROR",
+                        space_id="spaces/AAQADr-f_9c",
+                        sa_b64_override=settings.GOOGLE_CHATS_SA_BASE64
                     )
             
             asyncio.create_task(fire_cb_alert())

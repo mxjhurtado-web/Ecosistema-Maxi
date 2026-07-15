@@ -105,17 +105,19 @@ class GoogleChatService:
             logger.error(f"💥 Failed to send Google Chat message: {str(e)}")
             return False
 
-    async def send_alert(self, title: str, message: str, level: str = "INFO", space_id: Optional[str] = None) -> bool:
-        """Send a formatted alert message"""
-        icon = "ℹ️"
-        if level == "ERROR": icon = "🚨"
-        elif level == "WARNING": icon = "⚠️"
-        elif level == "SUCCESS": icon = "✅"
-        
-        formatted_text = f"{icon} *{title}*\n{message}"
-        return await self.send_message(formatted_text, space_id)
+    async def send_alert(self, title: str, message: str, level: str = "INFO", space_id: Optional[str] = None, sa_b64_override: Optional[str] = None) -> bool:
+        """Helper to send a formatted alert message (returns bool status)"""
+        ok, _ = await self.send_alert_detailed(title, message, level, space_id, sa_b64_override)
+        return ok
 
-    async def send_alert_detailed(self, title: str, message: str, level: str = "INFO", space_id: Optional[str] = None) -> tuple[bool, str]:
+    async def send_alert_detailed(
+        self, 
+        title: str, 
+        message: str, 
+        level: str = "INFO", 
+        space_id: Optional[str] = None,
+        sa_b64_override: Optional[str] = None
+    ) -> tuple[bool, str]:
         """Send a formatted alert message and return detailed result status"""
         icon = "ℹ️"
         if level == "ERROR": icon = "🚨"
@@ -126,7 +128,7 @@ class GoogleChatService:
         
         config = await config_manager.get_google_chat_config()
         
-        sa_b64 = config.sa_json_b64
+        sa_b64 = sa_b64_override or config.sa_json_b64
         target_space = space_id or config.default_space_id
 
         if not sa_b64:
@@ -139,10 +141,10 @@ class GoogleChatService:
         if not target_space.startswith("spaces/"):
             target_space = f"spaces/{target_space}"
 
-        # If general config is disabled and no explicit space_id was passed, prevent it.
-        # But if space_id is explicitly passed, let it proceed!
-        if not config.enabled and not space_id:
-            return False, "Google Chat alerts are globally disabled (enabled = False) and no explicit space_id was provided"
+        # If general config is disabled and no explicit space_id or override was passed, prevent it.
+        # But if space_id or sa_b64_override is explicitly passed, let it proceed!
+        if not config.enabled and not space_id and not sa_b64_override:
+            return False, "Google Chat alerts are globally disabled (enabled = False) and no explicit space_id or override was provided"
 
         try:
             # Decode and load credentials

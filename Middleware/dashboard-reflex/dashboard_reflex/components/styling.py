@@ -1,20 +1,22 @@
 import reflex as rx
 
 # --- DESIGN SYSTEM COLOR PALETTE ---
-BG_COLOR = "#080B16"          # Deep cosmic black
+BG_COLOR = rx.color_mode_cond("#F4F6F9", "#080B16")          # Soft gray-blue vs Deep cosmic black
 ACCENT_BLUE = "#00D9FF"       # Electric cyan
 ACCENT_PURPLE = "#7C3AED"     # Accent violet
-TEXT_MUTED = "#8E9BB8"        # Soft blue-gray for captions
-CARD_BG = "rgba(16, 20, 38, 0.6)"  # Glassmorphism base
-BORDER_COLOR = "rgba(0, 217, 255, 0.15)" # Cyan border highlight
+TEXT_COLOR = rx.color_mode_cond("#1A202C", "#FFFFFF")        # Dark slate vs White
+TEXT_MUTED = rx.color_mode_cond("#5A6A85", "#8E9BB8")        # Dark gray-blue vs Soft blue-gray
+CARD_BG = rx.color_mode_cond("rgba(255, 255, 255, 0.85)", "rgba(16, 20, 38, 0.6)")  # White glass vs dark glass
+BORDER_COLOR = rx.color_mode_cond("rgba(0, 217, 255, 0.25)", "rgba(0, 217, 255, 0.15)") # Cyan border highlight
 
 # --- CSS HELPER PROPERTIES ---
 GLASS_EFFECT = {
     "background_color": CARD_BG,
     "backdrop_filter": "blur(12px)",
-    "border": f"1px solid {BORDER_COLOR}",
-    "box_shadow": "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
+    "border": rx.color_mode_cond("1px solid rgba(0, 217, 255, 0.25)", "1px solid rgba(0, 217, 255, 0.15)"),
+    "box_shadow": rx.color_mode_cond("0 8px 32px 0 rgba(0, 0, 0, 0.05)", "0 8px 32px 0 rgba(0, 0, 0, 0.37)"),
     "border_radius": "16px",
+    "color": TEXT_COLOR,
 }
 
 SIDEBAR_STYLE = {
@@ -23,10 +25,11 @@ SIDEBAR_STYLE = {
     "position": "fixed",
     "left": "0",
     "top": "0",
-    "background_color": "#0C0F1D",
-    "border_right": f"1px solid {BORDER_COLOR}",
+    "background_color": rx.color_mode_cond("#FFFFFF", "#0C0F1D"),
+    "border_right": rx.color_mode_cond("1px solid rgba(0, 217, 255, 0.25)", "1px solid rgba(0, 217, 255, 0.15)"),
     "padding": "24px 16px",
     "z_index": "100",
+    "color": TEXT_COLOR,
 }
 
 CONTENT_LAYOUT = {
@@ -34,7 +37,7 @@ CONTENT_LAYOUT = {
     "padding": "32px",
     "min_height": "100vh",
     "background_color": BG_COLOR,
-    "color": "#FFFFFF",
+    "color": TEXT_COLOR,
 }
 
 # --- REUSABLE CUSTOM STYLED CONTAINERS ---

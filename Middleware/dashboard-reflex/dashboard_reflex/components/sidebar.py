@@ -1,10 +1,10 @@
 import reflex as rx
 from dashboard_reflex.state.auth_state import AuthState
-from dashboard_reflex.components.styling import BORDER_COLOR, SIDEBAR_STYLE, ACCENT_BLUE, TEXT_MUTED
+from dashboard_reflex.components.styling import BORDER_COLOR, SIDEBAR_STYLE, ACCENT_BLUE, TEXT_MUTED, TEXT_COLOR
 
 def sidebar_link(title: str, icon: str, url: str, active: bool = False) -> rx.Component:
     """A sidebar navigation link."""
-    link_color = ACCENT_BLUE if active else "#FFFFFF"
+    link_color = ACCENT_BLUE if active else TEXT_COLOR
     bg_color = "rgba(0, 217, 255, 0.08)" if active else "transparent"
     border_left = f"3px solid {ACCENT_BLUE}" if active else "3px solid transparent"
     
@@ -23,7 +23,7 @@ def sidebar_link(title: str, icon: str, url: str, active: bool = False) -> rx.Co
                 "width": "100%",
                 "cursor": "pointer",
                 "&_hover": {
-                    "background_color": "rgba(255, 255, 255, 0.04)",
+                    "background_color": rx.color_mode_cond("rgba(0, 0, 0, 0.04)", "rgba(255, 255, 255, 0.04)"),
                 }
             }
         ),
@@ -56,7 +56,7 @@ def sidebar(current_page: str) -> rx.Component:
             # Logo header
             rx.hstack(
                 rx.icon("orbit", size=28, color=ACCENT_BLUE),
-                rx.text("ORBIT", font_size="22px", font_weight="900", letter_spacing="1px", color="#FFFFFF"),
+                rx.text("ORBIT", font_size="22px", font_weight="900", letter_spacing="1px", color=TEXT_COLOR),
                 spacing="2",
                 align="center",
                 style={"margin_bottom": "30px", "width": "100%", "justify_content": "center"}
@@ -99,7 +99,7 @@ def sidebar(current_page: str) -> rx.Component:
                 rx.divider(style={"border_color": BORDER_COLOR, "margin_bottom": "15px"}),
                 rx.hstack(
                     rx.vstack(
-                        rx.text(AuthState.username, font_size="13px", font_weight="bold", color="#FFFFFF"),
+                        rx.text(AuthState.username, font_size="13px", font_weight="bold", color=TEXT_COLOR),
                         rx.text(AuthState.role.upper(), font_size="10px", font_weight="bold", color=ACCENT_BLUE),
                         spacing="0",
                         align_items="start"
