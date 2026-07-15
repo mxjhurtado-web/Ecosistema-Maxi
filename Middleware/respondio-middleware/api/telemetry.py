@@ -105,6 +105,16 @@ class TelemetryService:
             # Increment counters
             await self.redis.hincrby(hour_key, "total_requests", 1)
             
+            # Increment channel-specific counters
+            chan = (request_log.channel or "").lower()
+            if "maxibot" in chan:
+                channel_clean = "maxibot"
+            elif "orbit" in chan:
+                channel_clean = "orbit"
+            else:
+                channel_clean = "respond"
+            await self.redis.hincrby(hour_key, f"{channel_clean}_requests", 1)
+            
             if request_log.status == ResponseStatus.OK:
                 await self.redis.hincrby(hour_key, "success_count", 1)
             else:
@@ -194,6 +204,14 @@ class TelemetryService:
                     errors = int(data.get(b"error_count", 0))
                     latency_sum = int(data.get(b"latency_sum", 0))
                     
+                    respond_requests = int(data.get(b"respond_requests", 0))
+                    orbit_requests = int(data.get(b"orbit_requests", 0))
+                    maxibot_requests = int(data.get(b"maxibot_requests", 0))
+                    
+                    # Fallback para datos históricos sin canalización en Redis
+                    if total > 0 and (respond_requests + orbit_requests + maxibot_requests == 0):
+                        respond_requests = total
+                    
                     avg_latency = latency_sum // total if total > 0 else 0
                     
                     # Get latencies for percentiles
@@ -208,6 +226,9 @@ class TelemetryService:
                     stats.append({
                         "hour": hour.isoformat(),
                         "total_requests": total,
+                        "respond_requests": respond_requests,
+                        "orbit_requests": orbit_requests,
+                        "maxibot_requests": maxibot_requests,
                         "success_count": success,
                         "error_count": errors,
                         "avg_latency_ms": avg_latency,

@@ -600,10 +600,27 @@ async def google_chat_event_handler(request: Request):
                 
             logger.info(f"🎯 ESPACIO ENCONTRADO: {space_id}")
             
+            # Detectar la identidad del bot basada en las menciones del mensaje raw
+            chat_data_local = chat_data_obj.get("chat", {}) if chat_data_obj else {}
+            msg_payload_local = chat_data_local.get("messagePayload", {})
+            msg_obj_local = msg_payload_local.get("message", {})
+            raw_text_lower = (msg_obj_local.get("text") or "").lower()
+            
+            bot_identity = "ORBIT Bot"
+            if "maxibot" in raw_text_lower:
+                bot_identity = "MaxiBot"
+            elif "orbit" in raw_text_lower:
+                bot_identity = "ORBIT Bot"
+            elif settings.MAXIBOT_SA_BASE64:
+                bot_identity = "MaxiBot"
+
             # Registrar el space_id en el conjunto de espacios activos en Redis
             try:
                 if telemetry_service.redis:
                     await telemetry_service.redis.sadd("gchat:active_spaces", space_id)
+                    # Separación de espacios activos por Bot
+                    active_spaces_key = "gchat:maxibot:active_spaces" if bot_identity == "MaxiBot" else "gchat:orbit:active_spaces"
+                    await telemetry_service.redis.sadd(active_spaces_key, space_id)
             except Exception as sadd_err:
                 logger.error(f"Failed to register space_id {space_id} to Redis active set: {sadd_err}")
 
@@ -817,19 +834,8 @@ async def google_chat_event_handler(request: Request):
                     try:
                         from .mcp_client import mcp_client
                         
-                        # Detectar la identidad del bot basada en las menciones del mensaje raw
-                        chat_data_local = chat_data_obj.get("chat", {}) if chat_data_obj else {}
-                        msg_payload_local = chat_data_local.get("messagePayload", {})
-                        msg_obj_local = msg_payload_local.get("message", {})
-                        raw_text_lower = (msg_obj_local.get("text") or "").lower()
-                        
-                        bot_identity = "ORBIT Bot"
-                        if "maxibot" in raw_text_lower:
-                            bot_identity = "MaxiBot"
-                        elif "orbit" in raw_text_lower:
-                            bot_identity = "ORBIT Bot"
-                        elif settings.MAXIBOT_SA_BASE64:
-                            bot_identity = "MaxiBot"
+                        # bot_identity ya está determinado al inicio de send_async_response
+                        pass
                             
                         # Interceptar si el usuario pegó la URL de callback de localhost
                         is_authorized = True
@@ -980,7 +986,7 @@ async def google_chat_event_handler(request: Request):
                     timestamp=datetime.utcnow(),
                     conversation_id=space_id,
                     contact_id=display_name,
-                    channel="google_chat",
+                    channel="maxibot" if bot_identity == "MaxiBot" else "orbit",
                     user_text=text_query,
                     mcp_response=resp_text,
                     status=status,
