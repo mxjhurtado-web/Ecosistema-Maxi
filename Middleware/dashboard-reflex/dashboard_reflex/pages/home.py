@@ -125,10 +125,28 @@ class HomeState(rx.State):
         
         # Calculate Respond.io Category Distribution
         respond_cats = {"MCP Directo": 0, "Scripts": 0, "Reglas de Negocio": 0, "Derivaciones (Handoffs)": 0}
+        import re
         for r in self.recent_requests_data:
             chan = r.get("channel", "").lower()
             if "respond" in chan or chan in ["whatsapp", "telegram", "facebook", "unknown", "gchat_orbit", "orbit"] or not chan:
-                cat = r.get("category", "mcp")
+                cat = r.get("category")
+                
+                # Clasificación al vuelo para datos históricos o cargados antes del cambio
+                if not cat or cat == "mcp":
+                    user_lower = r.get("user_text", "").lower()
+                    resp_lower = (r.get("mcp_response") or "").lower()
+                    
+                    if "[transfer:" in resp_lower:
+                        cat = "handoff"
+                    elif re.search(r"(sc\.\d+|cu\.\w+|a[2-6]_)", user_lower) or re.search(r"(sc\.\d+|cu\.\w+|a[2-6]_)", resp_lower):
+                        cat = "script"
+                    elif any(kw in user_lower for kw in ["disputa", "reembolso", "reclamo", "dispute", "refund", "claim", "re-embolso"]) or any(kw in user_lower for kw in ["privacidad", "datos", "borrar", "privacy", "data", "delete"]):
+                        cat = "script"
+                    elif re.search(r"rne\.\d+", user_lower) or re.search(r"rne\.\d+", resp_lower):
+                        cat = "rule"
+                    else:
+                        cat = "mcp"
+                        
                 if cat == "script":
                     respond_cats["Scripts"] += 1
                 elif cat == "rule":
