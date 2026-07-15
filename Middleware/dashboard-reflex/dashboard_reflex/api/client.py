@@ -11,7 +11,7 @@ class AdminAPIClient:
     def __init__(self):
         self.base_url = os.getenv("ORBIT_API_URL", "http://localhost:8000").rstrip('/')
         self.username = os.getenv("DASHBOARD_USERNAME", "admin")
-        self.password = os.getenv("DASHBOARD_PASSWORD", "your-super-secret-dashboard-password")
+        self.password = os.getenv("DASHBOARD_PASSWORD", "")
 
     @property
     def auth_params(self) -> dict:

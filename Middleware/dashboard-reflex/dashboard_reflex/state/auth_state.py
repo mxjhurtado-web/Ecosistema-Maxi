@@ -17,7 +17,7 @@ SUPER_ADMIN_EMAILS = [
     email.strip().lower() 
     for email in os.getenv("SUPER_ADMIN_EMAILS", "mxjhurtado@maxillc.com,mxmramirez@maxillc.com").split(",")
 ]
-DEFAULT_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "orbit2026")
+DEFAULT_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")
 
 class AuthState(rx.State):
     """Global authentication state for Orbit Dashboard."""
