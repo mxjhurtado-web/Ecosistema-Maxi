@@ -265,7 +265,7 @@ def home_page() -> rx.Component:
                 rx.recharts.x_axis(data_key="hour", stroke="#555", font_size=10),
                 rx.recharts.y_axis(stroke="#555", font_size=10),
                 rx.recharts.cartesian_grid(stroke_dasharray="3 3", stroke="rgba(255,255,255,0.05)"),
-                rx.recharts.tooltip(content_style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}"}),
+                rx.recharts.tooltip(content_style=rx.color_mode_cond({"backgroundColor": "#FFFFFF", "border": "1px solid rgba(0,0,0,0.1)", "color": "#1A202C"}, {"backgroundColor": "#0C0F1D", "border": "1px solid rgba(0, 217, 255, 0.15)", "color": "#FFFFFF"})),
                 rx.recharts.legend(vertical_align="top", height=36),
                 data=HomeState.stats_data,
                 width="100%",
@@ -286,7 +286,7 @@ def home_page() -> rx.Component:
                 rx.recharts.x_axis(data_key="hour", stroke="#555", font_size=10),
                 rx.recharts.y_axis(stroke="#555", font_size=10),
                 rx.recharts.cartesian_grid(stroke_dasharray="3 3", stroke="rgba(255,255,255,0.05)"),
-                rx.recharts.tooltip(content_style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}"}),
+                rx.recharts.tooltip(content_style=rx.color_mode_cond({"backgroundColor": "#FFFFFF", "border": "1px solid rgba(0,0,0,0.1)", "color": "#1A202C"}, {"backgroundColor": "#0C0F1D", "border": "1px solid rgba(0, 217, 255, 0.15)", "color": "#FFFFFF"})),
                 rx.recharts.legend(vertical_align="top", height=36),
                 data=HomeState.stats_data,
                 width="100%",
@@ -307,7 +307,7 @@ def home_page() -> rx.Component:
                 rx.recharts.x_axis(data_key="hour", stroke="#555", font_size=10),
                 rx.recharts.y_axis(stroke="#555", font_size=10),
                 rx.recharts.cartesian_grid(stroke_dasharray="3 3", stroke="rgba(255,255,255,0.05)"),
-                rx.recharts.tooltip(content_style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}"}),
+                rx.recharts.tooltip(content_style=rx.color_mode_cond({"backgroundColor": "#FFFFFF", "border": "1px solid rgba(0,0,0,0.1)", "color": "#1A202C"}, {"backgroundColor": "#0C0F1D", "border": "1px solid rgba(0, 217, 255, 0.15)", "color": "#FFFFFF"})),
                 data=HomeState.stats_data,
                 width="100%",
                 height=300
@@ -333,7 +333,7 @@ def home_page() -> rx.Component:
                         fill=ACCENT_PURPLE,
                         label=True
                     ),
-                    rx.recharts.tooltip(content_style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}"}),
+                    rx.recharts.tooltip(content_style=rx.color_mode_cond({"backgroundColor": "#FFFFFF", "border": "1px solid rgba(0,0,0,0.1)", "color": "#1A202C"}, {"backgroundColor": "#0C0F1D", "border": "1px solid rgba(0, 217, 255, 0.15)", "color": "#FFFFFF"})),
                     width="100%",
                     height=250
                 ),
@@ -364,7 +364,7 @@ def home_page() -> rx.Component:
                             fill=ACCENT_BLUE,
                             label=True
                         ),
-                        rx.recharts.tooltip(content_style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}"}),
+                        rx.recharts.tooltip(content_style=rx.color_mode_cond({"backgroundColor": "#FFFFFF", "border": "1px solid rgba(0,0,0,0.1)", "color": "#1A202C"}, {"backgroundColor": "#0C0F1D", "border": "1px solid rgba(0, 217, 255, 0.15)", "color": "#FFFFFF"})),
                         width="100%",
                         height=220
                     ),
