@@ -5,15 +5,23 @@
 :{$PORT} {
     encode gzip
 
-    # Route backend event handlers, uploads, and pings to the Reflex Python backend server
-    @backend {
-        path /_event /_event/* /ping /_upload /_upload/* /api/*
+    # Route backend endpoints to the Reflex backend
+    handle /_event* {
+        reverse_proxy 127.0.0.1:8000
     }
-    reverse_proxy @backend 127.0.0.1:8000
+    handle /ping {
+        reverse_proxy 127.0.0.1:8000
+    }
+    handle /_upload* {
+        reverse_proxy 127.0.0.1:8000
+    }
+    handle /api* {
+        reverse_proxy 127.0.0.1:8000
+    }
 
-    # Serve compiled static frontend assets
-    root * /app/.web/build/client
-    route {
+    # Serve static frontend assets for everything else
+    handle {
+        root * /app/.web/build/client
         try_files {path} {path}/ /404.html
         file_server
     }
