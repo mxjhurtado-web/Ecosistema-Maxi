@@ -1434,13 +1434,20 @@ async def get_summary(
                 "error_count": 0,
                 "success_rate": 0.0,
                 "avg_latency_ms": 0,
-                "p95_latency_ms": 0
+                "p95_latency_ms": 0,
+                "respond_requests": 0,
+                "orbit_requests": 0,
+                "maxibot_requests": 0
             }
         
         # Aggregate
         total_requests = sum(s["total_requests"] for s in stats)
         success_count = sum(s["success_count"] for s in stats)
         error_count = sum(s["error_count"] for s in stats)
+        
+        respond_requests = sum(s.get("respond_requests", 0) for s in stats)
+        orbit_requests = sum(s.get("orbit_requests", 0) for s in stats)
+        maxibot_requests = sum(s.get("maxibot_requests", 0) for s in stats)
         
         # Calculate averages
         total_latency = sum(s["avg_latency_ms"] * s["total_requests"] for s in stats)
@@ -1457,7 +1464,10 @@ async def get_summary(
             "error_count": error_count,
             "success_rate": round(success_rate, 2),
             "avg_latency_ms": avg_latency,
-            "p95_latency_ms": p95_latency
+            "p95_latency_ms": p95_latency,
+            "respond_requests": respond_requests,
+            "orbit_requests": orbit_requests,
+            "maxibot_requests": maxibot_requests
         }
     
     except Exception as e:
