@@ -47,6 +47,9 @@ class OrbitBotState(rx.State):
         if r_client:
             try:
                 active_spaces = r_client.smembers("gchat:orbit:active_spaces")
+                if not active_spaces:
+                    # Fallback to general active spaces to show historical spaces
+                    active_spaces = r_client.smembers("gchat:active_spaces")
                 for s_id in active_spaces:
                     space_list.append(
                         OrbitSpace(
@@ -68,7 +71,7 @@ class OrbitBotState(rx.State):
         if history:
             gchat_reqs = [
                 r for r in history 
-                if r.get("channel", "").lower() == "orbit"
+                if r.get("channel", "").lower() in ["orbit", "google_chat", "google-chat", "gchat"]
             ]
             
             for req in gchat_reqs[:20]:  # Limit to last 20
@@ -105,7 +108,9 @@ class OrbitBotState(rx.State):
         if r_client:
             try:
                 r_client.srem("gchat:orbit:active_spaces", space_id)
+                r_client.srem("gchat:active_spaces", space_id)
                 rx.toast.success(f"Espacio removido: {space_id}")
+                
                 # Log audit action
                 await api_client.log_audit_action({
                     "username": self.router.session.get("username", "admin"),

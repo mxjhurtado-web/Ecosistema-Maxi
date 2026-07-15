@@ -57,6 +57,9 @@ class MaxiBotState(rx.State):
         if r_client:
             try:
                 active_spaces = r_client.smembers("gchat:maxibot:active_spaces")
+                if not active_spaces:
+                    # Fallback to general active spaces to show historical spaces
+                    active_spaces = r_client.smembers("gchat:active_spaces")
                 for s_id in active_spaces:
                     token_key = f"gchat:space_token:{s_id}"
                     exists = r_client.exists(token_key)
@@ -94,7 +97,7 @@ class MaxiBotState(rx.State):
         if history:
             gchat_reqs = [
                 r for r in history 
-                if r.get("channel", "").lower() == "maxibot"
+                if r.get("channel", "").lower() in ["maxibot", "google_chat", "google-chat", "gchat"]
             ]
             
             for req in gchat_reqs[:20]:  # Limit to last 20
@@ -161,7 +164,9 @@ class MaxiBotState(rx.State):
                 token_key = f"gchat:space_token:{space_id}"
                 r_client.delete(token_key)
                 r_client.srem("gchat:active_spaces", space_id)
+                r_client.srem("gchat:maxibot:active_spaces", space_id)
                 rx.toast.success(f"Acceso revocado para el espacio: {space_id}")
+                
                 # Log audit action
                 await api_client.log_audit_action({
                     "username": self.router.session.get("username", "admin"),
