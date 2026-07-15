@@ -36,7 +36,8 @@ class MaintenanceState(rx.State):
         self.public_knowledge_url = f"{api_client.base_url}/knowledge"
         
         # 1. Update global health in AppState
-        await AppState.update_health()
+        app_state = await self.get_state(AppState)
+        await app_state.update_health()
         
         # 2. Fetch Circuit Breaker
         cb = await api_client.get_circuit_breaker_status()

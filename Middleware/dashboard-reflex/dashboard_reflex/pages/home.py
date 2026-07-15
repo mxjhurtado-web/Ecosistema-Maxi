@@ -56,7 +56,8 @@ class HomeState(rx.State):
         self.is_loading = True
         
         # Refresh global summary KPIs in AppState
-        await AppState.load_dashboard_summary()
+        app_state = await self.get_state(AppState)
+        await app_state.load_dashboard_summary()
         
         # Load hourly stats
         stats = await api_client.get_stats(hours=self.hours)

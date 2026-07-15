@@ -215,7 +215,8 @@ class ConfigState(rx.State):
         success = await api_client.update_mcp_config(new_cfg)
         if success:
             rx.toast.success("✅ Configuración MCP actualizada con éxito!")
-            await AppState.update_health()
+            app_state = await self.get_state(AppState)
+            await app_state.update_health()
         else:
             rx.toast.error("❌ Error al guardar configuración MCP.")
 

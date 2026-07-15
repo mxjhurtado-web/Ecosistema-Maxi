@@ -30,6 +30,7 @@ class HistoryState(rx.State):
     success_count: int = 0
     error_count: int = 0
     avg_latency: int = 0
+    _filtered_requests: list[dict] = []
 
     async def load_data(self):
         self.is_loading = True
