@@ -182,7 +182,16 @@ class HomeState(rx.State):
             else:
                 name = ch.title()
             channels[name] = channels.get(name, 0) + 1
-        self.channel_distribution = [{"name": ch, "value": val} for ch, val in channels.items()]
+        
+        channel_colors = {
+            "MaxiBot": "var(--purple-9)",
+            "Orbit Bot": "var(--green-9)",
+            "Respond.io": "var(--blue-9)"
+        }
+        self.channel_distribution = [
+            {"name": ch, "value": val, "color": channel_colors.get(ch, "var(--indigo-9)")} 
+            for ch, val in channels.items()
+        ]
         
         # Calculate Respond.io Category Distribution
         respond_cats = {
@@ -237,8 +246,19 @@ class HomeState(rx.State):
                 else:
                     respond_cats["MCP Conversacional"] += 1
                     
+        category_colors = {
+            "MCP Conversacional": "var(--indigo-9)", 
+            "Scripts de Cumplimiento": "var(--blue-9)", 
+            "Reglas de Negocio": "var(--amber-9)", 
+            "Derivaciones (Handoffs)": "var(--green-9)",
+            "Consulta de Estatus": "var(--teal-9)",
+            "Pago de Servicios": "var(--pink-9)",
+            "Consulta de Recargas": "var(--sky-9)",
+            "Calificación CSAT": "var(--yellow-9)",
+            "Notificaciones Google Chat": "var(--purple-9)"
+        }
         self.respond_categories = [
-            {"name": name, "value": val} 
+            {"name": name, "value": val, "color": category_colors.get(name, "var(--blue-9)")} 
             for name, val in respond_cats.items() 
             if val > 0 or name == "MCP Conversacional"
         ]
@@ -379,13 +399,16 @@ def home_page() -> rx.Component:
             rx.hstack(
                 rx.recharts.pie_chart(
                     rx.recharts.pie(
+                        rx.foreach(
+                            HomeState.channel_distribution,
+                            lambda item: rx.recharts.cell(fill=item["color"])
+                        ),
                         data=HomeState.channel_distribution,
                         data_key="value",
                         name_key="name",
                         cx="50%",
                         cy="50%",
                         outer_radius=70,
-                        fill=ACCENT_PURPLE,
                         label=True
                     ),
                     rx.recharts.tooltip(content_style=rx.color_mode_cond({"backgroundColor": "#FFFFFF", "border": "1px solid rgba(0,0,0,0.1)", "color": "#1A202C"}, {"backgroundColor": "#0C0F1D", "border": "1px solid rgba(0, 217, 255, 0.15)", "color": "#FFFFFF"})),
@@ -410,13 +433,16 @@ def home_page() -> rx.Component:
                 rx.vstack(
                     rx.recharts.pie_chart(
                         rx.recharts.pie(
+                            rx.foreach(
+                                HomeState.respond_categories,
+                                lambda item: rx.recharts.cell(fill=item["color"])
+                            ),
                             data=HomeState.respond_categories,
                             data_key="value",
                             name_key="name",
                             cx="50%",
                             cy="50%",
                             outer_radius=75,
-                            fill=ACCENT_BLUE,
                             label=True
                         ),
                         rx.recharts.tooltip(content_style=rx.color_mode_cond({"backgroundColor": "#FFFFFF", "border": "1px solid rgba(0,0,0,0.1)", "color": "#1A202C"}, {"backgroundColor": "#0C0F1D", "border": "1px solid rgba(0, 217, 255, 0.15)", "color": "#FFFFFF"})),
