@@ -1155,12 +1155,21 @@ async def google_chat_notify_handler_inner(
         space_id=target_space
     )
     
+    # Registrar el espacio activo en Redis para Orbit Bot
+    if success and target_space:
+        try:
+            if telemetry_service.redis:
+                await telemetry_service.redis.sadd("gchat:active_spaces", target_space)
+                await telemetry_service.redis.sadd("gchat:orbit:active_spaces", target_space)
+        except Exception as sadd_err:
+            logger.error(f"Failed to register notify space_id {target_space} to Redis active set: {sadd_err}")
+
     # Registrar telemetría y Google Sheets
     try:
         import uuid
         from .telemetry import telemetry_service
         from .models import RequestLog, ResponseStatus
-        
+
         trace_id = str(uuid.uuid4())
         latency_ms = int((time.time() - start_time) * 1000)
         
