@@ -47,6 +47,11 @@ class UsuariosState(rx.State):
         user_list = []
         emails_seen = set()
 
+        auth_state = await self.get_state(AuthState)
+        is_sa = auth_state.role == "super_admin"
+        is_admin = auth_state.role == "admin"
+        current_email = auth_state.email.strip().lower()
+
         if r_client:
             try:
                 # Scan all orbit:user:* keys
@@ -60,15 +65,20 @@ class UsuariosState(rx.State):
                             if not email:
                                 continue
                             role = data.get("role", "supervisor")
-                            is_sa = email in SUPER_ADMIN_EMAILS
-                            if is_sa:
+                            user_is_sa = email in SUPER_ADMIN_EMAILS
+                            if user_is_sa:
                                 role = "super_admin"
+                            
+                            # Privacy Filter: Admins can only see supervisors (and themselves)
+                            if is_admin and role != "supervisor" and email != current_email:
+                                continue
+                                
                             user_list.append(
                                 DashboardUserData(
                                     email=email,
                                     name=data.get("name", ""),
                                     role=role,
-                                    is_super_admin=is_sa
+                                    is_super_admin=user_is_sa
                                 )
                             )
                             emails_seen.add(email)
@@ -77,8 +87,11 @@ class UsuariosState(rx.State):
             except Exception as e:
                 rx.toast.error(f"Error cargando usuarios: {str(e)}")
 
-        # Ensure super admins are always present in the list
+        # Ensure super admins are always present in the list, but only if current user is Super Admin
         for sa_email in SUPER_ADMIN_EMAILS:
+            if is_admin:
+                # Admins shouldn't see other Super Admins
+                continue
             if sa_email not in emails_seen:
                 name_part = sa_email.split("@")[0].replace(".", " ").title()
                 user_list.append(
@@ -98,6 +111,11 @@ class UsuariosState(rx.State):
             rx.toast.warning("No se puede cambiar el rol de un Super Admin.")
             return
 
+        auth_state = await self.get_state(AuthState)
+        if auth_state.role != "super_admin":
+            rx.toast.error("Solo los Super Administradores pueden cambiar roles de usuario.")
+            return
+
         if r_client:
             try:
                 key = f"orbit:user:{email}"
@@ -115,7 +133,6 @@ class UsuariosState(rx.State):
                 r_client.set(key, json.dumps(new_data))
                 rx.toast.success(f"Rol de {email} cambiado a {new_role}.")
                 # Log audit action
-                auth_state = await self.get_state(AuthState)
                 await api_client.log_audit_action({
                     "username": auth_state.username or "admin",
                     "role": auth_state.role or "admin",
@@ -157,13 +174,19 @@ class UsuariosState(rx.State):
             rx.toast.warning("El correo especificado ya es un Super Admin configurado.")
             return
 
+        auth_state = await self.get_state(AuthState)
+        role_to_set = self.new_role
+        if auth_state.role == "admin":
+            # Admins can only register supervisors
+            role_to_set = "supervisor"
+
         if r_client:
             try:
                 key = f"orbit:user:{self.new_email}"
                 user_data = {
                     "email": self.new_email,
                     "name": self.new_name,
-                    "role": self.new_role
+                    "role": role_to_set
                 }
                 r_client.set(key, json.dumps(user_data))
                 rx.toast.success(f"Usuario {self.new_email} registrado exitosamente.")
@@ -174,7 +197,7 @@ class UsuariosState(rx.State):
                     "username": auth_state.username or "admin",
                     "role": auth_state.role or "admin",
                     "action": "CONFIG_CHANGE",
-                    "details": f"Registered new user {self.new_email} with role {self.new_role}"
+                    "details": f"Registered new user {self.new_email} with role {role_to_set}"
                 })
 
                 # Clear fields
@@ -198,11 +221,15 @@ def user_row(user: DashboardUserData) -> rx.Component:
             rx.cond(
                 user.is_super_admin,
                 rx.badge("SUPER ADMIN", color_scheme="purple"),
-                rx.select(
-                    ["supervisor", "admin"],
-                    value=user.role,
-                    on_change=lambda val: UsuariosState.change_user_role(user.email, val),
-                    style={"background_color": "#080B16", "border": f"1px solid {BORDER_COLOR}", "color": "#FFFFFF", "border_radius": "6px", "padding": "2px"}
+                rx.cond(
+                    AuthState.role == "super_admin",
+                    rx.select(
+                        ["supervisor", "admin"],
+                        value=user.role,
+                        on_change=lambda val: UsuariosState.change_user_role(user.email, val),
+                        style={"background_color": rx.color_mode_cond("#FFFFFF", "#080B16"), "border": f"1px solid {BORDER_COLOR}", "color": rx.color_mode_cond("#1A202C", "#FFFFFF"), "border_radius": "6px", "padding": "2px"}
+                    ),
+                    rx.badge(user.role.upper(), color_scheme="blue", variant="outline")
                 )
             )
         ),
@@ -228,7 +255,7 @@ def usuarios_page() -> rx.Component:
     # Register new user panel
     add_user_panel = glass_container(
         rx.vstack(
-            rx.heading("➕ Registrar Nuevo Usuario", size="3", color="#FFFFFF", style={"margin_bottom": "12px"}),
+            rx.heading("➕ Registrar Nuevo Usuario", size="3", color=TEXT_COLOR, style={"margin_bottom": "12px"}),
             rx.grid(
                 rx.vstack(
                     rx.text("Correo Electrónico", font_size="11px", font_weight="bold", color=TEXT_MUTED),
@@ -236,7 +263,7 @@ def usuarios_page() -> rx.Component:
                         placeholder="ejemplo@maxillc.com",
                         value=UsuariosState.new_email,
                         on_change=UsuariosState.set_new_email,
-                        style={"background_color": "#080B16", "border": f"1px solid {BORDER_COLOR}", "color": "#FFFFFF", "border_radius": "6px", "width": "100%"}
+                        style={"background_color": rx.color_mode_cond("#FFFFFF", "#080B16"), "border": f"1px solid {BORDER_COLOR}", "color": TEXT_COLOR, "border_radius": "6px", "width": "100%"}
                     ),
                     align_items="start",
                     width="100%"
@@ -247,18 +274,26 @@ def usuarios_page() -> rx.Component:
                         placeholder="Juan Perez",
                         value=UsuariosState.new_name,
                         on_change=UsuariosState.set_new_name,
-                        style={"background_color": "#080B16", "border": f"1px solid {BORDER_COLOR}", "color": "#FFFFFF", "border_radius": "6px", "width": "100%"}
+                        style={"background_color": rx.color_mode_cond("#FFFFFF", "#080B16"), "border": f"1px solid {BORDER_COLOR}", "color": TEXT_COLOR, "border_radius": "6px", "width": "100%"}
                     ),
                     align_items="start",
                     width="100%"
                 ),
                 rx.vstack(
                     rx.text("Rol Inicial", font_size="11px", font_weight="bold", color=TEXT_MUTED),
-                    rx.select(
-                        ["supervisor", "admin"],
-                        value=UsuariosState.new_role,
-                        on_change=UsuariosState.set_new_role,
-                        style={"background_color": "#080B16", "border": f"1px solid {BORDER_COLOR}", "color": "#FFFFFF", "border_radius": "6px", "padding": "4px", "width": "100%"}
+                    rx.cond(
+                        AuthState.role == "super_admin",
+                        rx.select(
+                            ["supervisor", "admin"],
+                            value=UsuariosState.new_role,
+                            on_change=UsuariosState.set_new_role,
+                            style={"background_color": rx.color_mode_cond("#FFFFFF", "#080B16"), "border": f"1px solid {BORDER_COLOR}", "color": TEXT_COLOR, "border_radius": "6px", "padding": "4px", "width": "100%"}
+                        ),
+                        rx.input(
+                            value="supervisor",
+                            disabled=True,
+                            style={"background_color": rx.color_mode_cond("#E2E8F0", "#1A202C"), "border": f"1px solid {BORDER_COLOR}", "color": TEXT_MUTED, "border_radius": "6px", "width": "100%"}
+                        )
                     ),
                     align_items="start",
                     width="100%"
@@ -288,10 +323,10 @@ def usuarios_page() -> rx.Component:
     users_list_panel = glass_container(
         rx.vstack(
             rx.hstack(
-                rx.heading("👥 Usuarios con Acceso al Dashboard", size="3", color="#FFFFFF"),
+                rx.heading("👥 Usuarios con Acceso al Dashboard", size="3", color=TEXT_COLOR),
                 rx.spacer(),
                 rx.button(
-                    rx.hstack(rx.icon("refresh_cw", size=12), rx.text("Recargar"), spacing="2"),
+                    rx.hstack(rx.icon("refresh-cw", size=12), rx.text("Recargar"), spacing="2"),
                     on_click=UsuariosState.load_users,
                     size="1",
                     variant="soft",
