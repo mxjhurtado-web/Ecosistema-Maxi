@@ -1,14 +1,7 @@
 /* Force hide the Built with Reflex badge */
 .reflex-badge,
-[class*="reflex-badge"] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-/* Target the fixed container of the Reflex admin dev button */
-div[style*="position: fixed"][style*="bottom:"][style*="right:"][style*="z-index:"] {
+[class*="reflex-badge"],
+a[href*="reflex.dev"] {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
