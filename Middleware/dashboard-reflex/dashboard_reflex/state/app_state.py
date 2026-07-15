@@ -18,6 +18,10 @@ class AppState(rx.State):
     orbit_requests: int = 0
     maxibot_requests: int = 0
     
+    @rx.var
+    def channel_counts_str(self) -> str:
+        return f"R: {self.respond_requests} | O: {self.orbit_requests} | M: {self.maxibot_requests}"
+    
     is_loading: bool = False
     last_checked: str = ""
 

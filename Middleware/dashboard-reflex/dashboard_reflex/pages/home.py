@@ -213,7 +213,7 @@ def home_page() -> rx.Component:
     # 4 metrics cards grid
     metrics_grid = rx.grid(
         stat_card("Total Peticiones", AppState.total_requests.to(str), "activity", "Hoy en producción"),
-        stat_card("Consultas por Canal", rx.format("R: {} | O: {} | M: {}", AppState.respond_requests, AppState.orbit_requests, AppState.maxibot_requests), "git_branch", "Canales: Respond / Orbit / MaxiBot"),
+        stat_card("Consultas por Canal", AppState.channel_counts_str, "git_branch", "Canales: Respond / Orbit / MaxiBot"),
         stat_card("Latencia Promedio", AppState.avg_latency_ms.to(str) + " ms", "clock", "Tiempo de respuesta API"),
         stat_card("Errores Detectados", AppState.error_count.to(str), "triangle_alert", "Hoy en producción"),
         columns="4",
