@@ -39,6 +39,12 @@ class HomeState(rx.State):
     scripts_count: int = 0
     rules_count: int = 0
     handoffs_count: int = 0
+    status_count: int = 0
+    bill_count: int = 0
+    topup_count: int = 0
+    csat_count: int = 0
+    notify_count: int = 0
+    mcp_conversational_count: int = 0
     
     # MCP metrics
     mcp_avg: int = 0
@@ -124,7 +130,17 @@ class HomeState(rx.State):
         self.channel_distribution = [{"name": ch, "value": val} for ch, val in channels.items()]
         
         # Calculate Respond.io Category Distribution
-        respond_cats = {"MCP Directo": 0, "Scripts": 0, "Reglas de Negocio": 0, "Derivaciones (Handoffs)": 0}
+        respond_cats = {
+            "MCP Conversacional": 0, 
+            "Scripts de Cumplimiento": 0, 
+            "Reglas de Negocio": 0, 
+            "Derivaciones (Handoffs)": 0,
+            "Consulta de Estatus": 0,
+            "Pago de Servicios": 0,
+            "Consulta de Recargas": 0,
+            "Calificación CSAT": 0,
+            "Notificaciones Google Chat": 0
+        }
         import re
         for r in self.recent_requests_data:
             chan = r.get("channel", "").lower()
@@ -147,23 +163,39 @@ class HomeState(rx.State):
                     else:
                         cat = "mcp"
                         
-                if cat == "script":
-                    respond_cats["Scripts"] += 1
-                elif cat == "rule":
+                if cat == "script" or cat == "scripts_fetch":
+                    respond_cats["Scripts de Cumplimiento"] += 1
+                elif cat == "rule" or cat == "rules_fetch":
                     respond_cats["Reglas de Negocio"] += 1
                 elif cat == "handoff":
                     respond_cats["Derivaciones (Handoffs)"] += 1
+                elif cat == "status_check":
+                    respond_cats["Consulta de Estatus"] += 1
+                elif cat == "bill_check":
+                    respond_cats["Pago de Servicios"] += 1
+                elif cat == "topup_check":
+                    respond_cats["Consulta de Recargas"] += 1
+                elif cat == "csat_log":
+                    respond_cats["Calificación CSAT"] += 1
+                elif cat == "gchat_notify":
+                    respond_cats["Notificaciones Google Chat"] += 1
                 else:
-                    respond_cats["MCP Directo"] += 1
+                    respond_cats["MCP Conversacional"] += 1
                     
         self.respond_categories = [
             {"name": name, "value": val} 
             for name, val in respond_cats.items() 
-            if val > 0 or name == "MCP Directo"
+            if val > 0 or name == "MCP Conversacional"
         ]
-        self.scripts_count = respond_cats["Scripts"]
+        self.scripts_count = respond_cats["Scripts de Cumplimiento"]
         self.rules_count = respond_cats["Reglas de Negocio"]
         self.handoffs_count = respond_cats["Derivaciones (Handoffs)"]
+        self.status_count = respond_cats["Consulta de Estatus"]
+        self.bill_count = respond_cats["Pago de Servicios"]
+        self.topup_count = respond_cats["Consulta de Recargas"]
+        self.csat_count = respond_cats["Calificación CSAT"]
+        self.notify_count = respond_cats["Notificaciones Google Chat"]
+        self.mcp_conversational_count = respond_cats["MCP Conversacional"]
         
         # Calculate MCP metrics
         mcp_latencies = [
@@ -344,6 +376,13 @@ def home_page() -> rx.Component:
                     rx.text("Detalle de Interacciones (Hoy)", font_size="13px", font_weight="bold", color="#FFFFFF", style={"margin_bottom": "12px"}),
                     rx.vstack(
                         rx.hstack(
+                            rx.icon("message-square", color="var(--indigo-9)", size=16),
+                            rx.text("MCP Conversacional:", font_size="13px", color=TEXT_MUTED),
+                            rx.spacer(),
+                            rx.badge(HomeState.mcp_conversational_count.to(str), color_scheme="indigo", variant="solid"),
+                            width="100%"
+                        ),
+                        rx.hstack(
                             rx.icon("file-text", color=ACCENT_BLUE, size=16),
                             rx.text("Scripts de Cumplimiento:", font_size="13px", color=TEXT_MUTED),
                             rx.spacer(),
@@ -364,7 +403,42 @@ def home_page() -> rx.Component:
                             rx.badge(HomeState.handoffs_count.to(str), color_scheme="green", variant="solid"),
                             width="100%"
                         ),
-                        spacing="3",
+                        rx.hstack(
+                            rx.icon("user-check", color="var(--teal-9)", size=16),
+                            rx.text("Consulta de Estatus (API):", font_size="13px", color=TEXT_MUTED),
+                            rx.spacer(),
+                            rx.badge(HomeState.status_count.to(str), color_scheme="teal", variant="solid"),
+                            width="100%"
+                        ),
+                        rx.hstack(
+                            rx.icon("credit-card", color="var(--pink-9)", size=16),
+                            rx.text("Pago de Servicios (API):", font_size="13px", color=TEXT_MUTED),
+                            rx.spacer(),
+                            rx.badge(HomeState.bill_count.to(str), color_scheme="pink", variant="solid"),
+                            width="100%"
+                        ),
+                        rx.hstack(
+                            rx.icon("smartphone", color="var(--sky-9)", size=16),
+                            rx.text("Consulta de Recargas (API):", font_size="13px", color=TEXT_MUTED),
+                            rx.spacer(),
+                            rx.badge(HomeState.topup_count.to(str), color_scheme="sky", variant="solid"),
+                            width="100%"
+                        ),
+                        rx.hstack(
+                            rx.icon("star", color="var(--yellow-9)", size=16),
+                            rx.text("Calificación CSAT (API):", font_size="13px", color=TEXT_MUTED),
+                            rx.spacer(),
+                            rx.badge(HomeState.csat_count.to(str), color_scheme="yellow", variant="solid"),
+                            width="100%"
+                        ),
+                        rx.hstack(
+                            rx.icon("bell", color="var(--purple-9)", size=16),
+                            rx.text("Alertas Google Chat:", font_size="13px", color=TEXT_MUTED),
+                            rx.spacer(),
+                            rx.badge(HomeState.notify_count.to(str), color_scheme="purple", variant="solid"),
+                            width="100%"
+                        ),
+                        spacing="2",
                         width="100%"
                     ),
                     width="100%",

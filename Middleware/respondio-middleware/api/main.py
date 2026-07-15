@@ -692,6 +692,41 @@ async def check_transaction_status(
     x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
     secret: Optional[str] = None
 ):
+    start_time = time.time()
+    status_val = ResponseStatus.OK
+    error_msg = None
+    resp = None
+    try:
+        resp = await check_transaction_status_inner(request, x_webhook_secret, secret)
+        return resp
+    except Exception as e:
+        status_val = ResponseStatus.ERROR
+        error_msg = str(e)
+        raise e
+    finally:
+        try:
+            latency = int((time.time() - start_time) * 1000)
+            request_log = RequestLog(
+                trace_id=f"api-{uuid.uuid4()}",
+                timestamp=datetime.utcnow(),
+                conversation_id=request.contact_id or "unknown",
+                contact_id=request.codigo_envio or "unknown",
+                channel="respond_api",
+                user_text=f"Status Check: {request.codigo_envio or ''}",
+                mcp_response=resp.reply_text if resp else error_msg,
+                status=status_val,
+                latency_ms=latency,
+                category="status_check"
+            )
+            await telemetry_service.log_request(request_log)
+        except Exception as log_err:
+            logger.error(f"Error logging status check telemetry: {log_err}")
+
+async def check_transaction_status_inner(
+    request: StatusCheckRequest,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
+):
     """
     Endpoint for deterministic status checking and routing (Plan 3).
     Validates webhook secret, checks attempt limits in Redis, queries Supabase,
@@ -1407,6 +1442,41 @@ async def check_bill_status(
     x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
     secret: Optional[str] = None
 ):
+    start_time = time.time()
+    status_val = ResponseStatus.OK
+    error_msg = None
+    resp = None
+    try:
+        resp = await check_bill_status_inner(request, x_webhook_secret, secret)
+        return resp
+    except Exception as e:
+        status_val = ResponseStatus.ERROR
+        error_msg = str(e)
+        raise e
+    finally:
+        try:
+            latency = int((time.time() - start_time) * 1000)
+            request_log = RequestLog(
+                trace_id=f"api-{uuid.uuid4()}",
+                timestamp=datetime.utcnow(),
+                conversation_id=request.contact_id or "unknown",
+                contact_id=request.codigo_envio or "unknown",
+                channel="respond_api",
+                user_text=f"Bill Check: {request.codigo_envio or ''}",
+                mcp_response=resp.reply_text if resp else error_msg,
+                status=status_val,
+                latency_ms=latency,
+                category="bill_check"
+            )
+            await telemetry_service.log_request(request_log)
+        except Exception as log_err:
+            logger.error(f"Error logging bill check telemetry: {log_err}")
+
+async def check_bill_status_inner(
+    request: BillCheckRequest,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
+):
     """
     Endpoint for validating bill payments, checking name & biller matching,
     applying sheet-based status scripts and department routing.
@@ -1775,6 +1845,41 @@ async def log_csat_feedback(
     x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
     secret: Optional[str] = None
 ):
+    start_time = time.time()
+    status_val = ResponseStatus.OK
+    error_msg = None
+    resp = None
+    try:
+        resp = await log_csat_feedback_inner(request, x_webhook_secret, secret)
+        return resp
+    except Exception as e:
+        status_val = ResponseStatus.ERROR
+        error_msg = str(e)
+        raise e
+    finally:
+        try:
+            latency = int((time.time() - start_time) * 1000)
+            request_log = RequestLog(
+                trace_id=f"api-{uuid.uuid4()}",
+                timestamp=datetime.utcnow(),
+                conversation_id=request.conversation_id or "unknown",
+                contact_id=request.contact_id or "unknown",
+                channel="respond_api",
+                user_text=f"CSAT Log: Rating={request.score or 0}",
+                mcp_response=resp.message if resp else error_msg,
+                status=status_val,
+                latency_ms=latency,
+                category="csat_log"
+            )
+            await telemetry_service.log_request(request_log)
+        except Exception as log_err:
+            logger.error(f"Error logging CSAT telemetry: {log_err}")
+
+async def log_csat_feedback_inner(
+    request: CSATLogRequest,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
+):
     """
     Endpoint to log CSAT survey feedback directly to Google Sheets
     using the Service Account.
@@ -1818,6 +1923,41 @@ async def log_csat_feedback(
 
 @app.post("/api/v1/topup/check", response_model=TopupCheckResponse)
 async def check_topup_status(
+    request: TopupCheckRequest,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
+):
+    start_time = time.time()
+    status_val = ResponseStatus.OK
+    error_msg = None
+    resp = None
+    try:
+        resp = await check_topup_status_inner(request, x_webhook_secret, secret)
+        return resp
+    except Exception as e:
+        status_val = ResponseStatus.ERROR
+        error_msg = str(e)
+        raise e
+    finally:
+        try:
+            latency = int((time.time() - start_time) * 1000)
+            request_log = RequestLog(
+                trace_id=f"api-{uuid.uuid4()}",
+                timestamp=datetime.utcnow(),
+                conversation_id=request.contact_id or "unknown",
+                contact_id=request.phone_number or "unknown",
+                channel="respond_api",
+                user_text=f"Topup Check: {request.phone_number or ''}",
+                mcp_response=resp.reply_text if resp else error_msg,
+                status=status_val,
+                latency_ms=latency,
+                category="topup_check"
+            )
+            await telemetry_service.log_request(request_log)
+        except Exception as log_err:
+            logger.error(f"Error logging topup check telemetry: {log_err}")
+
+async def check_topup_status_inner(
     request: TopupCheckRequest,
     x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
     secret: Optional[str] = None
@@ -2296,6 +2436,31 @@ async def get_scripts(codes: str):
     Get official script verbatims from Google Sheets (cached in Redis).
     Query parameter `codes` is a comma-separated list of script codes (e.g. "SC.001,CU.A1").
     """
+    start_time = time.time()
+    resp = None
+    try:
+        resp = await get_scripts_inner(codes)
+        return resp
+    finally:
+        try:
+            latency = int((time.time() - start_time) * 1000)
+            request_log = RequestLog(
+                trace_id=f"api-{uuid.uuid4()}",
+                timestamp=datetime.utcnow(),
+                conversation_id="scripts_fetch",
+                contact_id="scripts_fetch",
+                channel="respond_api",
+                user_text=f"GET /scripts?codes={codes}",
+                mcp_response=f"Scripts retrieved: {list(resp.keys()) if resp else 'Error'}",
+                status=ResponseStatus.OK,
+                latency_ms=latency,
+                category="scripts_fetch"
+            )
+            await telemetry_service.log_request(request_log)
+        except Exception as log_err:
+            logger.error(f"Error logging scripts telemetry: {log_err}")
+
+async def get_scripts_inner(codes: str):
     codes_list = [c.strip().upper().replace(" ", "") for c in codes.split(",") if c.strip()]
     if not codes_list:
         raise HTTPException(status_code=400, detail="Missing codes query parameter")
@@ -2349,6 +2514,31 @@ async def get_rules(codes: str):
     Get business rules from Google Sheets (cached in Redis).
     Query parameter `codes` is a comma-separated list of rule codes (e.g. "RNE.01,RNE.02").
     """
+    start_time = time.time()
+    resp = None
+    try:
+        resp = await get_rules_inner(codes)
+        return resp
+    finally:
+        try:
+            latency = int((time.time() - start_time) * 1000)
+            request_log = RequestLog(
+                trace_id=f"api-{uuid.uuid4()}",
+                timestamp=datetime.utcnow(),
+                conversation_id="rules_fetch",
+                contact_id="rules_fetch",
+                channel="respond_api",
+                user_text=f"GET /rules?codes={codes}",
+                mcp_response=f"Rules retrieved: {list(resp.keys()) if resp else 'Error'}",
+                status=ResponseStatus.OK,
+                latency_ms=latency,
+                category="rules_fetch"
+            )
+            await telemetry_service.log_request(request_log)
+        except Exception as log_err:
+            logger.error(f"Error logging rules telemetry: {log_err}")
+
+async def get_rules_inner(codes: str):
     codes_list = [c.strip().upper().replace(" ", "") for c in codes.split(",") if c.strip()]
     if not codes_list:
         raise HTTPException(status_code=400, detail="Missing codes query parameter")

@@ -1016,6 +1016,42 @@ async def google_chat_notify_handler(
     x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
     secret: Optional[str] = None
 ):
+    import time
+    import uuid
+    start_time = time.time()
+    status_val = ResponseStatus.OK
+    error_msg = None
+    try:
+        resp = await google_chat_notify_handler_inner(request, x_webhook_secret, secret)
+        return resp
+    except Exception as e:
+        status_val = ResponseStatus.ERROR
+        error_msg = str(e)
+        raise e
+    finally:
+        try:
+            latency = int((time.time() - start_time) * 1000)
+            request_log = RequestLog(
+                trace_id=f"api-{uuid.uuid4()}",
+                timestamp=datetime.utcnow(),
+                conversation_id=request.space_id or "google_chat_alert",
+                contact_id=request.destino or "comunicador",
+                channel="respond_api",
+                user_text=f"GChat Notify ({request.destino or 'Direct Space'})",
+                mcp_response="Success" if status_val == ResponseStatus.OK else error_msg,
+                status=status_val,
+                latency_ms=latency,
+                category="gchat_notify"
+            )
+            await telemetry_service.log_request(request_log)
+        except Exception as log_err:
+            logger.error(f"Error logging notify telemetry: {log_err}")
+
+async def google_chat_notify_handler_inner(
+    request: GoogleChatNotificationRequest,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
+):
     """
     Public notification endpoint for Google Chat, secured by WEBHOOK_SECRET.
     Allows routing by direct space_id or semantic destination.
