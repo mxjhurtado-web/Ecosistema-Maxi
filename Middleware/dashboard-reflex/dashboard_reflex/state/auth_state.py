@@ -96,22 +96,26 @@ class AuthState(rx.State):
 
     def check_auth(self):
         """Check if authenticated; if not, redirect to login."""
-        if not self.is_authenticated:
+        if self.is_authenticated not in [True, "true", "True"]:
             return rx.redirect("/login")
 
     def check_admin(self):
         """Check if authenticated and is admin/super_admin; if not, redirect accordingly."""
-        if not self.is_authenticated:
+        if self.is_authenticated not in [True, "true", "True"]:
             return rx.redirect("/login")
         if not self.is_admin_or_higher:
             return rx.redirect("/")
 
     @rx.var
     def is_super_admin(self) -> bool:
+        if self.is_authenticated not in [True, "true", "True"]:
+            return False
         return self.role == "super_admin"
 
     @rx.var
     def is_admin_or_higher(self) -> bool:
+        if self.is_authenticated not in [True, "true", "True"]:
+            return False
         return self.role in ["admin", "super_admin"]
 
     def set_session(self, email: str, name: str, role: str):
