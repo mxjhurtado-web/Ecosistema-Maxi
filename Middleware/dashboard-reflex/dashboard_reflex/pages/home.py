@@ -373,7 +373,114 @@ def home_page() -> rx.Component:
                 ),
                 # Metrics breakdown list
                 rx.vstack(
-                    rx.text("Detalle de Interacciones (Hoy)", font_size="13px", font_weight="bold", color="#FFFFFF", style={"margin_bottom": "12px"}),
+                    rx.hstack(
+                        rx.text("Detalle de Interacciones (Hoy)", font_size="13px", font_weight="bold", color="#FFFFFF"),
+                        rx.spacer(),
+                        rx.dialog.root(
+                            rx.dialog.trigger(
+                                rx.button(
+                                    rx.icon("help-circle", size=14),
+                                    rx.text("Guía", font_size="11px"),
+                                    variant="soft",
+                                    color_scheme="indigo",
+                                    style={"cursor": "pointer", "padding": "4px 8px", "height": "22px", "border_radius": "6px"}
+                                )
+                            ),
+                            rx.dialog.content(
+                                rx.dialog.title("📖 Guía de Conceptos de Usabilidad"),
+                                rx.dialog.description(
+                                    "A continuación se describe qué mide y cuándo se registra cada una de las métricas de interacción:"
+                                ),
+                                rx.vstack(
+                                    rx.vstack(
+                                        rx.hstack(rx.icon("message-square", size=14, color="var(--indigo-9)"), rx.text("1. MCP Conversacional", font_weight="bold"), spacing="2"),
+                                        rx.text("• Qué es: Consultas que hace el motor de Inteligencia Artificial interno de Orbit para verificar el funcionamiento de los sistemas.", font_size="12px", color=TEXT_MUTED),
+                                        rx.text("• Cuándo se registra: Cada vez que se realiza una prueba general para verificar el funcionamiento del sistema.", font_size="12px", color=TEXT_MUTED),
+                                        align_items="start",
+                                        width="100%",
+                                    ),
+                                    rx.divider(),
+                                    rx.vstack(
+                                        rx.hstack(rx.icon("file-text", size=14, color=ACCENT_BLUE), rx.text("2. Scripts de Cumplimiento", font_weight="bold"), spacing="2"),
+                                        rx.text("• Qué es: Consultas de los guiones y respuestas predefinidas que el bot utiliza para seguir el protocolo de cumplimiento.", font_size="12px", color=TEXT_MUTED),
+                                        rx.text("• Cuándo se registra: Cada vez que el sistema de Respond.io hace una petición HTTP GET para leer el contenido de la hoja de Google Sheets de Scripts (18VE3tdVt4E-eNrf0dD4zlk1aLV2nfv9_ncdUvLPaNic) para actualizar sus respuestas estructuradas.", font_size="12px", color=TEXT_MUTED),
+                                        align_items="start",
+                                        width="100%",
+                                    ),
+                                    rx.divider(),
+                                    rx.vstack(
+                                        rx.hstack(rx.icon("scale", size=14, color="var(--amber-9)"), rx.text("3. Reglas de Negocio", font_weight="bold"), spacing="2"),
+                                        rx.text("• Qué es: Consultas de las reglas lógicas que rigen el comportamiento automatizado del bot.", font_size="12px", color=TEXT_MUTED),
+                                        rx.text("• Cuándo se registra: Cada vez que Respond.io hace una petición para consultar la hoja de Google Sheets de Reglas (1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw) y saber cómo debe enrutar una conversación o qué condición validar.", font_size="12px", color=TEXT_MUTED),
+                                        align_items="start",
+                                        width="100%",
+                                    ),
+                                    rx.divider(),
+                                    rx.vstack(
+                                        rx.hstack(rx.icon("git-pull-request", size=14, color="var(--green-9)"), rx.text("4. Derivaciones (Handoffs)", font_weight="bold"), spacing="2"),
+                                        rx.text("• Qué es: Transferencias de conversaciones del bot hacia agentes humanos.", font_size="12px", color=TEXT_MUTED),
+                                        rx.text("• Cuándo se registra: Cada vez que el bot detecta que no puede resolver una duda o que el cliente solicita explícitamente hablar con una persona, transfiriendo la sesión a un agente en Respond.io.", font_size="12px", color=TEXT_MUTED),
+                                        align_items="start",
+                                        width="100%",
+                                    ),
+                                    rx.divider(),
+                                    rx.vstack(
+                                        rx.hstack(rx.icon("user-check", size=14, color="var(--teal-9)"), rx.text("5. Consulta de Estatus (API)", font_weight="bold"), spacing="2"),
+                                        rx.text("• Qué es: Peticiones automáticas para revisar el estado de un envío o pedido.", font_size="12px", color=TEXT_MUTED),
+                                        rx.text("• Cuándo se registra: Cada vez que un cliente pregunta por el estado de su trámite en el flujo de WhatsApp, y Respond.io hace una llamada al endpoint del Middleware (/api/v1/status/check) para obtener el estatus en tiempo real desde la base de datos de Orbit.", font_size="12px", color=TEXT_MUTED),
+                                        align_items="start",
+                                        width="100%",
+                                    ),
+                                    rx.divider(),
+                                    rx.vstack(
+                                        rx.hstack(rx.icon("credit-card", size=14, color="var(--pink-9)"), rx.text("6. Pago de Servicios (API)", font_weight="bold"), spacing="2"),
+                                        rx.text("• Qué es: Consultas o validaciones relacionadas con el pago de facturas (luz, agua, teléfono, etc.).", font_size="12px", color=TEXT_MUTED),
+                                        rx.text("• Cuándo se registra: Cada vez que un usuario interactúa con la opción de pago de servicios en WhatsApp y el sistema consulta el Middleware (/api/v1/bill/check) para verificar los montos o convenios de las facturas.", font_size="12px", color=TEXT_MUTED),
+                                        align_items="start",
+                                        width="100%",
+                                    ),
+                                    rx.divider(),
+                                    rx.vstack(
+                                        rx.hstack(rx.icon("smartphone", size=14, color="var(--sky-9)"), rx.text("7. Consulta de Recargas (API)", font_weight="bold"), spacing="2"),
+                                        rx.text("• Qué es: Consultas sobre el estado o procesamiento de recargas de tiempo aire/celular.", font_size="12px", color=TEXT_MUTED),
+                                        rx.text("• Cuándo se registra: Cada vez que se solicita una recarga telefónica en el chat y Respond.io consulta al Middleware (/api/v1/topup/check) para procesar o verificar la recarga.", font_size="12px", color=TEXT_MUTED),
+                                        align_items="start",
+                                        width="100%",
+                                    ),
+                                    rx.divider(),
+                                    rx.vstack(
+                                        rx.hstack(rx.icon("star", size=14, color="var(--yellow-9)"), rx.text("8. Calificación CSAT (API)", font_weight="bold"), spacing="2"),
+                                        rx.text("• Qué es: Registro de encuestas de satisfacción del cliente al finalizar la atención.", font_size="12px", color=TEXT_MUTED),
+                                        rx.text("• Cuándo se registra: Cada vez que el chat termina, se le envía la pregunta de satisfacción al cliente (ej. del 1 al 5) y su respuesta se guarda en base de datos mediante el endpoint /api/v1/csat/log.", font_size="12px", color=TEXT_MUTED),
+                                        align_items="start",
+                                        width="100%",
+                                    ),
+                                    rx.divider(),
+                                    rx.vstack(
+                                        rx.hstack(rx.icon("bell", size=14, color="var(--purple-9)"), rx.text("9. Alertas Google Chat", font_weight="bold"), spacing="2"),
+                                        rx.text("• Qué es: Mensajes de notificación enviados por el Agente Comunicador del ecosistema hacia los canales internos de tu equipo.", font_size="12px", color=TEXT_MUTED),
+                                        rx.text("• Cuándo se registra: Cada vez que ocurre un evento importante (ej. alerta de fraude, reporte de operaciones, aviso de soporte) y la plataforma envía un mensaje formateado a tus espacios de Google Chat.", font_size="12px", color=TEXT_MUTED),
+                                        align_items="start",
+                                        width="100%",
+                                    ),
+                                    spacing="3",
+                                    style={"max_height": "320px", "overflow_y": "auto", "margin_top": "16px", "margin_bottom": "16px", "padding_right": "10px"}
+                                ),
+                                rx.dialog.close(
+                                    rx.button("Entendido", color_scheme="indigo", style={"cursor": "pointer"})
+                                ),
+                                style={
+                                    "background_color": "#0C0F1D",
+                                    "border": f"1px solid {BORDER_COLOR}",
+                                    "max_width": "550px",
+                                    "color": "#FFFFFF"
+                                }
+                            )
+                        ),
+                        width="100%",
+                        align_items="center",
+                        style={"margin_bottom": "12px"}
+                    ),
                     rx.vstack(
                         rx.hstack(
                             rx.icon("message-square", color="var(--indigo-9)", size=16),
