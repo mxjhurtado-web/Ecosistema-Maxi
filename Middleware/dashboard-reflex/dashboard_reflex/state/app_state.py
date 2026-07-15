@@ -1,6 +1,6 @@
 import reflex as rx
 from dashboard_reflex.api.client import api_client
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 class AppState(rx.State):
     """Global state for managing health check data and API data caching."""
@@ -47,7 +47,8 @@ class AppState(rx.State):
         else:
             self.cb_is_open = False
             
-        self.last_checked = datetime.now().strftime("%H:%M:%S")
+        cdmx_time = datetime.now(timezone.utc) - timedelta(hours=6)
+        self.last_checked = cdmx_time.strftime("%H:%M:%S")
         self.is_loading = False
 
     async def load_dashboard_summary(self):
