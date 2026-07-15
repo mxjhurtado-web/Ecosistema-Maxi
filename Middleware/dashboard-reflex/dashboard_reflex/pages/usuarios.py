@@ -5,7 +5,7 @@ from dashboard_reflex.components.styling import (
     glass_container
 )
 from dashboard_reflex.api.client import api_client
-from dashboard_reflex.state.auth_state import SUPER_ADMIN_EMAILS
+from dashboard_reflex.state.auth_state import SUPER_ADMIN_EMAILS, AuthState
 import os
 import redis
 import json
@@ -115,9 +115,10 @@ class UsuariosState(rx.State):
                 r_client.set(key, json.dumps(new_data))
                 rx.toast.success(f"Rol de {email} cambiado a {new_role}.")
                 # Log audit action
+                auth_state = await self.get_state(AuthState)
                 await api_client.log_audit_action({
-                    "username": self.router.session.get("username", "admin"),
-                    "role": self.router.session.get("role", "admin"),
+                    "username": auth_state.username or "admin",
+                    "role": auth_state.role or "admin",
                     "action": "CONFIG_CHANGE",
                     "details": f"Changed role of user {email} to {new_role}"
                 })
@@ -136,9 +137,10 @@ class UsuariosState(rx.State):
                 r_client.delete(key)
                 rx.toast.success(f"Usuario {email} eliminado.")
                 # Log audit action
+                auth_state = await self.get_state(AuthState)
                 await api_client.log_audit_action({
-                    "username": self.router.session.get("username", "admin"),
-                    "role": self.router.session.get("role", "admin"),
+                    "username": auth_state.username or "admin",
+                    "role": auth_state.role or "admin",
                     "action": "CONFIG_CHANGE",
                     "details": f"Deleted dashboard access for user {email}"
                 })
@@ -167,9 +169,10 @@ class UsuariosState(rx.State):
                 rx.toast.success(f"Usuario {self.new_email} registrado exitosamente.")
                 
                 # Log audit action
+                auth_state = await self.get_state(AuthState)
                 await api_client.log_audit_action({
-                    "username": self.router.session.get("username", "admin"),
-                    "role": self.router.session.get("role", "admin"),
+                    "username": auth_state.username or "admin",
+                    "role": auth_state.role or "admin",
                     "action": "CONFIG_CHANGE",
                     "details": f"Registered new user {self.new_email} with role {self.new_role}"
                 })

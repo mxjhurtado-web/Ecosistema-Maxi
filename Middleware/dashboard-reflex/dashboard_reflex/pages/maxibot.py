@@ -7,6 +7,7 @@ from dashboard_reflex.components.styling import (
 from dashboard_reflex.api.client import api_client
 import os
 import redis
+from dashboard_reflex.state.auth_state import AuthState
 from datetime import datetime
 
 # Connect to Redis
@@ -148,9 +149,10 @@ class MaxiBotState(rx.State):
         if success:
             rx.toast.success(f"Keycloak Auth {'ACTIVADO' if checked else 'DESACTIVADO'} para MaxiBot.")
             # Log audit action
+            auth_state = await self.get_state(AuthState)
             await api_client.log_audit_action({
-                "username": self.router.session.get("username", "admin"),
-                "role": self.router.session.get("role", "admin"),
+                "username": auth_state.username or "admin",
+                "role": auth_state.role or "admin",
                 "action": "CONFIG_CHANGE",
                 "details": f"Toggled MaxiBot Keycloak Auth to {checked}"
             })
@@ -168,9 +170,10 @@ class MaxiBotState(rx.State):
                 rx.toast.success(f"Acceso revocado para el espacio: {space_id}")
                 
                 # Log audit action
+                auth_state = await self.get_state(AuthState)
                 await api_client.log_audit_action({
-                    "username": self.router.session.get("username", "admin"),
-                    "role": self.router.session.get("role", "admin"),
+                    "username": auth_state.username or "admin",
+                    "role": auth_state.role or "admin",
                     "action": "SECURITY_ACTION",
                     "details": f"Revoked Google Chat space authentication for {space_id}"
                 })

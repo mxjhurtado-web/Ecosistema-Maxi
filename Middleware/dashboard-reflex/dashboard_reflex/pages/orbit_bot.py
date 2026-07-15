@@ -7,6 +7,7 @@ from dashboard_reflex.components.styling import (
 from dashboard_reflex.api.client import api_client
 import os
 import redis
+from dashboard_reflex.state.auth_state import AuthState
 from datetime import datetime
 from pydantic import BaseModel
 
@@ -112,9 +113,10 @@ class OrbitBotState(rx.State):
                 rx.toast.success(f"Espacio removido: {space_id}")
                 
                 # Log audit action
+                auth_state = await self.get_state(AuthState)
                 await api_client.log_audit_action({
-                    "username": self.router.session.get("username", "admin"),
-                    "role": self.router.session.get("role", "admin"),
+                    "username": auth_state.username or "admin",
+                    "role": auth_state.role or "admin",
                     "action": "SECURITY_ACTION",
                     "details": f"Removed Orbit Bot space {space_id}"
                 })

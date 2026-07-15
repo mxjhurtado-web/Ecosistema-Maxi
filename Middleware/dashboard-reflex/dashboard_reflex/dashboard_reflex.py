@@ -29,7 +29,7 @@ app_style = {
     "font_family": "Inter, sans-serif",
 }
 
-app = rx.App(style=app_style, admin_dash=False)
+app = rx.App(style=app_style, admin_dash=False, stylesheets=["styles.css"])
 
 # Register pages with authentication guards and health checks
 app.add_page(
