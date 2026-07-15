@@ -17,6 +17,8 @@ from dashboard_reflex.pages.logs import logs_page
 from dashboard_reflex.pages.logs import LogsState
 from dashboard_reflex.pages.maxibot import maxibot_page
 from dashboard_reflex.pages.maxibot import MaxiBotState
+from dashboard_reflex.pages.orbit_bot import orbit_page
+from dashboard_reflex.pages.orbit_bot import OrbitBotState
 from dashboard_reflex.pages.usuarios import usuarios_page
 from dashboard_reflex.pages.usuarios import UsuariosState
 from dashboard_reflex.pages.callback import callback_page
@@ -84,6 +86,13 @@ app.add_page(
     route="/maxibot",
     on_load=[AuthState.check_admin, MaxiBotState.on_load, AppState.on_load],
     title="Orbit Dashboard | MaxiBot Panel"
+)
+
+app.add_page(
+    orbit_page,
+    route="/orbit",
+    on_load=[AuthState.check_admin, OrbitBotState.on_load, AppState.on_load],
+    title="Orbit Dashboard | Orbit Bot Panel"
 )
 
 app.add_page(

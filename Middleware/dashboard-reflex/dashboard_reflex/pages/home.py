@@ -76,6 +76,9 @@ class HomeState(rx.State):
                 self.stats_data.append({
                     "hour": display_hour,
                     "total_requests": item.get("total_requests", 0),
+                    "respond_requests": item.get("respond_requests", 0),
+                    "orbit_requests": item.get("orbit_requests", 0),
+                    "maxibot_requests": item.get("maxibot_requests", 0),
                     "success_count": item.get("success_count", 0),
                     "error_count": item.get("error_count", 0),
                     "avg_latency_ms": item.get("avg_latency_ms", 0),
@@ -102,8 +105,17 @@ class HomeState(rx.State):
         channels = {}
         for r in self.recent_requests_data:
             ch = r.get("channel", "unknown")
-            channels[ch] = channels.get(ch, 0) + 1
-        self.channel_distribution = [{"name": ch.title(), "value": val} for ch, val in channels.items()]
+            ch_lower = ch.lower()
+            if "maxibot" in ch_lower:
+                name = "MaxiBot"
+            elif "orbit" in ch_lower:
+                name = "Orbit Bot"
+            elif "respond" in ch_lower or ch_lower in ["whatsapp", "telegram", "facebook"]:
+                name = "Respond.io"
+            else:
+                name = ch.title()
+            channels[name] = channels.get(name, 0) + 1
+        self.channel_distribution = [{"name": ch, "value": val} for ch, val in channels.items()]
         
         # Calculate MCP metrics
         mcp_latencies = [
@@ -153,7 +165,7 @@ def home_page() -> rx.Component:
     # 4 metrics cards grid
     metrics_grid = rx.grid(
         stat_card("Total Peticiones", AppState.total_requests.to(str), "activity", "Hoy en producción"),
-        stat_card("Tasa de Éxito", AppState.success_rate.to(str) + "%", "circle_check", "Objetivo: >95%"),
+        stat_card("Consultas por Canal", rx.format("R: {} | O: {} | M: {}", AppState.respond_requests, AppState.orbit_requests, AppState.maxibot_requests), "git_branch", "Canales: Respond / Orbit / MaxiBot"),
         stat_card("Latencia Promedio", AppState.avg_latency_ms.to(str) + " ms", "clock", "Tiempo de respuesta API"),
         stat_card("Errores Detectados", AppState.error_count.to(str), "triangle_alert", "Hoy en producción"),
         columns="4",
@@ -167,11 +179,14 @@ def home_page() -> rx.Component:
         rx.vstack(
             rx.heading("Volumen de Peticiones", size="4", style={"margin_bottom": "12px", "color": "#FFFFFF"}),
             rx.recharts.line_chart(
-                rx.recharts.line(data_key="total_requests", stroke=ACCENT_BLUE, stroke_width=2),
+                rx.recharts.line(data_key="respond_requests", name="Respond", stroke=ACCENT_BLUE, stroke_width=2),
+                rx.recharts.line(data_key="orbit_requests", name="Orbit Bot", stroke="#48BB78", stroke_width=2),
+                rx.recharts.line(data_key="maxibot_requests", name="MaxiBot", stroke=ACCENT_PURPLE, stroke_width=2),
                 rx.recharts.x_axis(data_key="hour", stroke="#555", font_size=10),
                 rx.recharts.y_axis(stroke="#555", font_size=10),
                 rx.recharts.cartesian_grid(stroke_dasharray="3 3", stroke="rgba(255,255,255,0.05)"),
                 rx.recharts.tooltip(content_style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}"}),
+                rx.recharts.legend(vertical_align="top", height=36),
                 data=HomeState.stats_data,
                 width="100%",
                 height=300

@@ -14,6 +14,9 @@ class AppState(rx.State):
     success_rate: float = 0.0
     avg_latency_ms: int = 0
     error_count: int = 0
+    respond_requests: int = 0
+    orbit_requests: int = 0
+    maxibot_requests: int = 0
     
     is_loading: bool = False
     last_checked: str = ""
@@ -52,11 +55,17 @@ class AppState(rx.State):
             self.success_rate = summary.get("success_rate", 0.0)
             self.avg_latency_ms = summary.get("avg_latency_ms", 0)
             self.error_count = summary.get("error_count", 0)
+            self.respond_requests = summary.get("respond_requests", 0)
+            self.orbit_requests = summary.get("orbit_requests", 0)
+            self.maxibot_requests = summary.get("maxibot_requests", 0)
         else:
             self.total_requests = 0
             self.success_rate = 0.0
             self.avg_latency_ms = 0
             self.error_count = 0
+            self.respond_requests = 0
+            self.orbit_requests = 0
+            self.maxibot_requests = 0
         self.is_loading = False
 
     async def on_load(self):

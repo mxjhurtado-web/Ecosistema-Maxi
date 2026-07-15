@@ -56,7 +56,7 @@ class MaxiBotState(rx.State):
         space_list = []
         if r_client:
             try:
-                active_spaces = r_client.smembers("gchat:active_spaces")
+                active_spaces = r_client.smembers("gchat:maxibot:active_spaces")
                 for s_id in active_spaces:
                     token_key = f"gchat:space_token:{s_id}"
                     exists = r_client.exists(token_key)
@@ -85,7 +85,7 @@ class MaxiBotState(rx.State):
         self.spaces = space_list
         self.total_spaces = len(space_list)
         self.authenticated_spaces = len([s for s in space_list if s.is_authenticated])
-
+ 
         # 3. Load interactions from API (telemetry)
         history = await api_client.get_recent_requests(limit=100)
         interaction_list = []
@@ -94,7 +94,7 @@ class MaxiBotState(rx.State):
         if history:
             gchat_reqs = [
                 r for r in history 
-                if r.get("channel", "").lower() in ["google_chat", "google-chat", "gchat"]
+                if r.get("channel", "").lower() == "maxibot"
             ]
             
             for req in gchat_reqs[:20]:  # Limit to last 20

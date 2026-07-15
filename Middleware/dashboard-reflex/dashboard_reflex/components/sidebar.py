@@ -39,7 +39,6 @@ def sidebar(current_page: str) -> rx.Component:
         ("📊 KPIs & Resumen", "layout-dashboard", "/"),
         ("📜 Historial", "history", "/history"),
     ]
-    
     # Admin/Super Admin only options
     admin_nav_items = [
         ("🔍 Logs en Vivo", "file-text", "/logs"),
@@ -49,6 +48,7 @@ def sidebar(current_page: str) -> rx.Component:
         ("🛡️ Auditoría", "shield-alert", "/auditoria"),
         ("👥 Usuarios", "users", "/usuarios"),
         ("🤖 MaxiBot Panel", "bot", "/maxibot"),
+        ("🌌 Orbit Bot Panel", "activity", "/orbit"),
     ]
     
     return rx.box(
