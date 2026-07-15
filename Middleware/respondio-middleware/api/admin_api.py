@@ -600,19 +600,37 @@ async def google_chat_event_handler(request: Request):
                 
             logger.info(f"🎯 ESPACIO ENCONTRADO: {space_id}")
             
-            # Detectar la identidad del bot basada en las menciones del mensaje raw
+            # Detectar la identidad del bot basada en las menciones del mensaje raw o anotaciones
             chat_data_local = chat_data_obj.get("chat", {}) if chat_data_obj else {}
             msg_payload_local = chat_data_local.get("messagePayload", {})
             msg_obj_local = msg_payload_local.get("message", {})
             raw_text_lower = (msg_obj_local.get("text") or "").lower()
             
+            # Intentar por anotaciones de mención
+            annotations = msg_obj_local.get("annotations", [])
+            mentioned_bot_name = None
+            for ann in annotations:
+                if ann.get("type") == "USER_MENTION":
+                    user_mention = ann.get("userMention", {})
+                    user_obj = user_mention.get("user", {})
+                    if user_obj.get("type") == "BOT":
+                        mentioned_bot_name = user_obj.get("displayName", "")
+                        break
+            
             bot_identity = "ORBIT Bot"
-            if "maxibot" in raw_text_lower:
-                bot_identity = "MaxiBot"
-            elif "orbit" in raw_text_lower:
-                bot_identity = "ORBIT Bot"
-            elif settings.MAXIBOT_SA_BASE64:
-                bot_identity = "MaxiBot"
+            if mentioned_bot_name:
+                mb_name = mentioned_bot_name.lower()
+                if "maxibot" in mb_name:
+                    bot_identity = "MaxiBot"
+                elif "orbit" in mb_name:
+                    bot_identity = "ORBIT Bot"
+            else:
+                if "maxibot" in raw_text_lower:
+                    bot_identity = "MaxiBot"
+                elif "orbit" in raw_text_lower:
+                    bot_identity = "ORBIT Bot"
+                elif settings.MAXIBOT_SA_BASE64:
+                    bot_identity = "MaxiBot"
 
             # Registrar el space_id en el conjunto de espacios activos en Redis
             try:
@@ -668,9 +686,13 @@ async def google_chat_event_handler(request: Request):
                         
                         success_count = 0
                         failed_count = 0
+                        sa_b64 = settings.MAXIBOT_SA_BASE64 or settings.GOOGLE_CHATS_SA_BASE64 or ""
+                        if bot_identity == "ORBIT Bot":
+                            sa_b64 = settings.GOOGLE_CHATS_SA_BASE64 or settings.MAXIBOT_SA_BASE64 or ""
+
                         direct_cfg = GoogleChatAlertConfig(
                             enabled=True,
-                            sa_json_b64=settings.MAXIBOT_SA_BASE64 or settings.GOOGLE_CHATS_SA_BASE64 or "",
+                            sa_json_b64=sa_b64,
                             default_space_id=space_id
                         )
                         
@@ -964,10 +986,14 @@ async def google_chat_event_handler(request: Request):
                         status = ResponseStatus.ERROR
                         error_message = str(e)
 
-            # Usamos la configuración directa importada localmente
+            # Seleccionar la cuenta de servicio adecuada según la identidad del bot
+            sa_b64 = settings.MAXIBOT_SA_BASE64 or settings.GOOGLE_CHATS_SA_BASE64 or ""
+            if bot_identity == "ORBIT Bot":
+                sa_b64 = settings.GOOGLE_CHATS_SA_BASE64 or settings.MAXIBOT_SA_BASE64 or ""
+
             direct_cfg = GoogleChatAlertConfig(
                 enabled=True,
-                sa_json_b64=settings.MAXIBOT_SA_BASE64 or settings.GOOGLE_CHATS_SA_BASE64 or "",
+                sa_json_b64=sa_b64,
                 default_space_id=space_id
             )
             
