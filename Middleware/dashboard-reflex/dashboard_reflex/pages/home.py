@@ -40,7 +40,6 @@ class HomeState(rx.State):
     respond_categories: list[dict] = []
     scripts_count: int = 0
     rules_count: int = 0
-    handoffs_count: int = 0
     status_count: int = 0
     bill_count: int = 0
     topup_count: int = 0
@@ -198,7 +197,6 @@ class HomeState(rx.State):
             "MCP Conversacional": 0, 
             "Scripts de Cumplimiento": 0, 
             "Reglas de Negocio": 0, 
-            "Derivaciones (Handoffs)": 0,
             "Consulta de Estatus": 0,
             "Pago de Servicios": 0,
             "Consulta de Recargas": 0,
@@ -231,8 +229,6 @@ class HomeState(rx.State):
                     respond_cats["Scripts de Cumplimiento"] += 1
                 elif cat == "rule" or cat == "rules_fetch":
                     respond_cats["Reglas de Negocio"] += 1
-                elif cat == "handoff":
-                    respond_cats["Derivaciones (Handoffs)"] += 1
                 elif cat == "status_check":
                     respond_cats["Consulta de Estatus"] += 1
                 elif cat == "bill_check":
@@ -250,7 +246,6 @@ class HomeState(rx.State):
             "MCP Conversacional": "var(--indigo-9)", 
             "Scripts de Cumplimiento": "var(--blue-9)", 
             "Reglas de Negocio": "var(--amber-9)", 
-            "Derivaciones (Handoffs)": "var(--green-9)",
             "Consulta de Estatus": "var(--teal-9)",
             "Pago de Servicios": "var(--pink-9)",
             "Consulta de Recargas": "var(--sky-9)",
@@ -264,7 +259,6 @@ class HomeState(rx.State):
         ]
         self.scripts_count = respond_cats["Scripts de Cumplimiento"]
         self.rules_count = respond_cats["Reglas de Negocio"]
-        self.handoffs_count = respond_cats["Derivaciones (Handoffs)"]
         self.status_count = respond_cats["Consulta de Estatus"]
         self.bill_count = respond_cats["Pago de Servicios"]
         self.topup_count = respond_cats["Consulta de Recargas"]
@@ -498,15 +492,7 @@ def home_page() -> rx.Component:
                                     ),
                                     rx.divider(),
                                     rx.vstack(
-                                        rx.hstack(rx.icon("git-pull-request", size=14, color="var(--green-9)"), rx.text("4. Derivaciones (Handoffs)", font_weight="bold"), spacing="2"),
-                                        rx.text("• Qué es: Transferencias de conversaciones del bot hacia agentes humanos.", font_size="12px", color=TEXT_MUTED),
-                                        rx.text("• Cuándo se registra: Cada vez que el bot detecta que no puede resolver una duda o que el cliente solicita explícitamente hablar con una persona, transfiriendo la sesión a un agente en Respond.io.", font_size="12px", color=TEXT_MUTED),
-                                        align_items="start",
-                                        width="100%",
-                                    ),
-                                    rx.divider(),
-                                    rx.vstack(
-                                        rx.hstack(rx.icon("user-check", size=14, color="var(--teal-9)"), rx.text("5. Consulta de Estatus (API)", font_weight="bold"), spacing="2"),
+                                        rx.hstack(rx.icon("user-check", size=14, color="var(--teal-9)"), rx.text("4. Consulta de Estatus (API)", font_weight="bold"), spacing="2"),
                                         rx.text("• Qué es: Peticiones automáticas para revisar el estado de un envío o pedido.", font_size="12px", color=TEXT_MUTED),
                                         rx.text("• Cuándo se registra: Cada vez que un cliente pregunta por el estado de su trámite en el flujo de WhatsApp, y Respond.io hace una llamada al endpoint del Middleware (/api/v1/status/check) para obtener el estatus en tiempo real desde la base de datos de Orbit.", font_size="12px", color=TEXT_MUTED),
                                         align_items="start",
@@ -514,7 +500,7 @@ def home_page() -> rx.Component:
                                     ),
                                     rx.divider(),
                                     rx.vstack(
-                                        rx.hstack(rx.icon("credit-card", size=14, color="var(--pink-9)"), rx.text("6. Pago de Servicios (API)", font_weight="bold"), spacing="2"),
+                                        rx.hstack(rx.icon("credit-card", size=14, color="var(--pink-9)"), rx.text("5. Pago de Servicios (API)", font_weight="bold"), spacing="2"),
                                         rx.text("• Qué es: Consultas o validaciones relacionadas con el pago de facturas (luz, agua, teléfono, etc.).", font_size="12px", color=TEXT_MUTED),
                                         rx.text("• Cuándo se registra: Cada vez que un usuario interactúa con la opción de pago de servicios en WhatsApp y el sistema consulta el Middleware (/api/v1/bill/check) para verificar los montos o convenios de las facturas.", font_size="12px", color=TEXT_MUTED),
                                         align_items="start",
@@ -522,7 +508,7 @@ def home_page() -> rx.Component:
                                     ),
                                     rx.divider(),
                                     rx.vstack(
-                                        rx.hstack(rx.icon("smartphone", size=14, color="var(--sky-9)"), rx.text("7. Consulta de Recargas (API)", font_weight="bold"), spacing="2"),
+                                        rx.hstack(rx.icon("smartphone", size=14, color="var(--sky-9)"), rx.text("6. Consulta de Recargas (API)", font_weight="bold"), spacing="2"),
                                         rx.text("• Qué es: Consultas sobre el estado o procesamiento de recargas de tiempo aire/celular.", font_size="12px", color=TEXT_MUTED),
                                         rx.text("• Cuándo se registra: Cada vez que se solicita una recarga telefónica en el chat y Respond.io consulta al Middleware (/api/v1/topup/check) para procesar o verificar la recarga.", font_size="12px", color=TEXT_MUTED),
                                         align_items="start",
@@ -530,7 +516,7 @@ def home_page() -> rx.Component:
                                     ),
                                     rx.divider(),
                                     rx.vstack(
-                                        rx.hstack(rx.icon("star", size=14, color="var(--yellow-9)"), rx.text("8. Calificación CSAT (API)", font_weight="bold"), spacing="2"),
+                                        rx.hstack(rx.icon("star", size=14, color="var(--yellow-9)"), rx.text("7. Calificación CSAT (API)", font_weight="bold"), spacing="2"),
                                         rx.text("• Qué es: Registro de encuestas de satisfacción del cliente al finalizar la atención.", font_size="12px", color=TEXT_MUTED),
                                         rx.text("• Cuándo se registra: Cada vez que el chat termina, se le envía la pregunta de satisfacción al cliente (ej. del 1 al 5) y su respuesta se guarda en base de datos mediante el endpoint /api/v1/csat/log.", font_size="12px", color=TEXT_MUTED),
                                         align_items="start",
@@ -538,7 +524,7 @@ def home_page() -> rx.Component:
                                     ),
                                     rx.divider(),
                                     rx.vstack(
-                                        rx.hstack(rx.icon("bell", size=14, color="var(--purple-9)"), rx.text("9. Alertas Google Chat", font_weight="bold"), spacing="2"),
+                                        rx.hstack(rx.icon("bell", size=14, color="var(--purple-9)"), rx.text("8. Alertas Google Chat", font_weight="bold"), spacing="2"),
                                         rx.text("• Qué es: Mensajes de notificación enviados por el Agente Comunicador del ecosistema hacia los canales internos de tu equipo.", font_size="12px", color=TEXT_MUTED),
                                         rx.text("• Cuándo se registra: Cada vez que ocurre un evento importante (ej. alerta de fraude, reporte de operaciones, aviso de soporte) y la plataforma envía un mensaje formateado a tus espacios de Google Chat.", font_size="12px", color=TEXT_MUTED),
                                         align_items="start",
@@ -582,13 +568,6 @@ def home_page() -> rx.Component:
                             rx.text("Reglas de Negocio:", font_size="13px", color=TEXT_MUTED),
                             rx.spacer(),
                             rx.badge(HomeState.rules_count.to(str), color_scheme="amber", variant="solid"),
-                            width="100%"
-                        ),
-                        rx.hstack(
-                            rx.icon("git-pull-request", color="var(--green-9)", size=16),
-                            rx.text("Derivaciones (Handoffs):", font_size="13px", color=TEXT_MUTED),
-                            rx.spacer(),
-                            rx.badge(HomeState.handoffs_count.to(str), color_scheme="green", variant="solid"),
                             width="100%"
                         ),
                         rx.hstack(
