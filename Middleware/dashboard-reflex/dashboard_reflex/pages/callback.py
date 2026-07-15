@@ -23,7 +23,8 @@ class CallbackState(rx.State):
         realm = os.getenv("KC_REALM", "zeusDev")
         client_id = os.getenv("KC_CLIENT_ID", "maxi-business-ai")
         client_secret = os.getenv("KC_CLIENT_SECRET", "mOLonfMkGYnhq3M4CSnzY4p7fFakNciu")
-        redirect_uri = os.getenv("KC_REDIRECT_URI", "https://orbit-dashboard-ewov.onrender.com/callback")
+        hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "orbit-dashboard-drqb.onrender.com")
+        redirect_uri = os.getenv("KC_REDIRECT_URI", f"https://{hostname}/callback")
 
         token_url = f"{kc_url.rstrip('/')}/realms/{realm}/protocol/openid-connect/token"
         data = {

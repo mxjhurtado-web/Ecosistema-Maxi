@@ -84,7 +84,7 @@ class Settings(BaseSettings):
     MAXIBOT_SA_BASE64: Optional[str] = None
     MAXIBOT_TELEMETRY_SHEET_ID: str = "1KVUM2T3pajHo1Vl-t1zQoWjP8Bx3RSNE1QgsWB738mI"
     DEVOPS_MCP_URL: str = "https://mcp.mylabs.mx/tools/operations/mcp/"
-    KEYCLOAK_REDIRECT_URI: str = "https://orbit-api-ewov.onrender.com/google-chat/callback"
+    KEYCLOAK_REDIRECT_URI: str = f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME', 'orbit-api-drqb.onrender.com')}/google-chat/callback"
     
     class Config:
         env_file = ".env"
