@@ -43,4 +43,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 10000
 
 # Run Reflex backend on localhost:8000 and Caddy on $PORT (10000)
-CMD ["sh", "-c", "reflex run --env prod --backend-only --backend-host 127.0.0.1 --backend-port 8000 --loglevel warning & caddy run --config /app/Caddyfile --adapter caddyfile"]
+CMD ["sh", "-c", "python /app/setup_env.py && reflex run --env prod --backend-only --backend-host 127.0.0.1 --backend-port 8000 --loglevel warning & caddy run --config /app/Caddyfile --adapter caddyfile"]

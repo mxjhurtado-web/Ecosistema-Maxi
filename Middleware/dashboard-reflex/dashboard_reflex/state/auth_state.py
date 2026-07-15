@@ -126,7 +126,10 @@ class AuthState(rx.State):
         kc_url = os.getenv("KC_SERVER_URL", "https://sso.maxilabs.net/auth")
         realm = os.getenv("KC_REALM", "zeusDev")
         client_id = os.getenv("KC_CLIENT_ID", "maxi-business-ai")
-        redirect_uri = os.getenv("KC_REDIRECT_URI", "https://orbit-dashboard-ewov.onrender.com/callback")
+        
+        hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "")
+        fallback_uri = f"https://{hostname}/callback" if hostname else "http://localhost:3000/callback"
+        redirect_uri = os.getenv("KC_REDIRECT_URI", fallback_uri)
         
         url = f"{kc_url.rstrip('/')}/realms/{realm}/protocol/openid-connect/auth"
         params = f"?client_id={client_id}&response_type=code&redirect_uri={redirect_uri}&scope=openid%20email%20profile"
