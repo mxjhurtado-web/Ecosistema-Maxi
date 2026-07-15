@@ -1,7 +1,7 @@
 import reflex as rx
 from dashboard_reflex.components.layout import protected_layout
 from dashboard_reflex.components.styling import (
-    GLASS_EFFECT, ACCENT_BLUE, ACCENT_PURPLE, BORDER_COLOR, TEXT_MUTED,
+    GLASS_EFFECT, ACCENT_BLUE, ACCENT_PURPLE, BORDER_COLOR, TEXT_MUTED, TEXT_COLOR,
     glass_container
 )
 from dashboard_reflex.api.client import api_client
