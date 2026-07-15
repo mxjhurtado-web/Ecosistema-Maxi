@@ -166,7 +166,7 @@ def request_row(req: dict) -> rx.Component:
         rx.table.cell(
             rx.hstack(
                 rx.icon(channel_icon, size=14, color=ACCENT_BLUE),
-                rx.text(req.get("channel", "unknown").to(str).upper(), font_size="12px", font_weight="bold"),
+                rx.text(req.get("channel", "unknown").to(str), font_size="12px", font_weight="bold", text_transform="uppercase"),
                 spacing="2",
                 align="center"
             )
@@ -273,7 +273,7 @@ def history_page() -> rx.Component:
                     rx.text("Trace ID: " + HistoryState.selected_request["trace_id"].to(str), font_size="12px"),
                     rx.text("Conversation: " + HistoryState.selected_request["conversation_id"].to(str), font_size="12px"),
                     rx.text("Contact: " + HistoryState.selected_request["contact_id"].to(str), font_size="12px"),
-                    rx.text("Canal: " + HistoryState.selected_request["channel"].to(str).upper(), font_size="12px"),
+                    rx.text("Canal: " + HistoryState.selected_request["channel"].to(str), font_size="12px", text_transform="uppercase"),
                     rx.text("Timestamp: " + HistoryState.selected_request["timestamp"].to(str), font_size="12px"),
                     rx.text("Latencia Total: " + HistoryState.selected_request["latency_ms"].to(str) + " ms", font_size="12px"),
                     rx.text("Latencia MCP: " + HistoryState.selected_request["mcp_latency_ms"].to(str) + " ms", font_size="12px"),

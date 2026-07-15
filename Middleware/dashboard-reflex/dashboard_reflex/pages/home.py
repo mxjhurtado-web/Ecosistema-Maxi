@@ -421,7 +421,7 @@ def home_page() -> rx.Component:
     # Respond.io detailed categories chart
     respond_category_chart = glass_container(
         rx.vstack(
-            rx.heading("📊 Usabilidad de Respond.io (Scripts / Reglas / MCP / Handoffs)", size="4", style={"margin_bottom": "16px", "color": TEXT_COLOR}),
+            rx.heading("📊 Usabilidad de Respond.io (Scripts / Reglas / MCP / Alertas)", size="4", style={"margin_bottom": "16px", "color": TEXT_COLOR}),
             rx.grid(
                 # Pie Chart
                 rx.vstack(

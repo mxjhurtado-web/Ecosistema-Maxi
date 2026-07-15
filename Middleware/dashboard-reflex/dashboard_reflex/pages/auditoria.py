@@ -47,7 +47,8 @@ class AuditState(rx.State):
             icon = action_icons.get(action_raw, "file-text")
             formatted_action = action_raw.replace("_", " ").title()
             
-            formatted_timestamp = r.get("timestamp", "")[:19]
+            ts = r.get("timestamp")
+            formatted_timestamp = str(ts)[:19] if ts else ""
             
             item = r.copy()
             item["icon"] = icon
@@ -98,7 +99,7 @@ def audit_row(log: dict) -> rx.Component:
             )
         ),
         rx.table.cell(log.get("username", "N/A")),
-        rx.table.cell(rx.badge(log.get("role", "supervisor").to(str).upper(), variant="outline")),
+        rx.table.cell(rx.badge(log.get("role", "supervisor").to(str), variant="outline", text_transform="uppercase")),
         rx.table.cell(rx.text(log.get("details", ""), max_width="400px", font_size="13px", color="#FFFFFF")),
         rx.table.cell(log.get("ip_address", "N/A")),
         style={"&_hover": {"background_color": "rgba(255,255,255,0.02)"}}
