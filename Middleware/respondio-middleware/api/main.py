@@ -22,6 +22,7 @@ from .models import (
     RespondioResponse,
     ResponseStatus,
     RequestLog,
+    determine_request_category,
     HealthResponse,
     StatusCheckRequest,
     StatusCheckResponse,
@@ -362,7 +363,8 @@ async def webhook(
                                     mcp_response=mcp_response,
                                     status=ResponseStatus.OK,
                                     latency_ms=total_latency_ms,
-                                    retry_count=0
+                                    retry_count=0,
+                                    category=determine_request_category(request.user_text, mcp_response)
                                 )
                                 await telemetry_service.log_request(request_log)
                             except Exception as tel_err:
@@ -453,7 +455,8 @@ async def webhook(
             latency_ms=total_latency_ms,
             mcp_latency_ms=mcp_latency_ms,
             error_message=None if status != ResponseStatus.ERROR else "MCP error",
-            retry_count=retry_count
+            retry_count=retry_count,
+            category=determine_request_category(request.user_text, mcp_response)
         )
         
         await telemetry_service.log_request(request_log)

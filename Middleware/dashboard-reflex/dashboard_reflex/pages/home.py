@@ -34,6 +34,12 @@ class HomeState(rx.State):
     # Channel distribution
     channel_distribution: list[dict] = []
     
+    # Respond categories distribution
+    respond_categories: list[dict] = []
+    scripts_count: int = 0
+    rules_count: int = 0
+    handoffs_count: int = 0
+    
     # MCP metrics
     mcp_avg: int = 0
     mcp_min: int = 0
@@ -116,6 +122,30 @@ class HomeState(rx.State):
                 name = ch.title()
             channels[name] = channels.get(name, 0) + 1
         self.channel_distribution = [{"name": ch, "value": val} for ch, val in channels.items()]
+        
+        # Calculate Respond.io Category Distribution
+        respond_cats = {"MCP Directo": 0, "Scripts": 0, "Reglas de Negocio": 0, "Derivaciones (Handoffs)": 0}
+        for r in self.recent_requests_data:
+            chan = r.get("channel", "").lower()
+            if "respond" in chan or chan in ["whatsapp", "telegram", "facebook", "unknown", "gchat_orbit", "orbit"] or not chan:
+                cat = r.get("category", "mcp")
+                if cat == "script":
+                    respond_cats["Scripts"] += 1
+                elif cat == "rule":
+                    respond_cats["Reglas de Negocio"] += 1
+                elif cat == "handoff":
+                    respond_cats["Derivaciones (Handoffs)"] += 1
+                else:
+                    respond_cats["MCP Directo"] += 1
+                    
+        self.respond_categories = [
+            {"name": name, "value": val} 
+            for name, val in respond_cats.items() 
+            if val > 0 or name == "MCP Directo"
+        ]
+        self.scripts_count = respond_cats["Scripts"]
+        self.rules_count = respond_cats["Reglas de Negocio"]
+        self.handoffs_count = respond_cats["Derivaciones (Handoffs)"]
         
         # Calculate MCP metrics
         mcp_latencies = [
@@ -266,6 +296,72 @@ def home_page() -> rx.Component:
         style={"padding": "20px"}
     )
     
+    # Respond.io detailed categories chart
+    respond_category_chart = glass_container(
+        rx.vstack(
+            rx.heading("📊 Usabilidad de Respond.io (Scripts / Reglas / MCP / Handoffs)", size="4", style={"margin_bottom": "16px", "color": "#FFFFFF"}),
+            rx.grid(
+                # Pie Chart
+                rx.vstack(
+                    rx.recharts.pie_chart(
+                        rx.recharts.pie(
+                            data=HomeState.respond_categories,
+                            data_key="value",
+                            name_key="name",
+                            cx="50%",
+                            cy="50%",
+                            outer_radius=75,
+                            fill=ACCENT_BLUE,
+                            label=True
+                        ),
+                        rx.recharts.tooltip(content_style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}"}),
+                        width="100%",
+                        height=220
+                    ),
+                    width="100%",
+                    align_items="center"
+                ),
+                # Metrics breakdown list
+                rx.vstack(
+                    rx.text("Detalle de Interacciones (Hoy)", font_size="13px", font_weight="bold", color="#FFFFFF", style={"margin_bottom": "12px"}),
+                    rx.vstack(
+                        rx.hstack(
+                            rx.icon("file-text", color=ACCENT_BLUE, size=16),
+                            rx.text("Scripts de Cumplimiento:", font_size="13px", color=TEXT_MUTED),
+                            rx.spacer(),
+                            rx.badge(HomeState.scripts_count.to(str), color_scheme="blue", variant="solid"),
+                            width="100%"
+                        ),
+                        rx.hstack(
+                            rx.icon("scale", color="var(--amber-9)", size=16),
+                            rx.text("Reglas de Negocio:", font_size="13px", color=TEXT_MUTED),
+                            rx.spacer(),
+                            rx.badge(HomeState.rules_count.to(str), color_scheme="amber", variant="solid"),
+                            width="100%"
+                        ),
+                        rx.hstack(
+                            rx.icon("git-pull-request", color="var(--green-9)", size=16),
+                            rx.text("Derivaciones (Handoffs):", font_size="13px", color=TEXT_MUTED),
+                            rx.spacer(),
+                            rx.badge(HomeState.handoffs_count.to(str), color_scheme="green", variant="solid"),
+                            width="100%"
+                        ),
+                        spacing="3",
+                        width="100%"
+                    ),
+                    width="100%",
+                    align_items="start",
+                    justify_content="center",
+                    style={"padding_left": "20px"}
+                ),
+                columns="2",
+                width="100%"
+            ),
+            width="100%"
+        ),
+        style={"padding": "24px", "margin_top": "24px"}
+    )
+
     # MCP performance metrics grid
     mcp_performances = glass_container(
         rx.vstack(
@@ -363,6 +459,8 @@ def home_page() -> rx.Component:
                     spacing="4",
                     width="100%"
                 ),
+                
+                respond_category_chart,
                 
                 mcp_performances,
                 width="100%"

@@ -6,6 +6,34 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from enum import Enum
+import re
+
+def determine_request_category(user_text: str, mcp_response: str) -> str:
+    """Clasifica una consulta en: handoff, script, rule, mcp"""
+    user_lower = (user_text or "").lower()
+    resp_lower = (mcp_response or "").lower()
+    
+    # 1. Handoff (Derivación)
+    if "[transfer:" in resp_lower:
+        return "handoff"
+        
+    # 2. Scripts (Compliance/Scripts como SC.xxx o A2-A6)
+    script_pattern = r"(sc\.\d+|cu\.\w+|a[2-6]_)"
+    if re.search(script_pattern, user_lower) or re.search(script_pattern, resp_lower):
+        return "script"
+    
+    dispute_keywords = ["disputa", "reembolso", "reclamo", "dispute", "refund", "claim", "re-embolso"]
+    privacy_keywords = ["privacidad", "datos", "borrar", "privacy", "data", "delete"]
+    if any(kw in user_lower for kw in dispute_keywords) or any(kw in user_lower for kw in privacy_keywords):
+        return "script"
+        
+    # 3. Rules (Reglas de negocio)
+    rule_pattern = r"rne\.\d+"
+    if re.search(rule_pattern, user_lower) or re.search(rule_pattern, resp_lower):
+        return "rule"
+        
+    # 4. Default: Standard MCP query
+    return "mcp"
 
 
 class ResponseStatus(str, Enum):
@@ -166,6 +194,7 @@ class RequestLog(BaseModel):
     mcp_latency_ms: Optional[int] = None
     error_message: Optional[str] = None
     retry_count: int = 0
+    category: Optional[str] = "mcp"
 
     class Config:
         json_schema_extra = {
