@@ -117,5 +117,52 @@ class AdminAPIClient:
         res = await self._request("POST", "/admin/audit/log", params={"action": action, "details": details})
         return res is not None
 
+    # ============================================================
+    # User Management
+    # ============================================================
+    async def get_dashboard_users(self) -> List[Dict[str, Any]]:
+        res = await self._request("GET", "/admin/users")
+        return res if res else []
+
+    async def get_users(self) -> List[Dict[str, Any]]:
+        return await self.get_dashboard_users()
+
+    async def add_user(self, user_data: Dict[str, Any]) -> bool:
+        res = await self._request("POST", "/admin/users", json_data=user_data)
+        return res is not None
+
+    async def delete_user(self, username: str) -> bool:
+        res = await self._request("DELETE", f"/admin/users/{username}")
+        return res is not None
+
+    # ============================================================
+    # Agent Management
+    # ============================================================
+    async def get_agents(self) -> List[Dict[str, Any]]:
+        res = await self._request("GET", "/admin/agents")
+        return res if res else []
+
+    async def add_agent(self, agent_data: Dict[str, Any]) -> bool:
+        res = await self._request("POST", "/admin/agents", json_data=agent_data)
+        return res is not None
+
+    async def delete_agent(self, name: str) -> bool:
+        res = await self._request("DELETE", f"/admin/agents/{name}")
+        return res is not None
+
+    # ============================================================
+    # Knowledge Base
+    # ============================================================
+    async def get_knowledge(self) -> Optional[Dict[str, Any]]:
+        url = f"{self.base_url}/knowledge"
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Knowledge API error: {e}")
+            return None
+
 # Singleton instance
 api_client = AdminAPIClient()
