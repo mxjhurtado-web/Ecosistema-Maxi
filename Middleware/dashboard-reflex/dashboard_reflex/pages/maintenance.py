@@ -120,7 +120,7 @@ def faq_item(faq: dict) -> rx.Component:
     """Renders a single FAQ question and answer inside an accordion."""
     return rx.accordion.item(
         header=rx.hstack(
-            rx.icon("circle_help", size=16, color=ACCENT_BLUE),
+            rx.icon("circle-help", size=16, color=ACCENT_BLUE),
             rx.text(faq.get("question", ""), font_weight="bold", font_size="14px"),
             spacing="2"
         ),

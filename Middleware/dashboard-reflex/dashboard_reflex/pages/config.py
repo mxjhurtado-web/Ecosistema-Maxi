@@ -381,7 +381,7 @@ def agent_card(agent: dict) -> rx.Component:
                     style={"cursor": "pointer"}
                 ),
                 rx.icon_button(
-                    rx.icon("trash_2", size=14),
+                    rx.icon("trash-2", size=14),
                     on_click=lambda: ConfigState.delete_agent_action(name),
                     color_scheme="ruby",
                     variant="soft",

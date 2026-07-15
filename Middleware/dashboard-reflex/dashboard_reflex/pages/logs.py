@@ -140,7 +140,7 @@ def logs_page() -> rx.Component:
                     align_items="start"
                 ),
                 rx.spacer(),
-                rx.icon("circle_alert", color="var(--ruby-9)", size=20),
+                rx.icon("circle-alert", color="var(--ruby-9)", size=20),
                 width="100%"
             ),
             style={"padding": "16px"}
@@ -153,7 +153,7 @@ def logs_page() -> rx.Component:
                     align_items="start"
                 ),
                 rx.spacer(),
-                rx.icon("triangle_alert", color="var(--amber-9)", size=20),
+                rx.icon("triangle-alert", color="var(--amber-9)", size=20),
                 width="100%"
             ),
             style={"padding": "16px"}
@@ -216,7 +216,11 @@ def logs_page() -> rx.Component:
             ),
             rx.spacer(),
             rx.button(
-                rx.hstack(rx.icon("refresh_cw", size=14), rx.text("Actualizar"), spacing="2"),
+                rx.hstack(
+                    rx.icon("refresh-cw", size=14),
+                    rx.text("Actualizar"),
+                    spacing="2"
+                ),
                 on_click=LogsState.load_data,
                 variant="solid",
                 style={"background_color": "rgba(255, 255, 255, 0.05)", "border": f"1px solid {BORDER_COLOR}", "color": "#FFFFFF", "cursor": "pointer", "margin_top": "16px"}

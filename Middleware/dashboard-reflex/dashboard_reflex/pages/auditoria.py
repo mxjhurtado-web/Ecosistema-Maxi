@@ -40,11 +40,11 @@ class AuditState(rx.State):
                 "config_change": "settings",
                 "user_management": "user",
                 "export_data": "download",
-                "cache_clear": "trash_2",
+                "cache_clear": "trash-2",
                 "circuit_reset": "shield",
                 "system_maintenance": "wrench"
             }
-            icon = action_icons.get(action_raw, "file_text")
+            icon = action_icons.get(action_raw, "file-text")
             formatted_action = action_raw.replace("_", " ").title()
             
             formatted_timestamp = r.get("timestamp", "")[:19]
@@ -91,7 +91,7 @@ def audit_row(log: dict) -> rx.Component:
         rx.table.cell(log.get("formatted_timestamp", "")),
         rx.table.cell(
             rx.hstack(
-                rx.icon(log.get("icon", "file_text").to(str), size=14, color=ACCENT_BLUE),
+                rx.icon(log.get("icon", "file-text").to(str), size=14, color=ACCENT_BLUE),
                 rx.text(log.get("formatted_action", ""), font_weight="bold"),
                 spacing="2",
                 align="center"
@@ -137,7 +137,7 @@ def auditoria_page() -> rx.Component:
             ),
             rx.button(
                 rx.hstack(
-                    rx.icon("refresh_cw", size=14),
+                    rx.icon("refresh-cw", size=14),
                     rx.text("Actualizar"),
                     spacing="2"
                 ),

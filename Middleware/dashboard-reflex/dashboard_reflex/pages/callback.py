@@ -111,7 +111,7 @@ def callback_page() -> rx.Component:
                         align="center"
                     ),
                     rx.vstack(
-                        rx.icon("circle_alert", size=48, color="var(--ruby-9)"),
+                        rx.icon("circle-alert", size=48, color="var(--ruby-9)"),
                         rx.text("Fallo de Autenticación SSO", font_size="18px", font_weight="bold", color="var(--ruby-9)"),
                         rx.text(CallbackState.error_message, font_size="13px", color="#FFFFFF", text_align="center", max_width="400px"),
                         rx.link(
