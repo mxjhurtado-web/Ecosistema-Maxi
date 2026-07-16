@@ -146,26 +146,24 @@ def request_row(req: dict) -> rx.Component:
         "telegram": "send",
         "default": "message-circle"
     }
-    channel_icon = rx.cond(
-        req.get("channel", "default") == "whatsapp",
-        "phone",
-        rx.cond(
-            (req.get("channel", "default") == "google_chat") | (req.get("channel", "default") == "google-chat"),
-            "message-square",
-            rx.cond(
-                req.get("channel", "default") == "telegram",
-                "send",
-                "message-circle"
-            )
-        )
-    )
-    
     return rx.table.row(
         rx.table.cell(status_badge(req.get("status", "error"))),
         rx.table.cell(req.get("timestamp", "N/A")),
         rx.table.cell(
             rx.hstack(
-                rx.icon(channel_icon, size=14, color=ACCENT_BLUE),
+                rx.cond(
+                    req.get("channel", "default") == "whatsapp",
+                    rx.icon("phone", size=14, color=ACCENT_BLUE),
+                    rx.cond(
+                        (req.get("channel", "default") == "google_chat") | (req.get("channel", "default") == "google-chat") | (req.get("channel", "default") == "gchat_orbit") | (req.get("channel", "default") == "orbit"),
+                        rx.icon("message-square", size=14, color=ACCENT_BLUE),
+                        rx.cond(
+                            req.get("channel", "default") == "telegram",
+                            rx.icon("send", size=14, color=ACCENT_BLUE),
+                            rx.icon("message-circle", size=14, color=ACCENT_BLUE)
+                        )
+                    )
+                ),
                 rx.text(req.get("channel", "unknown").to(str), font_size="12px", font_weight="bold", text_transform="uppercase"),
                 spacing="2",
                 align="center"

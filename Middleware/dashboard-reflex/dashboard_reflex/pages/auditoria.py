@@ -92,7 +92,35 @@ def audit_row(log: dict) -> rx.Component:
         rx.table.cell(log.get("formatted_timestamp", "")),
         rx.table.cell(
             rx.hstack(
-                rx.icon(log.get("icon", "file-text").to(str), size=14, color=ACCENT_BLUE),
+                rx.cond(
+                    log["action"] == "login",
+                    rx.icon("key", size=14, color=ACCENT_BLUE),
+                    rx.cond(
+                        log["action"] == "config_change",
+                        rx.icon("settings", size=14, color=ACCENT_BLUE),
+                        rx.cond(
+                            log["action"] == "user_management",
+                            rx.icon("user", size=14, color=ACCENT_BLUE),
+                            rx.cond(
+                                log["action"] == "export_data",
+                                rx.icon("download", size=14, color=ACCENT_BLUE),
+                                rx.cond(
+                                    log["action"] == "cache_clear",
+                                    rx.icon("trash-2", size=14, color=ACCENT_BLUE),
+                                    rx.cond(
+                                        log["action"] == "circuit_reset",
+                                        rx.icon("shield", size=14, color=ACCENT_BLUE),
+                                        rx.cond(
+                                            log["action"] == "system_maintenance",
+                                            rx.icon("wrench", size=14, color=ACCENT_BLUE),
+                                            rx.icon("file-text", size=14, color=ACCENT_BLUE)
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ),
                 rx.text(log.get("formatted_action", ""), font_weight="bold"),
                 spacing="2",
                 align="center"
