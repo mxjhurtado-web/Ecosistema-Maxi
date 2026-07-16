@@ -436,7 +436,7 @@ def home_page() -> rx.Component:
                 # Metrics breakdown list
                 rx.vstack(
                     rx.hstack(
-                        rx.text("Detalle de Interacciones (Hoy)", font_size="13px", font_weight="bold", color=TEXT_COLOR),
+                        rx.text("Detalle de Interacciones (Rango Seleccionado)", font_size="13px", font_weight="bold", color=TEXT_COLOR),
                         rx.spacer(),
                         rx.dialog.root(
                             rx.dialog.trigger(
