@@ -25,6 +25,12 @@ class HomeState(rx.State):
     stats_data: list[dict] = []
     recent_requests_data: list[dict] = []
     
+    # Rango seleccionado KPIs
+    total_requests_range: int = 0
+    channel_counts_str_range: str = "R: 0 | O: 0 | M: 0"
+    avg_latency_range: int = 0
+    error_count_range: int = 0
+    
     # Latency percentiles
     p50: int = 0
     p95: int = 0
@@ -119,6 +125,21 @@ class HomeState(rx.State):
                     "p95_latency_ms": item.get("p95_latency_ms", 0)
                 })
                 
+        # Sum from stats_data for custom range KPIs
+        total_reqs = sum(item["total_requests"] for item in self.stats_data)
+        total_errors = sum(item["error_count"] for item in self.stats_data)
+        r_sum = sum(item["respond_requests"] for item in self.stats_data)
+        o_sum = sum(item["orbit_requests"] for item in self.stats_data)
+        m_sum = sum(item["maxibot_requests"] for item in self.stats_data)
+        
+        latencies = [item["avg_latency_ms"] for item in self.stats_data if item["total_requests"] > 0]
+        avg_lat = int(sum(latencies) / len(latencies)) if latencies else 0
+        
+        self.total_requests_range = total_reqs
+        self.error_count_range = total_errors
+        self.channel_counts_str_range = f"R: {r_sum} | O: {o_sum} | M: {m_sum}"
+        self.avg_latency_range = avg_lat
+
         # Load recent requests
         limit_to_fetch = min(1000, max(100, query_hours * 10))
         recent = await api_client.get_recent_requests(limit=limit_to_fetch)
@@ -300,10 +321,10 @@ def home_page() -> rx.Component:
     
     # 4 metrics cards grid
     metrics_grid = rx.grid(
-        stat_card("Total Peticiones", AppState.total_requests.to(str), "activity", "Hoy en producción"),
-        stat_card("Consultas por Canal", AppState.channel_counts_str, "git_branch", "Canales: Respond / Orbit / MaxiBot"),
-        stat_card("Latencia Promedio", AppState.avg_latency_ms.to(str) + " ms", "clock", "Tiempo de respuesta API"),
-        stat_card("Errores Detectados", AppState.error_count.to(str), "triangle_alert", "Hoy en producción"),
+        stat_card("Total Peticiones", HomeState.total_requests_range.to(str), "activity", "En el rango seleccionado"),
+        stat_card("Consultas por Canal", HomeState.channel_counts_str_range, "git_branch", "Canales: Respond / Orbit / MaxiBot"),
+        stat_card("Latencia Promedio", HomeState.avg_latency_range.to(str) + " ms", "clock", "Promedio en el rango"),
+        stat_card("Errores Detectados", HomeState.error_count_range.to(str), "triangle_alert", "En el rango seleccionado"),
         columns="4",
         spacing="4",
         width="100%",
