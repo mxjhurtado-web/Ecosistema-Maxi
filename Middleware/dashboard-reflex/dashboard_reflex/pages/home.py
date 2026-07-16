@@ -120,7 +120,7 @@ class HomeState(rx.State):
                 })
                 
         # Load recent requests
-        limit_to_fetch = min(5000, max(1000, query_hours * 10))
+        limit_to_fetch = min(1000, max(100, query_hours * 10))
         recent = await api_client.get_recent_requests(limit=limit_to_fetch)
         filtered_recent = []
         if recent:
