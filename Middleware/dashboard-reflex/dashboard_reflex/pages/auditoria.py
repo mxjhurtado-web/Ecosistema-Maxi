@@ -15,6 +15,7 @@ class AuditState(rx.State):
     search_query: str = ""
     raw_logs: list[dict] = []
     is_loading: bool = False
+    _filtered_logs: list[dict] = []
 
     async def load_data(self):
         self.is_loading = True

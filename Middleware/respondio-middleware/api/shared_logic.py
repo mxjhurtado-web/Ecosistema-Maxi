@@ -56,7 +56,7 @@ def get_db_connection():
     ip_address = hostname
     if hostname:
         try:
-            addr_info = socket.getaddrinfo(hostname, None, socket.AF_INET)
+            addr_info = socket.getaddrinfo(hostname, 5432, socket.AF_INET)
             if addr_info:
                 ip_address = addr_info[0][4][0]
                 logger.info(f"Resolved Supabase host '{hostname}' to IPv4 '{ip_address}'")
