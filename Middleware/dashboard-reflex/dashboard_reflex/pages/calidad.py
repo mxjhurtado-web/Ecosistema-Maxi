@@ -262,8 +262,8 @@ def chat_message_bubble(msg: rx.Var) -> rx.Component:
             "🤖 Orquestador Max",
             rx.cond(
                 is_agent,
-                rx.cond(msg["agent_name"], "🧠 Agente " + msg["agent_name"], "🧠 Agente Especialista"),
-                rx.cond(msg["agent_name"], "👩‍💼 Asesor " + msg["agent_name"], "👩‍💼 Asesor Humano")
+                rx.cond(msg["agent_name"], "🧠 Agente " + msg["agent_name"].to(str), "🧠 Agente Especialista"),
+                rx.cond(msg["agent_name"], "👩‍💼 Asesor " + msg["agent_name"].to(str), "👩‍💼 Asesor Humano")
             )
         )
     )
