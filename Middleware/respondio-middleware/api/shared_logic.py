@@ -40,11 +40,16 @@ def resolve_script_text(script_text: str) -> str:
 
 
 def get_db_connection():
-    """Establishes connection to Supabase database forcing IPv4 resolution to prevent 'Network is unreachable' on IPv6 platforms."""
+    """
+    Establishes connection to Supabase database.
+    Attempts connecting via the IPv4 Supavisor Pooler (port 6543) first to prevent 
+    'Network is unreachable' on IPv6-only direct connection hosts on platforms like Render.
+    Falls back to direct connection if pooler connection fails.
+    """
     from .config import settings
-    import socket
     import urllib.parse
     import psycopg2
+    import socket
     
     uri = settings.SUPABASE_URI
     if not uri:
@@ -53,15 +58,38 @@ def get_db_connection():
     parsed = urllib.parse.urlparse(uri)
     hostname = parsed.hostname
     
+    # Check if this is a supabase host
+    if hostname and "supabase.co" in hostname:
+        project_ref = hostname.split('.')[0]
+        # Supavisor pooler host (AWS us-east-1 is the region for this project)
+        pooler_host = "aws-0-us-east-1.pooler.supabase.com"
+        # Supavisor user format: [username].[project-ref]
+        pooler_user = f"{parsed.username}.{project_ref}"
+        pooler_port = 6543
+        
+        logger.info(f"🔌 Attempting connection via Supabase IPv4 Pooler: {pooler_host}:{pooler_port} as {pooler_user}...")
+        try:
+            conn = psycopg2.connect(
+                host=pooler_host,
+                database=parsed.path.lstrip('/'),
+                user=pooler_user,
+                password=parsed.password,
+                port=pooler_port,
+                sslmode="require",
+                connect_timeout=5
+            )
+            logger.info("✅ Connected to Supabase via IPv4 pooler successfully!")
+            return conn
+        except Exception as pool_err:
+            logger.warning(f"⚠️ Connection via IPv4 pooler failed: {pool_err}. Falling back to direct connection...")
+            
+    # Fallback to direct hostname resolution (IPv4 standard socket gethostbyname)
     ip_address = hostname
     if hostname:
         try:
-            addr_info = socket.getaddrinfo(hostname, 5432, socket.AF_INET)
-            if addr_info:
-                ip_address = addr_info[0][4][0]
-                logger.info(f"Resolved Supabase host '{hostname}' to IPv4 '{ip_address}'")
-        except Exception as e:
-            logger.warning(f"Failed to resolve IPv4 for host '{hostname}': {e}. Using raw hostname.")
+            ip_address = socket.gethostbyname(hostname)
+        except Exception as dns_err:
+            logger.warning(f"Failed to resolve host '{hostname}': {dns_err}")
             
     dbname = parsed.path.lstrip('/')
     user = parsed.username
