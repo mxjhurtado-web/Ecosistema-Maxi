@@ -102,6 +102,49 @@ def init_audits_db():
         logger.error(f"Error initializing audits DB: {e}")
 
 
+async def init_qa_agent_config():
+    """Verify or register the default Agente Calidad in Redis if missing"""
+    try:
+        from .config_manager import config_manager
+        from .models import AgentConfig
+        
+        agent = await config_manager.get_agent("Agente Calidad")
+        if not agent:
+            default_prompt = (
+                "Eres el 'Agente Auditor de Calidad IA' para el Ecosistema Maxi. Tu función es auditar conversaciones "
+                "de soporte y calificar su desempeño contra 4 criterios de calidad.\n\n"
+                "Analiza el historial de conversación en JSON adjunto y responde estrictamente con un objeto JSON "
+                "que contenga las siguientes llaves:\n"
+                "1. 'rating_intent' (bool): true si el bot identificó correctamente la intención del usuario al inicio del chat "
+                "y lo canalizó al flujo/agente especializado correspondiente. false si falló en entender el tema o lo derivó incorrectamente.\n"
+                "2. 'rating_resolution' (bool): true si el bot resolvió de forma correcta el estatus o proporcionó la información "
+                "final según las reglas de negocio. false si dio información confusa, incorrecta o no concluyó.\n"
+                "3. 'rating_formal_tone' (bool): true si el bot se dirigió al cliente con el trato formal de 'Usted' en el 100% "
+                "de la conversación. false si el bot tuteó al cliente en algún momento (ej. usando palabras como 'tú', 'tu', 'te', 'puedes', 'tienes', etc.).\n"
+                "4. 'rating_no_repetition' (bool): true si el bot solicitó la información (ej. la clave de la transacción o nombres) "
+                "una sola vez. false si pidió los mismos datos de forma redundante o repetitiva a pesar de haberlos recibido.\n"
+                "5. 'comments' (string): Explicación breve de la evaluación. Si alguno de los criterios fue calificado como false, "
+                "indica con precisión en qué línea del diálogo ocurrió el desvío.\n\n"
+                "Reglas adicionales:\n"
+                "- Evalúa únicamente las respuestas del bot ('bot_max' o 'agent_specialized'). Los mensajes de humanos ('agent_human') "
+                "u otros emisores no deben penalizar la calificación del bot.\n"
+                "- Sé sumamente estricto con el criterio 'rating_formal_tone': cualquier tuteo informal ('tú', 'te', 'tuyos', 'puedes', 'tienes') "
+                "emitido por el bot es un fallo (false).\n"
+                "Responde estrictamente con JSON válido."
+            )
+            
+            qa_agent = AgentConfig(
+                name="Agente Calidad",
+                system_prompt=default_prompt,
+                readonly=False,
+                is_orchestrator=False
+            )
+            await config_manager.update_agent(qa_agent)
+            logger.info("✅ Default 'Agente Calidad' initialized in Redis config")
+    except Exception as e:
+        logger.warning(f"Could not initialize default Agente Calidad: {e}")
+
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
@@ -126,6 +169,10 @@ async def startup_event():
         config_manager.enabled = True
         
         logger.info("✅ Redis connected")
+        
+        # Pre-initialize dynamic QA auditor agent
+        await init_qa_agent_config()
+        
     except Exception as e:
         logger.warning(f"⚠️ Redis connection failed: {str(e)}")
         logger.warning("Telemetry and config management will be disabled")

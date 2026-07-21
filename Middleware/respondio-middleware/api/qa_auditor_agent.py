@@ -53,6 +53,16 @@ class QAAuditorAgent:
             "Responde estrictamente con JSON válido."
         )
 
+        # Try to load custom QA Auditor prompt from Redis configuration
+        try:
+            from .config_manager import config_manager
+            dynamic_agent = await config_manager.get_agent("Agente Calidad")
+            if dynamic_agent and dynamic_agent.system_prompt:
+                system_instruction = dynamic_agent.system_prompt
+                logger.info("ℹ️ Using custom Quality Auditor system prompt from config manager (Agente Calidad)")
+        except Exception as config_err:
+            logger.warning(f"Could not load custom 'Agente Calidad' prompt from Redis: {config_err}. Using default.")
+
         prompt = f"Conversación a auditar:\n```json\n{json.dumps(chat_data, ensure_ascii=False, indent=2)}\n```"
         
         payload = {
