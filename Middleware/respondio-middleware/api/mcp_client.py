@@ -162,16 +162,27 @@ class MCPClient:
         # --- PHASE 28: COMPLIANCE SYSTEM PROMPT INJECTION ---
         scripts = get_compliance_scripts()
         compliance_footer = f"""
-### REGLAS DE CUMPLIMIENTO DE WHATSAPP (OBLIGATORIO) ###
+### REGLAS DE CUMPLIMIENTO Y TONO DE ATENCIÓN DE WHATSAPP (OBLIGATORIO) ###
 Usted es ÚNICAMENTE UN CANAL DE COMUNICACIÓN. NO está autorizado para realizar validaciones ni toma de decisiones finales. 
 Todas las actividades reguladas (KYC, aprobación, liberación de fondos) se realizan fuera de WhatsApp en el sistema Chronos.
 
-USE ESTOS SCRIPTS DE FORMA LITERAL (SIN IMPROVISAR):
+REGLAS ESTRICTAS DE TONO Y FORMALIDAD:
+1. Diríjase SIEMPRE al usuario de 'Usted' (PROHIBIDO tutear con 'tú', 'tu', 'te'). Mantenga una atención formal, profesional y respetuosa en TODO momento.
+2. Utilice únicamente el término homologado 'clave de la transacción' o 'clave de confirmación'. PROHIBIDO solicitar 'código de envío'.
+3. Para identificar el perfil del usuario (remitente, beneficiario o agente), utilice de forma literal el script SC.003: "{scripts.get('SC.003', '')}"
+4. Si el usuario indica que no requiere ayuda adicional, envíe el script de Encuesta de Satisfacción (SC.034 / SC.035) y el script de cierre SC.036 completo sin recortar ni parafrasear texto.
+
+SCRIPTS HOMOLOGADOS DE CUMPLIMIENTO (USAR DE FORMA LITERAL SIN IMPROVISAR):
+- Saludo inicial: "{scripts.get('CU.A1', '')}"
+- Identificar Perfil: "{scripts.get('SC.003', '')}"
+- Solicitar Clave de Confirmación: "{scripts.get('SC.008', '')}"
+- Validación previa: "{scripts.get('SC.007', '')}"
 - Soporte General: "{scripts.get('A2_GENERAL_SUPPORT', '')}"
 - Documentación Necesaria: "{scripts.get('A3_DOCUMENTATION', '')}"
 - Disputa/Reembolso/Error: "{scripts.get('A4_DISPUTE_REDIRECTION', '')}"
-- Seguridad/Actividad Sospechosa: "{scripts.get('A5_SUSPICIOUS_ACTIVITY', '')}"
-- Derechos de Privacidad: "{scripts.get('A6_PRIVACY_REDIRECTION', '')}"
+- Alta Prioridad / Fraude / Actividad Sospechosa: "{scripts.get('SC.030', '')}"
+- Encuesta Excelente: "{scripts.get('SC.034', '')}"
+- Cierre Final: "{scripts.get('SC.036', '')}"
 
 REGLAS ESTRICTAS:
 1. PROHIBIDO improvisar o parafrasear los scripts anteriores.
@@ -201,6 +212,18 @@ REGLAS ESTRICTAS:
         scripts = get_compliance_scripts()
         user_text_lower = user_text.lower()
         
+        # Fraud detection (High Priority - SC.030 / Emergency Cola A)
+        fraud_keywords = ["fraude", "estafa", "robo", "robado", "extorsion", "extorsión", "sospechosa", "fraud", "scam", "stolen", "víctima"]
+        if any(kw in user_text_lower for kw in fraud_keywords):
+            logger.info("🛡️ Automated compliance trigger: High Priority Fraud detected")
+            fraud_script = scripts.get("SC.030", "Su solicitud es de alta prioridad para nosotros. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+            return (
+                fraud_script,
+                ResponseStatus.OK,
+                10,
+                0
+            )
+            
         # Dispute detection (A4 Script)
         dispute_keywords = ["disputa", "reembolso", "error", "reclamo", "dispute", "refund", "claim", "re-embolso"]
         if any(kw in user_text_lower for kw in dispute_keywords):
@@ -409,7 +432,7 @@ El usuario incluyó un enlace a un archivo de Google Drive/Docs (ID: **{doc_id}*
 4. Explícale que en cuanto comparta el acceso al correo del bot, podrá volver a enviarte el enlace para resumirlo de inmediato.
 """
 
-            conversational_prompt += "\nSiempre conteste en español de manera fluida y humana. Prohibido usar respuestas cortas o robóticas.\n"
+            conversational_prompt += "\nSiempre conteste en español de manera fluida y formal. Diríjase SIEMPRE al usuario de 'Usted' (PROHIBIDO tutear con 'tú', 'tu', 'te'). Utilice únicamente el término homologado 'clave de la transacción' o 'clave de confirmación'. Prohibido usar respuestas cortas o robóticas.\n"
 
             # Combine with the existing system prompt
             if system_prompt:

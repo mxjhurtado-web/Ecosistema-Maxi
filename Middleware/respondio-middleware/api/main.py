@@ -14,7 +14,7 @@ import logging
 import json
 import os
 from typing import Optional, List, Dict, Any
-from .shared_logic import get_compliance_scripts
+from .shared_logic import get_compliance_scripts, resolve_script_text
 from shared.redis_client import get_redis_client
 
 from .models import (
@@ -1238,7 +1238,7 @@ async def check_transaction_status_inner(
 
     if matched_rule:
         deriv_raw = matched_rule["derivacion"].strip()
-        script_text = matched_rule["script"]
+        script_text = resolve_script_text(matched_rule["script"])
         
         # Clean script text (replace quotes and name placeholder)
         clean_name = contact_name or "Cliente"
@@ -1798,7 +1798,7 @@ async def check_bill_status_inner(
     else:
         logger.info(f"Matched rule from sheets: {matched_rule}")
 
-    script_text = matched_rule["script"]
+    script_text = resolve_script_text(matched_rule["script"])
     deriv_raw = matched_rule["derivacion"].strip()
     
     # Clean script text
@@ -2281,7 +2281,7 @@ async def check_topup_status_inner(
                 "derivacion": "NA"
             }
 
-    script_text = matched_rule["script"]
+    script_text = resolve_script_text(matched_rule["script"])
     deriv_raw = matched_rule["derivacion"].strip()
     
     derivacion = "NA"

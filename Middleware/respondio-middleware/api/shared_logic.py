@@ -24,3 +24,16 @@ def get_compliance_scripts():
             logger.error(f"Error loading compliance scripts: {str(e)}")
             _compliance_scripts = {}
     return _compliance_scripts
+
+def resolve_script_text(script_text: str) -> str:
+    """If script_text is a script code (e.g. 'SC 018' or 'SC.018'), resolve it to full text from compliance_scripts.json."""
+    if not script_text:
+        return ""
+    comp_scripts = get_compliance_scripts()
+    clean = script_text.strip()
+    clean_dot = clean.replace(" ", ".")
+    if clean_dot in comp_scripts:
+        return comp_scripts[clean_dot]
+    if clean in comp_scripts:
+        return comp_scripts[clean]
+    return script_text
