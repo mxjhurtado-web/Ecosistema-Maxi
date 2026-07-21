@@ -2445,37 +2445,82 @@ async def webhook_events(
                 from shared.redis_client import get_redis_client
                 redis_client = await get_redis_client()
                 
+                # Fetch chat history from Redis before it's cleared by upload_conversation_to_drive
+                from .chat_history_helper import get_chat_history, upload_conversation_to_drive
+                chat_history = await get_chat_history(redis_client, conversation_id)
+                
                 # Upload conversation JSON to Google Drive
-                from .chat_history_helper import upload_conversation_to_drive
                 file_id = await upload_conversation_to_drive(
                     redis_client, conversation_id, contact_id, contact_name
                 )
                 
-                # Create entry in Supabase (conversation_audits) with audited_by = None (Pending)
+                # Trigger the IA Quality Auditor Agent evaluation
+                eval_res = {}
+                if chat_history:
+                    chat_data = {
+                        "conversation_id": conversation_id,
+                        "contact_id": contact_id,
+                        "contact_name": contact_name,
+                        "messages": chat_history
+                    }
+                    from .qa_auditor_agent import qa_auditor_agent
+                    eval_res = await qa_auditor_agent.audit_conversation(chat_data)
+                
+                # Create entry in Supabase (conversation_audits) with audited_by and evaluations
                 if file_id and settings.SUPABASE_URI:
                     import psycopg2
+                    import random
                     from zoneinfo import ZoneInfo
                     local_date = datetime.now(ZoneInfo("America/Mexico_City")).date()
+                    now_timestamp = datetime.utcnow()
+                    
+                    rating_intent = eval_res.get("rating_intent", True)
+                    rating_resolution = eval_res.get("rating_resolution", True)
+                    rating_formal_tone = eval_res.get("rating_formal_tone", True)
+                    rating_no_repetition = eval_res.get("rating_no_repetition", True)
+                    comments = eval_res.get("comments", "Auditoría realizada de forma automática.")
+                    
+                    # 5% random sampling OR quality deviation/failure => Human audit needed
+                    ia_failed = not (rating_intent and rating_resolution and rating_formal_tone and rating_no_repetition)
+                    is_human_review_required = ia_failed or (random.random() < 0.05)
+                    
+                    auditor_field = None if is_human_review_required else "AI_AUDITOR"
+                    audited_at_field = None if is_human_review_required else now_timestamp
+                    
+                    if is_human_review_required:
+                        ia_label = "⚠️ IA Auditor detectó posible desviación" if ia_failed else "🔬 IA Auditor (Muestra de Calibración Humana 5%)"
+                        comments = f"[{ia_label}]: {comments}"
                     
                     conn = psycopg2.connect(settings.SUPABASE_URI)
                     cursor = conn.cursor()
                     
-                    # Insert un-audited record
+                    # Insert audited record
                     cursor.execute("""
                         INSERT INTO conversation_audits (
                             conversation_id, contact_id, contact_name, date,
                             rating_intent, rating_resolution, rating_formal_tone, rating_no_repetition,
                             comments, audited_by, audited_at
-                        ) VALUES (%s, %s, %s, %s, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
-                        ON CONFLICT (conversation_id) DO NOTHING;
-                    """, (conversation_id, contact_id, contact_name, local_date))
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (conversation_id) DO UPDATE
+                        SET rating_intent = EXCLUDED.rating_intent,
+                            rating_resolution = EXCLUDED.rating_resolution,
+                            rating_formal_tone = EXCLUDED.rating_formal_tone,
+                            rating_no_repetition = EXCLUDED.rating_no_repetition,
+                            comments = EXCLUDED.comments,
+                            audited_by = EXCLUDED.audited_by,
+                            audited_at = EXCLUDED.audited_at;
+                    """, (
+                        conversation_id, contact_id, contact_name, local_date,
+                        rating_intent, rating_resolution, rating_formal_tone, rating_no_repetition,
+                        comments, auditor_field, audited_at_field
+                    ))
                     
                     conn.commit()
                     cursor.close()
                     conn.close()
-                    logger.info(f"✅ Created conversation_audits row for {conversation_id}")
+                    logger.info(f"✅ Created conversation_audits row for {conversation_id} (Audited by: {auditor_field})")
             except Exception as e:
-                logger.error(f"Error handling conversation closed event: {str(e)}")
+                logger.error(f"Error handling conversation closed event and running QA audit: {str(e)}")
                 
     return {"status": "ok"}
 
