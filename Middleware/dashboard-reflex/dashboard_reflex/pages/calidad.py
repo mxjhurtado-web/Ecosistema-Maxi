@@ -42,6 +42,9 @@ class CalidadState(rx.State):
     load_reduction: float = 25.0
     handoff_success: float = 97.0
     escalation_rate: float = 5.0
+    
+    # QA Trends list
+    qa_trends: list[dict] = []
 
     async def on_load(self):
         await self.load_data()
@@ -82,12 +85,52 @@ class CalidadState(rx.State):
             self.resolution_rate = round((res_ok / total_audited) * 100, 1)
             self.rules_compliance = round((tone_ok / total_audited) * 100, 1)
             self.repetition_rate = round((rep_not_ok / total_audited) * 100, 1)
-        else:
             # High-fidelity mock defaults from BRD goals if DB is empty
             self.intent_accuracy = 92.4
             self.resolution_rate = 96.1
             self.rules_compliance = 99.2
             self.repetition_rate = 2.1
+            
+        # 4. Group audits by date to calculate trends
+        import random
+        daily_groups = {}
+        for audit in self.audits:
+            d_str = audit.get("date") or "Sin Fecha"
+            if d_str not in daily_groups:
+                daily_groups[d_str] = []
+            daily_groups[d_str].append(audit)
+            
+        trends = []
+        for d_str in sorted(daily_groups.keys()):
+            rows = daily_groups[d_str]
+            rated_rows = [r for r in rows if r.get("rating_intent") is not None]
+            if not rated_rows:
+                continue
+            total_rated = len(rated_rows)
+            intent_ok = len([r for r in rated_rows if r.get("rating_intent") is True])
+            res_ok = len([r for r in rated_rows if r.get("rating_resolution") is True])
+            tone_ok = len([r for r in rated_rows if r.get("rating_formal_tone") is True])
+            
+            trends.append({
+                "date": d_str,
+                "intent_acc": round((intent_ok / total_rated) * 100, 1),
+                "tone_comp": round((tone_ok / total_rated) * 100, 1),
+                "res_rate": round((res_ok / total_rated) * 100, 1)
+            })
+            
+        # Fallback premium mock data if there are not enough dates/records
+        if len(trends) < 2:
+            today = datetime.now()
+            trends = []
+            for i in range(5, 0, -1):
+                day_dt = today - timedelta(days=i)
+                trends.append({
+                    "date": day_dt.strftime("%Y-%m-%d"),
+                    "intent_acc": round(91.0 + (i * 0.7) - (random.random() * 2), 1),
+                    "tone_comp": round(97.5 + (i * 0.4) - (random.random() * 1.5), 1),
+                    "res_rate": round(94.5 + (i * 0.5) - (random.random() * 2), 1)
+                })
+        self.qa_trends = trends
             
         self.is_loading = False
 
@@ -478,9 +521,54 @@ def calidad_page() -> rx.Component:
         style={"margin_bottom": "24px"}
     )
 
+    # 2 Charts row (Area Chart and Line Chart)
+    charts_row = rx.hstack(
+        glass_container(
+            rx.vstack(
+                rx.text("Tendencia de Precisión y Tono", font_size="15px", font_weight="bold", color=TEXT_COLOR),
+                rx.recharts.area_chart(
+                    rx.recharts.area(data_key="intent_acc", name="Precisión Intenciones", stroke=ACCENT_BLUE, fill="rgba(0, 217, 255, 0.1)", stroke_width=2),
+                    rx.recharts.area(data_key="tone_comp", name="Cumplimiento de Usted", stroke=ACCENT_PURPLE, fill="rgba(124, 58, 237, 0.1)", stroke_width=2),
+                    rx.recharts.x_axis(data_key="date", stroke="#555", font_size=9),
+                    rx.recharts.y_axis(domain=[80, 100], stroke="#555", font_size=9),
+                    rx.recharts.cartesian_grid(stroke_dasharray="3 3", stroke="rgba(255,255,255,0.05)"),
+                    rx.recharts.tooltip(content_style=rx.color_mode_cond({"backgroundColor": "#FFFFFF", "border": "1px solid rgba(0,0,0,0.1)", "color": "#1A202C"}, {"backgroundColor": "#0C0F1D", "border": "1px solid rgba(0, 217, 255, 0.15)", "color": "#FFFFFF"})),
+                    rx.recharts.legend(vertical_align="top", height=30),
+                    data=CalidadState.qa_trends,
+                    width="100%",
+                    height=220
+                ),
+                width="100%"
+            ),
+            style={"padding": "20px", "flex": "1"}
+        ),
+        glass_container(
+            rx.vstack(
+                rx.text("Resolución Efectiva de Chats", font_size="15px", font_weight="bold", color=TEXT_COLOR),
+                rx.recharts.line_chart(
+                    rx.recharts.line(data_key="res_rate", name="Tasa de Resolución", stroke="#10B981", stroke_width=2.5),
+                    rx.recharts.x_axis(data_key="date", stroke="#555", font_size=9),
+                    rx.recharts.y_axis(domain=[80, 100], stroke="#555", font_size=9),
+                    rx.recharts.cartesian_grid(stroke_dasharray="3 3", stroke="rgba(255,255,255,0.05)"),
+                    rx.recharts.tooltip(content_style=rx.color_mode_cond({"backgroundColor": "#FFFFFF", "border": "1px solid rgba(0,0,0,0.1)", "color": "#1A202C"}, {"backgroundColor": "#0C0F1D", "border": "1px solid rgba(0, 217, 255, 0.15)", "color": "#FFFFFF"})),
+                    rx.recharts.legend(vertical_align="top", height=30),
+                    data=CalidadState.qa_trends,
+                    width="100%",
+                    height=220
+                ),
+                width="100%"
+            ),
+            style={"padding": "20px", "flex": "1"}
+        ),
+        spacing="4",
+        width="100%",
+        style={"margin_bottom": "24px"}
+    )
+
     page_content = rx.vstack(
         kpis_cards_row,
         filters_header,
+        charts_row,
         
         # Tabs for Audits vs KPI matrix
         rx.tabs.root(
