@@ -70,36 +70,36 @@ app.add_middleware(
 # Startup/Shutdown Events
 # ============================================================
 
-def init_audits_db():
-    """Verify or create conversation_audits table in PostgreSQL/Supabase"""
-    if not settings.SUPABASE_URI:
-        logger.warning("Supabase URI not configured, skipping audits DB initialization")
-        return
+# Sheet ID for QA audits (Estatus sheet, tab "Auditoria_QA")
+AUDITS_SHEET_ID = "14BdjBuXPXPkjXMKS-955fA6bNw5qRMv5IWCNhMZGIXc"
+AUDITS_TAB_NAME = "Auditoria_QA"
+AUDITS_HEADERS = [
+    "conversation_id", "contact_id", "contact_name", "date",
+    "rating_intent", "rating_resolution", "rating_formal_tone", "rating_no_repetition",
+    "comments", "audited_by", "audited_at"
+]
+
+def get_audits_sheet():
+    """Return the gspread worksheet for QA audits, creating the tab + headers if needed."""
     try:
-        from .shared_logic import get_db_connection
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS conversation_audits (
-                conversation_id VARCHAR(255) PRIMARY KEY,
-                contact_id VARCHAR(255),
-                contact_name VARCHAR(255),
-                date DATE,
-                rating_intent BOOLEAN,
-                rating_resolution BOOLEAN,
-                rating_formal_tone BOOLEAN,
-                rating_no_repetition BOOLEAN,
-                comments TEXT,
-                audited_by VARCHAR(255),
-                audited_at TIMESTAMP
-            );
-        """)
-        conn.commit()
-        cursor.close()
-        conn.close()
-        logger.info("✅ conversation_audits table verified/created in PostgreSQL")
+        import gspread
+        from .google_drive_service import google_drive_service
+        gc = gspread.authorize(google_drive_service.credentials)
+        sh = gc.open_by_key(AUDITS_SHEET_ID)
+        try:
+            ws = sh.worksheet(AUDITS_TAB_NAME)
+        except gspread.exceptions.WorksheetNotFound:
+            ws = sh.add_worksheet(title=AUDITS_TAB_NAME, rows=1000, cols=len(AUDITS_HEADERS))
+            ws.append_row(AUDITS_HEADERS, value_input_option="RAW")
+            logger.info(f"✅ Created sheet tab '{AUDITS_TAB_NAME}' with headers")
+        # Add headers if sheet is empty
+        existing = ws.row_values(1)
+        if not existing:
+            ws.append_row(AUDITS_HEADERS, value_input_option="RAW")
+        return ws
     except Exception as e:
-        logger.error(f"Error initializing audits DB: {e}")
+        logger.error(f"Error accessing audits sheet: {e}")
+        return None
 
 
 async def init_qa_agent_config():
@@ -153,8 +153,12 @@ async def startup_event():
     logger.info(f"Cache enabled: {settings.CACHE_ENABLED}")
     logger.info(f"Circuit breaker enabled: {settings.CIRCUIT_BREAKER_ENABLED}")
     
-    # Verify/create PostgreSQL audits table
-    init_audits_db()
+    # Ensure Google Sheets audits tab exists
+    try:
+        get_audits_sheet()
+        logger.info("✅ Google Sheets audits tab verified")
+    except Exception as e:
+        logger.warning(f"Could not verify audits sheet: {e}")
     
     # Initialize Redis connection
     try:
@@ -2533,13 +2537,12 @@ async def webhook_events(
                     from .qa_auditor_agent import qa_auditor_agent
                     eval_res = await qa_auditor_agent.audit_conversation(chat_data)
                 
-                # Create entry in Supabase (conversation_audits) with audited_by and evaluations
-                if file_id and settings.SUPABASE_URI:
-                    import psycopg2
+                # Create entry in Google Sheets (Auditoria_QA tab) with audited_by and evaluations
+                if file_id:
                     import random
                     from zoneinfo import ZoneInfo
-                    local_date = datetime.now(ZoneInfo("America/Mexico_City")).date()
-                    now_timestamp = datetime.utcnow()
+                    local_date = datetime.now(ZoneInfo("America/Mexico_City")).date().isoformat()
+                    now_timestamp = datetime.utcnow().isoformat()
                     
                     rating_intent = eval_res.get("rating_intent", True)
                     rating_resolution = eval_res.get("rating_resolution", True)
@@ -2551,42 +2554,35 @@ async def webhook_events(
                     ia_failed = not (rating_intent and rating_resolution and rating_formal_tone and rating_no_repetition)
                     is_human_review_required = ia_failed or (random.random() < 0.05)
                     
-                    auditor_field = None if is_human_review_required else "AI_AUDITOR"
-                    audited_at_field = None if is_human_review_required else now_timestamp
+                    auditor_field = "" if is_human_review_required else "AI_AUDITOR"
+                    audited_at_field = "" if is_human_review_required else now_timestamp
                     
                     if is_human_review_required:
                         ia_label = "⚠️ IA Auditor detectó posible desviación" if ia_failed else "🔬 IA Auditor (Muestra de Calibración Humana 5%)"
                         comments = f"[{ia_label}]: {comments}"
                     
-                    from .shared_logic import get_db_connection
-                    conn = get_db_connection()
-                    cursor = conn.cursor()
-                    
-                    # Insert audited record
-                    cursor.execute("""
-                        INSERT INTO conversation_audits (
-                            conversation_id, contact_id, contact_name, date,
-                            rating_intent, rating_resolution, rating_formal_tone, rating_no_repetition,
-                            comments, audited_by, audited_at
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (conversation_id) DO UPDATE
-                        SET rating_intent = EXCLUDED.rating_intent,
-                            rating_resolution = EXCLUDED.rating_resolution,
-                            rating_formal_tone = EXCLUDED.rating_formal_tone,
-                            rating_no_repetition = EXCLUDED.rating_no_repetition,
-                            comments = EXCLUDED.comments,
-                            audited_by = EXCLUDED.audited_by,
-                            audited_at = EXCLUDED.audited_at;
-                    """, (
-                        conversation_id, contact_id, contact_name, local_date,
-                        rating_intent, rating_resolution, rating_formal_tone, rating_no_repetition,
-                        comments, auditor_field, audited_at_field
-                    ))
-                    
-                    conn.commit()
-                    cursor.close()
-                    conn.close()
-                    logger.info(f"✅ Created conversation_audits row for {conversation_id} (Audited by: {auditor_field})")
+                    ws = get_audits_sheet()
+                    if ws:
+                        # Check if conversation_id already exists (update in place)
+                        try:
+                            cell = ws.find(conversation_id, in_column=1)
+                            row_num = cell.row
+                            ws.update(f"A{row_num}:K{row_num}", [[
+                                conversation_id, contact_id, contact_name, local_date,
+                                str(rating_intent), str(rating_resolution),
+                                str(rating_formal_tone), str(rating_no_repetition),
+                                comments, auditor_field, audited_at_field
+                            ]])
+                            logger.info(f"✅ Updated existing audit row for {conversation_id} in Google Sheets")
+                        except Exception:
+                            # Not found — append new row
+                            ws.append_row([
+                                conversation_id, contact_id, contact_name, local_date,
+                                str(rating_intent), str(rating_resolution),
+                                str(rating_formal_tone), str(rating_no_repetition),
+                                comments, auditor_field, audited_at_field
+                            ], value_input_option="RAW")
+                            logger.info(f"✅ Appended audit row for {conversation_id} in Google Sheets (Audited by: {auditor_field})")
             except Exception as e:
                 logger.error(f"Error handling conversation closed event and running QA audit: {str(e)}")
                 

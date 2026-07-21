@@ -1744,64 +1744,63 @@ async def reset_circuit_breaker(
 async def get_audits(
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
-    status: Optional[str] = Query(None), # "pendiente" or "auditado"
+    status: Optional[str] = Query(None),  # "pendiente" or "auditado"
     _: DashboardUser = Depends(verify_admin_credentials)
 ):
-    """Retrieve Quality Audits list from Supabase/PostgreSQL"""
-    if not settings.SUPABASE_URI:
-        return []
+    """Retrieve Quality Audits list from Google Sheets (Auditoria_QA tab)"""
     try:
-        from .shared_logic import get_db_connection
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        query = """
-            SELECT conversation_id, contact_id, contact_name, date, 
-                   rating_intent, rating_resolution, rating_formal_tone, rating_no_repetition, 
-                   comments, audited_by, audited_at 
-            FROM conversation_audits 
-            WHERE 1=1
-        """
-        params = []
-        
-        if start_date:
-            query += " AND date >= %s"
-            params.append(start_date)
-        if end_date:
-            query += " AND date <= %s"
-            params.append(end_date)
-        if status == "pendiente":
-            query += " AND audited_by IS NULL"
-        elif status == "auditado":
-            query += " AND audited_by IS NOT NULL"
-            
-        query += " ORDER BY date DESC, audited_at DESC NULLS FIRST LIMIT 100"
-        
-        cursor.execute(query, tuple(params))
-        rows = cursor.fetchall()
-        
+        from .main import get_audits_sheet
+        ws = get_audits_sheet()
+        if not ws:
+            return []
+
+        rows = ws.get_all_records(expected_headers=[
+            "conversation_id", "contact_id", "contact_name", "date",
+            "rating_intent", "rating_resolution", "rating_formal_tone", "rating_no_repetition",
+            "comments", "audited_by", "audited_at"
+        ])
+
         results = []
         for row in rows:
+            row_date = row.get("date", "")
+            row_audited_by = row.get("audited_by", "")
+
+            # Date filters
+            if start_date and row_date and row_date < start_date:
+                continue
+            if end_date and row_date and row_date > end_date:
+                continue
+            # Status filter
+            if status == "pendiente" and row_audited_by:
+                continue
+            if status == "auditado" and not row_audited_by:
+                continue
+
+            def to_bool(v):
+                if isinstance(v, bool):
+                    return v
+                return str(v).lower() == "true"
+
             results.append({
-                "conversation_id": row[0],
-                "contact_id": row[1],
-                "contact_name": row[2],
-                "date": str(row[3]) if row[3] else None,
-                "rating_intent": row[4],
-                "rating_resolution": row[5],
-                "rating_formal_tone": row[6],
-                "rating_no_repetition": row[7],
-                "comments": row[8],
-                "audited_by": row[9],
-                "audited_at": row[10].isoformat() if row[10] else None
+                "conversation_id": row.get("conversation_id"),
+                "contact_id": row.get("contact_id"),
+                "contact_name": row.get("contact_name"),
+                "date": row_date or None,
+                "rating_intent": to_bool(row.get("rating_intent")),
+                "rating_resolution": to_bool(row.get("rating_resolution")),
+                "rating_formal_tone": to_bool(row.get("rating_formal_tone")),
+                "rating_no_repetition": to_bool(row.get("rating_no_repetition")),
+                "comments": row.get("comments"),
+                "audited_by": row_audited_by or None,
+                "audited_at": row.get("audited_at") or None,
             })
-        
-        cursor.close()
-        conn.close()
-        return results
+
+        # Sort newest first (date DESC)
+        results.sort(key=lambda r: r["date"] or "", reverse=True)
+        return results[:100]
     except Exception as e:
-        logger.error(f"Error fetching audits: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        logger.error(f"Error fetching audits from Sheets: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Google Sheets error: {str(e)}")
 
 
 @router.get("/audit/{conversation_id}/chat")
@@ -1835,33 +1834,42 @@ async def update_audit(
     audited_by: str = Body(..., min_length=1),
     _: DashboardUser = Depends(verify_admin_credentials)
 ):
-    """Update conversation QA rating and scores in Supabase"""
-    if not settings.SUPABASE_URI:
-        raise HTTPException(status_code=500, detail="Database connection not configured")
+    """Update conversation QA rating and scores in Google Sheets"""
     try:
-        from .shared_logic import get_db_connection
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        now = datetime.utcnow()
-        
-        cursor.execute("""
-            UPDATE conversation_audits
-            SET rating_intent = %s,
-                rating_resolution = %s,
-                rating_formal_tone = %s,
-                rating_no_repetition = %s,
-                comments = %s,
-                audited_by = %s,
-                audited_at = %s
-            WHERE conversation_id = %s;
-        """, (rating_intent, rating_resolution, rating_formal_tone, rating_no_repetition, comments, audited_by, now, conversation_id))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        # Log to config manager audit log
+        from .main import get_audits_sheet
+        from datetime import datetime
+        ws = get_audits_sheet()
+        if not ws:
+            raise HTTPException(status_code=500, detail="Could not access audits sheet")
+
+        now = datetime.utcnow().isoformat()
+
+        try:
+            cell = ws.find(conversation_id, in_column=1)
+            row_num = cell.row
+        except Exception:
+            raise HTTPException(status_code=404, detail=f"conversation_id {conversation_id} not found in audits sheet")
+
+        # Read existing row to preserve unchanged fields
+        existing = ws.row_values(row_num)
+        def existing_val(idx, new_val):
+            return str(new_val) if new_val is not None else (existing[idx] if len(existing) > idx else "")
+
+        ws.update(f"A{row_num}:K{row_num}", [[
+            conversation_id,
+            existing[1] if len(existing) > 1 else "",  # contact_id
+            existing[2] if len(existing) > 2 else "",  # contact_name
+            existing[3] if len(existing) > 3 else "",  # date
+            existing_val(4, rating_intent),
+            existing_val(5, rating_resolution),
+            existing_val(6, rating_formal_tone),
+            existing_val(7, rating_no_repetition),
+            comments if comments is not None else (existing[8] if len(existing) > 8 else ""),
+            audited_by,
+            now
+        ]])
+
+        # Log audit action
         from .config_manager import AuditLogEntry, UserAction
         entry = AuditLogEntry(
             username=audited_by,
@@ -1869,8 +1877,11 @@ async def update_audit(
             details=f"Audited conversation {conversation_id}: intent={rating_intent}, resolution={rating_resolution}, tone={rating_formal_tone}, repetition={rating_no_repetition}"
         )
         await config_manager.log_audit_action(entry)
-        
+
         return {"status": "success"}
+    except HTTPException as he:
+        raise he
     except Exception as e:
-        logger.error(f"Error updating audit: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        logger.error(f"Error updating audit in Sheets: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Google Sheets error: {str(e)}")
+
