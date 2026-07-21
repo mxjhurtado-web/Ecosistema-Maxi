@@ -3,7 +3,7 @@ Admin API for dashboard management.
 Provides endpoints for configuration, telemetry, and maintenance.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Request, Header
+from fastapi import APIRouter, HTTPException, Depends, Query, Request, Header, Body
 from typing import List, Optional
 from datetime import datetime, timedelta
 
@@ -1734,3 +1734,143 @@ async def reset_circuit_breaker(
         "status": "ok",
         "message": "Circuit breaker reset"
     }
+
+
+# ============================================================
+# QA / Quality Audits Endpoints
+# ============================================================
+
+@router.get("/audits")
+async def get_audits(
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    status: Optional[str] = Query(None), # "pendiente" or "auditado"
+    _: DashboardUser = Depends(verify_admin_credentials)
+):
+    """Retrieve Quality Audits list from Supabase/PostgreSQL"""
+    if not settings.SUPABASE_URI:
+        return []
+    try:
+        import psycopg2
+        conn = psycopg2.connect(settings.SUPABASE_URI)
+        cursor = conn.cursor()
+        
+        query = """
+            SELECT conversation_id, contact_id, contact_name, date, 
+                   rating_intent, rating_resolution, rating_formal_tone, rating_no_repetition, 
+                   comments, audited_by, audited_at 
+            FROM conversation_audits 
+            WHERE 1=1
+        """
+        params = []
+        
+        if start_date:
+            query += " AND date >= %s"
+            params.append(start_date)
+        if end_date:
+            query += " AND date <= %s"
+            params.append(end_date)
+        if status == "pendiente":
+            query += " AND audited_by IS NULL"
+        elif status == "auditado":
+            query += " AND audited_by IS NOT NULL"
+            
+        query += " ORDER BY date DESC, audited_at DESC NULLS FIRST LIMIT 100"
+        
+        cursor.execute(query, tuple(params))
+        rows = cursor.fetchall()
+        
+        results = []
+        for row in rows:
+            results.append({
+                "conversation_id": row[0],
+                "contact_id": row[1],
+                "contact_name": row[2],
+                "date": str(row[3]) if row[3] else None,
+                "rating_intent": row[4],
+                "rating_resolution": row[5],
+                "rating_formal_tone": row[6],
+                "rating_no_repetition": row[7],
+                "comments": row[8],
+                "audited_by": row[9],
+                "audited_at": row[10].isoformat() if row[10] else None
+            })
+        
+        cursor.close()
+        conn.close()
+        return results
+    except Exception as e:
+        logger.error(f"Error fetching audits: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
+@router.get("/audit/{conversation_id}/chat")
+async def get_audit_chat(
+    conversation_id: str,
+    date: str = Query(..., description="Date of the conversation in YYYY-MM-DD format"),
+    _: DashboardUser = Depends(verify_admin_credentials)
+):
+    """Retrieve chat history JSON from Google Drive using Service Account"""
+    try:
+        from .google_drive_service import google_drive_service
+        chat_data = await google_drive_service.download_chat_json(conversation_id, date)
+        if not chat_data:
+            raise HTTPException(status_code=404, detail="Chat transcript file not found in Google Drive")
+        return chat_data
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error downloading chat from Drive: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Google Drive service error: {str(e)}")
+
+
+@router.put("/audit/{conversation_id}")
+async def update_audit(
+    conversation_id: str,
+    rating_intent: Optional[bool] = Body(None),
+    rating_resolution: Optional[bool] = Body(None),
+    rating_formal_tone: Optional[bool] = Body(None),
+    rating_no_repetition: Optional[bool] = Body(None),
+    comments: Optional[str] = Body(None),
+    audited_by: str = Body(..., min_length=1),
+    _: DashboardUser = Depends(verify_admin_credentials)
+):
+    """Update conversation QA rating and scores in Supabase"""
+    if not settings.SUPABASE_URI:
+        raise HTTPException(status_code=500, detail="Database connection not configured")
+    try:
+        import psycopg2
+        conn = psycopg2.connect(settings.SUPABASE_URI)
+        cursor = conn.cursor()
+        
+        now = datetime.utcnow()
+        
+        cursor.execute("""
+            UPDATE conversation_audits
+            SET rating_intent = %s,
+                rating_resolution = %s,
+                rating_formal_tone = %s,
+                rating_no_repetition = %s,
+                comments = %s,
+                audited_by = %s,
+                audited_at = %s
+            WHERE conversation_id = %s;
+        """, (rating_intent, rating_resolution, rating_formal_tone, rating_no_repetition, comments, audited_by, now, conversation_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        # Log to config manager audit log
+        from .config_manager import AuditLogEntry, UserAction
+        entry = AuditLogEntry(
+            username=audited_by,
+            action=UserAction.CONFIG_CHANGE,
+            details=f"Audited conversation {conversation_id}: intent={rating_intent}, resolution={rating_resolution}, tone={rating_formal_tone}, repetition={rating_no_repetition}"
+        )
+        await config_manager.log_audit_action(entry)
+        
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Error updating audit: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

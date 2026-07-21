@@ -164,5 +164,26 @@ class AdminAPIClient:
             print(f"Knowledge API error: {e}")
             return None
 
+    # ============================================================
+    # QA / Quality Audits
+    # ============================================================
+    async def get_audits(self, start_date: Optional[str] = None, end_date: Optional[str] = None, status: Optional[str] = None) -> List[Dict[str, Any]]:
+        params = {}
+        if start_date:
+            params["start_date"] = start_date
+        if end_date:
+            params["end_date"] = end_date
+        if status:
+            params["status"] = status
+        res = await self._request("GET", "/admin/audits", params=params)
+        return res if res else []
+
+    async def get_audit_chat(self, conversation_id: str, date: str) -> Optional[Dict[str, Any]]:
+        return await self._request("GET", f"/admin/audit/{conversation_id}/chat", params={"date": date})
+
+    async def update_audit(self, conversation_id: str, payload: Dict[str, Any]) -> bool:
+        res = await self._request("PUT", f"/admin/audit/{conversation_id}", json_data=payload)
+        return res is not None
+
 # Singleton instance
 api_client = AdminAPIClient()

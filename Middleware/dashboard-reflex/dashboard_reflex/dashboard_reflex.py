@@ -23,6 +23,8 @@ from dashboard_reflex.pages.usuarios import usuarios_page
 from dashboard_reflex.pages.usuarios import UsuariosState
 from dashboard_reflex.pages.callback import callback_page
 from dashboard_reflex.pages.callback import CallbackState
+from dashboard_reflex.pages.calidad import calidad_page, CalidadState
+
 
 # Styles for whole app
 app_style = {
@@ -44,6 +46,13 @@ app.add_page(
     route="/history",
     on_load=[AuthState.check_auth, HistoryState.on_load, AppState.on_load],
     title="Orbit Dashboard | Historial"
+)
+
+app.add_page(
+    calidad_page,
+    route="/calidad",
+    on_load=[AuthState.check_auth, CalidadState.on_load, AppState.on_load],
+    title="Orbit Dashboard | Calidad"
 )
 
 app.add_page(

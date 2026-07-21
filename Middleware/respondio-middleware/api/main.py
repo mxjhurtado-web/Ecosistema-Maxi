@@ -70,6 +70,38 @@ app.add_middleware(
 # Startup/Shutdown Events
 # ============================================================
 
+def init_audits_db():
+    """Verify or create conversation_audits table in PostgreSQL/Supabase"""
+    if not settings.SUPABASE_URI:
+        logger.warning("Supabase URI not configured, skipping audits DB initialization")
+        return
+    try:
+        import psycopg2
+        conn = psycopg2.connect(settings.SUPABASE_URI)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS conversation_audits (
+                conversation_id VARCHAR(255) PRIMARY KEY,
+                contact_id VARCHAR(255),
+                contact_name VARCHAR(255),
+                date DATE,
+                rating_intent BOOLEAN,
+                rating_resolution BOOLEAN,
+                rating_formal_tone BOOLEAN,
+                rating_no_repetition BOOLEAN,
+                comments TEXT,
+                audited_by VARCHAR(255),
+                audited_at TIMESTAMP
+            );
+        """)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        logger.info("✅ conversation_audits table verified/created in PostgreSQL")
+    except Exception as e:
+        logger.error(f"Error initializing audits DB: {e}")
+
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
@@ -77,6 +109,9 @@ async def startup_event():
     logger.info(f"MCP URL: {settings.MCP_URL}")
     logger.info(f"Cache enabled: {settings.CACHE_ENABLED}")
     logger.info(f"Circuit breaker enabled: {settings.CIRCUIT_BREAKER_ENABLED}")
+    
+    # Verify/create PostgreSQL audits table
+    init_audits_db()
     
     # Initialize Redis connection
     try:
@@ -206,6 +241,39 @@ async def webhook(
                 cache_key = f"contact:last_image:{contact_id}"
                 await redis.set(cache_key, image_url, ex=3600)
                 logger.info(f"💾 [GLOBAL CACHE] Saved last image URL for contact {contact_id}: {image_url}")
+                
+            # 4. Structured chat history caching for Client and Human Agent
+            conversation_obj = request.get("conversation") or {}
+            conversation_id = ""
+            if isinstance(conversation_obj, dict):
+                conversation_id = str(conversation_obj.get("id") or "")
+            if not conversation_id:
+                conversation_id = str(request.get("conversationId") or "")
+                
+            if conversation_id and user_msg_text:
+                direction = ""
+                sender_type = ""
+                user_obj = None
+                user_name = "Asesor Humano"
+                
+                message_obj = request.get("message") or {}
+                if isinstance(message_obj, dict):
+                    direction = str(message_obj.get("direction") or "")
+                    sender_obj = message_obj.get("sender") or {}
+                    if isinstance(sender_obj, dict):
+                        sender_type = str(sender_obj.get("type") or "")
+                    user_obj = message_obj.get("user")
+                    if isinstance(user_obj, dict):
+                        user_name = str(user_obj.get("name") or "Asesor Humano")
+                        
+                from .chat_history_helper import append_message_to_history
+                if direction == "incoming":
+                    await append_message_to_history(redis, conversation_id, "client", user_msg_text)
+                elif direction == "outgoing":
+                    if user_obj or sender_type in ["user", "agent"]:
+                        await append_message_to_history(
+                            redis, conversation_id, "agent_human", user_msg_text, agent_name=user_name
+                        )
                 
         except Exception as re_err:
             logger.warning(f"Failed to process Redis operations in global webhook: {re_err}")
@@ -472,6 +540,20 @@ async def webhook(
             }
         )
         
+        # Structured chat history caching for Bot Max and Specialized Agent
+        try:
+            if request.conversation_id and mcp_response:
+                redis_client = await get_redis_client()
+                from .chat_history_helper import append_message_to_history
+                role_type = "bot_max"
+                if agent_name and agent_name not in ["Max", "Orquestador"]:
+                    role_type = "agent_specialized"
+                await append_message_to_history(
+                    redis_client, request.conversation_id, role_type, mcp_response, agent_name=agent_name
+                )
+        except Exception as cache_err:
+            logger.warning(f"Failed to append bot message to chat history: {cache_err}")
+
         # Return response
         return RespondioResponse(
             status=status,
@@ -2316,6 +2398,86 @@ async def check_topup_status_inner(
         transaction_status=db_status,
         client_profile=perfil
     )
+
+
+
+# ============================================================
+# Event Webhook Endpoint (Respond.io Events)
+# ============================================================
+
+@app.post("/webhook/events")
+async def webhook_events(
+    request: Dict[str, Any] = Body(...),
+    secret: Optional[str] = None,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret")
+):
+    """
+    Endpoint for asynchronous events from Respond.io (like conversation closed).
+    """
+    incoming_secret = x_webhook_secret or secret
+    if incoming_secret != settings.WEBHOOK_SECRET:
+        logger.warning("❌ Invalid webhook secret in event webhook")
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+        
+    event = request.get("event") or request.get("type")
+    logger.info(f"Received Respond.io event: {event}")
+    
+    # Check if conversation is closed
+    is_closed_event = event in ["conversation.closed", "conversation.status_changed", "conversation_closed"]
+    conversation_data = request.get("conversation") or {}
+    if not is_closed_event and isinstance(conversation_data, dict):
+        status = conversation_data.get("status")
+        if status == "closed":
+            is_closed_event = True
+            
+    if is_closed_event:
+        conversation = request.get("conversation") or {}
+        conversation_id = str(conversation.get("id") or request.get("conversation_id", ""))
+        contact = request.get("contact") or {}
+        contact_id = str(contact.get("id") or request.get("contact_id", ""))
+        contact_name = str(contact.get("name") or "Cliente")
+        
+        if conversation_id:
+            logger.info(f"🔒 Conversation {conversation_id} closed. Triggering Google Drive upload...")
+            
+            # Fetch Redis client
+            try:
+                from shared.redis_client import get_redis_client
+                redis_client = await get_redis_client()
+                
+                # Upload conversation JSON to Google Drive
+                from .chat_history_helper import upload_conversation_to_drive
+                file_id = await upload_conversation_to_drive(
+                    redis_client, conversation_id, contact_id, contact_name
+                )
+                
+                # Create entry in Supabase (conversation_audits) with audited_by = None (Pending)
+                if file_id and settings.SUPABASE_URI:
+                    import psycopg2
+                    from zoneinfo import ZoneInfo
+                    local_date = datetime.now(ZoneInfo("America/Mexico_City")).date()
+                    
+                    conn = psycopg2.connect(settings.SUPABASE_URI)
+                    cursor = conn.cursor()
+                    
+                    # Insert un-audited record
+                    cursor.execute("""
+                        INSERT INTO conversation_audits (
+                            conversation_id, contact_id, contact_name, date,
+                            rating_intent, rating_resolution, rating_formal_tone, rating_no_repetition,
+                            comments, audited_by, audited_at
+                        ) VALUES (%s, %s, %s, %s, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
+                        ON CONFLICT (conversation_id) DO NOTHING;
+                    """, (conversation_id, contact_id, contact_name, local_date))
+                    
+                    conn.commit()
+                    cursor.close()
+                    conn.close()
+                    logger.info(f"✅ Created conversation_audits row for {conversation_id}")
+            except Exception as e:
+                logger.error(f"Error handling conversation closed event: {str(e)}")
+                
+    return {"status": "ok"}
 
 
 # ============================================================

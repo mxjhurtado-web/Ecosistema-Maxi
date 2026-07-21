@@ -38,6 +38,7 @@ def sidebar(current_page: str) -> rx.Component:
     nav_items = [
         ("📊 KPIs & Resumen", "layout-dashboard", "/"),
         ("📜 Historial", "history", "/history"),
+        ("🎯 Calidad", "check-square", "/calidad"),
     ]
     # Admin/Super Admin only options
     admin_nav_items = [
