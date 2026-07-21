@@ -2466,11 +2466,15 @@ async def webhook_events(
         logger.warning("❌ Invalid webhook secret in event webhook")
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
         
-    event = request.get("event") or request.get("type")
+    event = request.get("event") or request.get("type") or request.get("event_type")
     logger.info(f"Received Respond.io event: {event}")
     
     # Check if conversation is closed
-    is_closed_event = event in ["conversation.closed", "conversation.status_changed", "conversation_closed"]
+    event_str = str(event or "").lower()
+    is_closed_event = event_str in [
+        "conversation.closed", "conversation.status_changed", "conversation_closed",
+        "conversation.status_updated", "conversation_status_updated", "closed"
+    ]
     conversation_data = request.get("conversation") or {}
     if not is_closed_event and isinstance(conversation_data, dict):
         status = conversation_data.get("status")
@@ -2482,7 +2486,10 @@ async def webhook_events(
         conversation_id = str(conversation.get("id") or request.get("conversation_id", ""))
         contact = request.get("contact") or {}
         contact_id = str(contact.get("id") or request.get("contact_id", ""))
-        contact_name = str(contact.get("name") or "Cliente")
+        first_name = contact.get("firstName") or ""
+        last_name = contact.get("lastName") or ""
+        full_name = f"{first_name} {last_name}".strip()
+        contact_name = str(contact.get("name") or full_name or "Cliente")
         
         if conversation_id:
             logger.info(f"🔒 Conversation {conversation_id} closed. Triggering Google Drive upload...")
