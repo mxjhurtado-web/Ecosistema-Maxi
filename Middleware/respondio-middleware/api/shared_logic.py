@@ -39,6 +39,126 @@ def resolve_script_text(script_text: str) -> str:
     return script_text
 
 
+async def detect_language(user_text: str) -> str:
+    """
+    Detects the language of the incoming user_text.
+    Returns ISO-639-1 language code (e.g. 'es', 'en', 'fr', etc.) or 'es' if default/ambiguous.
+    Uses quick heuristic first for English/Spanish, then Gemini if ambiguous.
+    """
+    if not user_text or len(user_text.strip()) < 3:
+        return "es"
+
+    import re
+    cleaned = user_text.lower().strip()
+
+    # Common English stopwords/keywords heuristic
+    en_words = {
+        "the", "my", "please", "is", "are", "have", "can", "need", "want", "money", 
+        "status", "send", "sent", "help", "how", "what", "where", "why", "who", "when", 
+        "check", "tracking", "claim", "number", "transfer", "receiver", "sender", "hello",
+        "hi", "good", "morning", "afternoon", "thanks", "thank", "you"
+    }
+    # Common Spanish stopwords/keywords
+    es_words = {
+        "el", "la", "los", "las", "un", "una", "por", "favor", "está", "estan",
+        "tengo", "puedo", "necesito", "quiero", "dinero", "estatus", "enviar", "envié",
+        "ayuda", "cómo", "como", "qué", "que", "dónde", "donde", "cuándo", "cuando",
+        "clave", "rastreo", "remesa", "transferencia", "receptor", "remitente", "hola",
+        "buenos", "días", "gracias"
+    }
+
+    tokens = set(re.findall(r'\b[a-zñáéíóú]+\b', cleaned))
+    en_matches = len(tokens.intersection(en_words))
+    es_matches = len(tokens.intersection(es_words))
+
+    if en_matches > es_matches and en_matches >= 2:
+        logger.info(f"🌐 Fast heuristic detected English ('en') for input: '{user_text[:50]}...'")
+        return "en"
+    if es_matches > en_matches:
+        return "es"
+
+    # If non-trivial text with 3+ words, query Gemini for language detection
+    if len(cleaned.split()) >= 3:
+        try:
+            import httpx
+            from .config import settings
+            api_key = settings.GEMINI_API_KEY
+            if api_key:
+                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
+                prompt = (
+                    "Identify the language of this customer message. "
+                    "Respond ONLY with the 2-letter ISO 639-1 code (e.g., 'es', 'en', 'fr', 'pt'). "
+                    f"Message: \"{user_text[:200]}\""
+                )
+                payload = {
+                    "contents": [{"parts": [{"text": prompt}]}]
+                }
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    resp = await client.post(url, json=payload)
+                    if resp.status_code == 200:
+                        res_json = resp.json()
+                        lang_code = res_json["candidates"][0]["content"]["parts"][0]["text"].strip().lower()
+                        lang_code = re.sub(r'[^a-z]', '', lang_code)[:2]
+                        if lang_code:
+                            logger.info(f"🌐 Gemini detected language: '{lang_code}' for user_text")
+                            return lang_code
+        except Exception as e:
+            logger.warning(f"Error in Gemini language detection: {e}")
+
+    return "es"
+
+
+async def translate_script_if_needed(script_text: str, user_text: str) -> str:
+    """
+    Detects user_text language. If not Spanish ('es'), translates script_text to target language using Gemini.
+    Preserves placeholders, proper names, order numbers, and formal customer service tone.
+    """
+    if not script_text or not user_text:
+        return script_text
+
+    target_lang = await detect_language(user_text)
+    if target_lang == "es":
+        return script_text
+
+    try:
+        import httpx
+        import re
+        from .config import settings
+        api_key = settings.GEMINI_API_KEY
+        if not api_key:
+            logger.warning("Gemini API key not configured, skipping translation")
+            return script_text
+
+        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
+        prompt = (
+            f"You are an expert customer service translator for a money transfer business.\n"
+            f"Translate the following response from Spanish to the ISO language '{target_lang}'.\n\n"
+            f"Strict Rules:\n"
+            f"1. Preserve polite and formal customer service tone (e.g., formal 'You' / 'Sir/Madam').\n"
+            f"2. Keep all transaction codes, order numbers, names, phone numbers, and URLs EXACTLY as they appear.\n"
+            f"3. Return ONLY the translated text without quote marks, preambles, or explanations.\n\n"
+            f"Spanish response to translate:\n{script_text}"
+        )
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}]
+        }
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            resp = await client.post(url, json=payload)
+            if resp.status_code == 200:
+                res_json = resp.json()
+                translated = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+                if translated:
+                    logger.info(f"🌐 Translated script to '{target_lang}' successfully")
+                    return translated
+            else:
+                logger.warning(f"Gemini translation HTTP error status: {resp.status_code}")
+    except Exception as e:
+        logger.error(f"Error translating script to '{target_lang}': {e}")
+
+    return script_text
+
+
+
 def get_db_connection():
     """
     Establishes connection to Supabase database.

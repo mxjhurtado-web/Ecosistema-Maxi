@@ -14,7 +14,7 @@ import logging
 import json
 import os
 from typing import Optional, List, Dict, Any
-from .shared_logic import get_compliance_scripts, resolve_script_text
+from .shared_logic import get_compliance_scripts, resolve_script_text, translate_script_if_needed
 from shared.redis_client import get_redis_client
 
 from .models import (
@@ -574,7 +574,11 @@ async def webhook(
         if needs_disclosure and disclosure_text and mcp_response:
             mcp_response = f"{disclosure_text}\n\n---\n\n{mcp_response}"
             logger.debug("Disclosure prepended to final response")
-        
+
+        # --- AUTO TRANSLATE RESPONSE IF CUSTOMER SPOKE ANOTHER LANGUAGE ---
+        if mcp_response and request.user_text:
+            mcp_response = await translate_script_if_needed(mcp_response, request.user_text)
+
         # Calculate total latency
         total_latency_ms = int((time.time() - start_time) * 1000)
         
@@ -1576,6 +1580,10 @@ async def check_transaction_status_inner(
     if derivacion == "NA":
         reply_text = append_courtesy_sc33(reply_text, contact_name)
 
+    # Auto-translate response if customer wrote in a non-Spanish language
+    if reply_text and user_text:
+        reply_text = await translate_script_if_needed(reply_text, user_text)
+
     return StatusCheckResponse(
         status="success",
         reply_text=reply_text,
@@ -1977,6 +1985,11 @@ async def check_bill_status_inner(
 
     # Prepend safety headers
     safety_header = f"[BILLER: {db_biller}] [NOMBRE DEL CUSTOMER: {db_customer_name}] [STATUS: {status_clean}] "
+    
+    # Auto-translate response if customer wrote in a non-Spanish language
+    if reply_text and user_text:
+        reply_text = await translate_script_if_needed(reply_text, user_text)
+
     reply_text_with_header = safety_header + reply_text
 
     return BillCheckResponse(
@@ -2456,7 +2469,12 @@ async def check_topup_status_inner(
 
     if derivacion == "NA":
         reply_text = append_courtesy_sc33(reply_text, request.contact_name)
-        reply_text_with_header = safety_header + reply_text
+
+    # Auto-translate response if customer wrote in a non-Spanish language
+    if reply_text and user_text:
+        reply_text = await translate_script_if_needed(reply_text, user_text)
+
+    reply_text_with_header = safety_header + reply_text
 
     return TopupCheckResponse(
         status="success",
