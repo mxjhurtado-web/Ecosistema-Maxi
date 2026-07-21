@@ -217,47 +217,76 @@ def kpi_card(title: str, value: str, target: str, unit: str = "%") -> rx.Compone
         style={"padding": "16px", "flex": "1"}
     )
 
-
-def chat_message_bubble(msg: dict) -> rx.Component:
+def chat_message_bubble(msg: rx.Var) -> rx.Component:
     """Renders WhatsApp/Respond.io styled bubble messages with sender label."""
-    sender = msg.get("sender", "client")
-    text = msg.get("message", "")
-    timestamp = msg.get("timestamp", "")
-    agent_name = msg.get("agent_name", "")
+    is_client = msg["sender"] == "client"
+    is_bot = msg["sender"] == "bot_max"
+    is_agent = msg["sender"] == "agent_specialized"
     
-    is_client = sender == "client"
+    # Bubble colors, borders, labels and alignments
+    align = rx.cond(is_client, "start", "end")
     
-    # Bubble colors & alignments
-    align = "start" if is_client else "end"
+    bg = rx.cond(
+        is_client,
+        rx.color_mode_cond("rgba(0, 0, 0, 0.05)", "rgba(255, 255, 255, 0.05)"),
+        rx.cond(
+            is_bot,
+            "rgba(0, 217, 255, 0.08)",
+            rx.cond(
+                is_agent,
+                "rgba(124, 58, 237, 0.08)",
+                "rgba(245, 158, 11, 0.08)"
+            )
+        )
+    )
     
-    if is_client:
-        bg = rx.color_mode_cond("rgba(0, 0, 0, 0.05)", "rgba(255, 255, 255, 0.05)")
-        border = "1px solid rgba(255, 255, 255, 0.05)"
-        badge_text = "👤 Cliente"
-        badge_color = "gray"
-    elif sender == "bot_max":
-        bg = "rgba(0, 217, 255, 0.08)"
-        border = f"1px solid {ACCENT_BLUE}"
-        badge_text = "🤖 Orquestador Max"
-        badge_color = "cyan"
-    elif sender == "agent_specialized":
-        bg = "rgba(124, 58, 237, 0.08)"
-        border = f"1px solid {ACCENT_PURPLE}"
-        name_str = f"🧠 Agente {agent_name}" if agent_name else "🧠 Agente Especialista"
-        badge_text = name_str
-        badge_color = "purple"
-    else: # agent_human
-        bg = "rgba(245, 158, 11, 0.08)"
-        border = "1px solid #F59E0B"
-        name_str = f"👩‍💼 Asesor {agent_name}" if agent_name else "👩‍💼 Asesor Humano"
-        badge_text = name_str
-        badge_color = "orange"
+    border = rx.cond(
+        is_client,
+        "1px solid rgba(255, 255, 255, 0.05)",
+        rx.cond(
+            is_bot,
+            f"1px solid {ACCENT_BLUE}",
+            rx.cond(
+                is_agent,
+                f"1px solid {ACCENT_PURPLE}",
+                "1px solid #F59E0B"
+            )
+        )
+    )
+    
+    badge_text = rx.cond(
+        is_client,
+        "👤 Cliente",
+        rx.cond(
+            is_bot,
+            "🤖 Orquestador Max",
+            rx.cond(
+                is_agent,
+                rx.cond(msg["agent_name"], "🧠 Agente " + msg["agent_name"], "🧠 Agente Especialista"),
+                rx.cond(msg["agent_name"], "👩‍💼 Asesor " + msg["agent_name"], "👩‍💼 Asesor Humano")
+            )
+        )
+    )
+    
+    badge_color = rx.cond(
+        is_client,
+        "gray",
+        rx.cond(
+            is_bot,
+            "cyan",
+            rx.cond(
+                is_agent,
+                "purple",
+                "orange"
+            )
+        )
+    )
 
     return rx.hstack(
         rx.vstack(
             rx.badge(badge_text, color_scheme=badge_color, variant="solid", size="1"),
-            rx.text(text, font_size="13px", color=TEXT_COLOR),
-            rx.text(timestamp, font_size="9px", color=TEXT_MUTED, style={"align_self": "end"}),
+            rx.text(msg["message"], font_size="13px", color=TEXT_COLOR),
+            rx.text(msg["timestamp"], font_size="9px", color=TEXT_MUTED, style={"align_self": "end"}),
             spacing="1",
             align_items="start",
             style={
