@@ -76,8 +76,8 @@ def init_audits_db():
         logger.warning("Supabase URI not configured, skipping audits DB initialization")
         return
     try:
-        import psycopg2
-        conn = psycopg2.connect(settings.SUPABASE_URI)
+        from .shared_logic import get_db_connection
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS conversation_audits (
@@ -995,8 +995,8 @@ async def check_transaction_status_inner(
     # Try PostgreSQL first
     if settings.SUPABASE_URI:
         try:
-            import psycopg2
-            conn = psycopg2.connect(settings.SUPABASE_URI)
+            from .shared_logic import get_db_connection
+            conn = get_db_connection()
             cursor = conn.cursor()
             
             if codigo_envio.startswith("TRK"):
@@ -1701,8 +1701,8 @@ async def check_bill_status_inner(
     record = None
     if settings.SUPABASE_URI:
         try:
-            import psycopg2
-            conn = psycopg2.connect(settings.SUPABASE_URI)
+            from .shared_logic import get_db_connection
+            conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM public."Pago de Bill" WHERE "tracking_number" = %s;', (tracking_number,))
             row = cursor.fetchone()
@@ -2192,8 +2192,8 @@ async def check_topup_status_inner(
     record = None
     if settings.SUPABASE_URI:
         try:
-            import psycopg2
-            conn = psycopg2.connect(settings.SUPABASE_URI)
+            from .shared_logic import get_db_connection
+            conn = get_db_connection()
             cursor = conn.cursor()
             # Double quotes because of column spaces / casing
             cursor.execute('SELECT * FROM public."Recargas" WHERE "Transaction ID" = %s;', (transaction_id,))
@@ -2538,7 +2538,8 @@ async def webhook_events(
                         ia_label = "⚠️ IA Auditor detectó posible desviación" if ia_failed else "🔬 IA Auditor (Muestra de Calibración Humana 5%)"
                         comments = f"[{ia_label}]: {comments}"
                     
-                    conn = psycopg2.connect(settings.SUPABASE_URI)
+                    from .shared_logic import get_db_connection
+                    conn = get_db_connection()
                     cursor = conn.cursor()
                     
                     # Insert audited record

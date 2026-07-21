@@ -37,3 +37,42 @@ def resolve_script_text(script_text: str) -> str:
     if clean in comp_scripts:
         return comp_scripts[clean]
     return script_text
+
+
+def get_db_connection():
+    """Establishes connection to Supabase database forcing IPv4 resolution to prevent 'Network is unreachable' on IPv6 platforms."""
+    from .config import settings
+    import socket
+    import urllib.parse
+    import psycopg2
+    
+    uri = settings.SUPABASE_URI
+    if not uri:
+        raise ValueError("SUPABASE_URI setting is not configured")
+        
+    parsed = urllib.parse.urlparse(uri)
+    hostname = parsed.hostname
+    
+    ip_address = hostname
+    if hostname:
+        try:
+            addr_info = socket.getaddrinfo(hostname, None, socket.AF_INET)
+            if addr_info:
+                ip_address = addr_info[0][4][0]
+                logger.info(f"Resolved Supabase host '{hostname}' to IPv4 '{ip_address}'")
+        except Exception as e:
+            logger.warning(f"Failed to resolve IPv4 for host '{hostname}': {e}. Using raw hostname.")
+            
+    dbname = parsed.path.lstrip('/')
+    user = parsed.username
+    password = parsed.password
+    port = parsed.port or 5432
+    
+    return psycopg2.connect(
+        host=ip_address,
+        database=dbname,
+        user=user,
+        password=password,
+        port=port,
+        sslmode="require"
+    )

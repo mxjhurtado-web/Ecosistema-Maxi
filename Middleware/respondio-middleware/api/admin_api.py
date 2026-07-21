@@ -1751,8 +1751,8 @@ async def get_audits(
     if not settings.SUPABASE_URI:
         return []
     try:
-        import psycopg2
-        conn = psycopg2.connect(settings.SUPABASE_URI)
+        from .shared_logic import get_db_connection
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         query = """
@@ -1839,8 +1839,8 @@ async def update_audit(
     if not settings.SUPABASE_URI:
         raise HTTPException(status_code=500, detail="Database connection not configured")
     try:
-        import psycopg2
-        conn = psycopg2.connect(settings.SUPABASE_URI)
+        from .shared_logic import get_db_connection
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         now = datetime.utcnow()
