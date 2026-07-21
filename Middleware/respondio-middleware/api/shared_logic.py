@@ -60,7 +60,7 @@ def get_db_connection():
     
     # Check if this is a supabase host
     if hostname and "supabase.co" in hostname:
-        project_ref = hostname.split('.')[0]
+        project_ref = hostname.split('.')[1]  # db.PROJECT_REF.supabase.co
         # Supavisor pooler host (AWS us-east-1 is the region for this project)
         pooler_host = "aws-0-us-east-1.pooler.supabase.com"
         # Supavisor user format: [username].[project-ref]
