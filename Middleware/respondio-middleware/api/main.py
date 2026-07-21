@@ -83,8 +83,23 @@ def get_audits_sheet():
     """Return the gspread worksheet for QA audits, creating the tab + headers if needed."""
     try:
         import gspread
-        from .google_drive_service import google_drive_service
-        gc = gspread.authorize(google_drive_service.credentials)
+        import base64, json
+        from google.oauth2 import service_account
+
+        # Load SA credentials the same way google_drive_service does
+        sa_b64 = settings.GOOGLE_CHATS_SA_BASE64 or getattr(settings, "MAXIBOT_SA_BASE64", None)
+        if not sa_b64:
+            logger.error("get_audits_sheet: No SA base64 credentials configured (GOOGLE_CHATS_SA_BASE64)")
+            return None
+
+        sa_info = json.loads(base64.b64decode(sa_b64).decode("utf-8"))
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = service_account.Credentials.from_service_account_info(sa_info, scopes=scopes)
+        gc = gspread.authorize(creds)
+
         sh = gc.open_by_key(AUDITS_SHEET_ID)
         try:
             ws = sh.worksheet(AUDITS_TAB_NAME)
@@ -92,6 +107,7 @@ def get_audits_sheet():
             ws = sh.add_worksheet(title=AUDITS_TAB_NAME, rows=1000, cols=len(AUDITS_HEADERS))
             ws.append_row(AUDITS_HEADERS, value_input_option="RAW")
             logger.info(f"✅ Created sheet tab '{AUDITS_TAB_NAME}' with headers")
+
         # Add headers if sheet is empty
         existing = ws.row_values(1)
         if not existing:
@@ -100,6 +116,7 @@ def get_audits_sheet():
     except Exception as e:
         logger.error(f"Error accessing audits sheet: {e}")
         return None
+
 
 
 async def init_qa_agent_config():
