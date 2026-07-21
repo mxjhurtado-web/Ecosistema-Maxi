@@ -2467,7 +2467,7 @@ async def webhook_events(
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
         
     event = request.get("event") or request.get("type") or request.get("event_type")
-    logger.info(f"Received Respond.io event: {event}")
+    logger.info(f"Received Respond.io event: {event} with payload: {json.dumps(request)}")
     
     # Check if conversation is closed
     event_str = str(event or "").lower()
@@ -2483,13 +2483,26 @@ async def webhook_events(
             
     if is_closed_event:
         conversation = request.get("conversation") or {}
-        conversation_id = str(conversation.get("id") or request.get("conversation_id", ""))
         contact = request.get("contact") or {}
-        contact_id = str(contact.get("id") or request.get("contact_id", ""))
-        first_name = contact.get("firstName") or ""
-        last_name = contact.get("lastName") or ""
+        
+        # Try finding conversation_id with extra fallback keys
+        conversation_id = ""
+        if isinstance(conversation, dict):
+            conversation_id = str(conversation.get("id") or conversation.get("conversationId") or conversation.get("conversation_id") or "")
+        if not conversation_id:
+            conversation_id = str(request.get("conversationId") or request.get("conversation_id") or "")
+            
+        # Try finding contact_id with extra fallback keys
+        contact_id = ""
+        if isinstance(contact, dict):
+            contact_id = str(contact.get("id") or contact.get("contactId") or contact.get("contact_id") or "")
+        if not contact_id:
+            contact_id = str(request.get("contactId") or request.get("contact_id") or "")
+            
+        first_name = contact.get("firstName") or "" if isinstance(contact, dict) else ""
+        last_name = contact.get("lastName") or "" if isinstance(contact, dict) else ""
         full_name = f"{first_name} {last_name}".strip()
-        contact_name = str(contact.get("name") or full_name or "Cliente")
+        contact_name = str(contact.get("name") or full_name or "Cliente") if isinstance(contact, dict) else "Cliente"
         
         if conversation_id:
             logger.info(f"🔒 Conversation {conversation_id} closed. Triggering Google Drive upload...")
