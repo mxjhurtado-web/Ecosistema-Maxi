@@ -162,10 +162,8 @@ async def translate_script_if_needed(script_text: str, user_text: str) -> str:
 def get_db_connection():
     """
     Establishes connection to Supabase database.
-    Priority:
-    1. SUPABASE_POOLER_URI env var (Transaction mode URI from Supabase Dashboard > Settings > Database > Connection Pooling)
-    2. Auto-detect: try multiple Supabase Supavisor pooler regions (IPv4-compatible)
-    3. Fallback: direct connection to SUPABASE_URI (may fail on IPv6-only hosts like Render)
+    Prioritizes SUPABASE_POOLER_URI if set, otherwise tries default pooler and direct host
+    with strict 1.5s timeouts to prevent blocking webhooks.
     """
     from .config import settings
     import urllib.parse
@@ -173,77 +171,57 @@ def get_db_connection():
     import socket
     import os
 
-    # ─── Priority 1: explicit pooler URI set in environment ────────────────────
+    # 1. Explicit pooler URI set in environment
     pooler_uri = os.environ.get("SUPABASE_POOLER_URI", "")
     if pooler_uri:
-        logger.info("🔌 Connecting via SUPABASE_POOLER_URI (explicit pooler)...")
+        logger.info("🔌 Connecting via SUPABASE_POOLER_URI...")
         try:
-            conn = psycopg2.connect(pooler_uri, connect_timeout=8, sslmode="require")
-            logger.info("✅ Connected via SUPABASE_POOLER_URI successfully!")
-            return conn
+            return psycopg2.connect(pooler_uri, connect_timeout=3, sslmode="require")
         except Exception as e:
-            logger.warning(f"⚠️ SUPABASE_POOLER_URI connection failed: {e}. Trying auto-detect...")
+            logger.warning(f"⚠️ SUPABASE_POOLER_URI failed: {e}")
 
-    # ─── Priority 2: auto-detect pooler region ─────────────────────────────────
     uri = settings.SUPABASE_URI
     if not uri:
         raise ValueError("SUPABASE_URI setting is not configured")
 
     parsed = urllib.parse.urlparse(uri)
     hostname = parsed.hostname
+    dbname = parsed.path.lstrip('/')
 
+    # 2. Try default pooler host (us-east-1) with fast timeout
     if hostname and "supabase.co" in hostname:
-        project_ref = hostname.split('.')[1]  # db.PROJECT_REF.supabase.co
+        project_ref = hostname.split('.')[1]
         pooler_user = f"{parsed.username}.{project_ref}"
-        pooler_port = 6543
-        dbname = parsed.path.lstrip('/')
+        pooler_host = "aws-0-us-east-1.pooler.supabase.com"
+        try:
+            return psycopg2.connect(
+                host=pooler_host,
+                database=dbname,
+                user=pooler_user,
+                password=parsed.password,
+                port=6543,
+                sslmode="require",
+                connect_timeout=2
+            )
+        except Exception as pool_err:
+            logger.warning(f"⚠️ Primary pooler connection failed: {pool_err}")
 
-        # Try each AWS region Supabase supports
-        regions = [
-            "us-east-1", "us-east-2", "us-west-1", "us-west-2",
-            "eu-west-1", "eu-west-2", "eu-central-1",
-            "ap-southeast-1", "ap-southeast-2", "ap-northeast-1",
-            "ca-central-1", "sa-east-1"
-        ]
-        for region in regions:
-            pooler_host = f"aws-0-{region}.pooler.supabase.com"
-            logger.info(f"🔌 Trying pooler region {region}: {pooler_host}:{pooler_port} as {pooler_user}...")
-            try:
-                conn = psycopg2.connect(
-                    host=pooler_host,
-                    database=dbname,
-                    user=pooler_user,
-                    password=parsed.password,
-                    port=pooler_port,
-                    sslmode="require",
-                    connect_timeout=4
-                )
-                logger.info(f"✅ Connected via Supabase pooler (region: {region})!")
-                return conn
-            except Exception as region_err:
-                logger.debug(f"  Region {region} failed: {region_err}")
-
-        logger.warning("⚠️ All pooler regions failed. Falling back to direct connection...")
-
-    # ─── Priority 3: direct connection (may fail on IPv6-only Render hosts) ────
+    # 3. Direct connection attempt with fast timeout
     ip_address = hostname
     if hostname:
         try:
             ip_address = socket.gethostbyname(hostname)
-        except Exception as dns_err:
-            logger.warning(f"Failed to resolve host '{hostname}': {dns_err}")
-
-    dbname = parsed.path.lstrip('/')
-    user = parsed.username
-    password = parsed.password
-    port = parsed.port or 5432
+        except Exception:
+            pass
 
     return psycopg2.connect(
         host=ip_address,
         database=dbname,
-        user=user,
-        password=password,
-        port=port,
-        sslmode="require"
+        user=parsed.username,
+        password=parsed.password,
+        port=parsed.port or 5432,
+        sslmode="require",
+        connect_timeout=2
     )
+
 

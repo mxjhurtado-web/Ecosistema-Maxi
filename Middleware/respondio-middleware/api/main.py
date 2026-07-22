@@ -1017,8 +1017,52 @@ async def check_transaction_status_inner(
     record = None
     table_type = None # "remesa" or "bill"
     
-    # Try PostgreSQL first
-    if settings.SUPABASE_URI:
+    # Try Supabase REST API first (fastest, IPv4/IPv6 compatible via HTTPS)
+    try:
+        supabase_url = os.getenv("SUPABASE_URL", "https://tzlomvpugmrpdfatscxe.supabase.co")
+        supabase_anon_key = os.getenv(
+            "SUPABASE_ANON_KEY",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6bG9tdnB1Z21ycGRmYXRzY3hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjI3MjcsImV4cCI6MjA4OTMzODcyN30.aH-p2YbLa8LPlnMVsZMlELsxFWwSSLZMA_LPpRz5DU8"
+        )
+        headers = {
+            "apikey": supabase_anon_key,
+            "Authorization": f"Bearer {supabase_anon_key}",
+            "Content-Type": "application/json"
+        }
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            if codigo_envio.startswith("TRK"):
+                url = f"{supabase_url}/rest/v1/Pago%20de%20Bill"
+                params = {
+                    "tracking_number": f"ilike.{codigo_envio}",
+                    "select": "*",
+                    "limit": "1"
+                }
+                res = await client.get(url, headers=headers, params=params)
+                if res.status_code == 200:
+                    data = res.json()
+                    if data:
+                        record = data[0]
+                        table_type = "bill"
+            else:
+                url = f"{supabase_url}/rest/v1/Base_completa"
+                params = {
+                    "Codigo_de_envio": f"ilike.{codigo_envio}",
+                    "select": "*",
+                    "limit": "1"
+                }
+                res = await client.get(url, headers=headers, params=params)
+                if res.status_code == 200:
+                    data = res.json()
+                    if data:
+                        record = data[0]
+                        table_type = "remesa"
+        if record:
+            logger.info(f"✅ Record found via REST API for code {codigo_envio}")
+    except Exception as rest_err:
+        logger.warning(f"Supabase REST API fast query failed: {rest_err}")
+
+    # Fallback to PostgreSQL if REST API didn't return a record
+    if not record and settings.SUPABASE_URI:
         try:
             from .shared_logic import get_db_connection
             conn = get_db_connection()
@@ -1043,53 +1087,7 @@ async def check_transaction_status_inner(
             conn.close()
             logger.info(f"✅ Record found via PostgreSQL for code {codigo_envio}")
         except Exception as db_err:
-            logger.info(f"PostgreSQL query fallback active: {db_err}. Trying REST API fallback...")
-            record = None
-            
-    # Fallback to Supabase REST API
-    if not record:
-        try:
-            supabase_url = os.getenv("SUPABASE_URL", "https://tzlomvpugmrpdfatscxe.supabase.co")
-            supabase_anon_key = os.getenv(
-                "SUPABASE_ANON_KEY",
-                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6bG9tdnB1Z21ycGRmYXRzY3hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjI3MjcsImV4cCI6MjA4OTMzODcyN30.aH-p2YbLa8LPlnMVsZMlELsxFWwSSLZMA_LPpRz5DU8"
-            )
-            headers = {
-                "apikey": supabase_anon_key,
-                "Authorization": f"Bearer {supabase_anon_key}",
-                "Content-Type": "application/json"
-            }
-            async with httpx.AsyncClient(timeout=10) as client:
-                if codigo_envio.startswith("TRK"):
-                    url = f"{supabase_url}/rest/v1/Pago%20de%20Bill"
-                    params = {
-                        "tracking_number": f"ilike.{codigo_envio}",
-                        "select": "*",
-                        "limit": "1"
-                    }
-                    res = await client.get(url, headers=headers, params=params)
-                    res.raise_for_status()
-                    data = res.json()
-                    if data:
-                        record = data[0]
-                        table_type = "bill"
-                else:
-                    url = f"{supabase_url}/rest/v1/Base_completa"
-                    params = {
-                        "Codigo_de_envio": f"ilike.{codigo_envio}",
-                        "select": "*",
-                        "limit": "1"
-                    }
-                    res = await client.get(url, headers=headers, params=params)
-                    res.raise_for_status()
-                    data = res.json()
-                    if data:
-                        record = data[0]
-                        table_type = "remesa"
-            if record:
-                logger.info(f"✅ Record found via REST API for code {codigo_envio}")
-        except Exception as rest_err:
-            logger.error(f"Supabase REST API query failed: {rest_err}")
+            logger.warning(f"PostgreSQL fallback query failed: {db_err}")
             
     if not record:
         attempts += 1
@@ -1726,9 +1724,37 @@ async def check_bill_status_inner(
         except Exception as e:
             logger.error(f"Error resetting bill attempts: {e}")
 
-    # Query database for the record
-    record = None
-    if settings.SUPABASE_URI:
+    # Try Supabase REST API first (fastest, IPv4/IPv6 compatible via HTTPS)
+    try:
+        supabase_url = os.getenv("SUPABASE_URL", "https://tzlomvpugmrpdfatscxe.supabase.co")
+        supabase_anon_key = os.getenv(
+            "SUPABASE_ANON_KEY",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6bG9tdnB1Z21ycGRmYXRzY3hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjI3MjcsImV4cCI6MjA4OTMzODcyN30.aH-p2YbLa8LPlnMVsZMlELsxFWwSSLZMA_LPpRz5DU8"
+        )
+        headers = {
+            "apikey": supabase_anon_key,
+            "Authorization": f"Bearer {supabase_anon_key}",
+            "Content-Type": "application/json"
+        }
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            url = f"{supabase_url}/rest/v1/Pago%20de%20Bill"
+            params = {
+                "tracking_number": f"ilike.{tracking_number}",
+                "select": "*",
+                "limit": "1"
+            }
+            res = await client.get(url, headers=headers, params=params)
+            if res.status_code == 200:
+                data = res.json()
+                if data:
+                    record = data[0]
+        if record:
+            logger.info(f"✅ Bill record found via REST API for tracking_number {tracking_number}")
+    except Exception as rest_err:
+        logger.warning(f"Supabase REST API bill query failed: {rest_err}")
+
+    # Fallback to PostgreSQL if REST API didn't return a record
+    if not record and settings.SUPABASE_URI:
         try:
             from .shared_logic import get_db_connection
             conn = get_db_connection()
@@ -1742,37 +1768,7 @@ async def check_bill_status_inner(
             conn.close()
             logger.info(f"✅ Bill record found via PostgreSQL for tracking_number {tracking_number}")
         except Exception as db_err:
-            logger.info(f"PostgreSQL query fallback active for bill: {db_err}. Trying REST API fallback...")
-            record = None
-
-    if not record:
-        try:
-            supabase_url = os.getenv("SUPABASE_URL", "https://tzlomvpugmrpdfatscxe.supabase.co")
-            supabase_anon_key = os.getenv(
-                "SUPABASE_ANON_KEY",
-                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6bG9tdnB1Z21ycGRmYXRzY3hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjI3MjcsImV4cCI6MjA4OTMzODcyN30.aH-p2YbLa8LPlnMVsZMlELsxFWwSSLZMA_LPpRz5DU8"
-            )
-            headers = {
-                "apikey": supabase_anon_key,
-                "Authorization": f"Bearer {supabase_anon_key}",
-                "Content-Type": "application/json"
-            }
-            async with httpx.AsyncClient(timeout=10) as client:
-                url = f"{supabase_url}/rest/v1/Pago%20de%20Bill"
-                params = {
-                    "tracking_number": f"ilike.{tracking_number}",
-                    "select": "*",
-                    "limit": "1"
-                }
-                res = await client.get(url, headers=headers, params=params)
-                res.raise_for_status()
-                data = res.json()
-                if data:
-                    record = data[0]
-            if record:
-                logger.info(f"✅ Bill record found via REST API for tracking_number {tracking_number}")
-        except Exception as rest_err:
-            logger.error(f"Supabase REST API bill query failed: {rest_err}")
+            logger.warning(f"PostgreSQL query failed for bill: {db_err}")
 
     # If record not found
     if not record:
@@ -2223,13 +2219,41 @@ async def check_topup_status_inner(
             logger.error(f"Error resetting top-up attempts: {e}")
 
     # Query database for the record
-    record = None
-    if settings.SUPABASE_URI:
+    # Try Supabase REST API first (fastest, IPv4/IPv6 compatible via HTTPS)
+    try:
+        supabase_url = os.getenv("SUPABASE_URL", "https://tzlomvpugmrpdfatscxe.supabase.co")
+        supabase_anon_key = os.getenv(
+            "SUPABASE_ANON_KEY",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6bG9tdnB1Z21ycGRmYXRzY3hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjI3MjcsImV4cCI6MjA4OTMzODcyN30.aH-p2YbLa8LPlnMVsZMlELsxFWwSSLZMA_LPpRz5DU8"
+        )
+        headers = {
+            "apikey": supabase_anon_key,
+            "Authorization": f"Bearer {supabase_anon_key}",
+            "Content-Type": "application/json"
+        }
+        import httpx
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            url = f"{supabase_url}/rest/v1/Recargas"
+            params = {
+                "Transaction ID": f"ilike.{transaction_id}",
+                "select": "*",
+                "limit": "1"
+            }
+            res = await client.get(url, headers=headers, params=params)
+            if res.status_code == 200:
+                data = res.json()
+                if data:
+                    record = data[0]
+                    logger.info(f"✅ Top-up record found via REST API for transaction_id {transaction_id}")
+    except Exception as rest_err:
+        logger.warning(f"Supabase REST API query failed for top-up: {rest_err}")
+
+    # Fallback to PostgreSQL if REST API didn't return a record
+    if not record and settings.SUPABASE_URI:
         try:
             from .shared_logic import get_db_connection
             conn = get_db_connection()
             cursor = conn.cursor()
-            # Double quotes because of column spaces / casing
             cursor.execute('SELECT * FROM public."Recargas" WHERE "Transaction ID" = %s;', (transaction_id,))
             row = cursor.fetchone()
             if row:
@@ -2239,37 +2263,7 @@ async def check_topup_status_inner(
             conn.close()
             logger.info(f"✅ Top-up record found via PostgreSQL for transaction_id {transaction_id}")
         except Exception as db_err:
-            logger.error(f"PostgreSQL query failed for top-up: {db_err}")
-            record = None
-
-    if not record:
-        try:
-            supabase_url = os.getenv("SUPABASE_URL", "https://tzlomvpugmrpdfatscxe.supabase.co")
-            supabase_anon_key = os.getenv(
-                "SUPABASE_ANON_KEY",
-                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6bG9tdnB1Z21ycGRmYXRzY3hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NjI3MjcsImV4cCI6MjA4OTMzODcyN30.aH-p2YbLa8LPlnMVsZMlELsxFWwSSLZMA_LPpRz5DU8"
-            )
-            headers = {
-                "apikey": supabase_anon_key,
-                "Authorization": f"Bearer {supabase_anon_key}",
-                "Content-Type": "application/json"
-            }
-            import httpx
-            async with httpx.AsyncClient(timeout=10) as client:
-                url = f"{supabase_url}/rest/v1/Recargas"
-                params = {
-                    "Transaction ID": f"ilike.{transaction_id}",
-                    "select": "*",
-                    "limit": "1"
-                }
-                res = await client.get(url, headers=headers, params=params)
-                res.raise_for_status()
-                data = res.json()
-                if data:
-                    record = data[0]
-                    logger.info(f"✅ Top-up record found via REST API for transaction_id {transaction_id}")
-        except Exception as rest_err:
-            logger.error(f"Supabase REST API query failed for top-up: {rest_err}")
+            logger.warning(f"PostgreSQL query failed for top-up: {db_err}")
 
     if not record:
         # Not found
