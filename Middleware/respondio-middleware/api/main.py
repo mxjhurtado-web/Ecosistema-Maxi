@@ -223,6 +223,13 @@ async def webhook(
     """
     start_time = time.time()
     trace_id = str(uuid.uuid4())
+    derivacion = "NA"
+    
+    redis = None
+    try:
+        redis = await get_redis_client()
+    except Exception as re_err:
+        logger.warning(f"Redis client connection failed: {re_err}")
     
     # Validate webhook secret
     incoming_secret = x_webhook_secret or x_webhook_secre or secret
@@ -351,7 +358,8 @@ async def webhook(
             status=ResponseStatus.OK,
             reply_text="",
             trace_id=trace_id,
-            latency_ms=0
+            latency_ms=0,
+            derivacion="NA"
         )
 
     # If not global webhook, parse as standard RespondioRequest
@@ -511,7 +519,8 @@ async def webhook(
                                 status=ResponseStatus.OK,
                                 reply_text=mcp_response,
                                 trace_id=trace_id,
-                                latency_ms=total_latency_ms
+                                latency_ms=total_latency_ms,
+                                derivacion="NA"
                             )
                         else:
                             logger.error(f"HadesEngine failed: {hades_report.get('error')}")
@@ -524,6 +533,15 @@ async def webhook(
         greetings = ["hola", "buenos dias", "buenos días", "buenas tardes", "buenas noches", "hello", "hi", "buen dia", "buen día"]
         if text_lower in greetings:
             logger.info("👋 Greeting detected in custom webhook request. Returning CU.A1 welcome script directly.")
+            # Clear state machine variables in Redis
+            if redis:
+                try:
+                    await redis.delete(f"session:state:{request.contact_id}")
+                    await redis.delete(f"session:codigo_envio:{request.contact_id}")
+                    await redis.delete(f"session:perfil:{request.contact_id}")
+                except Exception as clear_err:
+                    logger.warning(f"Failed to clear session state keys: {clear_err}")
+                    
             scripts = get_compliance_scripts()
             mcp_response = scripts.get("CU.A1", "")
             
@@ -556,7 +574,6 @@ async def webhook(
 
             # Structured chat history caching
             try:
-                redis = await get_redis_client()
                 from .chat_history_helper import append_message_to_history
                 await append_message_to_history(redis, request.conversation_id, "bot_max", mcp_response)
             except Exception as hist_err:
@@ -566,8 +583,153 @@ async def webhook(
                 status=ResponseStatus.OK,
                 reply_text=mcp_response,
                 trace_id=trace_id,
-                latency_ms=total_latency_ms
+                latency_ms=total_latency_ms,
+                derivacion="NA"
             )
+
+        # --- DETERMINISTIC CASCADING STATE MACHINE ---
+        state_key = f"session:state:{request.contact_id}"
+        code_key = f"session:codigo_envio:{request.contact_id}"
+        profile_key = f"session:perfil:{request.contact_id}"
+        
+        current_state_bytes = await redis.get(state_key) if redis else None
+        current_state = current_state_bytes.decode('utf-8') if current_state_bytes else None
+        
+        user_text_clean = (request.user_text or "").strip()
+        detected_code = extraer_codigo_router(user_text_clean)
+        
+        # 1. If we detect a tracking code anywhere in the user text, we jump straight to tracking mode
+        if detected_code:
+            logger.info(f"🔍 Tracking code '{detected_code}' detected. Starting status check flow.")
+            if redis:
+                await redis.set(code_key, detected_code, ex=3600)
+                await redis.set(state_key, "AWAITING_PROFILE", ex=3600)
+            
+            scripts = get_compliance_scripts()
+            mcp_response = scripts.get("SC.003", "¿Es usted el remitente o el beneficiario?")
+            derivacion = "NA"
+            
+            # Translate if needed
+            mcp_response = await translate_script_if_needed(mcp_response, request.user_text)
+            total_latency_ms = int((time.time() - start_time) * 1000)
+            
+            # Structured chat history caching
+            try:
+                from .chat_history_helper import append_message_to_history
+                await append_message_to_history(redis, request.conversation_id, "bot_max", mcp_response)
+            except Exception as hist_err:
+                logger.warning(f"Failed to cache tracking start in chat history: {hist_err}")
+
+            return RespondioResponse(
+                status=ResponseStatus.OK,
+                reply_text=mcp_response,
+                trace_id=trace_id,
+                latency_ms=total_latency_ms,
+                derivacion=derivacion
+            )
+            
+        # 2. If we are currently in the AWAITING_PROFILE state
+        elif current_state == "AWAITING_PROFILE":
+            text_lower = user_text_clean.lower()
+            profile = None
+            if "remitente" in text_lower or "sender" in text_lower or "envia" in text_lower:
+                profile = "REMITENTE"
+            elif "beneficiario" in text_lower or "receiver" in text_lower or "recibe" in text_lower or "beneficiary" in text_lower:
+                profile = "BENEFICIARIO"
+                
+            if profile:
+                logger.info(f"👤 Profile identified as {profile} for contact {request.contact_id}")
+                if redis:
+                    await redis.set(profile_key, profile, ex=3600)
+                    await redis.set(state_key, "AWAITING_NAME", ex=3600)
+                
+                scripts = get_compliance_scripts()
+                mcp_response = scripts.get("SC.008", "Para verificar su identidad, por favor indique su nombre completo.")
+                derivacion = "NA"
+            else:
+                scripts = get_compliance_scripts()
+                mcp_response = scripts.get("SC.006", "Por favor, indique si es usted el remitente o el beneficiario para continuar.")
+                derivacion = "NA"
+                
+            mcp_response = await translate_script_if_needed(mcp_response, request.user_text)
+            total_latency_ms = int((time.time() - start_time) * 1000)
+            
+            # Structured chat history caching
+            try:
+                from .chat_history_helper import append_message_to_history
+                await append_message_to_history(redis, request.conversation_id, "bot_max", mcp_response)
+            except Exception as hist_err:
+                logger.warning(f"Failed to cache profile response in chat history: {hist_err}")
+
+            return RespondioResponse(
+                status=ResponseStatus.OK,
+                reply_text=mcp_response,
+                trace_id=trace_id,
+                latency_ms=total_latency_ms,
+                derivacion=derivacion
+            )
+            
+        # 3. If we are currently in the AWAITING_NAME state
+        elif current_state == "AWAITING_NAME":
+            saved_code_bytes = await redis.get(code_key) if redis else None
+            saved_profile_bytes = await redis.get(profile_key) if redis else None
+            
+            saved_code = saved_code_bytes.decode('utf-8') if saved_code_bytes else None
+            saved_profile = saved_profile_bytes.decode('utf-8') if saved_profile_bytes else None
+            
+            if saved_code and saved_profile:
+                logger.info(f"⚡ Executing database status check for code {saved_code}, profile {saved_profile}, name: {user_text_clean}")
+                
+                # Check if it's a Bill check (starts with TRK)
+                if saved_code.startswith("TRK"):
+                    bill_req = BillCheckRequest(
+                        tracking_number=saved_code,
+                        contact_id=request.contact_id,
+                        contact_name=request.contact_name,
+                        user_text=user_text_clean,
+                        nombre_cliente=user_text_clean,
+                        metadata=request.metadata
+                    )
+                    status_resp = await check_bill_status_inner(bill_req, secret=settings.WEBHOOK_SECRET)
+                else:
+                    status_req = StatusCheckRequest(
+                        codigo_envio=saved_code,
+                        perfil=saved_profile,
+                        contact_id=request.contact_id,
+                        contact_name=request.contact_name,
+                        user_text=user_text_clean,
+                        nombre_remitente=user_text_clean if saved_profile == "REMITENTE" else None,
+                        nombre_beneficiario=user_text_clean if saved_profile == "BENEFICIARIO" else None,
+                        metadata=request.metadata
+                    )
+                    status_resp = await check_transaction_status_inner(status_req, secret=settings.WEBHOOK_SECRET)
+                
+                derivacion = status_resp.derivacion
+                
+                # If validation succeeded or it reached max attempts, clear the state
+                if status_resp.validation_success or status_resp.derivacion != "NA":
+                    if redis:
+                        await redis.delete(state_key)
+                        await redis.delete(code_key)
+                        await redis.delete(profile_key)
+                    
+                total_latency_ms = int((time.time() - start_time) * 1000)
+                mcp_response = await translate_script_if_needed(status_resp.reply_text, request.user_text)
+                
+                # Structured chat history caching
+                try:
+                    from .chat_history_helper import append_message_to_history
+                    await append_message_to_history(redis, request.conversation_id, "bot_max", mcp_response)
+                except Exception as hist_err:
+                    logger.warning(f"Failed to cache database status response in chat history: {hist_err}")
+
+                return RespondioResponse(
+                    status=ResponseStatus.OK,
+                    reply_text=mcp_response,
+                    trace_id=trace_id,
+                    latency_ms=total_latency_ms,
+                    derivacion=derivacion
+                )
 
         # Check if an agent is specified in metadata (useful for dashboard testing)
         agent_name = request.metadata.get("agent_name")
@@ -679,11 +841,20 @@ async def webhook(
             logger.warning(f"Failed to append bot message to chat history: {cache_err}")
 
         # Return response
+        # Parse transfer tag for Respond.io human routing if present
+        import re
+        handoff_match = re.search(r"\[TRANSFER:\s*([^\]]+)\]", mcp_response or "")
+        if handoff_match:
+            derivacion = handoff_match.group(1).strip()
+            mcp_response = re.sub(r"\[TRANSFER:\s*[^\]]+\]", "", mcp_response).strip()
+            logger.info(f"🔄 Handoff parsed from response: {derivacion}")
+
         return RespondioResponse(
             status=status,
             reply_text=mcp_response,
             trace_id=trace_id,
-            latency_ms=total_latency_ms
+            latency_ms=total_latency_ms,
+            derivacion=derivacion
         )
     
     except Exception as e:

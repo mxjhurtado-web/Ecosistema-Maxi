@@ -124,6 +124,7 @@ class RespondioResponse(BaseModel):
     reply_text: str = Field(..., description="Texto de respuesta")
     trace_id: str = Field(..., description="ID de trazabilidad")
     latency_ms: int = Field(..., description="Latencia en milisegundos")
+    derivacion: Optional[str] = Field("NA", description="Departamento al que se deriva")
 
     class Config:
         json_schema_extra = {
@@ -131,7 +132,8 @@ class RespondioResponse(BaseModel):
                 "status": "ok",
                 "reply_text": "¡Hola! ¿En qué puedo ayudarte hoy?",
                 "trace_id": "550e8400-e29b-41d4-a716-446655440000",
-                "latency_ms": 1234
+                "latency_ms": 1234,
+                "derivacion": "NA"
             }
         }
 

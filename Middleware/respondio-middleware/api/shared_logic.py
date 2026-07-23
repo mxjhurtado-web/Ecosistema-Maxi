@@ -45,11 +45,20 @@ async def detect_language(user_text: str) -> str:
     Returns ISO-639-1 language code (e.g. 'es', 'en', 'fr', etc.) or 'es' if default/ambiguous.
     Uses quick heuristic first for English/Spanish, then Gemini if ambiguous.
     """
-    if not user_text or len(user_text.strip()) < 3:
+    if not user_text:
+        return "es"
+
+    cleaned = user_text.strip()
+    
+    # CRÍTICO: Si el texto contiene sintaxis de variables o plantillas (Respond.io), default a "es"
+    if "{{" in cleaned or "}}" in cleaned or "$" in cleaned:
+        return "es"
+
+    if len(cleaned) < 3:
         return "es"
 
     import re
-    cleaned = user_text.lower().strip()
+    cleaned_lower = cleaned.lower()
 
     # Common English stopwords/keywords heuristic
     en_words = {
@@ -64,21 +73,22 @@ async def detect_language(user_text: str) -> str:
         "tengo", "puedo", "necesito", "quiero", "dinero", "estatus", "enviar", "envié",
         "ayuda", "cómo", "como", "qué", "que", "dónde", "donde", "cuándo", "cuando",
         "clave", "rastreo", "remesa", "transferencia", "receptor", "remitente", "hola",
-        "buenos", "días", "gracias"
+        "buenos", "días", "gracias", "tardes", "noches"
     }
 
-    tokens = set(re.findall(r'\b[a-zñáéíóú]+\b', cleaned))
+    tokens = set(re.findall(r'\b[a-zñáéíóú]+\b', cleaned_lower))
     en_matches = len(tokens.intersection(en_words))
     es_matches = len(tokens.intersection(es_words))
 
+    # Si hay coincidencias claras de español, retornar "es" de inmediato sin ir al LLM
+    if es_matches > en_matches:
+        return "es"
     if en_matches > es_matches and en_matches >= 2:
         logger.info(f"🌐 Fast heuristic detected English ('en') for input: '{user_text[:50]}...'")
         return "en"
-    if es_matches > en_matches:
-        return "es"
 
     # If non-trivial text with 3+ words, query Gemini for language detection
-    if len(cleaned.split()) >= 3:
+    if len(cleaned_lower.split()) >= 3:
         try:
             import httpx
             from .config import settings
@@ -93,7 +103,7 @@ async def detect_language(user_text: str) -> str:
                 payload = {
                     "contents": [{"parts": [{"text": prompt}]}]
                 }
-                async with httpx.AsyncClient(timeout=3.0) as client:
+                async with httpx.AsyncClient(timeout=2.0) as client:
                     resp = await client.post(url, json=payload)
                     if resp.status_code == 200:
                         res_json = resp.json()
