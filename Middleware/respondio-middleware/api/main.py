@@ -518,6 +518,57 @@ async def webhook(
             except Exception as download_err:
                 logger.error(f"Failed downloading image for Hades: {download_err}")
 
+        # --- INTERCEPT GREETINGS TO RETURN CU.A1 DIRECTLY ---
+        user_msg_text = (request.user_text or "").strip()
+        text_lower = user_msg_text.lower().strip(".,!?¡¿")
+        greetings = ["hola", "buenos dias", "buenos días", "buenas tardes", "buenas noches", "hello", "hi", "buen dia", "buen día"]
+        if text_lower in greetings:
+            logger.info("👋 Greeting detected in custom webhook request. Returning CU.A1 welcome script directly.")
+            scripts = get_compliance_scripts()
+            mcp_response = scripts.get("CU.A1", "")
+            
+            # --- AUTO TRANSLATE RESPONSE IF CUSTOMER SPOKE ANOTHER LANGUAGE ---
+            if mcp_response:
+                mcp_response = await translate_script_if_needed(mcp_response, request.user_text)
+                
+            total_latency_ms = int((time.time() - start_time) * 1000)
+            
+            # Log telemetry
+            try:
+                request_log = RequestLog(
+                    trace_id=trace_id,
+                    timestamp=datetime.utcnow(),
+                    conversation_id=request.conversation_id,
+                    contact_id=request.contact_id,
+                    channel=f"respond_consulta ({request.channel})",
+                    user_text=request.user_text,
+                    mcp_response=mcp_response,
+                    status=ResponseStatus.OK,
+                    latency_ms=total_latency_ms,
+                    mcp_latency_ms=0,
+                    error_message=None,
+                    retry_count=0,
+                    category=determine_request_category(request.user_text, mcp_response)
+                )
+                await telemetry_service.log_request(request_log)
+            except Exception as tel_err:
+                logger.error(f"Failed to log greeting telemetry: {tel_err}")
+
+            # Structured chat history caching
+            try:
+                redis = await get_redis_client()
+                from .chat_history_helper import append_message_to_history
+                await append_message_to_history(redis, request.conversation_id, "bot_max", mcp_response)
+            except Exception as hist_err:
+                logger.warning(f"Failed to cache greeting in chat history: {hist_err}")
+
+            return RespondioResponse(
+                status=ResponseStatus.OK,
+                reply_text=mcp_response,
+                trace_id=trace_id,
+                latency_ms=total_latency_ms
+            )
+
         # Check if an agent is specified in metadata (useful for dashboard testing)
         agent_name = request.metadata.get("agent_name")
         
