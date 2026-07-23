@@ -379,6 +379,21 @@ async def webhook(
         }
     )
 
+    # Retrieve user_text from cache if empty or literal template string
+    user_text_val = (request.user_text or "").strip()
+    if not user_text_val or "{{" in user_text_val or "$" in user_text_val:
+        if redis and request.contact_id:
+            try:
+                cached_bytes = await redis.get(f"contact:session_text:{request.contact_id}")
+                if cached_bytes:
+                    cached_text = cached_bytes.decode('utf-8').strip()
+                    last_msg = cached_text.split("\n")[-1].strip()
+                    if last_msg:
+                        logger.info(f"💾 Retrieved user_text from Redis cache: '{last_msg}'")
+                        request.user_text = last_msg
+            except Exception as cache_err:
+                logger.warning(f"Failed to fetch cached user_text from Redis: {cache_err}")
+
     # --- ENHANCEMENT: Extract Respond.io Attachments if root media is empty ---
     # Usually Respond.io sends message.attachments[].url/mimeType
     if not request.media and request.metadata.get("message", {}).get("attachments"):
