@@ -370,6 +370,17 @@ async def webhook(
         logger.error(f"Failed to parse custom webhook request: {parse_err}")
         raise HTTPException(status_code=422, detail=f"Validation error: {parse_err}")
 
+    # Clean braces from contact_id and conversation_id (e.g. "{{ 495413807 }}" -> "495413807")
+    if request.contact_id:
+        cleaned_id = request.contact_id.replace("{", "").replace("}", "").strip()
+        if not cleaned_id.startswith("$"):
+            request.contact_id = cleaned_id
+            
+    if request.conversation_id:
+        cleaned_conv = request.conversation_id.replace("{", "").replace("}", "").strip()
+        if not cleaned_conv.startswith("$"):
+            request.conversation_id = cleaned_conv
+
     logger.info(
         f"📨 Webhook received",
         extra={
