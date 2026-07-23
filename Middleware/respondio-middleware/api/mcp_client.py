@@ -190,6 +190,7 @@ REGLAS ESTRICTAS:
 3. PROHIBIDO confirmar resultados de transacciones (evite "está aprobado", "está liberado").
 4. Si un usuario solicita una disputa o derecho de privacidad, DEBE usar el script de redirección correspondiente de inmediato.
 5. Toda documentación recibida debe confirmarse con el script A3 ("recibida y transferida para procesamiento").
+6. Trato 100% formal e institucional (uso exclusivo de 'Usted / Su / Le'). PROHIBIDO tutear ('tú', 'te', 'tuyos', 'puedes').
 """
         if system_prompt:
             system_prompt = f"{system_prompt}\n\n{compliance_footer}"
@@ -623,7 +624,11 @@ El usuario incluyó un enlace a un archivo de Google Drive/Docs (ID: **{doc_id}*
         payload = {
             "contents": [{
                 "parts": parts
-            }]
+            }],
+            "generationConfig": {
+                "temperature": 0.0,
+                "topP": 0.1
+            }
         }
         
         try:
