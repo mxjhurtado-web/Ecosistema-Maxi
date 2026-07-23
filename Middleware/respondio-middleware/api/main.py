@@ -213,6 +213,7 @@ async def shutdown_event():
 async def webhook(
     request: Dict[str, Any] = Body(...),
     x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    x_webhook_secre: Optional[str] = Header(None, alias="X-Webhook-Secre"),
     secret: Optional[str] = None
 ):
     """
@@ -224,7 +225,7 @@ async def webhook(
     trace_id = str(uuid.uuid4())
     
     # Validate webhook secret
-    incoming_secret = x_webhook_secret or secret
+    incoming_secret = x_webhook_secret or x_webhook_secre or secret
     if incoming_secret != settings.WEBHOOK_SECRET:
         logger.warning(
             f"❌ Invalid webhook secret",
