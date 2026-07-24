@@ -1147,10 +1147,13 @@ async def check_transaction_status_inner(
         if v is None:
             return None
         v_str = str(v).strip().strip(",").strip()
+        if "{{" in v_str or "}}" in v_str:
+            cleaned = v_str.replace("{", "").replace("}", "").strip()
+            if cleaned.startswith("$"):
+                return None
+            v_str = cleaned
         if (v_str in [",", "%", "", "null", "None"] or 
-            v_str.startswith("$") or 
-            "{{" in v_str or 
-            "}}" in v_str):
+            v_str.startswith("$")):
             return None
         return v_str
 
@@ -1898,10 +1901,13 @@ async def check_bill_status_inner(
         if v is None:
             return None
         v_str = str(v).strip().strip(",").strip()
+        if "{{" in v_str or "}}" in v_str:
+            cleaned = v_str.replace("{", "").replace("}", "").strip()
+            if cleaned.startswith("$"):
+                return None
+            v_str = cleaned
         if (v_str in [",", "%", "", "null", "None"] or 
-            v_str.startswith("$") or 
-            "{{" in v_str or 
-            "}}" in v_str):
+            v_str.startswith("$")):
             return None
         return v_str
 
@@ -2386,10 +2392,13 @@ async def check_topup_status_inner(
         if v is None:
             return None
         v_str = str(v).strip().strip(",").strip()
+        if "{{" in v_str or "}}" in v_str:
+            cleaned = v_str.replace("{", "").replace("}", "").strip()
+            if cleaned.startswith("$"):
+                return None
+            v_str = cleaned
         if (v_str in [",", "%", "", "null", "None"] or 
-            v_str.startswith("$") or 
-            "{{" in v_str or 
-            "}}" in v_str):
+            v_str.startswith("$")):
             return None
         return v_str
 
