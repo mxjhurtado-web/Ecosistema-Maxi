@@ -12,6 +12,43 @@ logger = logging.getLogger(__name__)
 _redis_client: Optional[redis.Redis] = None
 
 
+class MockRedis:
+    def __init__(self):
+        self.store = {}
+        logger.warning("ℹ️ Using Mock In-Memory Redis fallback because local Redis connection is not available.")
+        
+    async def get(self, key):
+        val = self.store.get(key)
+        if val is None:
+            return None
+        if isinstance(val, str):
+            return val.encode('utf-8')
+        return val
+        
+    async def set(self, key, value, ex=None):
+        if isinstance(value, str):
+            self.store[key] = value.encode('utf-8')
+        elif isinstance(value, bytes):
+            self.store[key] = value
+        else:
+            self.store[key] = str(value).encode('utf-8')
+        return True
+        
+    async def delete(self, *keys):
+        for key in keys:
+            self.store.pop(key, None)
+        return True
+        
+    async def setex(self, key, time, value):
+        return await self.set(key, value)
+        
+    async def ping(self):
+        return True
+        
+    async def close(self):
+        pass
+
+
 async def get_redis_client() -> redis.Redis:
     """Get or create Redis client"""
     global _redis_client
@@ -41,9 +78,8 @@ async def get_redis_client() -> redis.Redis:
             logger.info("✅ Redis client established and verified")
             
         except Exception as e:
-            logger.error(f"❌ Redis connection failed: {str(e)}")
-            _redis_client = None
-            raise
+            logger.error(f"❌ Redis connection failed: {str(e)}. Falling back to MockRedis.")
+            _redis_client = MockRedis()
     
     return _redis_client
 

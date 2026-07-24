@@ -31,7 +31,9 @@ from .models import (
     CSATLogRequest,
     CSATLogResponse,
     TopupCheckRequest,
-    TopupCheckResponse
+    TopupCheckResponse,
+    AgentInteractRequest,
+    AgentInteractResponse
 )
 from .config import settings
 from .mcp_client import mcp_client
@@ -716,7 +718,7 @@ async def webhook(
                         nombre_cliente=user_text_clean,
                         metadata=request.metadata
                     )
-                    status_resp = await check_bill_status_inner(bill_req, secret=settings.WEBHOOK_SECRET)
+                    status_resp = await check_bill_status_inner(bill_req, x_webhook_secret=settings.WEBHOOK_SECRET)
                 else:
                     status_req = StatusCheckRequest(
                         codigo_envio=saved_code,
@@ -728,7 +730,7 @@ async def webhook(
                         nombre_beneficiario=user_text_clean if saved_profile == "BENEFICIARIO" else None,
                         metadata=request.metadata
                     )
-                    status_resp = await check_transaction_status_inner(status_req, secret=settings.WEBHOOK_SECRET)
+                    status_resp = await check_transaction_status_inner(status_req, x_webhook_secret=settings.WEBHOOK_SECRET)
                 
                 derivacion = status_resp.derivacion
                 
@@ -3164,6 +3166,530 @@ async def sync_scripts_and_rules():
         return {"status": "success", "message": "All Google Sheet caches cleared. Next request will fetch fresh data from Google Sheets."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to clear cache: {e}")
+
+
+async def run_ocr_on_media(media_url: str) -> Optional[Dict[str, Any]]:
+    import base64
+    try:
+        api_key = settings.GEMINI_API_KEY
+        if not api_key:
+            logger.error("❌ Gemini API Key not found for OCR")
+            return None
+            
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(media_url, timeout=15)
+            if resp.status_code != 200:
+                logger.error(f"❌ Failed to download media from {media_url}: status {resp.status_code}")
+                return None
+            img_bytes = resp.content
+            content_type = resp.headers.get("content-type", "image/png")
+            
+        b64_img = base64.b64encode(img_bytes).decode("utf-8")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+        
+        prompt = (
+            "Determine if this image is a money transfer receipt/ticket or transaction proof. "
+            "If it is, extract the following fields in JSON format:\n"
+            "- is_receipt: boolean (true if it is a transaction ticket/receipt/invoice)\n"
+            "- tracking_code: string (the transaction reference/claim/confirmation code, e.g. CE... or TRK...)\n"
+            "- sender_name: string (the name of the person sending the money)\n"
+            "- beneficiary_name: string (the name of the person receiving the money)\n"
+            "- amount: string (the transaction amount and currency)\n"
+            "Respond ONLY with the JSON object."
+        )
+        
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "inlineData": {
+                            "mimeType": content_type,
+                            "data": b64_img
+                        }
+                    }
+                ]
+            }],
+            "generationConfig": {
+                "responseMimeType": "application/json"
+            }
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(url, json=payload)
+            if resp.status_code == 200:
+                res_json = resp.json()
+                text_out = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+                try:
+                    return json.loads(text_out)
+                except Exception as json_err:
+                    logger.error(f"❌ Failed to parse Gemini OCR response JSON: {json_err}. Raw: {text_out}")
+            else:
+                logger.error(f"❌ Gemini OCR request failed with status: {resp.status_code} - {resp.text}")
+    except Exception as e:
+        logger.error(f"❌ Error during media OCR analysis: {e}")
+    return None
+
+
+@app.post("/api/v1/agent/interact", response_model=AgentInteractResponse)
+async def agent_interact(
+    request: AgentInteractRequest,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
+):
+    incoming_secret = x_webhook_secret or secret
+    if incoming_secret != settings.WEBHOOK_SECRET:
+        logger.warning("❌ Invalid webhook secret in agent interaction")
+        raise HTTPException(status_code=401, detail="Invalid webhook secret")
+
+    contact_id = request.contact_id.replace("{", "").replace("}", "").strip()
+    user_text = request.user_text.strip()
+    agent_name = request.agent_name.strip()
+    media_url = request.media_url
+    
+    logger.info(f"📨 Agent interaction request received for agent: {agent_name}, contact: {contact_id}")
+    
+    redis = await get_redis_client()
+    
+    # Store session text in Redis cache
+    session_text_key = f"contact:session_text:{contact_id}"
+    await redis.set(session_text_key, user_text, ex=3600)
+    
+    # Pre-load scripts
+    scripts = get_compliance_scripts()
+    
+    # Handle global commands or keywords (e.g. human transfer or ending)
+    user_text_lower = user_text.lower()
+    
+    # Detección de Fraude (RNE.50 / SC.030) - Prioridad Absoluta
+    fraud_keywords = ["estafa", "fraude", "engaño", "phishing", "robo", "robado", "extorsión", "sospechosa", "víctima", "scam"]
+    if any(k in user_text_lower for k in fraud_keywords):
+        logger.info(f"🚨 Fraud keyword detected for contact {contact_id}")
+        sc30_text = scripts.get("SC.030", "Su solicitud es de alta prioridad para nosotros. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+        translated = await translate_script_if_needed(sc30_text, user_text)
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated,
+            derivacion="DerivacionFraudes"
+        )
+        
+    # Asesor humano explícito
+    human_keywords = ["asesor", "humano", "persona", "soporte", "hablar con alguien", "agent", "human", "representative"]
+    if any(k in user_text_lower for k in human_keywords):
+        logger.info(f"👤 Explicit human request for contact {contact_id}")
+        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+        translated = await translate_script_if_needed(sc13_text, user_text)
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated,
+            derivacion="Servicio al Cliente"
+        )
+        
+    # Comando Finalizar / Cierre
+    exit_keywords = ["finalizar", "terminar", "adiós", "adios", "bye", "exit", "finish"]
+    if any(k == user_text_lower for k in exit_keywords):
+        logger.info(f"🚪 Exit request for contact {contact_id}")
+        sc36_text = scripts.get("SC.036", "Gracias por comunicarse a Maxitransfers. Le atendió Max. Que tenga un buen día.")
+        translated = await translate_script_if_needed(sc36_text, user_text)
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated,
+            derivacion="cerrar"
+        )
+
+    # State keys
+    state_key = f"session:state:{contact_id}"
+    perfil_key = f"session:perfil:{contact_id}"
+    code_key = f"session:codigo_envio:{contact_id}"
+    name_key = f"session:nombre_usuario:{contact_id}"
+    attempts_key = f"session:attempts:{contact_id}"
+    
+    current_state = await redis.get(state_key)
+    current_state = current_state.decode('utf-8') if current_state else "NEW"
+    
+    # ------------------------------------------------------------
+    # 1. SPECIALIZED AGENT: CancelacionMoneyOrder
+    # ------------------------------------------------------------
+    if agent_name == "CancelacionMoneyOrder":
+        m_code = await redis.get(f"session:mo:code:{contact_id}")
+        m_amount = await redis.get(f"session:mo:amount:{contact_id}")
+        m_reason = await redis.get(f"session:mo:reason:{contact_id}")
+        
+        m_code = m_code.decode('utf-8') if m_code else None
+        m_amount = m_amount.decode('utf-8') if m_amount else None
+        m_reason = m_reason.decode('utf-8') if m_reason else None
+        
+        if not m_code:
+            # Check if user provided code in text
+            mo_code = extraer_codigo_router(user_text)
+            if mo_code:
+                await redis.set(f"session:mo:code:{contact_id}", mo_code, ex=3600)
+                reply = "Gracias. Por favor indique el monto en dólares exacto de su Money Order:"
+                translated = await translate_script_if_needed(reply, user_text)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+            else:
+                reply = "Por favor proporcione el número de serie o folio de su Money Order para comenzar:"
+                translated = await translate_script_if_needed(reply, user_text)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+        elif not m_amount:
+            await redis.set(f"session:mo:amount:{contact_id}", user_text, ex=3600)
+            reply = "Gracias. ¿Cuál es el motivo de la cancelación de su Money Order?"
+            translated = await translate_script_if_needed(reply, user_text)
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+        else:
+            await redis.set(f"session:mo:reason:{contact_id}", user_text, ex=3600)
+            # Fetch transfer script
+            sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+            translated = await translate_script_if_needed(sc13_text, user_text)
+            # Clear money order session keys
+            await redis.delete(f"session:mo:code:{contact_id}")
+            await redis.delete(f"session:mo:amount:{contact_id}")
+            await redis.delete(f"session:mo:reason:{contact_id}")
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+
+    # ------------------------------------------------------------
+    # 2. SPECIALIZED AGENTS: CancelacionEnvio / ModificacionDatos
+    # ------------------------------------------------------------
+    if agent_name in ["CancelacionEnvio", "ModificacionDatos"]:
+        logger.info(f"🚫 Channel exclusion applied for {agent_name}")
+        sc31_text = scripts.get("SC.031", "Por razones de seguridad transaccional, no es posible realizar modificaciones o cancelaciones a través de este canal de mensajería.")
+        translated = await translate_script_if_needed(sc31_text, user_text)
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated,
+            derivacion="cerrar"
+        )
+
+    # ------------------------------------------------------------
+    # 2b. SPECIALIZED AGENT: CancelacionBillRecargas
+    # ------------------------------------------------------------
+    if agent_name == "CancelacionBillRecargas":
+        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+        translated = await translate_script_if_needed(sc13_text, user_text)
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated,
+            derivacion="Servicio al Cliente"
+        )
+
+    # ------------------------------------------------------------
+    # 2c. SPECIALIZED AGENTS: CoordinacionPago / AgenteComunicador / Derivaciones
+    # ------------------------------------------------------------
+    if agent_name in ["CoordinacionPago", "AgenteComunicador", "DerivacionFraudes", "DerivacionBSA"]:
+        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+        translated = await translate_script_if_needed(sc13_text, user_text)
+        team = "Servicio al Cliente"
+        if agent_name == "DerivacionFraudes":
+            team = "DerivacionFraudes"
+        elif agent_name == "DerivacionBSA":
+            team = "DerivacionBSA"
+        elif agent_name == "AgenteComunicador":
+            team = "AgenteComunicador"
+            
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated,
+            derivacion=team
+        )
+
+    # ------------------------------------------------------------
+    # 3. SPECIALIZED AGENT: HistorialEnvios
+    # ------------------------------------------------------------
+    if agent_name == "HistorialEnvios":
+        # Returns the last 3 transactions for the contact phone from Supabase
+        phone_clean = re.sub(r'[^0-9]', '', contact_id)
+        logger.info(f"📜 Querying history for phone clean: {phone_clean}")
+        records = []
+        try:
+            from .shared_logic import get_db_connection
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                'SELECT "Fecha", "Monto_enviado", "Beneficiario_Nombre", "status" FROM "Base_completa" WHERE "Telefono_Remitente" = %s OR "Telefono_Beneficiario" = %s ORDER BY "Fecha" DESC LIMIT 3;',
+                (phone_clean, phone_clean)
+            )
+            rows = cursor.fetchall()
+            for r in rows:
+                records.append({
+                    "fecha": str(r[0]),
+                    "monto": str(r[1]),
+                    "beneficiario": str(r[2]),
+                    "status": str(r[3])
+                })
+            cursor.close()
+            conn.close()
+        except Exception as db_err:
+            logger.error(f"Error querying transaction history: {db_err}")
+            
+        if records:
+            history_text = "Aquí tiene sus últimos 3 movimientos:\n"
+            for idx, item in enumerate(records):
+                history_text += f"{idx+1}. Fecha: {item['fecha']} | Monto: {item['monto']} | Destinatario: {item['beneficiario']} | Estatus: {item['status']}\n"
+            translated = await translate_script_if_needed(history_text, user_text)
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+        else:
+            reply = "No he podido localizar historial de transacciones registrado para su número de contacto."
+            translated = await translate_script_if_needed(reply, user_text)
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+
+    # ------------------------------------------------------------
+    # 4. SPECIALIZED AGENT: AgenteCSAT
+    # ------------------------------------------------------------
+    if agent_name == "AgenteCSAT":
+        csat_step_key = f"session:csat:step:{contact_id}"
+        csat_step = await redis.get(csat_step_key)
+        csat_step = csat_step.decode('utf-8') if csat_step else "1"
+        
+        if csat_step == "1":
+            # Expecting rating (1-5)
+            rating_match = re.search(r'\b([1-5])\b', user_text)
+            if rating_match:
+                rating = int(rating_match.group(1))
+                await redis.set(f"session:csat:rating:{contact_id}", str(rating), ex=3600)
+                await redis.set(csat_step_key, "2", ex=3600)
+                sc35_text = scripts.get("SC.035", "Su opinión es muy valiosa. Por favor comparta cualquier comentario sobre cómo podemos mejorar.")
+                translated = await translate_script_if_needed(sc35_text, user_text)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+            else:
+                sc34_text = scripts.get("SC.034", "Por favor califique nuestro servicio del 1 al 5.")
+                translated = await translate_script_if_needed(sc34_text, user_text)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+        else:
+            # CSAT feedback complete, save it
+            rating = await redis.get(f"session:csat:rating:{contact_id}")
+            rating_val = int(rating.decode('utf-8')) if rating else 5
+            # Clear CSAT session keys
+            await redis.delete(csat_step_key)
+            await redis.delete(f"session:csat:rating:{contact_id}")
+            
+            sc36_text = scripts.get("SC.036", "Gracias por comunicarse a Maxitransfers. Le atendió Max. Que tenga un buen día.")
+            translated = await translate_script_if_needed(sc36_text, user_text)
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion="cerrar")
+
+    # ------------------------------------------------------------
+    # 5. SPECIALIZED AGENT: VerificadorPagoBill
+    # ------------------------------------------------------------
+    if agent_name == "VerificadorPagoBill":
+        bill_code = extraer_codigo_router(user_text)
+        if not bill_code:
+            cached_code = await redis.get(code_key)
+            bill_code = cached_code.decode('utf-8') if cached_code else None
+            
+        if bill_code and bill_code.upper().startswith("TRK"):
+            # Call bill status check logic
+            req = BillCheckRequest(
+                contact_id=contact_id,
+                user_text=f"{user_text} {bill_code}",
+                tracking_number=bill_code
+            )
+            try:
+                resp = await check_bill_status_inner(req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                return AgentInteractResponse(
+                    status="success",
+                    reply_text=resp.reply_text,
+                    derivacion=resp.derivacion
+                )
+            except Exception as e:
+                logger.error(f"Error querying bill status: {e}")
+                sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+                translated = await translate_script_if_needed(sc13_text, user_text)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+        else:
+            reply = "Por favor proporcione el número de rastreo (Tracking Number) de su pago de bill/servicio (debe iniciar con TRK):"
+            translated = await translate_script_if_needed(reply, user_text)
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+
+    # ------------------------------------------------------------
+    # 6. CORE AGENTS: Max, VerificadorEstatus, OrquestadorDocumentos (Rastreo de Remesas)
+    # ------------------------------------------------------------
+    
+    # Check if a greeting is sent (resets session)
+    greetings = ["hola", "buenos dias", "buenos días", "buenas tardes", "buenas noches", "hello", "hi", "buen dia", "buen día"]
+    user_text_clean = re.sub(r'[^a-zñáéíóú\s]', '', user_text_lower).strip()
+    if user_text_clean in greetings or current_state == "NEW":
+        logger.info(f"🧹 Clearing Redis tracking state for contact {contact_id} due to greeting")
+        await redis.delete(state_key)
+        await redis.delete(perfil_key)
+        await redis.delete(code_key)
+        await redis.delete(name_key)
+        await redis.delete(attempts_key)
+        await redis.delete(f"session:ocr_sender:{contact_id}")
+        await redis.delete(f"session:ocr_beneficiary:{contact_id}")
+        await redis.delete(f"session:csat:step:{contact_id}")
+        
+        cuA1_text = scripts.get("CU.A1", "Gracias por comunicarse a Maxitransfers. Soy Max...")
+        translated = await translate_script_if_needed(cuA1_text, user_text)
+        await redis.set(state_key, "WAITING_FOR_PROFILE", ex=3600)
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated,
+            derivacion="NA"
+        )
+
+    # Retrieve current variables
+    perfil = await redis.get(perfil_key)
+    perfil = perfil.decode('utf-8') if perfil else None
+    
+    codigo_envio = await redis.get(code_key)
+    codigo_envio = codigo_envio.decode('utf-8') if codigo_envio else None
+    
+    nombre_usuario = await redis.get(name_key)
+    nombre_usuario = nombre_usuario.decode('utf-8') if nombre_usuario else None
+
+    # OCR analysis from media_url if present
+    ocr_result = None
+    if media_url:
+        logger.info(f"📸 Running OCR on media: {media_url}")
+        ocr_result = await run_ocr_on_media(media_url)
+        if ocr_result and ocr_result.get("is_receipt") and ocr_result.get("tracking_code"):
+            codigo_envio = ocr_result["tracking_code"].strip().upper()
+            await redis.set(code_key, codigo_envio, ex=3600)
+            logger.info(f"🎯 OCR Extracted Claim Code: {codigo_envio}")
+            if ocr_result.get("sender_name"):
+                await redis.set(f"session:ocr_sender:{contact_id}", ocr_result["sender_name"], ex=3600)
+            if ocr_result.get("beneficiary_name"):
+                await redis.set(f"session:ocr_beneficiary:{contact_id}", ocr_result["beneficiary_name"], ex=3600)
+
+    # Check for code in text if not resolved
+    if not codigo_envio:
+        codigo_envio = extraer_codigo_router(user_text)
+        if codigo_envio:
+            await redis.set(code_key, codigo_envio, ex=3600)
+            logger.info(f"🎯 Text Extracted Claim Code: {codigo_envio}")
+
+    # State Transitions
+    if current_state == "WAITING_FOR_PROFILE":
+        user_p_lower = user_text_lower.strip(".,!?")
+        if "remitente" in user_p_lower or "sender" in user_p_lower:
+            perfil = "REMITENTE"
+        elif any(k in user_p_lower for k in ["beneficiario", "receptor", "recipient", "receiver"]):
+            perfil = "BENEFICIARIO"
+        elif "agente" in user_p_lower or "agent" in user_p_lower:
+            perfil = "AGENTE"
+            
+        if perfil:
+            await redis.set(perfil_key, perfil, ex=3600)
+            await redis.set(attempts_key, "0", ex=3600)
+            
+            if not codigo_envio:
+                sc8_text = scripts.get("SC.008", "Por favor comparta el ticket o escriba el código de envío:")
+                translated = await translate_script_if_needed(sc8_text, user_text)
+                await redis.set(state_key, "WAITING_FOR_CODE", ex=3600)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+            else:
+                sc10_text = scripts.get("SC.010", "Por favor proporcione su nombre completo:")
+                translated = await translate_script_if_needed(sc10_text, user_text)
+                await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+        else:
+            # Unrecognized profile input
+            attempts_val = await redis.get(attempts_key)
+            attempts = int(attempts_val.decode('utf-8')) if attempts_val else 0
+            attempts += 1
+            if attempts >= 2:
+                sc2_text = scripts.get("SC.002", "Lo transferiré con uno de nuestros asesores...")
+                translated = await translate_script_if_needed(sc2_text, user_text)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+            else:
+                await redis.set(attempts_key, str(attempts), ex=3600)
+                sc3_text = scripts.get("SC.003", "¿Es usted remitente, beneficiario o agente?")
+                translated = await translate_script_if_needed(sc3_text, user_text)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+
+    elif current_state == "WAITING_FOR_CODE":
+        if codigo_envio:
+            await redis.set(attempts_key, "0", ex=3600)
+            sc10_text = scripts.get("SC.010", "Por favor proporcione su nombre completo:")
+            translated = await translate_script_if_needed(sc10_text, user_text)
+            await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+        else:
+            attempts_val = await redis.get(attempts_key)
+            attempts = int(attempts_val.decode('utf-8')) if attempts_val else 0
+            attempts += 1
+            if attempts >= 2:
+                sc2_text = scripts.get("SC.002", "Lo transferiré con uno de nuestros asesores...")
+                translated = await translate_script_if_needed(sc2_text, user_text)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+            else:
+                await redis.set(attempts_key, str(attempts), ex=3600)
+                sc9_text = scripts.get("SC.009", "No he podido detectar la clave. Por favor compártala de nuevo.")
+                translated = await translate_script_if_needed(sc9_text, user_text)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+
+    elif current_state == "WAITING_FOR_NAME":
+        nombre_usuario = user_text
+        await redis.set(name_key, nombre_usuario, ex=3600)
+        
+        # We now have: code, profile, and name. Proceed with atomic check!
+        logger.info(f"⚡ All variables collected. Running atomic DB query for code: {codigo_envio}")
+        
+        # Prepare params
+        nombre_rem = nombre_usuario if perfil == "REMITENTE" else None
+        nombre_ben = nombre_usuario if perfil == "BENEFICIARIO" else None
+        
+        # In case OCR extracted names, we can override or fall back if needed
+        ocr_sender = await redis.get(f"session:ocr_sender:{contact_id}")
+        ocr_ben = await redis.get(f"session:ocr_beneficiary:{contact_id}")
+        
+        status_req = StatusCheckRequest(
+            contact_id=contact_id,
+            user_text=f"{user_text} {codigo_envio}",
+            nombre_remitente=nombre_rem or (ocr_sender.decode('utf-8') if ocr_sender else None),
+            nombre_beneficiario=nombre_ben or (ocr_ben.decode('utf-8') if ocr_ben else None),
+            codigo_envio=codigo_envio,
+            perfil=perfil
+        )
+        
+        try:
+            status_resp = await check_transaction_status_inner(status_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+            
+            if status_resp.validation_success:
+                # Flow succeeded, change state to CSAT/Completed
+                # According to design, we offer SC.033 (help additional)
+                await redis.set(state_key, "COMPLETED", ex=3600)
+                # Clear name/code keys
+                await redis.delete(perfil_key)
+                await redis.delete(code_key)
+                await redis.delete(name_key)
+                
+            return AgentInteractResponse(
+                status="success",
+                reply_text=status_resp.reply_text,
+                derivacion=status_resp.derivacion
+            )
+        except Exception as e:
+            logger.error(f"Error in atomic transaction check: {e}")
+            sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+            translated = await translate_script_if_needed(sc13_text, user_text)
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+
+    elif current_state == "COMPLETED":
+        # Check if they said NO/NO MORE HELP to trigger CSAT
+        negatives = ["no", "nada mas", "nada más", "no gracias", "no, gracias", "no thank you", "no thanks", "no, thank you"]
+        if user_text_lower.strip(".,!?") in negatives:
+            # Trigger CSAT Survey
+            await redis.set(state_key, "CSAT", ex=3600)
+            sccsat_key = f"session:csat:step:{contact_id}"
+            await redis.set(sccsat_key, "1", ex=3600)
+            
+            sc34_text = scripts.get("SC.034", "Por favor califique nuestro servicio del 1 al 5.")
+            translated = await translate_script_if_needed(sc34_text, user_text)
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+        else:
+            # Re-route as a new intent back to Max or start again
+            # Reset state and re-process as a greeting/new request
+            await redis.delete(state_key)
+            return await agent_interact(request, x_webhook_secret, secret)
+
+    # Fallback to welcome CU.A1
+    cuA1_text = scripts.get("CU.A1", "Gracias por comunicarse a Maxitransfers...")
+    translated = await translate_script_if_needed(cuA1_text, user_text)
+    return AgentInteractResponse(
+        status="success",
+        reply_text=translated,
+        derivacion="NA"
+    )
 
 
 # ============================================================

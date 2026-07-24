@@ -407,4 +407,23 @@ class TopupCheckResponse(BaseModel):
     client_profile: Optional[str] = Field(None, description="Perfil final determinado para el usuario")
 
 
+class AgentInteractRequest(BaseModel):
+    """Request structure for the unified cascade agent assistant"""
+    agent_name: str = Field(..., description="Nombre del agente en cascada (ej. Max, VerificadorEstatus)")
+    contact_id: str = Field(..., description="ID del contacto en Respond.io")
+    conversation_id: Optional[str] = Field(None, description="ID de la conversación en Respond.io")
+    user_text: str = Field(..., description="Mensaje del usuario")
+    media_url: Optional[str] = Field(None, description="URL de imagen u otro archivo multimedia adjunto")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Metadata adicional")
+
+
+class AgentInteractResponse(BaseModel):
+    """Response structure for the unified cascade agent assistant"""
+    status: str = Field(..., description="Estado de la respuesta ('success' o 'error')")
+    reply_text: str = Field(..., description="Texto final para responder verbatim al usuario")
+    derivacion: str = Field(..., description="Nombre de agente o equipo al cual derivar, o 'NA'")
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Metadata o variables adicionales del estado")
+
+
+
 
