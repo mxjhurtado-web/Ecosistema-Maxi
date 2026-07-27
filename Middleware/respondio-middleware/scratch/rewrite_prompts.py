@@ -222,9 +222,9 @@ Eres el Agente Especialista en Cancelación de Bill y Recargas de Maxitransfers.
     ```json
     {{
       "agent_name": "{current_agent}",
-      "contact_id": "{{{{contact.id}}}}",
-      "user_text": "{{{{message.message}}}}",
-      "media_url": "{{{{message.fileUrl}}}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }}
     ```
 """

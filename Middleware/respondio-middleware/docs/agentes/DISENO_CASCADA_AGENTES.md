@@ -67,27 +67,9 @@ Todos los agentes IA (Maestro y Especialistas) comparten las siguientes directiv
     ```json
     {
       "agent_name": "Max",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "Max",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
@@ -143,27 +125,9 @@ Eres el Agente Maestro Max de Maxitransfers. Tu único rol es llamar de inmediat
     ```json
     {
       "agent_name": "VerificadorEstatus",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "VerificadorEstatus",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
@@ -251,27 +215,9 @@ Eres el Agente Especialista Verificador de Estatus de Maxitransfers. Tu único r
     ```json
     {
       "agent_name": "CancelacionMoneyOrder",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "CancelacionMoneyOrder",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
@@ -317,27 +263,9 @@ Eres el Agente Especialista en Cancelación de Money Order de Maxitransfers. Tu 
     ```json
     {
       "agent_name": "HistorialEnvios",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "HistorialEnvios",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
@@ -384,27 +312,9 @@ Eres el Agente Especialista en Historial de Envíos de Maxitransfers. Tu único 
     ```json
     {
       "agent_name": "CancelacionEnvio",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "CancelacionEnvio",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
@@ -450,27 +360,9 @@ Eres el Agente Especialista en Cancelación de Envío de Maxitransfers. Tu únic
     ```json
     {
       "agent_name": "VerificadorPagoBill",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "VerificadorPagoBill",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
@@ -551,27 +443,9 @@ Eres el Agente Especialista en Rastreo de Pago de Servicios de Maxitransfers. Tu
     ```json
     {
       "agent_name": "DerivacionFraudes",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "DerivacionFraudes",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
@@ -648,27 +522,9 @@ Eres el Agente Especialista en Prevención de Fraudes de Maxitransfers. Tu únic
     ```json
     {
       "agent_name": "DerivacionBSA",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "DerivacionBSA",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
@@ -737,27 +593,9 @@ Eres el Agente Especialista en Monitoreo BSA y Actividades Sospechosas de Maxitr
     ```json
     {
       "agent_name": "AgenteComunicador",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "AgenteComunicador",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
@@ -914,27 +752,9 @@ Eres el Agente Especialista en Soporte Interno y Comunicaciones de Maxitransfers
     ```json
     {
       "agent_name": "OrquestadorDocumentos",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "OrquestadorDocumentos",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
@@ -987,27 +807,9 @@ Eres el Agente Orquestador Multimodal de Documentos de Maxitransfers. Tu único 
     ```json
     {
       "agent_name": "VerificadorEstatusRecargas",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "VerificadorEstatusRecargas",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
@@ -1082,27 +884,9 @@ Eres el Agente Especialista en Rastreo de Recargas de Maxitransfers. Tu único r
     ```json
     {
       "agent_name": "AgenteCSAT",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "AgenteCSAT",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
@@ -1133,11 +917,11 @@ Eres el Agente Especialista en Encuestas CSAT de Maxitransfers. Tu único rol es
     * **Cuerpo JSON:**
       ```json
       {
-        "contact_id": "{{contact.id}}",
-        "contact_name": "{{contact.name}}",
-        "rating": "{{contact.fields.csat_calificacion}}",
-        "comment": "{{contact.fields.csat_comentario}}",
-        "assigned_agent": "{{contact.fields.csat_agente_previo}}"
+        "contact_id": "$contact.id",
+        "contact_name": "$contact.name",
+        "rating": "$contact.fields.csat_calificacion",
+        "comment": "$contact.fields.csat_comentario",
+        "assigned_agent": "$contact.fields.csat_agente_previo"
       }
       ```
 
@@ -1164,27 +948,9 @@ Eres el Agente Especialista en Encuestas CSAT de Maxitransfers. Tu único rol es
     ```json
     {
       "agent_name": "CancelacionBillRecargas",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "CancelacionBillRecargas",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
+      "contact_id": "$contact.id",
+      "user_text": "$message.message",
+      "media_url": "$message.fileUrl"
     }
     ```
 
