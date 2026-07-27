@@ -313,6 +313,7 @@ async def webhook(
                 new_text = f"{existing_text}\n{user_msg_text}".strip()
                 await redis.set(session_text_key, new_text, ex=7200)  # 2 hours TTL
                 logger.info(f"💾 [GLOBAL CACHE] Saved session text for contact {contact_id}: {user_msg_text}")
+                await redis.set(f"contact:last_msg:{contact_id}", user_msg_text.strip(), ex=3600)
                 
                 # Cache mappings for self-healing contact_id fallback
                 text_hash = f"text_to_contact:{user_msg_text.strip().lower()}"
@@ -3382,6 +3383,20 @@ async def agent_interact(
                 contact_id = last_active.decode('utf-8')
                 logger.info(f"🔮 Self-healed contact_id from global last active cache: {contact_id}")
             
+    # Self-healing fallback for unresolved user_text placeholders (e.g. $message.message)
+    user_text_lower_temp = user_text.lower().strip()
+    if (
+        not user_text or
+        "$" in user_text_lower_temp or
+        "{" in user_text_lower_temp or
+        "message" in user_text_lower_temp or
+        "text" in user_text_lower_temp
+    ):
+        cached_last_msg = await redis.get(f"contact:last_msg:{contact_id}")
+        if cached_last_msg:
+            user_text = cached_last_msg.decode('utf-8').strip()
+            logger.info(f"🔮 Self-healed user_text placeholder to actual message from cache: '{user_text}'")
+
     logger.info(f"📨 Agent interaction request received for agent: {agent_name}, contact: {contact_id}, user_text: '{user_text}', media_url: {media_url}")
     
     # Store session text in Redis cache
@@ -3831,7 +3846,7 @@ async def agent_interact(
                 translated = await translate_script_if_needed(sc2_text, user_text)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
             else:
-                await redis.set(attempts_key, "0", ex=3600)  # Reset attempts when presenting menu
+                await redis.set(attempts_key, str(attempts), ex=3600)
                 sc3_text = scripts.get("SC.003", "¿Es usted remitente, beneficiario o agente?")
                 translated = await translate_script_if_needed(sc3_text, user_text)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
