@@ -3382,7 +3382,7 @@ async def agent_interact(
                 contact_id = last_active.decode('utf-8')
                 logger.info(f"🔮 Self-healed contact_id from global last active cache: {contact_id}")
             
-    logger.info(f"📨 Agent interaction request received for agent: {agent_name}, contact: {contact_id}, media_url: {media_url}")
+    logger.info(f"📨 Agent interaction request received for agent: {agent_name}, contact: {contact_id}, user_text: '{user_text}', media_url: {media_url}")
     
     # Store session text in Redis cache
     session_text_key = f"contact:session_text:{contact_id}"
