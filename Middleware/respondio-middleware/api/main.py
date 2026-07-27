@@ -1430,15 +1430,17 @@ async def check_transaction_status_inner(
         db_beneficiary = re.sub(r'\s+', ' ', db_beneficiary)
         
         if user_sender or user_beneficiary:
-            sender_ok = True
-            beneficiary_ok = True
-            
-            if user_sender:
-                sender_ok = match_names(user_sender, db_sender)
-            if user_beneficiary:
-                beneficiary_ok = match_names(user_beneficiary, db_beneficiary)
+            logger.info(f"🔍 Validating identity: perfil={perfil}, user_sender={user_sender}, user_beneficiary={user_beneficiary}")
+            if perfil == "REMITENTE":
+                valid_identity = match_names(user_sender, db_sender) if user_sender else False
+            elif perfil == "BENEFICIARIO":
+                valid_identity = match_names(user_beneficiary, db_beneficiary) if user_beneficiary else False
+            else: # CLIENTE or None
+                match_sender = match_names(user_sender, db_sender) if user_sender else False
+                match_ben = match_names(user_beneficiary, db_beneficiary) if user_beneficiary else False
+                valid_identity = match_sender or match_ben
                 
-            if not sender_ok or not beneficiary_ok:
+            if not valid_identity:
                 name_attempts_key = f"name_attempts:{contact_id}"
                 name_attempts = 0
                 if redis:
@@ -3231,6 +3233,31 @@ async def run_ocr_on_media(media_url: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+async def clear_redis_session(redis, contact_id: str):
+    logger.info(f"🧹 Clearing Redis session variables for contact {contact_id}")
+    keys = [
+        f"session:state:{contact_id}",
+        f"session:perfil:{contact_id}",
+        f"session:codigo_envio:{contact_id}",
+        f"session:nombre_usuario:{contact_id}",
+        f"session:attempts:{contact_id}",
+        f"session:ocr_sender:{contact_id}",
+        f"session:ocr_beneficiary:{contact_id}",
+        f"session:csat:step:{contact_id}",
+        f"session:csat:rating:{contact_id}",
+        f"session:status:attempts:{contact_id}",
+        f"name_attempts:{contact_id}",
+        f"session:mo:code:{contact_id}",
+        f"session:mo:amount:{contact_id}",
+        f"session:mo:reason:{contact_id}",
+    ]
+    for k in keys:
+        try:
+            await redis.delete(k)
+        except Exception as e:
+            logger.error(f"Error deleting Redis key {k}: {e}")
+
+
 @app.post("/api/v1/agent/interact", response_model=AgentInteractResponse)
 async def agent_interact(
     request: AgentInteractRequest,
@@ -3467,6 +3494,76 @@ async def agent_interact(
             return AgentInteractResponse(status="success", reply_text=translated, derivacion="cerrar")
 
     # ------------------------------------------------------------
+    # 4b. SPECIALIZED AGENT: OrquestadorDocumentos
+    # ------------------------------------------------------------
+    if agent_name == "OrquestadorDocumentos":
+        if media_url:
+            logger.info(f"📸 OrquestadorDocumentos analyzing media: {media_url}")
+            ocr_result = await run_ocr_on_media(media_url)
+            
+            is_rec = ocr_result.get("is_receipt") if ocr_result else False
+            t_code = ocr_result.get("tracking_code") if ocr_result else None
+            
+            if is_rec and t_code:
+                t_code = t_code.strip().upper()
+                await redis.set(code_key, t_code, ex=3600)
+                
+                # Save OCR names if present
+                if ocr_result.get("sender_name"):
+                    await redis.set(f"session:ocr_sender:{contact_id}", ocr_result["sender_name"].strip(), ex=3600)
+                if ocr_result.get("beneficiary_name"):
+                    await redis.set(f"session:ocr_beneficiary:{contact_id}", ocr_result["beneficiary_name"].strip(), ex=3600)
+                
+                # Transition state to WAITING_FOR_NAME
+                await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
+                
+                # Reset doc attempts on success
+                await redis.delete(f"session:attempts_doc:{contact_id}")
+                
+                # Determine destination depending on code format
+                if t_code.startswith("TRK"):
+                    dest = "VerificadorPagoBill"
+                else:
+                    dest = "VerificadorEstatus"
+                    
+                logger.info(f"🎯 OrquestadorDocumentos routed to {dest} with code {t_code}")
+                return AgentInteractResponse(
+                    status="success",
+                    reply_text=None,
+                    derivacion=dest
+                )
+            else:
+                attempts_doc_val = await redis.get(f"session:attempts_doc:{contact_id}")
+                attempts_doc = int(attempts_doc_val.decode('utf-8')) if attempts_doc_val else 0
+                attempts_doc += 1
+                
+                if attempts_doc >= 2:
+                    await redis.delete(f"session:attempts_doc:{contact_id}")
+                    sc2_text = scripts.get("SC.002", "Lo transferiré con uno de nuestros asesores para brindarle asistencia personalizada.")
+                    translated = await translate_script_if_needed(sc2_text, user_text)
+                    return AgentInteractResponse(
+                        status="success",
+                        reply_text=translated,
+                        derivacion="Servicio al Cliente"
+                    )
+                else:
+                    await redis.set(f"session:attempts_doc:{contact_id}", str(attempts_doc), ex=3600)
+                    sc1_text = scripts.get("SC.001", "No fue posible procesar la información o imagen proporcionada. ¿Podría compartirla de nuevo por favor?")
+                    translated = await translate_script_if_needed(sc1_text, user_text)
+                    return AgentInteractResponse(
+                        status="success",
+                        reply_text=translated,
+                        derivacion="NA"
+                    )
+        else:
+            logger.info(f"🔄 OrquestadorDocumentos received text: '{user_text}'. Routing back to Max.")
+            return AgentInteractResponse(
+                status="success",
+                reply_text=None,
+                derivacion="Max"
+            )
+
+    # ------------------------------------------------------------
     # 5. SPECIALIZED AGENT: VerificadorPagoBill
     # ------------------------------------------------------------
     if agent_name == "VerificadorPagoBill":
@@ -3502,22 +3599,40 @@ async def agent_interact(
     # ------------------------------------------------------------
     # 6. CORE AGENTS: Max, VerificadorEstatus, OrquestadorDocumentos (Rastreo de Remesas)
     # ------------------------------------------------------------
+
+    # 6a. Route images to OrquestadorDocumentos if not handled by it
+    if media_url and agent_name != "OrquestadorDocumentos":
+        if not (agent_name == "VerificadorEstatus" and current_state == "WAITING_FOR_CODE"):
+            logger.info(f"📸 Image received by {agent_name}. Routing to OrquestadorDocumentos.")
+            return AgentInteractResponse(
+                status="success",
+                reply_text=None,
+                derivacion="OrquestadorDocumentos"
+            )
     
-    # Check if a greeting is sent (resets session)
+    # Check if a greeting is sent (resets session) or starting fresh
     greetings = ["hola", "buenos dias", "buenos días", "buenas tardes", "buenas noches", "hello", "hi", "buen dia", "buen día"]
     user_text_clean = re.sub(r'[^a-zñáéíóú\s]', '', user_text_lower).strip()
     if user_text_clean in greetings or current_state == "NEW":
-        logger.info(f"🧹 Clearing Redis tracking state for contact {contact_id} due to greeting")
-        await redis.delete(state_key)
-        await redis.delete(perfil_key)
-        await redis.delete(code_key)
-        await redis.delete(name_key)
-        await redis.delete(attempts_key)
-        await redis.delete(f"session:ocr_sender:{contact_id}")
-        await redis.delete(f"session:ocr_beneficiary:{contact_id}")
-        await redis.delete(f"session:csat:step:{contact_id}")
+        # Check if we should transition VerificadorEstatus directly
+        if current_state == "NEW" and agent_name == "VerificadorEstatus":
+            cached_code = await redis.get(code_key)
+            cached_code_str = cached_code.decode('utf-8') if cached_code else None
+            if cached_code_str:
+                logger.info(f"🎯 VerificadorEstatus starting with pre-extracted OCR code: {cached_code_str}")
+                await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
+                sc10_text = scripts.get("SC.010", "Por favor proporcione su nombre completo:")
+                translated = await translate_script_if_needed(sc10_text, user_text)
+                return AgentInteractResponse(
+                    status="success",
+                    reply_text=translated,
+                    derivacion="NA"
+                )
+
+        logger.info(f"🧹 Clearing Redis tracking state for contact {contact_id} due to greeting/NEW state")
+        await clear_redis_session(redis, contact_id)
         
-        cuA1_text = scripts.get("CU.A1", "Gracias por comunicarse a Maxitransfers. Soy Max...")
+        cuA1_text = scripts.get("CU.A1", "Gracias por comunicarse a Maxitransfers. Soy Max, su asistente virtual. Para comenzar a ayudarle, ¿puede indicarme su nombre completo, por favor?")
         translated = await translate_script_if_needed(cuA1_text, user_text)
         await redis.set(state_key, "WAITING_FOR_PROFILE", ex=3600)
         return AgentInteractResponse(
@@ -3625,20 +3740,22 @@ async def agent_interact(
         logger.info(f"⚡ All variables collected. Running atomic DB query for code: {codigo_envio}")
         
         # Prepare params
-        nombre_rem = nombre_usuario if perfil == "REMITENTE" else None
-        nombre_ben = nombre_usuario if perfil == "BENEFICIARIO" else None
-        
-        # In case OCR extracted names, we can override or fall back if needed
-        ocr_sender = await redis.get(f"session:ocr_sender:{contact_id}")
-        ocr_ben = await redis.get(f"session:ocr_beneficiary:{contact_id}")
-        
+        if not perfil:
+            nombre_rem = nombre_usuario
+            nombre_ben = nombre_usuario
+            perfil_to_send = "CLIENTE"
+        else:
+            nombre_rem = nombre_usuario if perfil == "REMITENTE" else None
+            nombre_ben = nombre_usuario if perfil == "BENEFICIARIO" else None
+            perfil_to_send = perfil
+            
         status_req = StatusCheckRequest(
             contact_id=contact_id,
             user_text=f"{user_text} {codigo_envio}",
-            nombre_remitente=nombre_rem or (ocr_sender.decode('utf-8') if ocr_sender else None),
-            nombre_beneficiario=nombre_ben or (ocr_ben.decode('utf-8') if ocr_ben else None),
+            nombre_remitente=nombre_rem,
+            nombre_beneficiario=nombre_ben,
             codigo_envio=codigo_envio,
-            perfil=perfil
+            perfil=perfil_to_send
         )
         
         try:
