@@ -3532,7 +3532,7 @@ async def agent_interact(
                 logger.info(f"🎯 OrquestadorDocumentos routed to {dest} with code {t_code}")
                 return AgentInteractResponse(
                     status="success",
-                    reply_text=None,
+                    reply_text="",
                     derivacion=dest
                 )
             else:
@@ -3562,7 +3562,7 @@ async def agent_interact(
             logger.info(f"🔄 OrquestadorDocumentos received text: '{user_text}'. Routing back to Max.")
             return AgentInteractResponse(
                 status="success",
-                reply_text=None,
+                reply_text="",
                 derivacion="Max"
             )
 
@@ -3609,7 +3609,7 @@ async def agent_interact(
             logger.info(f"📸 Image received by {agent_name}. Routing to OrquestadorDocumentos.")
             return AgentInteractResponse(
                 status="success",
-                reply_text=None,
+                reply_text="",
                 derivacion="OrquestadorDocumentos"
             )
     
