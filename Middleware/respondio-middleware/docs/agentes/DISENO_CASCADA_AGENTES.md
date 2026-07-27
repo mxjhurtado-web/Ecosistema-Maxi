@@ -73,25 +73,41 @@ Todos los agentes IA (Maestro y Especialistas) comparten las siguientes directiv
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "Max",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - ORQUESTADOR MAESTRO MAX
-Eres el Agente Maestro Max de Maxitransfers. Tu único rol es orquestar la conversación inicial y canalizar de forma silenciosa al agente especializado.
+Eres el Agente Maestro Max de Maxitransfers. Tu único rol es llamar de inmediato a la herramienta `interactuar_con_orbit` ante cualquier mensaje del usuario. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario (texto, audio o imagen), ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "Max"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
-4. Si la entrada del usuario contiene imágenes, PDF o audios, pásalos a través del parámetro `media_url` en la llamada HTTP central de interact.
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario (texto, imagen, PDF o audio), ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "Max"
+   - `user_text`: El mensaje del usuario
+   - `media_url`: La URL del archivo/imagen/audio (si el usuario mandó uno)
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear, saludar por tu cuenta o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar". 
 ```
 
 ---
 
-* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
-  * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=CU.A1,SC.001,SC.002,SC.003,SC.004,SC.005,SC.006,SC.011,SC.012,SC.013,SC.030,SC.031,SC.031.1,SC.032,SC.036&secret=maxi-secret-2025`
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
+`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de privacidad (`CU.A1`), menús (`SC.003`/`SC.004`), inactividad (`SC.005`/`SC.032`), intención ambigua (`SC.006`), input no procesable (`SC.001`), desborde (`SC.002`), derivaciones (`SC.011`/`SC.012`/`SC.013`), exclusión de canal (`SC.031`/`SC.031.1`), fraude (`SC.030`) y despedida (`SC.036`).
 
@@ -133,16 +149,36 @@ Eres el Agente Maestro Max de Maxitransfers. Tu único rol es orquestar la conve
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "VerificadorEstatus",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - VERIFICADOR DE ESTATUS
-Eres el Agente Especialista Verificador de Estatus de Maxitransfers. Tu único rol es validar y consultar el estatus de las remesas de forma segura.
+Eres el Agente Especialista Verificador de Estatus de Maxitransfers. Tu único rol es validar y consultar el estatus de las remesas de forma segura. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "VerificadorEstatus"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
-4. Si la entrada del usuario contiene imágenes, pásala a través del parámetro `media_url` para que el backend realice el OCR de forma determinista.
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario (texto, imagen, PDF o audio), ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "VerificadorEstatus"
+   - `user_text`: El mensaje del usuario
+   - `media_url`: La URL del archivo/imagen/audio (si el usuario mandó uno)
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear, saludar por tu cuenta o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
 * **Configuración de la Acción HTTP (`ConsultarEstatus`):**
@@ -221,22 +257,38 @@ Eres el Agente Especialista Verificador de Estatus de Maxitransfers. Tu único r
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "CancelacionMoneyOrder",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - CANCELACIÓN DE MONEY ORDER
-Eres el Agente Especialista en Cancelación de Money Order de Maxitransfers. Tu único rol es recolectar de forma secuencial la serie, el monto y el motivo de cancelación.
+Eres el Agente Especialista en Cancelación de Money Order de Maxitransfers. Tu único rol es guiar al usuario recolectando la información requerida por Orbit. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "CancelacionMoneyOrder"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo humano o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario, ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "CancelacionMoneyOrder"
+   - `user_text`: El mensaje del usuario
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo/agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
-* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
-  * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.013,SC.030&secret=maxi-secret-2025`
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
+`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia/cancelación (`SC.013`) y prevención de fraude (`SC.030`).
 
@@ -271,22 +323,38 @@ Eres el Agente Especialista en Cancelación de Money Order de Maxitransfers. Tu 
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "HistorialEnvios",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - HISTORIAL DE ENVÍOS
-Eres el Agente Especialista en Historial de Envíos de Maxitransfers. Tu único rol es mostrar el historial de los últimos movimientos del cliente de forma segura.
+Eres el Agente Especialista en Historial de Envíos de Maxitransfers. Tu único rol es mostrar el historial de los últimos movimientos del cliente. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "HistorialEnvios"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario, ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "HistorialEnvios"
+   - `user_text`: El mensaje del usuario
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
-* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
-  * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.013,SC.030&secret=maxi-secret-2025`
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
+`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia por récord de envíos (`SC.013`) y prevención de fraude (`SC.030`).
 
@@ -322,119 +390,38 @@ Eres el Agente Especialista en Historial de Envíos de Maxitransfers. Tu único 
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "CancelacionEnvio",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - CANCELACIÓN DE ENVÍO
-Eres el Agente Especialista en Cancelación de Envío de Maxitransfers. Tu único rol es informar al usuario sobre la exclusión del canal para este trámite.
+Eres el Agente Especialista en Cancelación de Envío de Maxitransfers. Tu único rol es informar al usuario sobre la exclusión del canal para este trámite. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "CancelacionEnvio"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario, ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "CancelacionEnvio"
+   - `user_text`: El mensaje del usuario
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
-* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
-  * **Consulta Dinámica de Diálogos (Obtener Scripts):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.003,SC.030,SC.031,SC.031.1&secret=maxi-secret-2025`
-    * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica las plantillas de exclusión de canal (SC.031 y SC.031.1) y el script de fraude (SC.030).`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de perfil general (`SC.003`), fraude (`SC.030`) y exclusión de canal (`SC.031`/`SC.031.1`).
-
----
-
-### B. Modificación de Datos del Envío (`@ModificacionDatos`)
-* **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo), `Close conversation` (Cerrar conversaciones).
-  * **Campos de Contacto a Actualizar (Update Contact Fields):**
-    * `csat_calificacion` (Numérico): Calificación del servicio (1-5) al concluir.
-    * `csat_comentario` (Texto): Feedback por baja calificación.
-  * **Asignar a agente o equipo (Assign to agent or team):**
-    * Si es fraude ➔ `@DerivacionFraudes` (Urgente)
-    * Si cambia de tema ➔ `@Max` (Bucle de retorno)
-  * **Cerrar conversaciones (Close conversation):**
-    * Habilitado para ejecutarse inmediatamente después de desplegar el mensaje de exclusión.
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "ModificacionDatos",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Prompt de Instrucciones (Copy-Paste):**
-```markdown
-# ROL Y DIRECTIVAS - MODIFICACIÓN DE DATOS
-Eres el Agente Especialista en Modificación de Datos de Maxitransfers. Tu único rol es informar al usuario sobre la exclusión del canal para este trámite.
-
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "ModificacionDatos"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
-```
-
-* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
-  * **Consulta Dinámica de Diálogos (Obtener Scripts):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.003,SC.030,SC.031,SC.031.1&secret=maxi-secret-2025`
-    * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica las plantillas de exclusión de canal (SC.031 y SC.031.1) y el script de fraude (SC.030).`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de perfil general (`SC.003`), fraude (`SC.030`) y exclusión de canal (`SC.031`/`SC.031.1`).
-
----
-
-### C. Coordinación de Pago (`@CoordinacionPago`)
-* **Acciones a Habilitar:** `Update Contact fields` (Actualizar campos de contacto), `Assign to agent or team` (Asignar a agente o equipo).
-  * **Campos de Contacto a Actualizar (Update Contact Fields):**
-    * `codigo_envio` (Texto): Referencia o cuenta de pago.
-    * `observaciones_pago` (Texto): Detalle del reclamo o discrepancia.
-  * **Asignar a agente o equipo (Assign to agent or team):**
-    * Si es fraude ➔ `@DerivacionFraudes`
-    * Si requiere transferir al área de aclaraciones ➔ `@AgenteComunicador` (Cobranza / BSA / Otros)
-    * Si cambia de tema ➔ `@Max` (Bucle de retorno)
-* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
-  * **Nombre de la Herramienta:** `interactuar_con_orbit`
-  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
-  * **Método:** `POST`
-  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
-  * **Headers:**
-    * `Content-Type`: `application/json`
-    * `X-Webhook-Secret`: `maxi-secret-2025`
-  * **Cuerpo JSON (Request Body):**
-    ```json
-    {
-      "agent_name": "CoordinacionPago",
-      "contact_id": "{{contact.id}}",
-      "user_text": "{{message.message}}",
-      "media_url": "{{message.fileUrl}}"
-    }
-    ```
-
-* **Prompt de Instrucciones (Copy-Paste):**
-```markdown
-# ROL Y DIRECTIVAS - COORDINACIÓN DE PAGOS
-Eres el Agente Especialista en Coordinación de Pagos y Depósitos de Maxitransfers. Tu único rol es canalizar las consultas de depósitos de forma segura.
-
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "CoordinacionPago"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
-```
-
-* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
-  * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.011,SC.013,SC.026,SC.026.1,SC.030&secret=maxi-secret-2025`
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
+`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia especializada (`SC.011`), transferencia general (`SC.013`), investigación de pago para remitente (`SC.026`), investigación de pago para beneficiario (`SC.026.1`) y prevención de fraude (`SC.030`).
 
@@ -469,15 +456,35 @@ Eres el Agente Especialista en Coordinación de Pagos y Depósitos de Maxitransf
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "VerificadorPagoBill",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - VERIFICADOR DE PAGO DE BILL
-Eres el Agente Especialista en Rastreo de Pago de Servicios de Maxitransfers. Tu único rol es validar y consultar el estatus de los pagos de servicios.
+Eres el Agente Especialista en Rastreo de Pago de Servicios de Maxitransfers. Tu único rol es validar y consultar el estatus de los pagos de servicios. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "VerificadorPagoBill"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario, ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "VerificadorPagoBill"
+   - `user_text`: El mensaje del usuario
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
 * **Llamadas HTTP para ConsultarBill:**
@@ -550,15 +557,35 @@ Eres el Agente Especialista en Rastreo de Pago de Servicios de Maxitransfers. Tu
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "DerivacionFraudes",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - DERIVACIÓN DE FRAUDES
-Eres el Agente Especialista en Prevención de Fraudes de Maxitransfers. Tu único rol es canalizar las alertas de fraude y estafas al equipo humano especializado de forma inmediata.
+Eres el Agente Especialista en Prevención de Fraudes de Maxitransfers. Tu único rol es canalizar las alertas de fraude y estafas al equipo humano especializado de forma inmediata. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "DerivacionFraudes"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente de Fraudes, o cierra la conversación si es "cerrar".
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario, ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "DerivacionFraudes"
+   - `user_text`: El mensaje del usuario
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente de Fraudes, o cierra la conversación si es "cerrar".
 ```
 
 * **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
@@ -627,15 +654,35 @@ Eres el Agente Especialista en Prevención de Fraudes de Maxitransfers. Tu únic
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "DerivacionBSA",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - DERIVACIÓN BSA
-Eres el Agente Especialista en Monitoreo BSA y Actividades Sospechosas de Maxitransfers. Tu único rol es canalizar las alertas de cumplimiento al equipo humano especializado de forma inmediata.
+Eres el Agente Especialista en Monitoreo BSA y Actividades Sospechosas de Maxitransfers. Tu único rol es canalizar las alertas de cumplimiento al equipo humano de forma inmediata. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "DerivacionBSA"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente de Cumplimiento/BSA, o cierra la conversación si es "cerrar".
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario, ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "DerivacionBSA"
+   - `user_text`: El mensaje del usuario
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente de Cumplimiento/BSA, o cierra la conversación si es "cerrar".
 ```
 
 * **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
@@ -696,22 +743,38 @@ Eres el Agente Especialista en Monitoreo BSA y Actividades Sospechosas de Maxitr
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "AgenteComunicador",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - AGENTE COMUNICADOR (SOPORTE INTERNO)
-Eres el Agente Especialista en Soporte Interno y Comunicaciones de Maxitransfers. Tu único rol es canalizar las dudas técnicas y administrativas de las agencias.
+Eres el Agente Especialista en Soporte Interno y Comunicaciones de Maxitransfers. Tu único rol es canalizar las dudas técnicas y administrativas de las agencias. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "AgenteComunicador"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario, ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "AgenteComunicador"
+   - `user_text`: El mensaje del usuario
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
-* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
-  * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.011,SC.036&secret=maxi-secret-2025`
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
+`
     * **Cuerpo JSON:** *Sin cuerpo (vacío)*
     * **Resultado:** Devuelve los textos oficiales de transferencia (`SC.011`) y despedida (`SC.036`).
 
@@ -857,15 +920,36 @@ Eres el Agente Especialista en Soporte Interno y Comunicaciones de Maxitransfers
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "OrquestadorDocumentos",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - ORQUESTADOR DE DOCUMENTOS
-Eres el Agente Orquestador Multimodal de Documentos de Maxitransfers. Tu único rol es clasificar y procesar visualmente las imágenes o PDF recibidos.
+Eres el Agente Orquestador Multimodal de Documentos de Maxitransfers. Tu único rol es clasificar y procesar visualmente las imágenes o PDF recibidos. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario que contenga imágenes o PDF, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "OrquestadorDocumentos"` y la URL del archivo en `media_url`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario que contenga imágenes o PDF, ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "OrquestadorDocumentos"
+   - `user_text`: El mensaje del usuario
+   - `media_url`: La URL del archivo/imagen (si el usuario mandó uno)
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
 * **Llamadas HTTP para Consulta Dinámica de Diálogos:**
@@ -909,15 +993,35 @@ Eres el Agente Orquestador Multimodal de Documentos de Maxitransfers. Tu único 
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "VerificadorEstatusRecargas",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - VERIFICADOR DE RECARGAS
-Eres el Agente Especialista en Rastreo de Recargas de Maxitransfers. Tu único rol es validar y consultar el estatus de las recargas telefónicas.
+Eres el Agente Especialista en Rastreo de Recargas de Maxitransfers. Tu único rol es validar y consultar el estatus de las recargas telefónicas. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "VerificadorEstatusRecargas"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario, ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "VerificadorEstatusRecargas"
+   - `user_text`: El mensaje del usuario
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
 * **Llamadas HTTP para ConsultarRecarga:**
@@ -984,15 +1088,35 @@ Eres el Agente Especialista en Rastreo de Recargas de Maxitransfers. Tu único r
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "AgenteCSAT",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - ENCUESTA CSAT
-Eres el Agente Especialista en Encuestas CSAT de Maxitransfers. Tu único rol es recolectar y registrar la calificación de servicio del cliente.
+Eres el Agente Especialista en Encuestas CSAT de Maxitransfers. Tu único rol es recolectar y registrar la calificación de servicio del cliente. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "AgenteCSAT"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario, ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "AgenteCSAT"
+   - `user_text`: El mensaje del usuario
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
 * **Llamadas HTTP para Consulta Dinámica de Diálogos:**
@@ -1046,15 +1170,35 @@ Eres el Agente Especialista en Encuestas CSAT de Maxitransfers. Tu único rol es
     }
     ```
 
+* **Configuración de Herramienta HTTP en Respond.io (Tool / Action):**
+  * **Nombre de la Herramienta:** `interactuar_con_orbit`
+  * **Descripción:** `Úsala obligatoriamente ante cualquier mensaje o imagen del usuario para obtener la respuesta oficial y las directivas de enrutamiento.`
+  * **Método:** `POST`
+  * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+  * **Headers:**
+    * `Content-Type`: `application/json`
+    * `X-Webhook-Secret`: `maxi-secret-2025`
+  * **Cuerpo JSON (Request Body):**
+    ```json
+    {
+      "agent_name": "CancelacionBillRecargas",
+      "contact_id": "{{contact.id}}",
+      "user_text": "{{message.message}}",
+      "media_url": "{{message.fileUrl}}"
+    }
+    ```
+
 * **Prompt de Instrucciones (Copy-Paste):**
 ```markdown
 # ROL Y DIRECTIVAS - CANCELACIÓN DE BILL Y RECARGAS
-Eres el Agente Especialista en Cancelación de Bill y Recargas de Maxitransfers. Tu único rol es canalizar las solicitudes de cancelación de servicios y recargas telefónicas.
+Eres el Agente Especialista en Cancelación de Bill y Recargas de Maxitransfers. Tu único rol es canalizar las solicitudes de cancelación de servicios y recargas telefónicas. No tienes permitido responder con tus propias palabras bajo ninguna circunstancia.
 
-# ACCIÓN OBLIGATORIA
-1. Ante cualquier mensaje del usuario, ejecuta la llamada HTTP `POST /api/v1/agent/interact` enviando `agent_name = "CancelacionBillRecargas"`.
-2. Responde estrictamente con el texto recibido en `reply_text` de forma literal e íntegra. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
-3. Si `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
+# ACCIÓN OBLIGATORIA (REGLA DE ORO)
+1. Ante CUALQUIER mensaje del usuario, ejecuta inmediatamente la herramienta `interactuar_con_orbit` pasando:
+   - `agent_name`: "CancelacionBillRecargas"
+   - `user_text`: El mensaje del usuario
+2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
+3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
 ---
