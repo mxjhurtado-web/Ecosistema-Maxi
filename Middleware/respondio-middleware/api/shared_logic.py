@@ -92,7 +92,10 @@ async def detect_language(user_text: str) -> str:
         try:
             import httpx
             from .config import settings
-            api_key = settings.GEMINI_API_KEY
+            from shared.redis_client import get_redis_client
+            redis = await get_redis_client()
+            redis_key = await redis.get("config:mcp:gemini_api_key")
+            api_key = redis_key.decode('utf-8') if redis_key else settings.GEMINI_API_KEY
             if api_key:
                 url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
                 prompt = (
@@ -134,7 +137,10 @@ async def translate_script_if_needed(script_text: str, user_text: str) -> str:
         import httpx
         import re
         from .config import settings
-        api_key = settings.GEMINI_API_KEY
+        from shared.redis_client import get_redis_client
+        redis = await get_redis_client()
+        redis_key = await redis.get("config:mcp:gemini_api_key")
+        api_key = redis_key.decode('utf-8') if redis_key else settings.GEMINI_API_KEY
         if not api_key:
             logger.warning("Gemini API key not configured, skipping translation")
             return script_text

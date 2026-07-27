@@ -3173,7 +3173,10 @@ async def sync_scripts_and_rules():
 async def run_ocr_on_media(media_url: str) -> Optional[Dict[str, Any]]:
     import base64
     try:
-        api_key = settings.GEMINI_API_KEY
+        redis = await get_redis_client()
+        redis_key = await redis.get("config:mcp:gemini_api_key")
+        api_key = redis_key.decode('utf-8') if redis_key else settings.GEMINI_API_KEY
+        
         if not api_key:
             logger.error("❌ Gemini API Key not found for OCR")
             return None
