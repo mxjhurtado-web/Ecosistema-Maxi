@@ -314,6 +314,11 @@ async def webhook(
                 await redis.set(session_text_key, new_text, ex=7200)  # 2 hours TTL
                 logger.info(f"💾 [GLOBAL CACHE] Saved session text for contact {contact_id}: {user_msg_text}")
                 
+                # Cache mappings for self-healing contact_id fallback
+                text_hash = f"text_to_contact:{user_msg_text.strip().lower()}"
+                await redis.set(text_hash, contact_id, ex=30)  # 30 seconds TTL
+                await redis.set("global:last_active_contact", contact_id, ex=60)  # 60 seconds TTL
+                
             # 3. Cache image/pdf URL if present
             if image_url:
                 cache_key = f"contact:last_image:{contact_id}"
@@ -3281,9 +3286,24 @@ async def agent_interact(
         if media_url in ["", "null", "None", "undefined"] or "{{" in media_url or "}}" in media_url or not media_url.lower().startswith("http"):
             media_url = None
             
-    logger.info(f"📨 Agent interaction request received for agent: {agent_name}, contact: {contact_id}, media_url: {media_url}")
-    
     redis = await get_redis_client()
+    
+    # Self-healing fallback for unresolved or simulator contact_id in production
+    if contact_id in ["contact.id", "contactid", "$contact.id", ""]:
+        # 1. Try to map by exact user text match
+        text_hash = f"text_to_contact:{user_text.lower()}"
+        cached_contact = await redis.get(text_hash)
+        if cached_contact:
+            contact_id = cached_contact.decode('utf-8')
+            logger.info(f"🔮 Self-healed contact_id from text cache: {contact_id}")
+        else:
+            # 2. Fall back to the globally last active contact
+            last_active = await redis.get("global:last_active_contact")
+            if last_active:
+                contact_id = last_active.decode('utf-8')
+                logger.info(f"🔮 Self-healed contact_id from global last active cache: {contact_id}")
+            
+    logger.info(f"📨 Agent interaction request received for agent: {agent_name}, contact: {contact_id}, media_url: {media_url}")
     
     # Store session text in Redis cache
     session_text_key = f"contact:session_text:{contact_id}"
