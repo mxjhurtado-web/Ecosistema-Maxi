@@ -624,6 +624,7 @@ async def webhook(
         state_key = f"session:state:{request.contact_id}"
         code_key = f"session:codigo_envio:{request.contact_id}"
         profile_key = f"session:perfil:{request.contact_id}"
+        attempts_key = f"session:attempts:{request.contact_id}"
         
         current_state_bytes = await redis.get(state_key) if redis else None
         current_state = current_state_bytes.decode('utf-8') if current_state_bytes else None
@@ -637,6 +638,7 @@ async def webhook(
             if redis:
                 await redis.set(code_key, detected_code, ex=3600)
                 await redis.set(state_key, "AWAITING_PROFILE", ex=3600)
+                await redis.set(attempts_key, "0", ex=3600)
             
             scripts = get_compliance_scripts()
             mcp_response = scripts.get("SC.003", "¿Es usted el remitente o el beneficiario?")
@@ -652,7 +654,7 @@ async def webhook(
                 await append_message_to_history(redis, request.conversation_id, "bot_max", mcp_response)
             except Exception as hist_err:
                 logger.warning(f"Failed to cache tracking start in chat history: {hist_err}")
-
+ 
             return RespondioResponse(
                 status=ResponseStatus.OK,
                 reply_text=mcp_response,
@@ -663,26 +665,46 @@ async def webhook(
             
         # 2. If we are currently in the AWAITING_PROFILE state
         elif current_state == "AWAITING_PROFILE":
-            text_lower = user_text_clean.lower()
-            profile = None
-            if "remitente" in text_lower or "sender" in text_lower or "envia" in text_lower:
-                profile = "REMITENTE"
-            elif "beneficiario" in text_lower or "receiver" in text_lower or "recibe" in text_lower or "beneficiary" in text_lower:
-                profile = "BENEFICIARIO"
+            profile = detect_profile_from_text(user_text_clean)
                 
             if profile:
                 logger.info(f"👤 Profile identified as {profile} for contact {request.contact_id}")
                 if redis:
                     await redis.set(profile_key, profile, ex=3600)
                     await redis.set(state_key, "AWAITING_NAME", ex=3600)
+                    await redis.set(attempts_key, "0", ex=3600)
+                
+                saved_code_bytes = await redis.get(code_key) if redis else None
+                saved_code = saved_code_bytes.decode('utf-8') if saved_code_bytes else ""
                 
                 scripts = get_compliance_scripts()
-                mcp_response = scripts.get("SC.008", "Para verificar su identidad, por favor indique su nombre completo.")
+                agent_name = request.metadata.get("agent_name")
+                
+                if agent_name == "VerificadorEstatusRecargas":
+                    mcp_response = scripts.get("SC.010.2", "Para continuar, necesito validar algunos datos. ¿Me comparte el número telefónico de la persona quien hizo la recarga y el número al que se realizó, por favor?.")
+                elif saved_code.upper().startswith("TRK"):
+                    mcp_response = scripts.get("SC.010.1", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?.")
+                else:
+                    mcp_response = scripts.get("SC.008", "Para verificar su identidad, por favor indique su nombre completo.")
+                
                 derivacion = "NA"
             else:
-                scripts = get_compliance_scripts()
-                mcp_response = scripts.get("SC.006", "Por favor, indique si es usted el remitente o el beneficiario para continuar.")
-                derivacion = "NA"
+                attempts_val = await redis.get(attempts_key) if redis else None
+                attempts = int(attempts_val.decode('utf-8')) if attempts_val else 0
+                attempts += 1
+                
+                if attempts >= 2:
+                    if redis:
+                        await redis.set(attempts_key, "0", ex=3600)
+                    scripts = get_compliance_scripts()
+                    mcp_response = scripts.get("SC.002", "Lo transferiré con uno de nuestros asesores...")
+                    derivacion = "Servicio al Cliente"
+                else:
+                    if redis:
+                        await redis.set(attempts_key, str(attempts), ex=3600)
+                    scripts = get_compliance_scripts()
+                    mcp_response = scripts.get("SC.003", "¿Es usted remitente, beneficiario o agente?")
+                    derivacion = "NA"
                 
             mcp_response = await translate_script_if_needed(mcp_response, request.user_text)
             total_latency_ms = int((time.time() - start_time) * 1000)
@@ -693,7 +715,7 @@ async def webhook(
                 await append_message_to_history(redis, request.conversation_id, "bot_max", mcp_response)
             except Exception as hist_err:
                 logger.warning(f"Failed to cache profile response in chat history: {hist_err}")
-
+ 
             return RespondioResponse(
                 status=ResponseStatus.OK,
                 reply_text=mcp_response,
@@ -711,16 +733,34 @@ async def webhook(
             saved_profile = saved_profile_bytes.decode('utf-8') if saved_profile_bytes else None
             
             if saved_code and saved_profile:
-                logger.info(f"⚡ Executing database status check for code {saved_code}, profile {saved_profile}, name: {user_text_clean}")
+                logger.info(f"⚡ Executing database status check for code {saved_code}, profile {saved_profile}, name/info: {user_text_clean}")
                 
+                # Check if it's a Topup check
+                if request.metadata.get("agent_name") == "VerificadorEstatusRecargas":
+                    phones = re.findall(r'\b\d{7,15}\b', user_text_clean)
+                    cust_phone = phones[0] if len(phones) > 0 else user_text_clean
+                    cell_phone = phones[1] if len(phones) > 1 else cust_phone
+                    
+                    topup_req = TopupCheckRequest(
+                        contact_id=request.contact_id,
+                        user_text=user_text_clean,
+                        transaction_id=saved_code,
+                        customer_number=cust_phone,
+                        cellular_number=cell_phone,
+                        perfil=saved_profile or "CLIENTE",
+                        metadata=request.metadata
+                    )
+                    status_resp = await check_topup_status_inner(topup_req, x_webhook_secret=settings.WEBHOOK_SECRET)
                 # Check if it's a Bill check (starts with TRK)
-                if saved_code.startswith("TRK"):
+                elif saved_code.upper().startswith("TRK"):
                     bill_req = BillCheckRequest(
                         tracking_number=saved_code,
                         contact_id=request.contact_id,
                         contact_name=request.contact_name,
                         user_text=user_text_clean,
-                        nombre_cliente=user_text_clean,
+                        nombre_completo_customer=user_text_clean,
+                        biller=user_text_clean,
+                        perfil=saved_profile or "CLIENTE",
                         metadata=request.metadata
                     )
                     status_resp = await check_bill_status_inner(bill_req, x_webhook_secret=settings.WEBHOOK_SECRET)
@@ -745,6 +785,7 @@ async def webhook(
                         await redis.delete(state_key)
                         await redis.delete(code_key)
                         await redis.delete(profile_key)
+                        await redis.delete(attempts_key)
                     
                 total_latency_ms = int((time.time() - start_time) * 1000)
                 mcp_response = await translate_script_if_needed(status_resp.reply_text, request.user_text)
@@ -755,7 +796,7 @@ async def webhook(
                     await append_message_to_history(redis, request.conversation_id, "bot_max", mcp_response)
                 except Exception as hist_err:
                     logger.warning(f"Failed to cache database status response in chat history: {hist_err}")
-
+ 
                 return RespondioResponse(
                     status=ResponseStatus.OK,
                     reply_text=mcp_response,
@@ -1020,6 +1061,43 @@ def check_department_hours(depto: str, dt: datetime) -> bool:
             return is_within_hours(dt, 8, 0, 18, 0)
         return False
     return True
+
+
+def detect_profile_from_text(text: str) -> Optional[str]:
+    user_p_lower = text.lower().strip(".,!?¡¿() ")
+    
+    if user_p_lower == "1":
+        return "REMITENTE"
+    elif user_p_lower == "2":
+        return "BENEFICIARIO"
+    elif user_p_lower == "3":
+        return "AGENTE"
+        
+    KEYWORDS_REMITENTE = [
+        "remitente", "sender", "envia", "envió", "envio", "envié", 
+        "hice un envio", "hice un envío", "hice el envio", "hice el envío",
+        "hice una recarga", "hice un pago", "pago de servicio", "recarga telefonica",
+        "yo envie", "yo envié", "hice la transferencia", "enviar dinero",
+        "soy quien envio", "soy quien envió", "fui quien envio", "fui quien envió"
+    ]
+    KEYWORDS_BENEFICIARIO = [
+        "beneficiario", "receptor", "recipient", "receiver", "recibe", "beneficiary",
+        "me enviaron", "me mandaron", "me van a enviar", "me van a mandar",
+        "soy quien recibe", "voy a recibir", "espero un envio", "espero el envio",
+        "espero un envío", "espero el envío", "recibir dinero"
+    ]
+    KEYWORDS_AGENTE = [
+        "agente", "agent", "soy agente", "soy el agente", "agente autorizado", "agente de maxi"
+    ]
+    
+    if any(k in user_p_lower for k in KEYWORDS_REMITENTE):
+        return "REMITENTE"
+    elif any(k in user_p_lower for k in KEYWORDS_BENEFICIARIO):
+        return "BENEFICIARIO"
+    elif any(k in user_p_lower for k in KEYWORDS_AGENTE):
+        return "AGENTE"
+        
+    return None
 
 
 def extraer_codigo_router(texto: str) -> Optional[str]:
@@ -1553,7 +1631,7 @@ async def check_transaction_status_inner(
                 logger.warning(f"Failed to read local status rules fallback: {exc}")
                 
     matched_rule = None
-    if status_rules:
+    if status_rules and isinstance(status_rules, dict):
         type_key = "bill" if table_type == "bill" else "remesa"
         # Determine if it's recarga
         if metadata.get("tipo_transaccion") == "recarga" or "recarga" in user_text.lower():
@@ -2154,7 +2232,7 @@ async def check_bill_status_inner(
                     logger.error(f"Error caching bill status rules in Redis: {e}")
 
     matched_rule = None
-    if status_rules:
+    if status_rules and isinstance(status_rules, list):
         logger.info(f"Loaded status_rules from cache/sheets: {status_rules}")
         # Match rules against database status and profile
         perfil_upper = perfil.upper().strip()
@@ -2487,6 +2565,7 @@ async def check_topup_status_inner(
 
     # Query database for the record
     # Try Supabase REST API first (fastest, IPv4/IPv6 compatible via HTTPS)
+    record = None
     try:
         supabase_url = os.getenv("SUPABASE_URL", "https://tzlomvpugmrpdfatscxe.supabase.co")
         supabase_anon_key = os.getenv(
@@ -2664,7 +2743,7 @@ async def check_topup_status_inner(
         category_to_match = "Consulta de status en Chronos"
 
     matched_rule = None
-    if status_rules:
+    if status_rules and isinstance(status_rules, list):
         logger.info(f"Loaded top-up status_rules: {status_rules}")
         for rule in status_rules:
             rule_status = rule["status"].lower().strip()
@@ -3715,13 +3794,7 @@ async def agent_interact(
 
     # State Transitions
     if current_state == "WAITING_FOR_PROFILE":
-        user_p_lower = user_text_lower.strip(".,!?")
-        if "remitente" in user_p_lower or "sender" in user_p_lower:
-            perfil = "REMITENTE"
-        elif any(k in user_p_lower for k in ["beneficiario", "receptor", "recipient", "receiver"]):
-            perfil = "BENEFICIARIO"
-        elif "agente" in user_p_lower or "agent" in user_p_lower:
-            perfil = "AGENTE"
+        perfil = detect_profile_from_text(user_text)
             
         if perfil:
             await redis.set(perfil_key, perfil, ex=3600)
@@ -3733,10 +3806,21 @@ async def agent_interact(
                 await redis.set(state_key, "WAITING_FOR_CODE", ex=3600)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
             else:
-                sc10_text = scripts.get("SC.010", "Por favor proporcione su nombre completo:")
-                translated = await translate_script_if_needed(sc10_text, user_text)
-                await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
-                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+                if agent_name == "VerificadorEstatusRecargas":
+                    sc10_text = scripts.get("SC.010.2", "Para continuar, necesito validar algunos datos. ¿Me comparte el número telefónico de la persona quien hizo la recarga y el número al que se realizó, por favor?.")
+                    translated = await translate_script_if_needed(sc10_text, user_text)
+                    await redis.set(state_key, "WAITING_FOR_TOPUP_PHONES", ex=3600)
+                    return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+                elif codigo_envio.upper().startswith("TRK"):
+                    sc10_text = scripts.get("SC.010.1", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?.")
+                    translated = await translate_script_if_needed(sc10_text, user_text)
+                    await redis.set(state_key, "WAITING_FOR_BILL_INFO", ex=3600)
+                    return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+                else:
+                    sc10_text = scripts.get("SC.010", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de quien envió el dinero y el nombre completo de quien lo recibe, por favor?.")
+                    translated = await translate_script_if_needed(sc10_text, user_text)
+                    await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
+                    return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
         else:
             # Unrecognized profile input
             attempts_val = await redis.get(attempts_key)
@@ -3747,7 +3831,7 @@ async def agent_interact(
                 translated = await translate_script_if_needed(sc2_text, user_text)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
             else:
-                await redis.set(attempts_key, str(attempts), ex=3600)
+                await redis.set(attempts_key, "0", ex=3600)  # Reset attempts when presenting menu
                 sc3_text = scripts.get("SC.003", "¿Es usted remitente, beneficiario o agente?")
                 translated = await translate_script_if_needed(sc3_text, user_text)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
@@ -3755,10 +3839,21 @@ async def agent_interact(
     elif current_state == "WAITING_FOR_CODE":
         if codigo_envio:
             await redis.set(attempts_key, "0", ex=3600)
-            sc10_text = scripts.get("SC.010", "Por favor proporcione su nombre completo:")
-            translated = await translate_script_if_needed(sc10_text, user_text)
-            await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
-            return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+            if agent_name == "VerificadorEstatusRecargas":
+                sc10_text = scripts.get("SC.010.2", "Para continuar, necesito validar algunos datos. ¿Me comparte el número telefónico de la persona quien hizo la recarga y el número al que se realizó, por favor?.")
+                translated = await translate_script_if_needed(sc10_text, user_text)
+                await redis.set(state_key, "WAITING_FOR_TOPUP_PHONES", ex=3600)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+            elif codigo_envio.upper().startswith("TRK"):
+                sc10_text = scripts.get("SC.010.1", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?.")
+                translated = await translate_script_if_needed(sc10_text, user_text)
+                await redis.set(state_key, "WAITING_FOR_BILL_INFO", ex=3600)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+            else:
+                sc10_text = scripts.get("SC.010", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de quien envió el dinero y el nombre completo de quien lo recibe, por favor?.")
+                translated = await translate_script_if_needed(sc10_text, user_text)
+                await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
         else:
             attempts_val = await redis.get(attempts_key)
             attempts = int(attempts_val.decode('utf-8')) if attempts_val else 0
@@ -3772,6 +3867,75 @@ async def agent_interact(
                 sc9_text = scripts.get("SC.009", "No he podido detectar la clave. Por favor compártala de nuevo.")
                 translated = await translate_script_if_needed(sc9_text, user_text)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+
+    elif current_state == "WAITING_FOR_BILL_INFO":
+        await redis.set(name_key, user_text, ex=3600)
+        logger.info(f"⚡ Bill variables collected. Running Bill status query for code: {codigo_envio}")
+        
+        bill_req = BillCheckRequest(
+            contact_id=contact_id,
+            user_text=f"{user_text} {codigo_envio}",
+            tracking_number=codigo_envio,
+            biller=user_text,
+            nombre_completo_customer=user_text,
+            perfil=perfil or "CLIENTE"
+        )
+        
+        try:
+            bill_resp = await check_bill_status_inner(bill_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+            
+            if bill_resp.validation_success:
+                await redis.set(state_key, "COMPLETED", ex=3600)
+                await redis.delete(perfil_key)
+                await redis.delete(code_key)
+                await redis.delete(name_key)
+                
+            return AgentInteractResponse(
+                status="success",
+                reply_text=bill_resp.reply_text,
+                derivacion=bill_resp.derivacion
+            )
+        except Exception as e:
+            logger.error(f"Error in atomic bill check: {e}")
+            sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+            translated = await translate_script_if_needed(sc13_text, user_text)
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+
+    elif current_state == "WAITING_FOR_TOPUP_PHONES":
+        phones = re.findall(r'\b\d{7,15}\b', user_text)
+        cust_phone = phones[0] if len(phones) > 0 else user_text
+        cell_phone = phones[1] if len(phones) > 1 else cust_phone
+        
+        logger.info(f"⚡ Topup variables collected. Running Topup status query for code: {codigo_envio}")
+        
+        topup_req = TopupCheckRequest(
+            contact_id=contact_id,
+            user_text=f"{user_text} {codigo_envio}",
+            transaction_id=codigo_envio,
+            customer_number=cust_phone,
+            cellular_number=cell_phone,
+            perfil=perfil or "CLIENTE"
+        )
+        
+        try:
+            topup_resp = await check_topup_status_inner(topup_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+            
+            if topup_resp.validation_success:
+                await redis.set(state_key, "COMPLETED", ex=3600)
+                await redis.delete(perfil_key)
+                await redis.delete(code_key)
+                await redis.delete(name_key)
+                
+            return AgentInteractResponse(
+                status="success",
+                reply_text=topup_resp.reply_text,
+                derivacion=topup_resp.derivacion
+            )
+        except Exception as e:
+            logger.error(f"Error in atomic topup check: {e}")
+            sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+            translated = await translate_script_if_needed(sc13_text, user_text)
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
     elif current_state == "WAITING_FOR_NAME":
         nombre_usuario = user_text

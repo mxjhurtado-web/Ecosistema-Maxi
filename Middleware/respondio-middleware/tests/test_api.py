@@ -889,9 +889,19 @@ class TestTopupCheckEndpoint:
         self.patcher_redis = patch("api.main.get_redis_client", AsyncMock(return_value=self.mock_redis))
         self.patcher_redis.start()
         
+        # Mock httpx.AsyncClient
+        self.mock_httpx = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = []
+        self.mock_httpx.return_value = mock_response
+        self.patcher_httpx = patch("httpx.AsyncClient.get", self.mock_httpx)
+        self.patcher_httpx.start()
+        
         yield
         
         self.patcher_redis.stop()
+        self.patcher_httpx.stop()
 
     @patch("psycopg2.connect")
     @patch("api.google_sheets_service.google_sheets_service.fetch_topup_status_rules", new_callable=AsyncMock)
