@@ -89,12 +89,6 @@ Eres el Agente Maestro Max de Maxitransfers. Tu único rol es llamar de inmediat
 
 ---
 
-`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de privacidad (`CU.A1`), menús (`SC.003`/`SC.004`), inactividad (`SC.005`/`SC.032`), intención ambigua (`SC.006`), input no procesable (`SC.001`), desborde (`SC.002`), derivaciones (`SC.011`/`SC.012`/`SC.013`), exclusión de canal (`SC.031`/`SC.031.1`), fraude (`SC.030`) y despedida (`SC.036`).
-
----
-
 ## 🟢 2. Agentes de Fase 1 (Especialistas Directos)
 
 ### A. Verificador de Estatus de Envío (`@VerificadorEstatus` o `@AgenteEstatus`)
@@ -173,20 +167,6 @@ Eres el Agente Especialista Verificador de Estatus de Maxitransfers. Tu único r
     }
     ```
 
-* **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
-  * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.10,RNE.13,RNE.19,RNE.26,RNE.27,RNE.28,RNE.29,RNE.30,RNE.31,RNE.32,RNE.33,RNE.34,RNE.35,RNE.36,RNE.37,RNE.38,RNE.39,RNE.49,RNE.56,RNE.57,RNE.59&secret=maxi-secret-2025`
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve las políticas vigentes de rastreo directamente desde el Google Sheet de Reglas.
-  * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.006.1,SC.008,SC.009,SC.010,SC.012,SC.013,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de confirmación (`SC.008`), solicitud de datos (`SC.009`/`SC.010`), primer fallo matching (`SC.029`), transferencia por 2 fallos (`SC.012`), ayuda adicional (`SC.033`) y despedida (`SC.036`).
-
 ---
 
 ### B. Cancelación de Money Order (`@CancelacionMoneyOrder`)
@@ -234,9 +214,6 @@ Eres el Agente Especialista en Cancelación de Money Order de Maxitransfers. Tu 
 3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo/agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
-`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de transferencia/cancelación (`SC.013`) y prevención de fraude (`SC.030`).
 
 ---
 
@@ -282,9 +259,6 @@ Eres el Agente Especialista en Historial de Envíos de Maxitransfers. Tu único 
 3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
-`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de transferencia por récord de envíos (`SC.013`) y prevención de fraude (`SC.030`).
 
 ---
 
@@ -331,9 +305,6 @@ Eres el Agente Especialista en Cancelación de Envío de Maxitransfers. Tu únic
 3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
-`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de transferencia especializada (`SC.011`), transferencia general (`SC.013`), investigación de pago para remitente (`SC.026`), investigación de pago para beneficiario (`SC.026.1`) y prevención de fraude (`SC.030`).
 
 ---
 
@@ -397,19 +368,6 @@ Eres el Agente Especialista en Rastreo de Pago de Servicios de Maxitransfers. Tu
       }
       ```
     * **Resultado:** Devuelve el estatus cruzado con las reglas oficiales y las etiquetas de validación para revelación segura.
-  * **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
-    * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
-      * **Método:** `GET`
-      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.10,RNE.14,RNE.19,RNE.40,RNE.41,RNE.42,RNE.49,RNE.56,RNE.57,RNE.59&secret=maxi-secret-2025`
-      * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
-      * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-      * **Resultado:** Devuelve las políticas vigentes de rastreo directamente desde el Google Sheet de Reglas.
-    * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
-      * **Método:** `GET`
-      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.006.1,SC.008,SC.010.1,SC.012,SC.013,SC.021,SC.022,SC.023,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
-      * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
-      * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-      * **Resultado:** Devuelve los textos oficiales de confirmación (`SC.008`), solicitud de datos de bill (`SC.010.1`), intentos fallidos y transferencia (`SC.012`), transferencia general (`SC.013`), scripts específicos de bill (`SC.021`/`SC.022`/`SC.023`), primer fallo (`SC.029`), ayuda adicional (`SC.033`) y despedida (`SC.036`).
 
 ---
 
@@ -461,20 +419,6 @@ Eres el Agente Especialista en Prevención de Fraudes de Maxitransfers. Tu únic
 2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
 3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente de Fraudes, o cierra la conversación si es "cerrar".
 ```
-
-* **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
-  * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.50,RNE.51,RNE.47&secret=maxi-secret-2025`
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve las reglas y horarios vigentes del departamento de Prevención de Fraudes.
-  * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.027,SC.030,SC.036&secret=maxi-secret-2025`
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de fuera de horario (`SC.027`), prevención de fraude (`SC.030`) and despedida (`SC.036`).
 
 * **Configuración de la Acción HTTP (`Notificar_Fraudes`):**
   * **Método:** `POST`
@@ -541,20 +485,6 @@ Eres el Agente Especialista en Monitoreo BSA y Actividades Sospechosas de Maxitr
 3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente de Cumplimiento/BSA, o cierra la conversación si es "cerrar".
 ```
 
-* **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
-  * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.50,RNE.51,RNE.47&secret=maxi-secret-2025`
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción cuando necesites validar una regla de negocio u obtener los horarios de atención y guardias del departamento correspondiente.`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve las reglas y horarios vigentes del departamento de BSA Monitoring.
-  * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.027,SC.030,SC.036&secret=maxi-secret-2025`
-    * **Instrucción de Configuración (Guidelines):** `Ejecuta esta acción al inicio de la conversación o cuando necesites recuperar de la base de datos cualquiera de los scripts de diálogo oficiales (códigos SC o CU) para responderle al usuario.`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de fuera de horario (`SC.027`), sospecha/fraude (`SC.030`) y despedida (`SC.036`).
-
 * **Configuración de la Acción HTTP (`Notificar_BSA`):**
   * **Método:** `POST`
   * **URL:** `https://orbit-api-ewov.onrender.com/google-chat/notify?secret=maxi-secret-2025`
@@ -612,9 +542,6 @@ Eres el Agente Especialista en Soporte Interno y Comunicaciones de Maxitransfers
 3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
 
-`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de transferencia (`SC.011`) y despedida (`SC.036`).
 
 * **Configuración de las Acciones HTTP (POST):**
   * **Notificar Agent Oversight:**
@@ -716,7 +643,6 @@ Eres el Agente Especialista en Soporte Interno y Comunicaciones de Maxitransfers
       }
       ```
 
-
 ---
 
 ### G. Orquestador de Documentos (`@OrquestadorDocumentos`)
@@ -771,14 +697,6 @@ Eres el Agente Orquestador Multimodal de Documentos de Maxitransfers. Tu único 
 2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
 3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
-
-* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
-  * **Consulta Dinámica de Diálogos (Obtener Scripts y Diálogos):**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.001,SC.002,SC.013,SC.027,SC.030,SC.036&secret=maxi-secret-2025`
-    * **Instrucción de Configuración:** `Ejecuta esta acción cuando necesites recuperar los scripts oficiales de input ilegible (`SC.001`), desborde (`SC.002`), transferencia general (`SC.013`), prevención de fraude (`SC.030`) o despedida (`SC.036`).`
-    * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-    * **Resultado:** Devuelve los textos oficiales de despedida (`SC.036`) y fraude (`SC.030`).
 
 ---
 
@@ -845,21 +763,6 @@ Eres el Agente Especialista en Rastreo de Recargas de Maxitransfers. Tu único r
       ```
     * **Resultado:** Devuelve el estatus cruzado con las reglas oficiales y las etiquetas de validación para revelación segura.
 
-  * **Llamadas HTTP para Consulta Dinámica de Reglas y Diálogos:**
-    * **Consulta Dinámica de Reglas (Obtener Reglas de Negocio):**
-      * **Método:** `GET`
-      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/rules?codes=RNE.10,RNE.15,RNE.19,RNE.24,RNE.43,RNE.44,RNE.49,RNE.56,RNE.57,RNE.59&secret=maxi-secret-2025`
-      * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica las reglas de negocio de recargas (RNE.10, RNE.15, RNE.19, RNE.24, RNE.43, RNE.44, RNE.49, RNE.56, RNE.57, RNE.59).`
-      * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-      * **Resultado:** Devuelve las reglas operativas y de horarios para recargas.
-
-    * **Consulta Dinámica de Diálogos (Obtener Scripts):**
-      * **Método:** `GET`
-      * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.006.1,SC.008,SC.010.2,SC.012,SC.013,SC.024,SC.025,SC.029,SC.033,SC.036&secret=maxi-secret-2025`
-      * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica los scripts de diálogos de recargas, continuidad y seguridad (SC.006.1, SC.008, SC.010.2, SC.012, SC.013, SC.024, SC.025, SC.029, SC.033, SC.036).`
-      * **Cuerpo JSON:** *Sin cuerpo (vacío)*
-      * **Resultado:** Devuelve las plantillas oficiales para diálogos y handoffs.
-
 ---
 
 ### I. Agente de Encuesta de Satisfacción (`@AgenteCSAT`)
@@ -902,28 +805,6 @@ Eres el Agente Especialista en Encuestas CSAT de Maxitransfers. Tu único rol es
 2. Responde al usuario de forma IDÉNTICA al texto recibido en `reply_text` del resultado de la herramienta. Queda estrictamente prohibido recortar, resumir, parafrasear o agregar comentarios propios.
 3. Si en el resultado `derivacion` es diferente de "NA", realiza de inmediato la asignación silenciosa al equipo o agente especificado en dicho campo, o cierra la conversación si es "cerrar".
 ```
-
-* **Llamadas HTTP para Consulta Dinámica de Diálogos:**
-  * **A. Obtener Scripts CSAT:**
-    * **Método:** `GET`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/scripts?codes=SC.034,SC.035,SC.036&secret=maxi-secret-2025`
-    * **Instrucción de Configuración:** `Ejecuta esta acción al inicio del flujo para recuperar de forma dinámica los scripts de escala de satisfacción (SC.034), solicitud de comentario (SC.035) y despedida oficial (SC.036).`
-    * **Resultado:** Devuelve las plantillas de encuesta (`SC.034`), retroalimentación (`SC.035`) y despedida (`SC.036`).
-
-  * **B. Registrar Calificación en Google Sheets:**
-    * **Método:** `POST`
-    * **URL:** `https://orbit-api-ewov.onrender.com/api/v1/csat/log?secret=maxi-secret-2025`
-    * **Instrucción de Configuración:** `Ejecuta esta acción al finalizar la recolección de la encuesta para registrar la calificación (1 al 5), el comentario y el agente previo que atendió la conversación en la hoja de cálculo de Google Sheets.`
-    * **Cuerpo JSON:**
-      ```json
-      {
-        "contact_id": "$contact.id",
-        "contact_name": "$contact.name",
-        "rating": "$contact.fields.csat_calificacion",
-        "comment": "$contact.fields.csat_comentario",
-        "assigned_agent": "$contact.fields.csat_agente_previo"
-      }
-      ```
 
 ---
 
@@ -1003,8 +884,6 @@ Para mantener la redacción conversacional centralizada y dinámica en Google Sh
 * **Google Sheets Utilizados:**
   * **Reglas de Negocio (ID):** `1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw`
   * **Scripts SC (ID):** `18VE3tdVt4E-eNrf0dD4zlk1aLV2nfv9_ncdUvLPaNic`
-
-
 
 ---
 
