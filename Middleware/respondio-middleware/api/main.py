@@ -3276,8 +3276,12 @@ async def agent_interact(
     user_text = request.user_text.strip()
     agent_name = request.agent_name.strip()
     media_url = request.media_url
-    
-    logger.info(f"📨 Agent interaction request received for agent: {agent_name}, contact: {contact_id}")
+    if media_url:
+        media_url = media_url.strip()
+        if media_url in ["", "null", "None", "undefined"] or "{{" in media_url or "}}" in media_url or not media_url.lower().startswith("http"):
+            media_url = None
+            
+    logger.info(f"📨 Agent interaction request received for agent: {agent_name}, contact: {contact_id}, media_url: {media_url}")
     
     redis = await get_redis_client()
     
