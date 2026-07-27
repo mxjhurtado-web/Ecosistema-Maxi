@@ -3618,9 +3618,23 @@ async def agent_interact(
             )
     
     # Check if a greeting is sent (resets session) or starting fresh
-    greetings = ["hola", "buenos dias", "buenos días", "buenas tardes", "buenas noches", "hello", "hi", "buen dia", "buen día"]
     user_text_clean = re.sub(r'[^a-zñáéíóú\s]', '', user_text_lower).strip()
-    if user_text_clean in greetings or current_state == "NEW":
+    
+    greeting_words = ["hola", "buenos dias", "buenos días", "buenas tardes", "buenas noches", "hello", "hi", "buen dia", "buen día", "saludos"]
+    
+    is_greeting = False
+    if user_text_clean in greeting_words:
+        is_greeting = True
+    elif len(user_text_clean) < 30:
+        if any(w in user_text_clean for w in ["hola", "buen", "hi", "hello", "saludos"]):
+            is_greeting = True
+            
+    # Support manual reset commands for simulation testing
+    if user_text_clean in ["reset", "restablecer", "inicio", "clear", "reiniciar"]:
+        logger.info(f"🧹 Manual session reset triggered for contact {contact_id}")
+        is_greeting = True
+        
+    if is_greeting or current_state == "NEW":
         # Check if we should transition VerificadorEstatus directly
         if current_state == "NEW" and agent_name == "VerificadorEstatus":
             cached_code = await redis.get(code_key)
