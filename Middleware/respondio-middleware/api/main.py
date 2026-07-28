@@ -3780,6 +3780,30 @@ async def agent_interact(
         logger.info(f"🧹 Manual session reset triggered for contact {contact_id}")
         is_greeting = True
         
+    # OCR analysis from media_url if present
+    ocr_result = None
+    if media_url:
+        logger.info(f"📸 Running OCR on media: {media_url}")
+        ocr_result = await run_ocr_on_media(media_url)
+        if ocr_result and ocr_result.get("is_receipt") and ocr_result.get("tracking_code"):
+            codigo_envio = ocr_result["tracking_code"].strip().upper()
+            await redis.set(code_key, codigo_envio, ex=3600)
+            logger.info(f"🎯 OCR Extracted Claim Code: {codigo_envio}")
+            if ocr_result.get("sender_name"):
+                await redis.set(f"session:ocr_sender:{contact_id}", ocr_result["sender_name"], ex=3600)
+            if ocr_result.get("beneficiary_name"):
+                await redis.set(f"session:ocr_beneficiary:{contact_id}", ocr_result["beneficiary_name"], ex=3600)
+            
+            # Transition directly to WAITING_FOR_NAME with SC.010 prompt
+            await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
+            sc10_text = scripts.get("SC.010", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de quien envió el dinero y el nombre completo de quien lo recibe, por favor?.")
+            translated = await translate_script_if_needed(sc10_text, user_text)
+            return AgentInteractResponse(
+                status="success",
+                reply_text=translated,
+                derivacion="NA"
+            )
+
     if is_greeting or current_state == "NEW":
         # Check if we should transition VerificadorEstatus directly
         if current_state == "NEW" and agent_name == "VerificadorEstatus":
