@@ -259,6 +259,8 @@ async def webhook(
             inner_msg = request["message"].get("message")
             if isinstance(inner_msg, dict):
                 user_msg_text = inner_msg.get("text")
+                if not user_msg_text and inner_msg.get("attachment") and isinstance(inner_msg["attachment"], dict):
+                    user_msg_text = inner_msg["attachment"].get("description")
         
         if user_msg_text:
             user_msg_text = str(user_msg_text).strip()
@@ -3396,6 +3398,14 @@ async def agent_interact(
             
     redis = await get_redis_client()
     
+    # Restore media_url from global webhook cache if not provided in payload
+    if not media_url and contact_id and contact_id not in ["contact.id", "contactid", "$contact.id", ""]:
+        cached_img = await redis.get(f"contact:last_image:{contact_id}")
+        if cached_img:
+            media_url = cached_img.decode('utf-8').strip()
+            logger.info(f"📸 Restored media_url from global webhook Redis cache: {media_url}")
+            await redis.delete(f"contact:last_image:{contact_id}")
+    
     # Self-healing fallback for unresolved or simulator contact_id in production
     if contact_id in ["contact.id", "contactid", "$contact.id", ""]:
         # 1. Try to map by exact user text match
@@ -3769,7 +3779,10 @@ async def agent_interact(
     greeting_words = ["hola", "buenos dias", "buenos días", "buenas tardes", "buenas noches", "hello", "hi", "buen dia", "buen día", "saludos"]
     
     is_greeting = False
-    if user_text_clean in greeting_words:
+    if media_url:
+        logger.info(f"📸 media_url present for contact {contact_id}. Suppressing greeting session reset.")
+        is_greeting = False
+    elif user_text_clean in greeting_words:
         is_greeting = True
     elif len(user_text_clean) < 30:
         if any(w in user_text_clean for w in ["hola", "buen", "hi", "hello", "saludos"]):
