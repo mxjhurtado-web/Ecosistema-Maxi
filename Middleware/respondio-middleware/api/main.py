@@ -3762,15 +3762,6 @@ async def agent_interact(
     # ------------------------------------------------------------
     # 6. CORE AGENTS: Max, VerificadorEstatus, OrquestadorDocumentos (Rastreo de Remesas)
     # ------------------------------------------------------------
-
-    # 6a. Route images to OrquestadorDocumentos if not handled by specialist agents
-    if media_url and agent_name not in ["OrquestadorDocumentos", "VerificadorEstatus"]:
-        logger.info(f"📸 Image received by {agent_name}. Routing to OrquestadorDocumentos.")
-        return AgentInteractResponse(
-            status="success",
-            reply_text="",
-            derivacion="OrquestadorDocumentos"
-        )
     
     # Check if a greeting is sent (resets session) or starting fresh
     user_text_clean = re.sub(r'[^a-zñáéíóú\s]', '', user_text_lower).strip()
