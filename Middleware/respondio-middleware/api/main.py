@@ -1303,11 +1303,15 @@ async def check_transaction_status_inner(
                 # 1. Validate code freshness
                 code_fresh = False
                 if codigo_envio:
-                    clean_code = re.sub(r'[^A-Z0-9]', '', codigo_envio.upper())
-                    clean_session = re.sub(r'[^A-Z0-9]', '', session_text.upper())
-                    clean_user_text = re.sub(r'[^A-Z0-9]', '', user_text.upper())
-                    if clean_code in clean_session or clean_code in clean_user_text:
+                    # Si el código se envió explícitamente en el JSON de la llamada HTTP, es fresco
+                    if request.codigo_envio or (request.metadata and request.metadata.get("codigo_envio")):
                         code_fresh = True
+                    else:
+                        clean_code = re.sub(r'[^A-Z0-9]', '', codigo_envio.upper())
+                        clean_session = re.sub(r'[^A-Z0-9]', '', session_text.upper())
+                        clean_user_text = re.sub(r'[^A-Z0-9]', '', user_text.upper())
+                        if clean_code in clean_session or clean_code in clean_user_text:
+                            code_fresh = True
                         
                 # Check for receipt image in the session
                 if not code_fresh:
