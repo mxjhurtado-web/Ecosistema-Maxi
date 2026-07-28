@@ -1517,19 +1517,24 @@ async def check_transaction_status_inner(
                     session_text = session_text_bytes.decode('utf-8').upper()
                     clean_user_text = user_text.upper()
                     
-                    def is_fresh(name_str: Optional[str]) -> bool:
+                    explicit_sender = bool(request.nombre_remitente or (request.metadata and request.metadata.get("nombre_remitente")))
+                    explicit_beneficiary = bool(request.nombre_beneficiario or (request.metadata and request.metadata.get("nombre_beneficiario")))
+                    
+                    def is_fresh(name_str: Optional[str], is_explicit: bool = False) -> bool:
                         if not name_str:
                             return False
+                        if is_explicit:
+                            return True
                         words = [w for w in re.findall(r'\w+', name_str.upper()) if len(w) > 2]
                         if not words:
                             return False
                         return any(w in session_text or w in clean_user_text for w in words)
                         
-                    if user_sender and not is_fresh(user_sender):
+                    if user_sender and not is_fresh(user_sender, explicit_sender):
                         logger.info(f"🚫 Ignoring old/historical sender name {user_sender} for contact {contact_id}")
                         user_sender = None
                         
-                    if user_beneficiary and not is_fresh(user_beneficiary):
+                    if user_beneficiary and not is_fresh(user_beneficiary, explicit_beneficiary):
                         logger.info(f"🚫 Ignoring old/historical beneficiary name {user_beneficiary} for contact {contact_id}")
                         user_beneficiary = None
             except Exception as e:

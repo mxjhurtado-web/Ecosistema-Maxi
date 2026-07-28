@@ -563,8 +563,8 @@ class TestStatusCheckEndpoint:
             assert "Desborde de Emergencia por Horario" in data["reply_text"]
 
     def test_status_check_stale_data_isolation(self, client):
-        """Test status check ignores stale data when session active but code/names not in session text"""
-        # Mock Redis get to return "hola" (session active, but code/names missing)
+        """Test status check ignores stale session variables when not explicitly passed in payload"""
+        # Mock Redis get to return "hola" (session active, but code/names missing from text)
         async def mock_redis_get(key):
             if "session_text" in key:
                 return b"hola"
@@ -577,8 +577,7 @@ class TestStatusCheckEndpoint:
             json={
                 "contact_id": "test_contact",
                 "user_text": "",
-                "nombre_remitente": "JUAN PEREZ",
-                "codigo_envio": "CE12345678",
+                "codigo_envio": "", # Missing code
                 "perfil": "CLIENTE"
             }
         )
