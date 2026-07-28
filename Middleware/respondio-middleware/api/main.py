@@ -3836,12 +3836,13 @@ async def agent_interact(
             )
         else:
             # If OCR cannot extract a valid code from the image, route to OrquestadorDocumentos without looping
-            logger.info(f"📄 Media URL unreadable by OCR or non-receipt image. Routing to OrquestadorDocumentos for contact {contact_id}")
-            return AgentInteractResponse(
-                status="success",
-                reply_text="",
-                derivacion="OrquestadorDocumentos"
-            )
+            if agent_name != "OrquestadorDocumentos":
+                logger.info(f"📄 Media URL unreadable by OCR or non-receipt image. Routing to OrquestadorDocumentos for contact {contact_id}")
+                return AgentInteractResponse(
+                    status="success",
+                    reply_text="",
+                    derivacion="OrquestadorDocumentos"
+                )
 
     if is_greeting or current_state == "NEW":
         # Check if we should transition VerificadorEstatus directly
