@@ -3294,7 +3294,7 @@ async def run_ocr_on_media(media_url: str) -> Optional[Dict[str, Any]]:
             logger.error("❌ Gemini API Key not found for OCR")
             return None
             
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
             resp = await client.get(media_url, timeout=15)
             if resp.status_code != 200:
                 logger.error(f"❌ Failed to download media from {media_url}: status {resp.status_code}")
@@ -3794,6 +3794,34 @@ async def agent_interact(
             if ocr_result.get("beneficiary_name"):
                 await redis.set(f"session:ocr_beneficiary:{contact_id}", ocr_result["beneficiary_name"], ex=3600)
             
+            # If OCR extracted sender/beneficiary names, attempt direct status resolution
+            ocr_sender = ocr_result.get("sender_name")
+            ocr_ben = ocr_result.get("beneficiary_name")
+            if ocr_sender or ocr_ben:
+                try:
+                    status_req = StatusCheckRequest(
+                        contact_id=contact_id,
+                        user_text=f"{user_text} {codigo_envio}",
+                        nombre_remitente=ocr_sender or ocr_ben,
+                        nombre_beneficiario=ocr_ben or ocr_sender,
+                        codigo_envio=codigo_envio,
+                        perfil="CLIENTE"
+                    )
+                    status_resp = await check_transaction_status_inner(status_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                    if status_resp.validation_success:
+                        await redis.set(state_key, "COMPLETED", ex=3600)
+                        await redis.delete(perfil_key)
+                        await redis.delete(code_key)
+                        await redis.delete(name_key)
+                        logger.info(f"🎯 Direct OCR Status Resolution Success for code: {codigo_envio}")
+                        return AgentInteractResponse(
+                            status="success",
+                            reply_text=status_resp.reply_text,
+                            derivacion=status_resp.derivacion
+                        )
+                except Exception as ocr_status_err:
+                    logger.info(f"Direct status check from OCR failed: {ocr_status_err}")
+
             # Transition directly to WAITING_FOR_NAME with SC.010 prompt
             await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
             sc10_text = scripts.get("SC.010", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de quien envió el dinero y el nombre completo de quien lo recibe, por favor?.")
