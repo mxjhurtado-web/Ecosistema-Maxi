@@ -3406,6 +3406,10 @@ async def agent_interact(
             if last_active:
                 contact_id = last_active.decode('utf-8')
                 logger.info(f"🔮 Self-healed contact_id from global last active cache: {contact_id}")
+
+    if contact_id == "-1":
+        # Always reset attempts for simulator synthetic contact ID (-1) to prevent stuck failure sessions
+        await redis.set(f"attempts:{contact_id}", "0", ex=3600)
             
     # Self-healing fallback for unresolved user_text placeholders (e.g. $message.message)
     user_text_lower_temp = user_text.lower().strip()
