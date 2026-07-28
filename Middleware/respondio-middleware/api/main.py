@@ -3889,7 +3889,7 @@ async def agent_interact(
                             transaction_id=codigo_envio,
                             customer_number=cust_phone,
                             cellular_number=cell_phone,
-                            perfil=detected_p or "CLIENTE"
+                            perfil=perfil or "CLIENTE"
                         )
                         topup_resp = await check_topup_status_inner(topup_req, x_webhook_secret=settings.WEBHOOK_SECRET)
                         if topup_resp.validation_success:
@@ -3905,7 +3905,7 @@ async def agent_interact(
                             tracking_number=codigo_envio,
                             biller=user_text,
                             nombre_completo_customer=user_text,
-                            perfil=detected_p or "CLIENTE"
+                            perfil=perfil or "CLIENTE"
                         )
                         bill_resp = await check_bill_status_inner(bill_req, x_webhook_secret=settings.WEBHOOK_SECRET)
                         if bill_resp.validation_success:
@@ -3915,14 +3915,14 @@ async def agent_interact(
                             await redis.delete(name_key)
                             return AgentInteractResponse(status="success", reply_text=bill_resp.reply_text, derivacion=bill_resp.derivacion)
                     else:
-                        if not detected_p:
+                        if not perfil:
                             nombre_rem = user_text
                             nombre_ben = user_text
                             perfil_to_send = "CLIENTE"
                         else:
-                            nombre_rem = user_text if detected_p == "REMITENTE" else None
-                            nombre_ben = user_text if detected_p == "BENEFICIARIO" else None
-                            perfil_to_send = detected_p
+                            nombre_rem = user_text if perfil == "REMITENTE" else None
+                            nombre_ben = user_text if perfil == "BENEFICIARIO" else None
+                            perfil_to_send = perfil
                         status_req = StatusCheckRequest(
                             contact_id=contact_id,
                             user_text=f"{user_text} {codigo_envio}",
