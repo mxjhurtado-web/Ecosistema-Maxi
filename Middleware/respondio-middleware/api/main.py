@@ -1098,7 +1098,31 @@ def detect_profile_from_text(text: str) -> Optional[str]:
     elif any(k in user_p_lower for k in KEYWORDS_AGENTE):
         return "AGENTE"
         
-    return None
+def is_no_more_help_needed(text: str) -> bool:
+    if not text:
+        return False
+    t = text.lower().strip(".,!?¡¿() ")
+    
+    closure_phrases = [
+        "no", "no gracias", "no, gracias", "no muchas gracias", "no, muchas gracias",
+        "ninguna", "ninguno", "ningun", "ningún", "nada", "nada mas", "nada más",
+        "seria todo", "sería todo", "todo bien", "todo claro", "gracias", "muchas gracias",
+        "mil gracias", "listo", "ya quedo", "ya quedó", "eso es todo", "eso sería todo",
+        "gracias por la ayuda", "ok", "ok gracias", "vale", "perfecto",
+        "no thank you", "no thanks", "no, thank you", "thanks", "thank you",
+        "that is all", "that would be all", "all good", "bye", "adios", "adiós"
+    ]
+    if t in closure_phrases:
+        return True
+        
+    for p in ["seria todo", "sería todo", "eso es todo", "eso sería todo", "no gracias", "no, gracias", "ninguna duda", "ningun problema", "ningún problema"]:
+        if p in t:
+            return True
+            
+    if len(t) < 35 and any(w in t for w in ["gracias", "thank", "ok", "listo", "adios", "bye", "chao", "seria todo", "sería todo"]):
+        return True
+        
+    return False
 
 
 def extraer_codigo_router(texto: str) -> Optional[str]:
@@ -3821,6 +3845,70 @@ async def agent_interact(
                 await redis.set(state_key, "WAITING_FOR_CODE", ex=3600)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
             else:
+                # --- Trial check: if user_text already contains names/info, attempt query immediately ---
+                try:
+                    if agent_name == "VerificadorEstatusRecargas":
+                        phones = re.findall(r'\b\d{7,15}\b', user_text)
+                        cust_phone = phones[0] if len(phones) > 0 else user_text
+                        cell_phone = phones[1] if len(phones) > 1 else cust_phone
+                        topup_req = TopupCheckRequest(
+                            contact_id=contact_id,
+                            user_text=f"{user_text} {codigo_envio}",
+                            transaction_id=codigo_envio,
+                            customer_number=cust_phone,
+                            cellular_number=cell_phone,
+                            perfil=detected_p or "CLIENTE"
+                        )
+                        topup_resp = await check_topup_status_inner(topup_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                        if topup_resp.validation_success:
+                            await redis.set(state_key, "COMPLETED", ex=3600)
+                            await redis.delete(perfil_key)
+                            await redis.delete(code_key)
+                            await redis.delete(name_key)
+                            return AgentInteractResponse(status="success", reply_text=topup_resp.reply_text, derivacion=topup_resp.derivacion)
+                    elif codigo_envio.upper().startswith("TRK"):
+                        bill_req = BillCheckRequest(
+                            contact_id=contact_id,
+                            user_text=f"{user_text} {codigo_envio}",
+                            tracking_number=codigo_envio,
+                            biller=user_text,
+                            nombre_completo_customer=user_text,
+                            perfil=detected_p or "CLIENTE"
+                        )
+                        bill_resp = await check_bill_status_inner(bill_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                        if bill_resp.validation_success:
+                            await redis.set(state_key, "COMPLETED", ex=3600)
+                            await redis.delete(perfil_key)
+                            await redis.delete(code_key)
+                            await redis.delete(name_key)
+                            return AgentInteractResponse(status="success", reply_text=bill_resp.reply_text, derivacion=bill_resp.derivacion)
+                    else:
+                        if not detected_p:
+                            nombre_rem = user_text
+                            nombre_ben = user_text
+                            perfil_to_send = "CLIENTE"
+                        else:
+                            nombre_rem = user_text if detected_p == "REMITENTE" else None
+                            nombre_ben = user_text if detected_p == "BENEFICIARIO" else None
+                            perfil_to_send = detected_p
+                        status_req = StatusCheckRequest(
+                            contact_id=contact_id,
+                            user_text=f"{user_text} {codigo_envio}",
+                            nombre_remitente=nombre_rem,
+                            nombre_beneficiario=nombre_ben,
+                            codigo_envio=codigo_envio,
+                            perfil=perfil_to_send
+                        )
+                        status_resp = await check_transaction_status_inner(status_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                        if status_resp.validation_success:
+                            await redis.set(state_key, "COMPLETED", ex=3600)
+                            await redis.delete(perfil_key)
+                            await redis.delete(code_key)
+                            await redis.delete(name_key)
+                            return AgentInteractResponse(status="success", reply_text=status_resp.reply_text, derivacion=status_resp.derivacion)
+                except Exception as trial_err:
+                    logger.info(f"Trial query in WAITING_FOR_PROFILE failed (missing info): {trial_err}")
+
                 if agent_name == "VerificadorEstatusRecargas":
                     sc10_text = scripts.get("SC.010.2", "Para continuar, necesito validar algunos datos. ¿Me comparte el número telefónico de la persona quien hizo la recarga y el número al que se realizó, por favor?.")
                     translated = await translate_script_if_needed(sc10_text, user_text)
@@ -3854,6 +3942,71 @@ async def agent_interact(
     elif current_state == "WAITING_FOR_CODE":
         if codigo_envio:
             await redis.set(attempts_key, "0", ex=3600)
+            
+            # --- Trial check: if user_text already contains names/info, attempt query immediately ---
+            try:
+                if agent_name == "VerificadorEstatusRecargas":
+                    phones = re.findall(r'\b\d{7,15}\b', user_text)
+                    cust_phone = phones[0] if len(phones) > 0 else user_text
+                    cell_phone = phones[1] if len(phones) > 1 else cust_phone
+                    topup_req = TopupCheckRequest(
+                        contact_id=contact_id,
+                        user_text=f"{user_text} {codigo_envio}",
+                        transaction_id=codigo_envio,
+                        customer_number=cust_phone,
+                        cellular_number=cell_phone,
+                        perfil=perfil or "CLIENTE"
+                    )
+                    topup_resp = await check_topup_status_inner(topup_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                    if topup_resp.validation_success:
+                        await redis.set(state_key, "COMPLETED", ex=3600)
+                        await redis.delete(perfil_key)
+                        await redis.delete(code_key)
+                        await redis.delete(name_key)
+                        return AgentInteractResponse(status="success", reply_text=topup_resp.reply_text, derivacion=topup_resp.derivacion)
+                elif codigo_envio.upper().startswith("TRK"):
+                    bill_req = BillCheckRequest(
+                        contact_id=contact_id,
+                        user_text=f"{user_text} {codigo_envio}",
+                        tracking_number=codigo_envio,
+                        biller=user_text,
+                        nombre_completo_customer=user_text,
+                        perfil=perfil or "CLIENTE"
+                    )
+                    bill_resp = await check_bill_status_inner(bill_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                    if bill_resp.validation_success:
+                        await redis.set(state_key, "COMPLETED", ex=3600)
+                        await redis.delete(perfil_key)
+                        await redis.delete(code_key)
+                        await redis.delete(name_key)
+                        return AgentInteractResponse(status="success", reply_text=bill_resp.reply_text, derivacion=bill_resp.derivacion)
+                else:
+                    if not perfil:
+                        nombre_rem = user_text
+                        nombre_ben = user_text
+                        perfil_to_send = "CLIENTE"
+                    else:
+                        nombre_rem = user_text if perfil == "REMITENTE" else None
+                        nombre_ben = user_text if perfil == "BENEFICIARIO" else None
+                        perfil_to_send = perfil
+                    status_req = StatusCheckRequest(
+                        contact_id=contact_id,
+                        user_text=f"{user_text} {codigo_envio}",
+                        nombre_remitente=nombre_rem,
+                        nombre_beneficiario=nombre_ben,
+                        codigo_envio=codigo_envio,
+                        perfil=perfil_to_send
+                    )
+                    status_resp = await check_transaction_status_inner(status_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                    if status_resp.validation_success:
+                        await redis.set(state_key, "COMPLETED", ex=3600)
+                        await redis.delete(perfil_key)
+                        await redis.delete(code_key)
+                        await redis.delete(name_key)
+                        return AgentInteractResponse(status="success", reply_text=status_resp.reply_text, derivacion=status_resp.derivacion)
+            except Exception as trial_err:
+                logger.info(f"Trial query in WAITING_FOR_CODE failed (missing info): {trial_err}")
+
             if agent_name == "VerificadorEstatusRecargas":
                 sc10_text = scripts.get("SC.010.2", "Para continuar, necesito validar algunos datos. ¿Me comparte el número telefónico de la persona quien hizo la recarga y el número al que se realizó, por favor?.")
                 translated = await translate_script_if_needed(sc10_text, user_text)
@@ -4003,8 +4156,7 @@ async def agent_interact(
 
     elif current_state == "COMPLETED":
         # Check if they said NO/NO MORE HELP to trigger CSAT
-        negatives = ["no", "nada mas", "nada más", "no gracias", "no, gracias", "no thank you", "no thanks", "no, thank you"]
-        if user_text_lower.strip(".,!?") in negatives:
+        if is_no_more_help_needed(user_text):
             # Trigger CSAT Survey
             await redis.set(state_key, "CSAT", ex=3600)
             sccsat_key = f"session:csat:step:{contact_id}"

@@ -1070,5 +1070,18 @@ class TestTopupCheckEndpoint:
         assert data["validation_success"] is False
 
 
+class TestNewBusinessRules:
+    """Test unit functions for new business rules and CSAT detection"""
+
+    def test_is_no_more_help_needed(self):
+        from api.main import is_no_more_help_needed
+        assert is_no_more_help_needed("seria todo, muchas gracias") is True
+        assert is_no_more_help_needed("no gracias") is True
+        assert is_no_more_help_needed("nada mas") is True
+        assert is_no_more_help_needed("todo bien gracias") is True
+        assert is_no_more_help_needed("quiero consultar otro envio") is False
+
+
+
 
 
