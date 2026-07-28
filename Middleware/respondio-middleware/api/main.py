@@ -3891,6 +3891,13 @@ async def agent_interact(
                 await redis.set(f"session:ocr_sender:{contact_id}", ocr_result["sender_name"], ex=3600)
             if ocr_result.get("beneficiary_name"):
                 await redis.set(f"session:ocr_beneficiary:{contact_id}", ocr_result["beneficiary_name"], ex=3600)
+        else:
+            logger.info(f"📄 Media URL present but OCR could not extract claim code. Routing contact {contact_id} directly to OrquestadorDocumentos")
+            return AgentInteractResponse(
+                status="success",
+                reply_text="",
+                derivacion="OrquestadorDocumentos"
+            )
 
     # Check for code in text if not resolved
     if not codigo_envio:
