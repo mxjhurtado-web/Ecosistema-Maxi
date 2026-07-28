@@ -1195,8 +1195,12 @@ def append_courtesy_sc33(reply_text: str, contact_name: str = None) -> str:
     from .shared_logic import get_compliance_scripts
     scripts = get_compliance_scripts()
     sc33_template = scripts.get("SC.033", "[Nombre] ¿Hay algo más en lo que le pueda ayudar?.")
-    clean_name = contact_name or "Cliente"
-    sc33_text = sc33_template.replace("[Nombre]", clean_name).replace("“", "").replace("”", "").replace('"', "")
+    clean_name = (contact_name or "").strip()
+    if clean_name and clean_name.lower() != "cliente":
+        sc33_text = sc33_template.replace("[Nombre]", clean_name)
+    else:
+        sc33_text = sc33_template.replace("[Nombre]", "").strip()
+    sc33_text = sc33_text.replace("“", "").replace("”", "").replace('"', "").strip()
     return f"{reply_text}\n\n{sc33_text}"
 
 @app.post("/api/v1/status/check", response_model=StatusCheckResponse)
