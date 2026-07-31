@@ -3509,7 +3509,7 @@ async def agent_interact(
                     title="Alerta de Orbit",
                     message=alert_msg,
                     level="ERROR",
-                    space_id=os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
+                    space_id=os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or getattr(settings, "GOOGLE_CHATS_FRAUDES_SPACE", None) or "spaces/AAQAQM9pDpg"
                 )
                 logger.info(f"✅ Google Chat Fraud Alert sent successfully for contact {contact_id}")
             except Exception as gchat_err:

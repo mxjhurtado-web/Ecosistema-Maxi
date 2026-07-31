@@ -1109,7 +1109,7 @@ async def google_chat_notify_handler_inner(
         elif destino_lower == "cumplimiento":
             target_space = os.getenv("GOOGLE_CHATS_CUMPLIMIENTO_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
         elif destino_lower in ["fraudes", "fraude", "prevencion_de_fraudes"]:
-            target_space = os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
+            target_space = os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or getattr(settings, "GOOGLE_CHATS_FRAUDES_SPACE", None) or "spaces/AAQAQM9pDpg"
         elif destino_lower in ["bsa", "bsa_monitoring"]:
             target_space = os.getenv("GOOGLE_CHATS_BSA_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
         else:
