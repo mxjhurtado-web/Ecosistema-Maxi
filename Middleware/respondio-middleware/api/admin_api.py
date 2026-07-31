@@ -1158,6 +1158,7 @@ async def google_chat_notify_handler_inner(
     # Registrar el espacio activo en Redis para Orbit Bot
     if success and target_space:
         try:
+            from .telemetry import telemetry_service
             if telemetry_service.redis:
                 await telemetry_service.redis.sadd("gchat:active_spaces", target_space)
                 await telemetry_service.redis.sadd("gchat:orbit:active_spaces", target_space)

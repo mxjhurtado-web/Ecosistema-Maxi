@@ -3462,15 +3462,64 @@ async def agent_interact(
     
     # Detección de Fraude (RNE.50 / SC.030) - Prioridad Absoluta
     fraud_keywords = ["estafa", "fraude", "engaño", "phishing", "robo", "robado", "extorsión", "sospechosa", "víctima", "scam"]
-    if any(k in user_text_lower for k in fraud_keywords):
-        logger.info(f"🚨 Fraud keyword detected for contact {contact_id}")
-        sc30_text = scripts.get("SC.030", "Su solicitud es de alta prioridad para nosotros. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-        translated = await translate_script_if_needed(sc30_text, user_text)
-        return AgentInteractResponse(
-            status="success",
-            reply_text=translated,
-            derivacion="DerivacionFraudes"
-        )
+    fraud_collecting_key = f"session:fraud_collecting:{contact_id}"
+    is_fraud_collecting = await redis.get(fraud_collecting_key)
+
+    if (any(k in user_text_lower for k in fraud_keywords) or is_fraud_collecting) and agent_name != "DerivacionFraudes":
+        logger.info(f"🚨 Fraud flow active for contact {contact_id} (collecting={bool(is_fraud_collecting)})")
+        
+        if not is_fraud_collecting:
+            # Turn 1: Deliver Welcome (CU.A1) + SC.030 + Request 3 Security Fields + Set Redis state
+            await redis.set(fraud_collecting_key, "1", ex=3600)
+            
+            cua1_text = scripts.get("CU.A1", "¡Gracias por comunicarse a Maxitransfers! Para conocer cómo protegemos sus datos personales, consulte nuestro aviso de privacidad en www.maxitransfers.com/privacidad.")
+            sc30_text = scripts.get("SC.030", "Su solicitud es de alta prioridad para nosotros. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+
+            cua1_trans = await translate_script_if_needed(cua1_text, user_text)
+            sc30_trans = await translate_script_if_needed(sc30_text, user_text)
+
+            request_details_text = (
+                "\n\nMientras tanto, para agilizar la atención con su asesor, por favor compártame en un mensaje:\n"
+                "1) Su nombre completo.\n"
+                "2) Los detalles de lo ocurrido con la estafa o situación.\n"
+                "3) La clave de envío o transacción, si aplica."
+            )
+
+            full_reply = f"{cua1_trans}\n\n{sc30_trans}{request_details_text}"
+            
+            return AgentInteractResponse(
+                status="success",
+                reply_text=full_reply,
+                derivacion=None  # Stay with MAX so user can send details in Turn 2
+            )
+        else:
+            # Turn 2: Received details from user -> Clear Redis state -> Send Google Chat Alert -> Reassign to DerivacionFraudes
+            await redis.delete(fraud_collecting_key)
+
+            try:
+                import os
+                from .google_chat_service import google_chat_service
+                alert_msg = (
+                    f"🚨 *ALERTA DE FRAUDE/ESTAFA*\n\n"
+                    f"👤 *Cliente:* Contacto #{contact_id}\n"
+                    f"📞 *Contacto:* {contact_id}\n"
+                    f"📝 *Detalle del Reporte de Usuario:*\n{user_text}"
+                )
+                await google_chat_service.send_alert_detailed(
+                    title="Alerta de Orbit",
+                    message=alert_msg,
+                    level="ERROR",
+                    space_id=os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
+                )
+                logger.info(f"✅ Google Chat Fraud Alert sent successfully for contact {contact_id}")
+            except Exception as gchat_err:
+                logger.error(f"⚠️ Failed to send Google Chat Fraud Alert: {gchat_err}")
+
+            return AgentInteractResponse(
+                status="success",
+                reply_text="Gracias. He registrado la información de su reporte y en este momento lo estoy transfiriendo con un asesor del departamento de Prevención de Fraudes.",
+                derivacion="DerivacionFraudes"
+            )
         
     # Asesor humano explícito
     human_keywords = ["asesor", "humano", "persona", "soporte", "hablar con alguien", "agent", "human", "representative"]
