@@ -3497,13 +3497,22 @@ async def agent_interact(
             await redis.delete(fraud_collecting_key)
 
             try:
-                import os
-                from .google_chat_service import google_chat_service
+                cached_url = await redis.get(f"contact:last_image:{contact_id}")
+                media_attach = ""
+                if cached_url:
+                    try:
+                        url_str = cached_url.decode('utf-8')
+                        if url_str and "http" in url_str:
+                            emoji_attach = "📄" if ".pdf" in url_str.lower() else "📷"
+                            media_attach = f"\n\n{emoji_attach} *Adjunto:* {url_str}"
+                    except Exception:
+                        pass
+
                 alert_msg = (
                     f"🚨 *ALERTA DE FRAUDE/ESTAFA*\n\n"
-                    f"👤 *Cliente:* Contacto #{contact_id}\n"
-                    f"📞 *Contacto:* {contact_id}\n"
-                    f"📝 *Detalle del Reporte de Usuario:*\n{user_text}"
+                    f"👤 *Usuario:* Contacto #{contact_id}\n"
+                    f"🎯 *Intención:* Reporte de Fraude / Estafa\n"
+                    f"📝 *Detalle:* {user_text}{media_attach}"
                 )
                 await google_chat_service.send_alert_detailed(
                     title="Alerta de Orbit",
