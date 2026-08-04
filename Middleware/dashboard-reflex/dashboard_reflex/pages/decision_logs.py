@@ -297,7 +297,7 @@ def decision_logs_page() -> rx.Component:
                 width="100%"
             ),
             rx.cond(
-                rx.length(DecisionLogsState.filtered_logs) > 0,
+                DecisionLogsState.total_count > 0,
                 rx.vstack(
                     rx.foreach(
                         DecisionLogsState.filtered_logs,
