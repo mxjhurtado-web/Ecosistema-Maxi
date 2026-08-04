@@ -1,3 +1,4 @@
+import json
 import reflex as rx
 from dashboard_reflex.components.layout import protected_layout
 from dashboard_reflex.components.styling import (
@@ -5,7 +6,6 @@ from dashboard_reflex.components.styling import (
     glass_container, status_badge
 )
 from dashboard_reflex.api.client import api_client
-from typing import List, Dict, Any
 
 class DecisionLogsState(rx.State):
     search_query: str = ""
@@ -57,12 +57,31 @@ class DecisionLogsState(rx.State):
             # Formatting timestamp
             ts = item.get("timestamp", "")
             item["formatted_ts"] = str(ts)[:19].replace("T", " ") if ts else "N/A"
-            item["contact_display"] = item.get("contact_id") or item.get("phone") or "Desconocido"
-            item["rule_display"] = item.get("winning_rule_id") or "Sin regla"
-            item["script_display"] = item.get("script_code") or "Sin script"
-            item["current_state_display"] = item.get("current_state") or "INIT"
-            item["next_state_display"] = item.get("next_state") or "END"
-            item["action_display"] = item.get("next_action") or "CONTINUE"
+            item["contact_display"] = str(item.get("contact_id") or item.get("phone") or "Desconocido")
+            item["rule_display"] = str(item.get("winning_rule_id") or "Sin regla")
+            item["script_display"] = str(item.get("script_code") or "Sin script")
+            item["current_state_display"] = str(item.get("current_state") or "INIT")
+            item["next_state_display"] = str(item.get("next_state") or "END")
+            item["action_display"] = str(item.get("next_action") or "CONTINUE")
+            item["trace_id_display"] = str(item.get("trace_id") or "N/A")
+            item["script_text_display"] = str(item.get("script_text") or "Sin texto registrado")
+            item["destination_team_display"] = str(item.get("destination_team") or "")
+            item["csat_eligible_bool"] = bool(item.get("csat_eligible", False))
+            item["close_allowed_bool"] = bool(item.get("close_allowed", False))
+
+            # Pre-parse inputs
+            inputs = item.get("inputs") or {}
+            if isinstance(inputs, str):
+                try:
+                    inputs = json.loads(inputs)
+                except Exception:
+                    inputs = {}
+            if not isinstance(inputs, dict):
+                inputs = {}
+
+            item["input_user_text"] = str(inputs.get("user_text") or "Sin texto adjunto")
+            item["input_is_fresh"] = bool(inputs.get("is_fresh", False))
+            item["input_perfil"] = str(inputs.get("perfil") or "")
             
             # Badge colors based on action or state
             action = item["action_display"]
@@ -83,7 +102,7 @@ class DecisionLogsState(rx.State):
 
 
 def decision_card(log: dict) -> rx.Component:
-    """Renders a single decision audit card with full state transition details."""
+    """Renders a single decision audit card with flat Reflex Var keys."""
     return rx.box(
         rx.vstack(
             # Card Header
@@ -91,7 +110,7 @@ def decision_card(log: dict) -> rx.Component:
                 rx.hstack(
                     rx.icon("brain", size=18, color=ACCENT_BLUE),
                     rx.text(
-                        f"Contacto: {log.get('contact_display', '')}",
+                        "Contacto: ", log["contact_display"],
                         font_weight="bold",
                         font_size="15px"
                     ),
@@ -100,20 +119,20 @@ def decision_card(log: dict) -> rx.Component:
                 ),
                 rx.spacer(),
                 rx.badge(
-                    f"Regla: {log.get('rule_display', '')}",
+                    "Regla: ", log["rule_display"],
                     color_scheme="purple",
                     variant="solid",
                     radius="full"
                 ),
                 rx.badge(
-                    f"Script: {log.get('script_display', '')}",
+                    "Script: ", log["script_display"],
                     color_scheme="cyan",
                     variant="soft",
                     radius="full"
                 ),
                 rx.badge(
-                    log.get("action_display", "CONTINUE"),
-                    color_scheme=log.get("action_color", "cyan"),
+                    log["action_display"],
+                    color_scheme=log["action_color"],
                     variant="surface",
                     radius="full"
                 ),
@@ -128,15 +147,15 @@ def decision_card(log: dict) -> rx.Component:
                 rx.vstack(
                     rx.text("TRANSICIÓN FSM", font_size="11px", font_weight="bold", color=TEXT_MUTED),
                     rx.hstack(
-                        rx.badge(log.get("current_state_display", "INIT"), color_scheme="gray", variant="outline"),
+                        rx.badge(log["current_state_display"], color_scheme="gray", variant="outline"),
                         rx.icon("arrow-right", size=14, color=ACCENT_BLUE),
-                        rx.badge(log.get("next_state_display", "NEXT"), color_scheme="blue", variant="solid"),
+                        rx.badge(log["next_state_display"], color_scheme="blue", variant="solid"),
                         align="center",
                         spacing="2"
                     ),
                     rx.hstack(
                         rx.text("Trace ID:", font_size="11px", color=TEXT_MUTED),
-                        rx.code(log.get("trace_id", "N/A"), font_size="11px"),
+                        rx.code(log["trace_id_display"], font_size="11px"),
                         spacing="1"
                     ),
                     align_items="start",
@@ -147,19 +166,19 @@ def decision_card(log: dict) -> rx.Component:
                 rx.vstack(
                     rx.text("MENSAJE / ENTRADA", font_size="11px", font_weight="bold", color=TEXT_MUTED),
                     rx.text(
-                        log.get("inputs", {}).get("user_text") or "Sin texto adjunto",
+                        log["input_user_text"],
                         font_size="13px",
                         style={"max_height": "50px", "overflow_y": "auto"}
                     ),
                     rx.hstack(
                         rx.cond(
-                            log.get("inputs", {}).get("is_fresh", False),
+                            log["input_is_fresh"],
                             rx.badge("Frescura OK", color_scheme="green", variant="soft"),
                             rx.badge("Sin comprobante", color_scheme="gray", variant="soft")
                         ),
                         rx.cond(
-                            log.get("inputs", {}).get("perfil"),
-                            rx.badge(f"Perfil: {log.get('inputs', {}).get('perfil')}", color_scheme="cyan", variant="soft"),
+                            log["input_perfil"] != "",
+                            rx.badge("Perfil: ", log["input_perfil"], color_scheme="cyan", variant="soft"),
                             rx.fragment()
                         ),
                         spacing="1"
@@ -172,7 +191,7 @@ def decision_card(log: dict) -> rx.Component:
                 rx.vstack(
                     rx.text("RESPUESTA ENTREGADA", font_size="11px", font_weight="bold", color=TEXT_MUTED),
                     rx.text(
-                        log.get("script_text") or "Sin texto registrado",
+                        log["script_text_display"],
                         font_size="12px",
                         color=TEXT_MUTED,
                         style={"max_height": "50px", "overflow_y": "auto"}
@@ -189,20 +208,20 @@ def decision_card(log: dict) -> rx.Component:
 
             # Card Footer Meta
             rx.hstack(
-                rx.text(f"🕒 {log.get('formatted_ts', '')}", font_size="11px", color=TEXT_MUTED),
+                rx.text("🕒 ", log["formatted_ts"], font_size="11px", color=TEXT_MUTED),
                 rx.spacer(),
                 rx.cond(
-                    log.get("destination_team"),
-                    rx.badge(f"Derivado a: {log.get('destination_team')}", color_scheme="orange", variant="solid"),
+                    log["destination_team_display"] != "",
+                    rx.badge("Derivado a: ", log["destination_team_display"], color_scheme="orange", variant="solid"),
                     rx.fragment()
                 ),
                 rx.cond(
-                    log.get("csat_eligible", False),
+                    log["csat_eligible_bool"],
                     rx.badge("CSAT Elegible", color_scheme="green", variant="outline"),
                     rx.fragment()
                 ),
                 rx.cond(
-                    log.get("close_allowed", False),
+                    log["close_allowed_bool"],
                     rx.badge("Permite Cierre", color_scheme="blue", variant="outline"),
                     rx.fragment()
                 ),
@@ -271,7 +290,7 @@ def decision_logs_page() -> rx.Component:
                 ),
                 rx.spacer(),
                 rx.badge(
-                    f"Total: {DecisionLogsState.total_count} decisiones",
+                    "Total: ", DecisionLogsState.total_count.to(str), " decisiones",
                     color_scheme="purple",
                     variant="surface"
                 ),
