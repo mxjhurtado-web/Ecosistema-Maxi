@@ -47,6 +47,7 @@ def sidebar(current_page: str) -> rx.Component:
         ("🔧 Mantenimiento", "wrench", "/maintenance"),
         ("💬 Chat MCP", "message-square", "/chat"),
         ("🛡️ Auditoría", "shield-alert", "/auditoria"),
+        ("🧠 Decisiones FSM", "git-branch", "/decision-logs"),
         ("👥 Usuarios", "users", "/usuarios"),
         ("🤖 MaxiBot Panel", "bot", "/maxibot"),
         ("🌌 Orbit Bot Panel", "activity", "/orbit"),

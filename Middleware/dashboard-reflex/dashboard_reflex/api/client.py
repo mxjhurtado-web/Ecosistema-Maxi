@@ -117,6 +117,26 @@ class AdminAPIClient:
         res = await self._request("POST", "/admin/audit/log", params={"action": action, "details": details})
         return res is not None
 
+    async def get_decision_logs(
+        self,
+        contact_id: Optional[str] = None,
+        case_id: Optional[str] = None,
+        rule_id: Optional[str] = None,
+        limit: int = 50,
+        offset: int = 0
+    ) -> Dict[str, Any]:
+        """Fetch decision audit logs from Orbit backend."""
+        params: Dict[str, Any] = {"limit": limit, "offset": offset}
+        if contact_id:
+            params["contact_id"] = contact_id
+        if case_id:
+            params["case_id"] = case_id
+        if rule_id:
+            params["rule_id"] = rule_id
+        res = await self._request("GET", "/admin/decision-logs", params=params)
+        return res if res else {"total": 0, "logs": [], "limit": limit, "offset": offset}
+
+
     # ============================================================
     # User Management
     # ============================================================

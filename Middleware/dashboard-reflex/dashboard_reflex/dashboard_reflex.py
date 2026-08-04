@@ -11,6 +11,7 @@ from dashboard_reflex.pages.maintenance import maintenance_page
 from dashboard_reflex.pages.maintenance import MaintenanceState
 from dashboard_reflex.pages.auditoria import auditoria_page
 from dashboard_reflex.pages.auditoria import AuditState
+from dashboard_reflex.pages.decision_logs import decision_logs_page, DecisionLogsState
 from dashboard_reflex.pages.chat import chat_page
 from dashboard_reflex.pages.chat import ChatState
 from dashboard_reflex.pages.logs import logs_page
@@ -74,6 +75,13 @@ app.add_page(
     route="/auditoria",
     on_load=[AuthState.check_admin, AuditState.on_load, AppState.on_load],
     title="Orbit Dashboard | Auditoría"
+)
+
+app.add_page(
+    decision_logs_page,
+    route="/decision-logs",
+    on_load=[AuthState.check_admin, DecisionLogsState.on_load, AppState.on_load],
+    title="Orbit Dashboard | Decisiones FSM"
 )
 
 app.add_page(
