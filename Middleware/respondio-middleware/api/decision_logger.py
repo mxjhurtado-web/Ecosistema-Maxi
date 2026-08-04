@@ -29,7 +29,7 @@ async def save_decision_log(entry: DecisionLogEntry) -> bool:
             logger.warning("Redis client not available for decision logging")
             return False
             
-        key_target = entry.case_id or entry.contact_id
+        key_target = entry.contact_id or entry.case_id
         if not key_target:
             logger.warning("No contact_id or case_id provided for decision logging")
             return False
@@ -78,8 +78,8 @@ async def get_decision_logs(
         logs: List[Dict[str, Any]] = []
         target_keys = []
         
-        if case_id or contact_id:
-            target_key = case_id or contact_id
+        if contact_id or case_id:
+            target_key = contact_id or case_id
             target_keys.append(f"{DECISION_LOG_PREFIX}{target_key}")
         else:
             # Scan index to get recent conversation target IDs
