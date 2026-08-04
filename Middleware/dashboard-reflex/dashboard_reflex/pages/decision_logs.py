@@ -342,4 +342,4 @@ def decision_logs_page() -> rx.Component:
         spacing="4"
     )
     
-    return protected_layout(content, current_page="/decision-logs")
+    return protected_layout(content, "Decisiones FSM", "/decision-logs")
