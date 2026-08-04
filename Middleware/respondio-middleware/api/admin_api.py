@@ -21,7 +21,8 @@ from .models import (
     AuditLogEntry,
     AuditAction,
     AgentConfig,
-    GoogleChatNotificationRequest
+    GoogleChatNotificationRequest,
+    ResetSessionRequest
 )
 from .config import settings
 from .config_manager import config_manager
@@ -1885,4 +1886,47 @@ async def update_audit(
     except Exception as e:
         logger.error(f"Error updating audit in Sheets: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Google Sheets error: {str(e)}")
+
+
+# ============================================================
+# Decision Log & Session Management Endpoints
+# ============================================================
+
+@router.get("/decision-logs")
+async def get_decision_logs_endpoint(
+    contact_id: Optional[str] = Query(None),
+    case_id: Optional[str] = Query(None),
+    rule_id: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    _: DashboardUser = Depends(verify_admin_credentials)
+):
+    """Retrieve decision audit logs with optional filters"""
+    from .decision_logger import get_decision_logs
+    return await get_decision_logs(
+        contact_id=contact_id,
+        case_id=case_id,
+        rule_id=rule_id,
+        limit=limit,
+        offset=offset
+    )
+
+
+@router.post("/reset-session")
+async def reset_session_endpoint(
+    req: ResetSessionRequest,
+    admin: DashboardUser = Depends(require_admin_role)
+):
+    """Reset user session and clear decision logs in Redis for QA testing"""
+    from shared.redis_client import get_redis_client
+    redis = await get_redis_client()
+    if redis:
+        k = f"decision_log:{req.contact_id}"
+        await redis.delete(k)
+        await redis.delete(f"session:{req.contact_id}")
+        await redis.delete(f"state:{req.contact_id}")
+        
+    logger.info(f"🧹 QA Reset Session performed for contact_id={req.contact_id} by {admin.username}")
+    return {"status": "success", "message": f"Session reset for {req.contact_id}"}
+
 

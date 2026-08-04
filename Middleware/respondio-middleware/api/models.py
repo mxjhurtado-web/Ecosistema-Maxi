@@ -425,5 +425,47 @@ class AgentInteractResponse(BaseModel):
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Metadata o variables adicionales del estado")
 
 
+# ============================================================
+# Decision Logging & QA Session Reset Models
+# ============================================================
+
+class DecisionLogEntry(BaseModel):
+    """Entrada en el registro de toma de decisiones por conversación (Orbit FSM)"""
+    trace_id: str = Field(..., description="Folio único de trazabilidad de la decisión")
+    contact_id: str = Field(..., description="ID del contacto o teléfono en Respond.io")
+    case_id: Optional[str] = Field(None, description="ID del caso/sesión activa")
+    active_agent: Optional[str] = Field("Max", description="Nombre del agente en cascada activo (ej. VerificadorEstatus)")
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Fecha y hora de la decisión")
+    profile: Optional[str] = Field("CLIENTE", description="Perfil determinado (CLIENTE, BENEFICIARIO, AGENTE)")
+    user_input: Optional[str] = Field(None, description="Mensaje o comando enviado por el usuario")
+    ocr_extracted: Optional[Dict[str, Any]] = Field(None, description="Campos extraídos por visión/OCR si aplica")
+    winning_rule_id: Optional[str] = Field(None, description="ID de la regla de negocio ganadora (ej. RNE.26)")
+    script_code: Optional[str] = Field(None, description="Código del script asignado (ej. SC.019)")
+    script_text: Optional[str] = Field(None, description="Texto literal devuelto para comunicar al usuario")
+    language_code: Optional[str] = Field("es", description="Idioma del script ('es' o 'en')")
+    current_state: Optional[str] = Field(None, description="Estado FSM inicial del turno")
+    next_state: Optional[str] = Field(None, description="Estado FSM siguiente")
+    next_action: Optional[str] = Field("NONE", description="Acción técnica siguiente (OFFER_ADDITIONAL_HELP, ASSIGN_TO_TEAM, etc.)")
+    destination_team: Optional[str] = Field(None, description="Equipo/Agente de destino en caso de handoff")
+    csat_eligible: Optional[bool] = Field(False, description="Si la interacción califica para encuesta CSAT")
+    close_allowed: Optional[bool] = Field(False, description="Si se permite el cierre técnico de la conversación")
+    audit_meta: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Metadata técnica (versiones, flags de frescura, etc.)")
+
+
+class ResetSessionRequest(BaseModel):
+    """Request para limpiar la sesión en Redis para QA o usuario"""
+    contact_id: str = Field(..., description="ID de contacto o teléfono a resetear")
+    reason: Optional[str] = Field("QA Manual Reset", description="Motivo del reset")
+
+
+class ResetSessionResponse(BaseModel):
+    """Response del reset de sesión"""
+    status: str = Field(..., description="Estado del reset ('success' o 'error')")
+    contact_id: str = Field(..., description="ID de contacto reseteado")
+    cleared_keys: List[str] = Field(default_factory=list, description="Lista de claves de Redis eliminadas")
+    message: str = Field(..., description="Mensaje informativo")
+
+
+
 
 
