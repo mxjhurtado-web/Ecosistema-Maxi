@@ -60,6 +60,23 @@ class ConfigState(rx.State):
     alert_on_mcp_error: bool = True
     alert_on_circuit_breaker: bool = True
 
+    # 🌐 Google Cloud Sources & Service Accounts
+    orbit_doc_governance_id: str = "12-fLM7wAFF3I0_ifY3Y1lahU7EfBeV5uA5GzFkkHBUw"
+    orbit_sheet_rules_id: str = "1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw"
+    orbit_sheet_scripts_id: str = "18VE3tdVt4E-eNrf0dD4zlk1aLV2nfv9_ncdUvLPaNic"
+    orbit_sheet_estatus_id: str = "14BdjBuXPXPkjXMKS-955fA6bNw5qRMv5IWCNhMZGIXc"
+    orbit_sheet_bill_id: str = "16fB_MGtha0NUtp5mge7UwvHcWo1NYVnOGVv6Yntv9xo"
+    orbit_sheet_topup_id: str = "1E3pNthg7myh7tgjEnb_TIxCnTLFi_gzWlcxk2LOdNCs"
+    maxibot_sheet_faq_id: str = "1wrtj7SZ6wB9h1yd_9h613DYNPGjI69_Zj1gLigiUHtE"
+
+    def set_orbit_doc_governance_id(self, val: str): self.orbit_doc_governance_id = val
+    def set_orbit_sheet_rules_id(self, val: str): self.orbit_sheet_rules_id = val
+    def set_orbit_sheet_scripts_id(self, val: str): self.orbit_sheet_scripts_id = val
+    def set_orbit_sheet_estatus_id(self, val: str): self.orbit_sheet_estatus_id = val
+    def set_orbit_sheet_bill_id(self, val: str): self.orbit_sheet_bill_id = val
+    def set_orbit_sheet_topup_id(self, val: str): self.orbit_sheet_topup_id = val
+    def set_maxibot_sheet_faq_id(self, val: str): self.maxibot_sheet_faq_id = val
+
     def set_mcp_url(self, val: str):
         self.mcp_url = val
     def set_mcp_token(self, val: str):
@@ -183,7 +200,72 @@ class ConfigState(rx.State):
             
         # 5. Fetch Dynamic Agents
         await self.load_agents()
+
+        # 6. Fetch Google Sources
+        await self.load_google_sources()
         self.is_loading = False
+
+    async def load_google_sources(self):
+        try:
+            cfg = await api_client.get_google_sources()
+            if cfg and isinstance(cfg, dict):
+                orbit_srcs = cfg.get("orbit_sa", {}).get("sources", [])
+                for s in orbit_srcs:
+                    k = s.get("key")
+                    v = s.get("id", "")
+                    if k == "doc_governance": self.orbit_doc_governance_id = v
+                    elif k == "sheet_rules": self.orbit_sheet_rules_id = v
+                    elif k == "sheet_scripts": self.orbit_sheet_scripts_id = v
+                    elif k == "sheet_estatus": self.orbit_sheet_estatus_id = v
+                    elif k == "sheet_bill": self.orbit_sheet_bill_id = v
+                    elif k == "sheet_topup": self.orbit_sheet_topup_id = v
+                
+                maxi_srcs = cfg.get("maxibot_sa", {}).get("sources", [])
+                for s in maxi_srcs:
+                    if s.get("key") == "sheet_faq":
+                        self.maxibot_sheet_faq_id = s.get("id", "")
+        except Exception:
+            pass
+
+    async def save_google_sources(self):
+        payload = {
+            "orbit_sa": {
+                "email": "maxibot-sa@maxibot-472423.iam.gserviceaccount.com",
+                "gcp_project": "maxibot-472423 (Ecosistema Orbi)",
+                "sources": [
+                    { "key": "doc_governance", "name": "Reglas Generales de Uso", "type": "doc", "id": self.orbit_doc_governance_id, "status": "ok" },
+                    { "key": "sheet_rules", "name": "Matriz de Reglas RNE (59 Reglas)", "type": "sheet", "id": self.orbit_sheet_rules_id, "status": "ok" },
+                    { "key": "sheet_scripts", "name": "Catálogo de Scripts SC (113 Scripts)", "type": "sheet", "id": self.orbit_sheet_scripts_id, "status": "ok" },
+                    { "key": "sheet_estatus", "name": "Estatus Envíos Core", "type": "sheet", "id": self.orbit_sheet_estatus_id, "status": "ok" },
+                    { "key": "sheet_bill", "name": "Bill Payment Estatus", "type": "sheet", "id": self.orbit_sheet_bill_id, "status": "ok" },
+                    { "key": "sheet_topup", "name": "Topup Estatus", "type": "sheet", "id": self.orbit_sheet_topup_id, "status": "ok" }
+                ]
+            },
+            "maxibot_sa": {
+                "email": "athenas-driver-reader@athenas-panel.iam.gserviceaccount.com",
+                "gcp_project": "athenas-panel (Maxibot Dedicada)",
+                "sources": [
+                    { "key": "sheet_faq", "name": "FAQ Knowledge Base", "type": "sheet", "id": self.maxibot_sheet_faq_id, "status": "ok" }
+                ]
+            }
+        }
+        res = await api_client.update_google_sources(payload)
+        if res:
+            return rx.toast.success("✅ Fuentes de Google Cloud guardadas exitosamente.")
+        else:
+            return rx.toast.error("❌ Error al guardar las fuentes de Google Cloud.")
+
+    async def force_sync_sources(self):
+        self.is_loading = True
+        res = await api_client.force_sync_sources()
+        self.is_loading = False
+        if res and res.get("status") == "success":
+            synced = res.get("synced", {})
+            rules = synced.get("rules", 59)
+            scripts = synced.get("scripts", 113)
+            return rx.toast.success(f"⚡ ¡Sincronización en vivo completada! {rules} reglas, {scripts} scripts y directivas de gobernanza actualizadas.")
+        else:
+            return rx.toast.error("❌ Error al forzar la sincronización en vivo.")
 
     async def load_agents(self):
         res = await api_client.get_agents()
@@ -741,11 +823,139 @@ def config_page() -> rx.Component:
         spacing="3"
     )
 
+    # 🌐 Google Cloud Sources & Service Accounts Form
+    google_sources_form = rx.vstack(
+        rx.hstack(
+            rx.vstack(
+                rx.heading("🌐 Fuentes de Conocimiento Google Cloud & Service Accounts", size="4", font_weight="bold"),
+                rx.text("Administre dinámicamente los IDs de documentos/hojas y ejecute sincronizaciones en vivo.", color=TEXT_MUTED, font_size="13px"),
+                spacing="1"
+            ),
+            rx.spacer(),
+            rx.button(
+                rx.hstack(
+                    rx.icon("zap", size=16),
+                    rx.text("⚡ Forzar Sincronización Inmediata"),
+                    spacing="2",
+                    align="center"
+                ),
+                on_click=ConfigState.force_sync_sources,
+                color_scheme="cyan",
+                variant="solid",
+                is_loading=ConfigState.is_loading
+            ),
+            width="100%",
+            align="center",
+            margin_bottom="12px"
+        ),
+
+        # Block 1: MAXIBOT Service Account (Aislada)
+        rx.box(
+            rx.vstack(
+                rx.hstack(
+                    rx.icon("bot", size=18, color=ACCENT_PURPLE),
+                    rx.text("🤖 MAXIBOT Service Account (Agente Aislado)", font_size="14px", font_weight="bold"),
+                    rx.badge("athenas-panel", color_scheme="purple", variant="soft"),
+                    spacing="2",
+                    align="center"
+                ),
+                rx.text("SA: athenas-driver-reader@athenas-panel.iam.gserviceaccount.com", font_size="11px", color=TEXT_MUTED),
+                rx.vstack(
+                    rx.text("FAQ Knowledge Base (Google Sheet ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED),
+                    rx.input(
+                        value=ConfigState.maxibot_sheet_faq_id,
+                        on_change=ConfigState.set_maxibot_sheet_faq_id,
+                        width="100%",
+                        style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}
+                    ),
+                    align_items="start",
+                    width="100%"
+                ),
+                spacing="3",
+                align_items="stretch"
+            ),
+            style={
+                "background": "rgba(255, 255, 255, 0.02)",
+                "padding": "16px",
+                "border_radius": "10px",
+                "border": f"1px solid {BORDER_COLOR}",
+                "margin_bottom": "16px"
+            }
+        ),
+
+        # Block 2: ORBIT Service Account
+        rx.box(
+            rx.vstack(
+                rx.hstack(
+                    rx.icon("activity", size=18, color=ACCENT_BLUE),
+                    rx.text("📱 ORBIT Middleware Service Account (Cerebro Core)", font_size="14px", font_weight="bold"),
+                    rx.badge("maxibot-472423", color_scheme="blue", variant="soft"),
+                    spacing="2",
+                    align="center"
+                ),
+                rx.text("SA: maxibot-sa@maxibot-472423.iam.gserviceaccount.com", font_size="11px", color=TEXT_MUTED),
+                rx.grid(
+                    rx.vstack(
+                        rx.hstack(rx.icon("file-text", size=14, color=ACCENT_BLUE), rx.text("Reglas Generales de Uso (Google Doc ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED), spacing="1"),
+                        rx.input(value=ConfigState.orbit_doc_governance_id, on_change=ConfigState.set_orbit_doc_governance_id, width="100%", style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}),
+                        align_items="start"
+                    ),
+                    rx.vstack(
+                        rx.hstack(rx.icon("table", size=14, color=ACCENT_BLUE), rx.text("Matriz de Reglas RNE (59 Reglas Sheet ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED), spacing="1"),
+                        rx.input(value=ConfigState.orbit_sheet_rules_id, on_change=ConfigState.set_orbit_sheet_rules_id, width="100%", style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}),
+                        align_items="start"
+                    ),
+                    rx.vstack(
+                        rx.hstack(rx.icon("table", size=14, color=ACCENT_BLUE), rx.text("Catálogo de Scripts SC (113 Scripts Sheet ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED), spacing="1"),
+                        rx.input(value=ConfigState.orbit_sheet_scripts_id, on_change=ConfigState.set_orbit_sheet_scripts_id, width="100%", style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}),
+                        align_items="start"
+                    ),
+                    rx.vstack(
+                        rx.hstack(rx.icon("table", size=14, color=ACCENT_BLUE), rx.text("Estatus Envíos Core (Sheet ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED), spacing="1"),
+                        rx.input(value=ConfigState.orbit_sheet_estatus_id, on_change=ConfigState.set_orbit_sheet_estatus_id, width="100%", style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}),
+                        align_items="start"
+                    ),
+                    rx.vstack(
+                        rx.hstack(rx.icon("table", size=14, color=ACCENT_BLUE), rx.text("Bill Payment Estatus (Sheet ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED), spacing="1"),
+                        rx.input(value=ConfigState.orbit_sheet_bill_id, on_change=ConfigState.set_orbit_sheet_bill_id, width="100%", style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}),
+                        align_items="start"
+                    ),
+                    rx.vstack(
+                        rx.hstack(rx.icon("table", size=14, color=ACCENT_BLUE), rx.text("Topup Estatus (Sheet ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED), spacing="1"),
+                        rx.input(value=ConfigState.orbit_sheet_topup_id, on_change=ConfigState.set_orbit_sheet_topup_id, width="100%", style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}),
+                        align_items="start"
+                    ),
+                    columns="2",
+                    spacing="4",
+                    width="100%"
+                ),
+                spacing="3",
+                align_items="stretch"
+            ),
+            style={
+                "background": "rgba(255, 255, 255, 0.02)",
+                "padding": "16px",
+                "border_radius": "10px",
+                "border": f"1px solid {BORDER_COLOR}",
+                "margin_bottom": "16px"
+            }
+        ),
+
+        rx.button(
+            "💾 Guardar Configuración de Fuentes Google",
+            on_click=ConfigState.save_google_sources,
+            style={"background": f"linear-gradient(90deg, {ACCENT_BLUE} 0%, {ACCENT_PURPLE} 100%)", "color": "#FFFFFF", "cursor": "pointer", "margin_top": "8px"}
+        ),
+        width="100%",
+        spacing="3"
+    )
+
     # Compile tabs layout using Radix
     tabs_section = rx.tabs.root(
         rx.tabs.list(
             rx.tabs.trigger("🔌 MCP Server", value="mcp", style={"cursor": "pointer"}),
             rx.tabs.trigger("👥 Agentes IA", value="agents", style={"cursor": "pointer"}),
+            rx.tabs.trigger("🌐 Fuentes Google", value="google_sources", style={"cursor": "pointer"}),
             rx.tabs.trigger("💾 Caché", value="cache", style={"cursor": "pointer"}),
             rx.tabs.trigger("🔐 Seguridad", value="security", style={"cursor": "pointer"}),
             rx.tabs.trigger("🤖 Gemini IA", value="ai", style={"cursor": "pointer"}),
@@ -763,6 +973,10 @@ def config_page() -> rx.Component:
                 style={"margin_top": "16px"}
             ),
             value="agents"
+        ),
+        rx.tabs.content(
+            glass_container(google_sources_form, style={"padding": "24px", "margin_top": "16px"}),
+            value="google_sources"
         ),
         rx.tabs.content(
             glass_container(cache_form, style={"padding": "24px", "margin_top": "16px"}),

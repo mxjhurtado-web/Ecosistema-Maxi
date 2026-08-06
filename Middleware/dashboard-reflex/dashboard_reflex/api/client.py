@@ -136,6 +136,21 @@ class AdminAPIClient:
         res = await self._request("GET", "/admin/decision-logs", params=params)
         return res if res else {"total": 0, "logs": [], "limit": limit, "offset": offset}
 
+    async def get_google_sources(self) -> Dict[str, Any]:
+        """Fetch Google Cloud document and sheet sources grouped by Service Account."""
+        res = await self._request("GET", "/admin/google-sources")
+        return res if res else {}
+
+    async def update_google_sources(self, payload: Dict[str, Any]) -> bool:
+        """Update Google Cloud source IDs in backend Redis."""
+        res = await self._request("PUT", "/admin/google-sources", json=payload)
+        return res is not None
+
+    async def force_sync_sources(self) -> Dict[str, Any]:
+        """Invalidates Redis cache and forces a live sync with Google Cloud."""
+        res = await self._request("POST", "/admin/force-sync")
+        return res if res else {"status": "error", "message": "Failed to force sync"}
+
 
     # ============================================================
     # User Management

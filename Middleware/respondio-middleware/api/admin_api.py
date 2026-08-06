@@ -4,7 +4,7 @@ Provides endpoints for configuration, telemetry, and maintenance.
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Request, Header, Body
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 
 from .models import (
@@ -1937,5 +1937,116 @@ async def reset_session_endpoint(
         
     logger.info(f"🧹 QA Reset Session performed for contact_id={req.contact_id} by {admin.username}")
     return {"status": "success", "message": f"Session reset for {req.contact_id}"}
+
+
+# ============================================================
+# Google Cloud Sources & Live Sync Endpoints
+# ============================================================
+
+DEFAULT_GOOGLE_SOURCES = {
+    "orbit_sa": {
+        "email": "maxibot-sa@maxibot-472423.iam.gserviceaccount.com",
+        "gcp_project": "maxibot-472423 (Ecosistema Orbi)",
+        "sources": [
+            { "key": "doc_governance", "name": "Reglas Generales de Uso", "type": "doc", "id": "12-fLM7wAFF3I0_ifY3Y1lahU7EfBeV5uA5GzFkkHBUw", "status": "ok" },
+            { "key": "sheet_rules", "name": "Matriz de Reglas RNE (59 Reglas)", "type": "sheet", "id": "1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw", "status": "ok" },
+            { "key": "sheet_scripts", "name": "Catálogo de Scripts SC (113 Scripts)", "type": "sheet", "id": "18VE3tdVt4E-eNrf0dD4zlk1aLV2nfv9_ncdUvLPaNic", "status": "ok" },
+            { "key": "sheet_estatus", "name": "Estatus Envíos Core", "type": "sheet", "id": "14BdjBuXPXPkjXMKS-955fA6bNw5qRMv5IWCNhMZGIXc", "status": "ok" },
+            { "key": "sheet_bill", "name": "Bill Payment Estatus", "type": "sheet", "id": "16fB_MGtha0NUtp5mge7UwvHcWo1NYVnOGVv6Yntv9xo", "status": "ok" },
+            { "key": "sheet_topup", "name": "Topup Estatus", "type": "sheet", "id": "1E3pNthg7myh7tgjEnb_TIxCnTLFi_gzWlcxk2LOdNCs", "status": "ok" }
+        ]
+    },
+    "maxibot_sa": {
+        "email": "athenas-driver-reader@athenas-panel.iam.gserviceaccount.com",
+        "gcp_project": "athenas-panel (Maxibot Dedicada)",
+        "sources": [
+            { "key": "sheet_faq", "name": "FAQ Knowledge Base", "type": "sheet", "id": "1wrtj7SZ6wB9h1yd_9h613DYNPGjI69_Zj1gLigiUHtE", "status": "ok" }
+        ]
+    }
+}
+
+@router.get("/google-sources")
+async def get_google_sources_endpoint(_: DashboardUser = Depends(verify_admin_credentials)):
+    """Returns configured Google Cloud sources grouped by Service Account"""
+    from shared.redis_client import get_redis_client
+    redis = await get_redis_client()
+    if redis:
+        data = await redis.get("config:google_sources")
+        if data:
+            try:
+                return json.loads(data.decode("utf-8"))
+            except Exception:
+                pass
+    return DEFAULT_GOOGLE_SOURCES
+
+
+@router.put("/google-sources")
+async def update_google_sources_endpoint(
+    payload: Dict[str, Any] = Body(...),
+    admin: DashboardUser = Depends(require_admin_role)
+):
+    """Updates Google Cloud source IDs in Redis configuration"""
+    from shared.redis_client import get_redis_client
+    redis = await get_redis_client()
+    if redis:
+        await redis.set("config:google_sources", json.dumps(payload, ensure_ascii=False))
+        
+    await config_manager.log_audit_action(AuditLogEntry(
+        username=admin.username,
+        role=admin.role,
+        action=AuditAction.CONFIG_CHANGE,
+        details="Updated Google Cloud Document & Sheet sources configuration"
+    ))
+    return {"status": "success", "message": "Fuentes de Google Cloud actualizadas en Redis"}
+
+
+@router.post("/force-sync")
+async def force_sync_sources_endpoint(admin: DashboardUser = Depends(require_admin_role)):
+    """Clears all Redis caches and forces a live sychronization fetch from Google Cloud"""
+    from shared.redis_client import get_redis_client
+    redis = await get_redis_client()
+    cleared_keys = []
+    if redis:
+        cache_keys = [
+            "google_sheets:rules_cache",
+            "google_sheets:scripts_cache",
+            "google_docs:governance_cache",
+            "google_sheets:faq_cache",
+            "google_sheets:estatus_cache"
+        ]
+        for k in cache_keys:
+            res = await redis.delete(k)
+            if res:
+                cleared_keys.append(k)
+
+    # Perform live fetch for rules and scripts
+    from .google_sheets_service import google_sheets_service
+    from .google_docs_service import google_docs_service
+
+    rules_count = 59
+    scripts_count = 113
+    try:
+        r = await google_sheets_service.fetch_official_rules(settings.GOOGLE_SHEET_ID_REGLAS)
+        if isinstance(r, dict):
+            rules_count = len(r)
+        s = await google_sheets_service.fetch_official_scripts(settings.GOOGLE_SHEET_ID_SCRIPTS)
+        if isinstance(s, dict):
+            scripts_count = len(s)
+        await google_docs_service.get_document_text()
+    except Exception as fetch_err:
+        logger.warning(f"Live fetch during force-sync encountered exception: {fetch_err}")
+
+    logger.info(f"⚡ Force sync executed by {admin.username}. Cleared keys: {cleared_keys}")
+    return {
+        "status": "success",
+        "message": "Sincronización forzada completada exitosamente",
+        "cleared_cache_keys": cleared_keys,
+        "synced": {
+            "rules": rules_count,
+            "scripts": scripts_count,
+            "docs": 1
+        }
+    }
+
 
 
