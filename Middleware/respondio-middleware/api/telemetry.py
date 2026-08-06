@@ -243,6 +243,24 @@ class TelemetryService:
             logger.error(f"Failed to get hourly stats: {str(e)}")
             return []
 
+    @staticmethod
+    def classify_incident_code(error_msg: str) -> str:
+        """Classifies an error message according to AUD.08 official incident taxonomy."""
+        msg = (error_msg or "").lower()
+        if "platform" in msg or "503" in msg or "502" in msg or "down" in msg:
+            return "INC-001"  # Indisponibilidad de Plataforma
+        elif "chronos" in msg or "database" in msg or "db" in msg:
+            return "INC-002"  # Indisponibilidad de Chronos
+        elif "integration" in msg or "http" in msg or "connection" in msg:
+            return "INC-003"  # Error de Integración
+        elif "handoff" in msg or "deriv" in msg or "assign" in msg:
+            return "INC-005"  # Falla en Derivación
+        elif "timeout" in msg or "readtimeout" in msg:
+            return "INC-006"  # Timeout Conversacional
+        elif "invalid" in msg or "parse" in msg or "format" in msg:
+            return "ERR-007"  # Respuesta Inválida de integración
+        return "INC-004"  # Error Operativo por defecto
+
 
 from datetime import timedelta
 

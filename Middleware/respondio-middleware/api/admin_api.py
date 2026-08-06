@@ -1130,6 +1130,15 @@ async def google_chat_notify_handler_inner(
     # Determine target message and media
     message_text = request.message
     media_url = request.media_url
+
+    # REJ.03 Enforcement: High Priority Alert Headers for Fraudes / BSA
+    if request.destino and request.destino.lower() in ["fraudes", "fraude", "prevencion_de_fraudes", "bsa", "bsa_monitoring"]:
+        if "[ALERTA CRÍTICA" not in message_text and "[ATENDIDO INICIALMENTE" not in message_text:
+            if request.level in ["WARNING", "OUT_OF_HOURS"]:
+                header_tag = "[ATENDIDO INICIALMENTE POR SERVICIO AL CLIENTE - PENDIENTE DE SEGUIMIENTO POR PREVENCIÓN DE FRAUDES]"
+            else:
+                header_tag = "[ALERTA CRÍTICA - POSIBLE ACTIVIDAD SOSPECHOSA / FRAUDE]"
+            message_text = f"🚨 *{header_tag}*\n\n{message_text}"
     
     # If media_url is empty, null, or placeholder, look it up in Redis cache using contact_id
     if (not media_url or media_url.strip() == "null" or media_url.startswith("$")) and request.contact_id:
