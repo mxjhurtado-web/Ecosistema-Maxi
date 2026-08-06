@@ -41,6 +41,7 @@ from .models import (
 from .config import settings
 from .mcp_client import mcp_client
 from .telemetry import telemetry_service
+from .decision_logger import save_decision_log
 from .admin_api import router as admin_router, public_router
 
 # Configure logging
@@ -48,6 +49,36 @@ logging.basicConfig(
     level=settings.LOG_LEVEL,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
+async def log_fsm_decision(
+    contact_id: str,
+    active_agent: str,
+    user_input: str,
+    script_text: str,
+    winning_rule_id: str = "RNE.AUTOMATED",
+    derivacion: Optional[str] = None
+):
+    """Helper to persist FSM decision audit entries for Reflex Dashboard (/decision-logs)"""
+    try:
+        c_id = contact_id if contact_id and contact_id not in ["-1", "contact.id", "$contact.id"] else "simulator"
+        entry = DecisionLogEntry(
+            trace_id=f"dec-{uuid.uuid4()}",
+            contact_id=c_id,
+            case_id=c_id,
+            active_agent=active_agent or "Max",
+            timestamp=datetime.utcnow(),
+            profile="CLIENTE",
+            user_input=user_input or "N/A",
+            winning_rule_id=winning_rule_id,
+            script_text=script_text or "",
+            current_state="PROCESSING",
+            next_state="COMPLETED",
+            next_action="ASSIGN_TO_TEAM" if derivacion and derivacion != "NA" else "OFFER_HELP",
+            destination_team=derivacion if derivacion != "NA" else None
+        )
+        await save_decision_log(entry)
+    except Exception as err:
+        logger.error(f"Failed to log FSM decision: {err}")
 logger = logging.getLogger(__name__)
 
 # Create FastAPI app
@@ -1964,6 +1995,15 @@ async def check_transaction_status_inner(
     if reply_text and user_text:
         reply_text = await translate_script_if_needed(reply_text, user_text)
 
+    await log_fsm_decision(
+        contact_id=contact_id,
+        active_agent="VerificadorEstatus",
+        user_input=user_text or codigo_envio or "Rastreo de Giro",
+        script_text=reply_text,
+        winning_rule_id="RNE.STATUS_CHECK",
+        derivacion=derivacion
+    )
+
     return StatusCheckResponse(
         status="success",
         reply_text=reply_text,
@@ -1986,6 +2026,15 @@ async def check_bill_status(
     resp = None
     try:
         resp = await check_bill_status_inner(request, x_webhook_secret, secret)
+        if resp:
+            await log_fsm_decision(
+                contact_id=request.contact_id or "unknown",
+                active_agent="VerificadorPagoBill",
+                user_input=request.codigo_envio or "Bill Check",
+                script_text=resp.reply_text,
+                winning_rule_id="RNE.BILL_CHECK",
+                derivacion=resp.derivacion
+            )
         return resp
     except Exception as e:
         status_val = ResponseStatus.ERROR
@@ -2477,6 +2526,15 @@ async def check_topup_status(
     resp = None
     try:
         resp = await check_topup_status_inner(request, x_webhook_secret, secret)
+        if resp:
+            await log_fsm_decision(
+                contact_id=request.contact_id or "unknown",
+                active_agent="VerificadorEstatusRecargas",
+                user_input=request.codigo_envio or "Topup Check",
+                script_text=resp.reply_text,
+                winning_rule_id="RNE.TOPUP_CHECK",
+                derivacion=resp.derivacion
+            )
         return resp
     except Exception as e:
         status_val = ResponseStatus.ERROR
@@ -3390,6 +3448,23 @@ async def clear_redis_session(redis, contact_id: str):
 
 @app.post("/api/v1/agent/interact", response_model=AgentInteractResponse)
 async def agent_interact(
+    request: AgentInteractRequest,
+    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    secret: Optional[str] = None
+):
+    resp = await agent_interact_inner(request, x_webhook_secret, secret)
+    if resp:
+        await log_fsm_decision(
+            contact_id=request.contact_id,
+            active_agent=request.agent_name,
+            user_input=request.user_text,
+            script_text=resp.reply_text,
+            winning_rule_id="RNE.CASCADE_AGENT",
+            derivacion=resp.derivacion
+        )
+    return resp
+
+async def agent_interact_inner(
     request: AgentInteractRequest,
     x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
     secret: Optional[str] = None
