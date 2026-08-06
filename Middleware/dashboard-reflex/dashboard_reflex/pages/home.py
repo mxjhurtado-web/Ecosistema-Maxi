@@ -27,7 +27,7 @@ class HomeState(rx.State):
     
     # Rango seleccionado KPIs
     total_requests_range: int = 0
-    channel_counts_str_range: str = "R: 0 | O: 0 | M: 0"
+    channel_counts_str_range: str = "Respond.io: 0 · Orbi Bot: 0 · MaxiBot: 0"
     avg_latency_range: int = 0
     error_count_range: int = 0
     
@@ -137,7 +137,7 @@ class HomeState(rx.State):
         
         self.total_requests_range = total_reqs
         self.error_count_range = total_errors
-        self.channel_counts_str_range = f"R: {r_sum} | O: {o_sum} | M: {m_sum}"
+        self.channel_counts_str_range = f"Respond.io {r_sum} · Orbi Bot {o_sum} · MaxiBot {m_sum}"
         self.avg_latency_range = avg_lat
 
         # Load recent requests
@@ -321,10 +321,10 @@ def home_page() -> rx.Component:
     
     # 4 metrics cards grid
     metrics_grid = rx.grid(
-        stat_card("Total Peticiones", HomeState.total_requests_range.to(str), "activity", "En el rango seleccionado"),
-        stat_card("Consultas por Canal", HomeState.channel_counts_str_range, "git_branch", "Canales: Respond / Orbit / MaxiBot"),
-        stat_card("Latencia Promedio", HomeState.avg_latency_range.to(str) + " ms", "clock", "Promedio en el rango"),
-        stat_card("Errores Detectados", HomeState.error_count_range.to(str), "triangle_alert", "En el rango seleccionado"),
+        stat_card("Total Peticiones", HomeState.total_requests_range.to(str), "activity", "Total acumulado en el período"),
+        stat_card("Origen de Consultas", HomeState.channel_counts_str_range, "git-branch", "Respond.io, Orbi Bot y MaxiBot"),
+        stat_card("Latencia Promedio", HomeState.avg_latency_range.to(str) + " ms", "clock", "Promedio en el período"),
+        stat_card("Errores Detectados", HomeState.error_count_range.to(str), "triangle-alert", "Fallas registradas en el período"),
         columns="4",
         spacing="4",
         width="100%",

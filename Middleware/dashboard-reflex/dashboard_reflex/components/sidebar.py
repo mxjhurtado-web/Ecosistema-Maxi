@@ -34,25 +34,40 @@ def sidebar_link(title: str, icon: str, url: str, active: bool = False) -> rx.Co
 def sidebar(current_page: str) -> rx.Component:
     """The main sidebar component."""
     
-    # Common navigation options visible to everyone
-    nav_items = [
-        ("📊 KPIs & Resumen", "layout-dashboard", "/"),
-        ("📜 Historial", "history", "/history"),
-        ("🎯 Calidad", "square-check", "/calidad"),
-    ]
-    # Admin/Super Admin only options
-    admin_nav_items = [
-        ("🔍 Logs en Vivo", "file-text", "/logs"),
-        ("⚙️ Configuración", "settings", "/config"),
-        ("🔧 Mantenimiento", "wrench", "/maintenance"),
-        ("💬 Chat MCP", "message-square", "/chat"),
-        ("🛡️ Auditoría", "shield-alert", "/auditoria"),
-        ("🧠 Decisiones FSM", "git-branch", "/decision-logs"),
-        ("👥 Usuarios", "users", "/usuarios"),
-        ("🤖 MaxiBot Panel", "bot", "/maxibot"),
-        ("🌌 Orbit Bot Panel", "activity", "/orbit"),
+    # Section 1: Monitoreo (Visible to everyone)
+    monitoring_items = [
+        ("Resumen", "layout-dashboard", "/"),
+        ("Historial", "history", "/history"),
+        ("Calidad", "square-check", "/calidad"),
     ]
     
+    # Section 2: Operación (Admin/Super Admin)
+    operations_items = [
+        ("Logs en Vivo", "file-text", "/logs"),
+        ("Decisiones FSM", "git-branch", "/decision-logs"),
+        ("Chat MCP", "message-square", "/chat"),
+    ]
+
+    # Section 3: Administración (Admin/Super Admin)
+    admin_items = [
+        ("Configuración", "settings", "/config"),
+        ("Mantenimiento", "wrench", "/maintenance"),
+        ("Auditoría", "shield-alert", "/auditoria"),
+        ("Usuarios", "users", "/usuarios"),
+        ("MaxiBot Panel", "bot", "/maxibot"),
+        ("Orbit Bot Panel", "activity", "/orbit"),
+    ]
+    
+    role_display = rx.cond(
+        AuthState.role == "SUPER_ADMIN",
+        "Superadministrador",
+        rx.cond(
+            AuthState.role == "ADMIN",
+            "Administrador",
+            "Analista"
+        )
+    )
+
     return rx.box(
         rx.vstack(
             # Logo header
@@ -61,31 +76,26 @@ def sidebar(current_page: str) -> rx.Component:
                 rx.text("ORBIT", font_size="22px", font_weight="900", letter_spacing="1px", color=TEXT_COLOR),
                 spacing="2",
                 align="center",
-                style={"margin_bottom": "30px", "width": "100%", "justify_content": "center"}
+                style={"margin_bottom": "24px", "width": "100%", "justify_content": "center"}
             ),
             
             # Nav links container
             rx.vstack(
-                # Base Links
-                *[sidebar_link(title, icon, url, current_page == url) for title, icon, url in nav_items],
+                # Section 1 Header & Links: MONITOREO
+                rx.text("MONITOREO", font_size="10px", font_weight="bold", color=TEXT_MUTED, style={"padding_left": "12px", "letter_spacing": "1.5px"}),
+                *[sidebar_link(title, icon, url, current_page == url) for title, icon, url in monitoring_items],
                 
-                # Admin section divider
+                # Section 2 & 3: Admin / Super Admin options
                 rx.cond(
                     AuthState.is_admin_or_higher,
                     rx.vstack(
-                        rx.divider(style={"border_color": BORDER_COLOR, "margin": "15px 0"}),
-                        rx.text("ADMINISTRACIÓN", font_size="11px", font_weight="bold", color=TEXT_MUTED, style={"padding_left": "16px", "letter_spacing": "1.5px"}),
-                        spacing="2",
-                        width="100%",
-                        align_items="start"
-                    )
-                ),
-                
-                # Admin Links
-                rx.cond(
-                    AuthState.is_admin_or_higher,
-                    rx.vstack(
-                        *[sidebar_link(title, icon, url, current_page == url) for title, icon, url in admin_nav_items],
+                        rx.divider(style={"border_color": BORDER_COLOR, "margin": "12px 0 8px 0"}),
+                        rx.text("OPERACIÓN", font_size="10px", font_weight="bold", color=TEXT_MUTED, style={"padding_left": "12px", "letter_spacing": "1.5px"}),
+                        *[sidebar_link(title, icon, url, current_page == url) for title, icon, url in operations_items],
+                        
+                        rx.divider(style={"border_color": BORDER_COLOR, "margin": "12px 0 8px 0"}),
+                        rx.text("ADMINISTRACIÓN", font_size="10px", font_weight="bold", color=TEXT_MUTED, style={"padding_left": "12px", "letter_spacing": "1.5px"}),
+                        *[sidebar_link(title, icon, url, current_page == url) for title, icon, url in admin_items],
                         width="100%",
                         spacing="1"
                     )
@@ -98,11 +108,11 @@ def sidebar(current_page: str) -> rx.Component:
             
             # Sidebar Footer / User Info
             rx.vstack(
-                rx.divider(style={"border_color": BORDER_COLOR, "margin_bottom": "15px"}),
+                rx.divider(style={"border_color": BORDER_COLOR, "margin_bottom": "12px"}),
                 rx.hstack(
                     rx.vstack(
                         rx.text(AuthState.username, font_size="13px", font_weight="bold", color=TEXT_COLOR),
-                        rx.text(AuthState.role.upper(), font_size="10px", font_weight="bold", color=ACCENT_BLUE),
+                        rx.text(role_display, font_size="11px", font_weight="bold", color=ACCENT_BLUE),
                         spacing="0",
                         align_items="start"
                     ),
