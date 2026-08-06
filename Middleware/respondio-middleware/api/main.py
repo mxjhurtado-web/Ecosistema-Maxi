@@ -2030,7 +2030,7 @@ async def check_bill_status(
             await log_fsm_decision(
                 contact_id=request.contact_id or "unknown",
                 active_agent="VerificadorPagoBill",
-                user_input=request.codigo_envio or "Bill Check",
+                user_input=getattr(request, "tracking_number", None) or getattr(request, "user_text", None) or "Bill Check",
                 script_text=resp.reply_text,
                 winning_rule_id="RNE.BILL_CHECK",
                 derivacion=resp.derivacion
@@ -2530,7 +2530,7 @@ async def check_topup_status(
             await log_fsm_decision(
                 contact_id=request.contact_id or "unknown",
                 active_agent="VerificadorEstatusRecargas",
-                user_input=request.codigo_envio or "Topup Check",
+                user_input=getattr(request, "transaction_id", None) or getattr(request, "user_text", None) or "Topup Check",
                 script_text=resp.reply_text,
                 winning_rule_id="RNE.TOPUP_CHECK",
                 derivacion=resp.derivacion
