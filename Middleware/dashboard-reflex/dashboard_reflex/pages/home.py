@@ -57,6 +57,7 @@ class HomeState(rx.State):
     mcp_max: int = 0
     mcp_uptime: float = 100.0
     
+    active_preset: str = "7d"
     is_loading: bool = False
 
     def set_start_date(self, val: str):
@@ -64,6 +65,41 @@ class HomeState(rx.State):
 
     def set_end_date(self, val: str):
         self.end_date = val
+
+    async def set_preset(self, preset: str):
+        self.active_preset = preset
+        now = datetime.now()
+        if preset == "today":
+            self.start_date = now.strftime("%Y-%m-%d")
+            self.end_date = now.strftime("%Y-%m-%d")
+        elif preset == "24h":
+            self.start_date = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+            self.end_date = now.strftime("%Y-%m-%d")
+        elif preset == "7d":
+            self.start_date = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+            self.end_date = now.strftime("%Y-%m-%d")
+        elif preset == "30d":
+            self.start_date = (now - timedelta(days=30)).strftime("%Y-%m-%d")
+            self.end_date = now.strftime("%Y-%m-%d")
+        await self.load_data()
+
+    async def clear_filters(self):
+        self.active_preset = "7d"
+        now = datetime.now()
+        self.start_date = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+        self.end_date = now.strftime("%Y-%m-%d")
+        await self.load_data()
+
+    def export_csv(self):
+        if not self.stats_data:
+            return rx.toast.error("No hay datos para exportar en el período seleccionado")
+        headers = "Fecha/Hora,Total Peticiones,Respond.io,Orbi Bot,MaxiBot,Éxito,Errores,Latencia Promedio (ms),P95 (ms)\n"
+        rows = [
+            f"{item.get('hour')},{item.get('total_requests')},{item.get('respond_requests')},{item.get('orbit_requests')},{item.get('maxibot_requests')},{item.get('success_count')},{item.get('error_count')},{item.get('avg_latency_ms')},{item.get('p95_latency_ms')}"
+            for item in self.stats_data
+        ]
+        csv_content = headers + "\n".join(rows)
+        return rx.download(data=csv_content, filename=f"orbit_metricas_{datetime.now().strftime('%Y%m%d')}.csv")
 
     async def load_data(self):
         self.is_loading = True
@@ -334,11 +370,24 @@ def home_page() -> rx.Component:
     # Chart cards
     volume_chart = glass_container(
         rx.vstack(
-            rx.heading("Volumen de Peticiones", size="4", style={"margin_bottom": "12px", "color": TEXT_COLOR}),
+            rx.hstack(
+                rx.heading("Volumen de Peticiones por Origen", size="4", style={"color": TEXT_COLOR}),
+                rx.spacer(),
+                rx.button(
+                    rx.hstack(rx.icon("download", size=14), rx.text("Exportar CSV")),
+                    on_click=HomeState.export_csv,
+                    variant="soft",
+                    color_scheme="gray",
+                    style={"cursor": "pointer", "padding": "4px 10px", "height": "28px"}
+                ),
+                width="100%",
+                align="center",
+                margin_bottom="12px"
+            ),
             rx.recharts.line_chart(
-                rx.recharts.line(data_key="respond_requests", name="Respond", stroke=ACCENT_BLUE, stroke_width=2),
-                rx.recharts.line(data_key="orbit_requests", name="Orbit Bot", stroke="#48BB78", stroke_width=2),
-                rx.recharts.line(data_key="maxibot_requests", name="MaxiBot", stroke=ACCENT_PURPLE, stroke_width=2),
+                rx.recharts.line(data_key="respond_requests", name="Respond.io", stroke="#38BDF8", stroke_width=2),
+                rx.recharts.line(data_key="orbit_requests", name="Orbi Bot", stroke="#A855F7", stroke_width=2),
+                rx.recharts.line(data_key="maxibot_requests", name="MaxiBot", stroke="#10B981", stroke_width=2),
                 rx.recharts.x_axis(data_key="hour", stroke="#555", font_size=10),
                 rx.recharts.y_axis(stroke="#555", font_size=10),
                 rx.recharts.cartesian_grid(stroke_dasharray="3 3", stroke="rgba(255,255,255,0.05)"),
@@ -356,10 +405,10 @@ def home_page() -> rx.Component:
     
     latency_chart = glass_container(
         rx.vstack(
-            rx.heading("Tendencia de Latencia (ms)", size="4", style={"margin_bottom": "12px", "color": TEXT_COLOR}),
+            rx.heading("Tendencia de Latencia y Percentil P95 (ms)", size="4", style={"margin_bottom": "12px", "color": TEXT_COLOR}),
             rx.recharts.line_chart(
-                rx.recharts.line(data_key="avg_latency_ms", name="Promedio", stroke=ACCENT_BLUE, stroke_width=2),
-                rx.recharts.line(data_key="p95_latency_ms", name="P95", stroke=ACCENT_PURPLE, stroke_width=1.5, stroke_dasharray="4 4"),
+                rx.recharts.line(data_key="avg_latency_ms", name="Promedio", stroke="#38BDF8", stroke_width=2),
+                rx.recharts.line(data_key="p95_latency_ms", name="P95 Latencia", stroke="#A855F7", stroke_width=1.5, stroke_dasharray="4 4"),
                 rx.recharts.x_axis(data_key="hour", stroke="#555", font_size=10),
                 rx.recharts.y_axis(stroke="#555", font_size=10),
                 rx.recharts.cartesian_grid(stroke_dasharray="3 3", stroke="rgba(255,255,255,0.05)"),
@@ -373,6 +422,62 @@ def home_page() -> rx.Component:
             spacing="2"
         ),
         style={"padding": "20px"}
+    )
+
+    # Date Filter Controls Bar with Presets
+    date_filter_bar = rx.hstack(
+        rx.hstack(
+            rx.text("Rango:", font_size="12px", font_weight="bold", color=TEXT_MUTED),
+            rx.button("Hoy", on_click=HomeState.set_preset("today"), variant=rx.cond(HomeState.active_preset == "today", "solid", "soft"), color_scheme="cyan", size="1", style={"cursor": "pointer"}),
+            rx.button("Últimas 24h", on_click=HomeState.set_preset("24h"), variant=rx.cond(HomeState.active_preset == "24h", "solid", "soft"), color_scheme="cyan", size="1", style={"cursor": "pointer"}),
+            rx.button("Últimos 7d", on_click=HomeState.set_preset("7d"), variant=rx.cond(HomeState.active_preset == "7d", "solid", "soft"), color_scheme="cyan", size="1", style={"cursor": "pointer"}),
+            rx.button("Últimos 30d", on_click=HomeState.set_preset("30d"), variant=rx.cond(HomeState.active_preset == "30d", "solid", "soft"), color_scheme="cyan", size="1", style={"cursor": "pointer"}),
+            spacing="2",
+            align="center"
+        ),
+        rx.spacer(),
+        rx.hstack(
+            rx.text("Desde", color=TEXT_MUTED, font_size="12px", align_self="center"),
+            rx.input(
+                type="date",
+                value=HomeState.start_date,
+                on_change=HomeState.set_start_date,
+                style={
+                    "background_color": rx.color_mode_cond("#FFFFFF", "#0C0F1D"),
+                    "border": f"1px solid {BORDER_COLOR}",
+                    "color": TEXT_COLOR,
+                    "border_radius": "8px",
+                    "padding": "4px 8px"
+                }
+            ),
+            rx.text("Hasta", color=TEXT_MUTED, font_size="12px", align_self="center"),
+            rx.input(
+                type="date",
+                value=HomeState.end_date,
+                on_change=HomeState.set_end_date,
+                style={
+                    "background_color": rx.color_mode_cond("#FFFFFF", "#0C0F1D"),
+                    "border": f"1px solid {BORDER_COLOR}",
+                    "color": TEXT_COLOR,
+                    "border_radius": "8px",
+                    "padding": "4px 8px"
+                }
+            ),
+            rx.button("Aplicar Filtros", on_click=HomeState.load_data, variant="solid", color_scheme="cyan", size="1", style={"cursor": "pointer"}),
+            rx.button("Limpiar", on_click=HomeState.clear_filters, variant="soft", color_scheme="gray", size="1", style={"cursor": "pointer"}),
+            rx.button(
+                rx.hstack(rx.icon("refresh-cw", size=14), rx.text("Actualizar datos")),
+                on_click=HomeState.load_data,
+                variant="solid",
+                color_scheme="purple",
+                size="1",
+                style={"cursor": "pointer"}
+            ),
+            spacing="2",
+            align="center"
+        ),
+        width="100%",
+        style={"margin_bottom": "20px"}
     )
     
     success_chart = glass_container(
@@ -664,66 +769,8 @@ def home_page() -> rx.Component:
 
     # Main content assembly
     content = rx.vstack(
-        # Controls / Filters Header
-        rx.hstack(
-            rx.hstack(
-                rx.text("Desde", color=TEXT_MUTED, font_size="12px", align_self="center"),
-                rx.input(
-                    type="date",
-                    value=HomeState.start_date,
-                    on_change=HomeState.set_start_date,
-                    style={
-                        "background_color": rx.color_mode_cond("#FFFFFF", "#0C0F1D"),
-                        "border": f"1px solid {BORDER_COLOR}",
-                        "color": TEXT_COLOR,
-                        "border_radius": "8px",
-                        "padding": "4px 8px"
-                    }
-                ),
-                rx.text("Hasta", color=TEXT_MUTED, font_size="12px", align_self="center"),
-                rx.input(
-                    type="date",
-                    value=HomeState.end_date,
-                    on_change=HomeState.set_end_date,
-                    style={
-                        "background_color": rx.color_mode_cond("#FFFFFF", "#0C0F1D"),
-                        "border": f"1px solid {BORDER_COLOR}",
-                        "color": TEXT_COLOR,
-                        "border_radius": "8px",
-                        "padding": "4px 8px"
-                    }
-                ),
-                rx.button(
-                    "Filtrar",
-                    on_click=HomeState.load_data,
-                    variant="soft",
-                    color_scheme="indigo",
-                    style={"cursor": "pointer"}
-                ),
-                spacing="2",
-                align_items="center"
-            ),
-            rx.spacer(),
-            rx.button(
-                rx.hstack(
-                    rx.icon("refresh-cw", size=14),
-                    rx.text("Recargar Datos"),
-                    spacing="2"
-                ),
-                on_click=HomeState.load_data,
-                variant="solid",
-                style={
-                    "background": f"linear-gradient(90deg, {ACCENT_BLUE} 0%, {ACCENT_PURPLE} 100%)",
-                    "color": "#FFFFFF",
-                    "border_radius": "8px",
-                    "font_weight": "bold",
-                    "padding": "8px 16px",
-                    "cursor": "pointer"
-                }
-            ),
-            width="100%",
-            style={"margin_bottom": "20px"}
-        ),
+        # Controls / Filters Header with Presets & CSV Export
+        date_filter_bar,
         
         # Loader
         rx.cond(
