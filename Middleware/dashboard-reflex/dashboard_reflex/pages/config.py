@@ -866,7 +866,7 @@ def config_page() -> rx.Component:
                         value=ConfigState.maxibot_sheet_faq_id,
                         on_change=ConfigState.set_maxibot_sheet_faq_id,
                         width="100%",
-                        style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}
+                        style={"color": "#38BDF8", "background_color": "#0F1322", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px", "font_family": "monospace", "font_size": "13px"}
                     ),
                     align_items="start",
                     width="100%"
@@ -897,32 +897,32 @@ def config_page() -> rx.Component:
                 rx.grid(
                     rx.vstack(
                         rx.hstack(rx.icon("file-text", size=14, color=ACCENT_BLUE), rx.text("Reglas Generales de Uso (Google Doc ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED), spacing="1"),
-                        rx.input(value=ConfigState.orbit_doc_governance_id, on_change=ConfigState.set_orbit_doc_governance_id, width="100%", style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}),
+                        rx.input(value=ConfigState.orbit_doc_governance_id, on_change=ConfigState.set_orbit_doc_governance_id, width="100%", style={"color": "#38BDF8", "background_color": "#0F1322", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px", "font_family": "monospace", "font_size": "13px"}),
                         align_items="start"
                     ),
                     rx.vstack(
                         rx.hstack(rx.icon("table", size=14, color=ACCENT_BLUE), rx.text("Matriz de Reglas RNE (59 Reglas Sheet ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED), spacing="1"),
-                        rx.input(value=ConfigState.orbit_sheet_rules_id, on_change=ConfigState.set_orbit_sheet_rules_id, width="100%", style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}),
+                        rx.input(value=ConfigState.orbit_sheet_rules_id, on_change=ConfigState.set_orbit_sheet_rules_id, width="100%", style={"color": "#38BDF8", "background_color": "#0F1322", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px", "font_family": "monospace", "font_size": "13px"}),
                         align_items="start"
                     ),
                     rx.vstack(
                         rx.hstack(rx.icon("table", size=14, color=ACCENT_BLUE), rx.text("Catálogo de Scripts SC (113 Scripts Sheet ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED), spacing="1"),
-                        rx.input(value=ConfigState.orbit_sheet_scripts_id, on_change=ConfigState.set_orbit_sheet_scripts_id, width="100%", style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}),
+                        rx.input(value=ConfigState.orbit_sheet_scripts_id, on_change=ConfigState.set_orbit_sheet_scripts_id, width="100%", style={"color": "#38BDF8", "background_color": "#0F1322", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px", "font_family": "monospace", "font_size": "13px"}),
                         align_items="start"
                     ),
                     rx.vstack(
                         rx.hstack(rx.icon("table", size=14, color=ACCENT_BLUE), rx.text("Estatus Envíos Core (Sheet ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED), spacing="1"),
-                        rx.input(value=ConfigState.orbit_sheet_estatus_id, on_change=ConfigState.set_orbit_sheet_estatus_id, width="100%", style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}),
+                        rx.input(value=ConfigState.orbit_sheet_estatus_id, on_change=ConfigState.set_orbit_sheet_estatus_id, width="100%", style={"color": "#38BDF8", "background_color": "#0F1322", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px", "font_family": "monospace", "font_size": "13px"}),
                         align_items="start"
                     ),
                     rx.vstack(
                         rx.hstack(rx.icon("table", size=14, color=ACCENT_BLUE), rx.text("Bill Payment Estatus (Sheet ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED), spacing="1"),
-                        rx.input(value=ConfigState.orbit_sheet_bill_id, on_change=ConfigState.set_orbit_sheet_bill_id, width="100%", style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}),
+                        rx.input(value=ConfigState.orbit_sheet_bill_id, on_change=ConfigState.set_orbit_sheet_bill_id, width="100%", style={"color": "#38BDF8", "background_color": "#0F1322", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px", "font_family": "monospace", "font_size": "13px"}),
                         align_items="start"
                     ),
                     rx.vstack(
                         rx.hstack(rx.icon("table", size=14, color=ACCENT_BLUE), rx.text("Topup Estatus (Sheet ID)", font_size="12px", font_weight="bold", color=TEXT_MUTED), spacing="1"),
-                        rx.input(value=ConfigState.orbit_sheet_topup_id, on_change=ConfigState.set_orbit_sheet_topup_id, width="100%", style={"background_color": "#0C0F1D", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px"}),
+                        rx.input(value=ConfigState.orbit_sheet_topup_id, on_change=ConfigState.set_orbit_sheet_topup_id, width="100%", style={"color": "#38BDF8", "background_color": "#0F1322", "border": f"1px solid {BORDER_COLOR}", "border_radius": "8px", "font_family": "monospace", "font_size": "13px"}),
                         align_items="start"
                     ),
                     columns="2",
