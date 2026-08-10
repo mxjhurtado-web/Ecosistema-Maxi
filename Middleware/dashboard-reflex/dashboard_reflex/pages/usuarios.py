@@ -48,35 +48,36 @@ class UsuariosState(rx.State):
         emails_seen = set()
 
         auth_state = await self.get_state(AuthState)
-        is_sa = auth_state.role == "super_admin"
-        is_admin = auth_state.role == "admin"
-        current_email = auth_state.email.strip().lower()
+        role_lower = str(auth_state.role or "").strip().lower()
+        is_sa = role_lower in ["super_admin", "superadmin"]
+        is_admin = role_lower in ["admin", "super_admin", "superadmin"]
+        current_email = str(auth_state.email or "").strip().lower()
 
         if r_client:
             try:
-                # Scan all orbit:user:* keys
-                keys = r_client.keys("orbit:user:*")
+                # Scan both orbit:user:* and config:users:* keys
+                keys = set(r_client.keys("orbit:user:*") + r_client.keys("config:users:*"))
                 for key in keys:
                     val = r_client.get(key)
                     if val:
                         try:
                             data = json.loads(val)
-                            email = data.get("email", "").strip().lower()
+                            email = str(data.get("email") or data.get("username") or "").strip().lower()
                             if not email:
                                 continue
-                            role = data.get("role", "supervisor")
+                            role = str(data.get("role") or "supervisor").strip().lower()
                             user_is_sa = email in SUPER_ADMIN_EMAILS
                             if user_is_sa:
                                 role = "super_admin"
                             
                             # Privacy Filter: Admins can only see supervisors (and themselves)
-                            if is_admin and role != "supervisor" and email != current_email:
+                            if is_admin and not is_sa and role not in ["supervisor", "analista"] and email != current_email:
                                 continue
                                 
                             user_list.append(
                                 DashboardUserData(
                                     email=email,
-                                    name=data.get("name", ""),
+                                    name=data.get("name") or email.split("@")[0].title(),
                                     role=role,
                                     is_super_admin=user_is_sa
                                 )
@@ -85,23 +86,47 @@ class UsuariosState(rx.State):
                         except Exception:
                             pass
             except Exception as e:
-                rx.toast.error(f"Error cargando usuarios: {str(e)}")
+                rx.toast.error(f"Error cargando usuarios de Redis: {str(e)}")
 
-        # Ensure super admins are always present in the list, but only if current user is Super Admin
+        # Fallback to backend API if Redis keys returned 0 users
+        if not user_list:
+            try:
+                api_users = await api_client.get_users()
+                if api_users:
+                    for u in api_users:
+                        email = str(u.get("email") or u.get("username") or "").strip().lower()
+                        if not email or email in emails_seen:
+                            continue
+                        role = str(u.get("role") or "supervisor").strip().lower()
+                        user_is_sa = email in SUPER_ADMIN_EMAILS
+                        if user_is_sa:
+                            role = "super_admin"
+                        user_list.append(
+                            DashboardUserData(
+                                email=email,
+                                name=u.get("name") or email.split("@")[0].title(),
+                                role=role,
+                                is_super_admin=user_is_sa
+                            )
+                        )
+                        emails_seen.add(email)
+            except Exception as e:
+                logger.error(f"API users fetch fallback error: {e}")
+
+        # Ensure super admins are always present in the list
         for sa_email in SUPER_ADMIN_EMAILS:
-            if is_admin:
-                # Admins shouldn't see other Super Admins
-                continue
-            if sa_email not in emails_seen:
-                name_part = sa_email.split("@")[0].replace(".", " ").title()
+            sa_clean = sa_email.strip().lower()
+            if sa_clean not in emails_seen:
+                name_part = sa_clean.split("@")[0].replace(".", " ").title()
                 user_list.append(
                     DashboardUserData(
-                        email=sa_email,
+                        email=sa_clean,
                         name=name_part,
                         role="super_admin",
                         is_super_admin=True
                     )
                 )
+                emails_seen.add(sa_clean)
 
         self.users = user_list
         self.is_loading = False

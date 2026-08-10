@@ -135,10 +135,11 @@ class HomeState(rx.State):
                 # Filter records by date range
                 if parsed_start and parsed_end:
                     try:
-                        record_dt = datetime.fromisoformat(hour_str)
+                        clean_hour_str = str(hour_str).replace("Z", "").split("+")[0].split(".")[0]
+                        record_dt = datetime.fromisoformat(clean_hour_str)
                         if not (parsed_start <= record_dt <= parsed_end):
                             continue
-                    except Exception:
+                    except Exception as dt_err:
                         pass
                 
                 if isinstance(hour_str, str) and "T" in hour_str:
