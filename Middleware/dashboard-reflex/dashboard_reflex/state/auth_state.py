@@ -108,21 +108,25 @@ class AuthState(rx.State):
 
     @rx.var
     def is_super_admin(self) -> bool:
-        if self.is_authenticated not in [True, "true", "True"]:
-            return False
-        return self.role == "super_admin"
+        email_clean = str(self.email or "").strip().lower()
+        role_clean = str(self.role or "").strip().lower()
+        return (email_clean in SUPER_ADMIN_EMAILS) or (role_clean in ["super_admin", "superadmin"])
 
     @rx.var
     def is_admin_or_higher(self) -> bool:
-        if self.is_authenticated not in [True, "true", "True"]:
-            return False
-        return self.role in ["admin", "super_admin"]
+        email_clean = str(self.email or "").strip().lower()
+        role_clean = str(self.role or "").strip().lower()
+        return (email_clean in SUPER_ADMIN_EMAILS) or (role_clean in ["admin", "super_admin", "superadmin"])
 
     def set_session(self, email: str, name: str, role: str):
         """Set user session from external authentication like Keycloak."""
-        self.email = email
+        clean_email = str(email or "").strip().lower()
+        self.email = clean_email
         self.username = name
-        self.role = role
+        if clean_email in SUPER_ADMIN_EMAILS:
+            self.role = "super_admin"
+        else:
+            self.role = role
         self.is_authenticated = True
 
     def sso_redirect(self):

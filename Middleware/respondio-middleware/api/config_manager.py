@@ -397,20 +397,39 @@ class ConfigManager:
             logger.error(f"Failed to update google chat config: {str(e)}")
             return False
 
+    async def _ensure_redis(self):
+        """Ensure active Redis connection, reconnecting if transport was closed."""
+        if self.redis:
+            try:
+                await self.redis.ping()
+                return self.redis
+            except Exception:
+                pass
+        try:
+            from shared.redis_client import get_redis_client
+            self.redis = await get_redis_client()
+            if self.redis:
+                self.enabled = True
+            return self.redis
+        except Exception as e:
+            logger.error(f"Failed to refresh Redis client in ConfigManager: {e}")
+            return None
+
     # ============================================================
     # User Management
     # ============================================================
 
     async def get_users(self) -> List[DashboardUser]:
         """Get all dashboard users"""
-        if not self.enabled:
+        redis = await self._ensure_redis()
+        if not redis:
             return [DashboardUser(
                 username=settings.DASHBOARD_USERNAME,
                 password=settings.DASHBOARD_PASSWORD,
                 role=UserRole.ADMIN
             )]
         try:
-            user_keys = await self.redis.keys("config:users:*")
+            user_keys = await redis.keys("config:users:*")
             users = []
 
             if not user_keys:
@@ -423,7 +442,7 @@ class ConfigManager:
                 return [default_user]
 
             for key in user_keys:
-                user_data = await self.redis.get(key)
+                user_data = await redis.get(key)
                 if user_data:
                     users.append(DashboardUser.model_validate_json(user_data))
 

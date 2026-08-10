@@ -59,10 +59,10 @@ def sidebar(current_page: str) -> rx.Component:
     ]
     
     role_display = rx.cond(
-        AuthState.role == "SUPER_ADMIN",
+        AuthState.is_super_admin,
         "Superadministrador",
         rx.cond(
-            AuthState.role == "ADMIN",
+            AuthState.is_admin_or_higher,
             "Administrador",
             "Analista"
         )

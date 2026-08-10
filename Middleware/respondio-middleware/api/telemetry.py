@@ -183,9 +183,28 @@ class TelemetryService:
             logger.error(f"Failed to get request: {str(e)}")
             return None
     
+    async def _ensure_redis(self):
+        """Ensure active Redis connection, reconnecting if transport was closed."""
+        if self.redis:
+            try:
+                await self.redis.ping()
+                return self.redis
+            except Exception:
+                pass
+        try:
+            from shared.redis_client import get_redis_client
+            self.redis = await get_redis_client()
+            if self.redis:
+                self.enabled = True
+            return self.redis
+        except Exception as e:
+            logger.error(f"Failed to refresh Redis client in TelemetryService: {e}")
+            return None
+
     async def get_hourly_stats(self, hours: int = 24) -> List[dict]:
         """Get hourly statistics for the last N hours"""
-        if not self.enabled:
+        redis = await self._ensure_redis()
+        if not redis:
             return []
         
         try:
@@ -196,7 +215,7 @@ class TelemetryService:
                 hour = now - timedelta(hours=i)
                 hour_key = f"stats:hour:{hour.isoformat()}"
                 
-                data = await self.redis.hgetall(hour_key)
+                data = await redis.hgetall(hour_key)
                 
                 if data:
                     total = int(data.get(b"total_requests", 0))
