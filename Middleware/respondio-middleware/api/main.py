@@ -2043,13 +2043,14 @@ async def check_bill_status(
     finally:
         try:
             latency = int((time.time() - start_time) * 1000)
+            tracking = getattr(request, "tracking_number", getattr(request, "contact_id", "unknown"))
             request_log = RequestLog(
                 trace_id=f"api-{uuid.uuid4()}",
                 timestamp=datetime.utcnow(),
-                conversation_id=request.contact_id or "unknown",
-                contact_id=request.codigo_envio or "unknown",
+                conversation_id=getattr(request, "contact_id", "unknown"),
+                contact_id=tracking,
                 channel="respond_api",
-                user_text=f"Bill Check: {request.codigo_envio or ''}",
+                user_text=f"Bill Check: {tracking}",
                 mcp_response=resp.reply_text if resp else error_msg,
                 status=status_val,
                 latency_ms=latency,
@@ -2452,14 +2453,16 @@ async def log_csat_feedback(
     finally:
         try:
             latency = int((time.time() - start_time) * 1000)
+            cid = getattr(request, "contact_id", getattr(request, "conversation_id", "unknown"))
+            rating_val = getattr(request, "rating", getattr(request, "score", 0))
             request_log = RequestLog(
                 trace_id=f"api-{uuid.uuid4()}",
                 timestamp=datetime.utcnow(),
-                conversation_id=request.conversation_id or "unknown",
-                contact_id=request.contact_id or "unknown",
+                conversation_id=cid,
+                contact_id=cid,
                 channel="respond_api",
-                user_text=f"CSAT Log: Rating={request.score or 0}",
-                mcp_response=resp.message if resp else error_msg,
+                user_text=f"CSAT Log: Rating={rating_val}",
+                mcp_response=getattr(resp, "message", getattr(resp, "reply_text", "")) if resp else error_msg,
                 status=status_val,
                 latency_ms=latency,
                 category="csat_log"
@@ -2543,13 +2546,14 @@ async def check_topup_status(
     finally:
         try:
             latency = int((time.time() - start_time) * 1000)
+            phone_txn = getattr(request, "cellular_number", getattr(request, "transaction_id", getattr(request, "contact_id", "unknown")))
             request_log = RequestLog(
                 trace_id=f"api-{uuid.uuid4()}",
                 timestamp=datetime.utcnow(),
-                conversation_id=request.contact_id or "unknown",
-                contact_id=request.phone_number or "unknown",
+                conversation_id=getattr(request, "contact_id", "unknown"),
+                contact_id=phone_txn,
                 channel="respond_api",
-                user_text=f"Topup Check: {request.phone_number or ''}",
+                user_text=f"Topup Check: {phone_txn}",
                 mcp_response=resp.reply_text if resp else error_msg,
                 status=status_val,
                 latency_ms=latency,
