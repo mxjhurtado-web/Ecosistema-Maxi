@@ -43,5 +43,7 @@
     "SC.033": "[Nombre] ¿Hay algo más en lo que le pueda ayudar?.",
     "SC.034": "Para ayudarnos a mejorar nuestro servicio, ¿cómo calificaría la atención recibida por parte de nuestro agente Max?\n\nPor favor, seleccione un número del 1 al 5 según su experiencia:\n\n5. Excelente\n4. Buena\n3. Regular\n2. Mala\n1. Muy mala\n\nAgradecemos su opinión.",
     "SC.035": "Su opinión es muy valiosa. Para mantener los más altos estándares en nuestra atención, ¿Podría compartirnos los detalles de su experiencia?",
-    "SC.036": "Gracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día."
+    "SC.036": "Gracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día.",
+    "SC.037": "Entendemos su consulta, sin embargo, este trámite requiere atención especializada de nuestro equipo. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.",
+    "SC.038": "Lamentamos el inconveniente reportado. Su caso se ha clasificado de alta prioridad y un asesor especializado lo atenderá de inmediato."
 }

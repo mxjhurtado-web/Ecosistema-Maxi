@@ -447,6 +447,7 @@ class DecisionLogEntry(BaseModel):
     next_state: Optional[str] = Field(None, description="Estado FSM siguiente")
     next_action: Optional[str] = Field("NONE", description="Acción técnica siguiente (OFFER_ADDITIONAL_HELP, ASSIGN_TO_TEAM, etc.)")
     destination_team: Optional[str] = Field(None, description="Equipo/Agente de destino en caso de handoff")
+    virtual_queue: Optional[str] = Field("Cola B", description="Cola virtual de asignación: 'Cola A' (Alta Prioridad - Riesgo/Fraude) o 'Cola B' (Prioridad Estándar)")
     csat_eligible: Optional[bool] = Field(False, description="Si la interacción califica para encuesta CSAT")
     close_allowed: Optional[bool] = Field(False, description="Si se permite el cierre técnico de la conversación")
     audit_meta: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Metadata técnica (versiones, flags de frescura, etc.)")

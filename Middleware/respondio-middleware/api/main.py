@@ -61,6 +61,13 @@ async def log_fsm_decision(
     """Helper to persist FSM decision audit entries for Reflex Dashboard (/decision-logs)"""
     try:
         c_id = contact_id if contact_id and contact_id not in ["-1", "contact.id", "$contact.id"] else "simulator"
+        
+        # Determine Virtual Queue (Cola A vs Cola B) per AUD.03 & COL.02
+        v_queue = "Cola B"
+        txt_check = (script_text or "") + " " + (active_agent or "") + " " + (winning_rule_id or "") + " " + (derivacion or "")
+        if any(k in txt_check for k in ["SC.030", "SC.038", "Fraude", "BSA", "Estafa", "Cola A", "DerivacionFraudes", "DerivacionBSA"]):
+            v_queue = "Cola A"
+
         entry = DecisionLogEntry(
             trace_id=f"dec-{uuid.uuid4()}",
             contact_id=c_id,
@@ -74,7 +81,8 @@ async def log_fsm_decision(
             current_state="PROCESSING",
             next_state="COMPLETED",
             next_action="ASSIGN_TO_TEAM" if derivacion and derivacion != "NA" else "OFFER_HELP",
-            destination_team=derivacion if derivacion != "NA" else None
+            destination_team=derivacion if derivacion != "NA" else None,
+            virtual_queue=v_queue
         )
         await save_decision_log(entry)
     except Exception as err:
@@ -2507,7 +2515,16 @@ async def log_csat_feedback_inner(
         )
 
         if success:
-            return CSATLogResponse(status="success", message="CSAT logged successfully to Google Sheets")
+            next_script = "SC.036"
+            next_text = resolve_script_text("SC.036")
+            if request.rating and request.rating < 3 and not request.comment:
+                next_script = "SC.035"
+                next_text = resolve_script_text("SC.035")
+                
+            return CSATLogResponse(
+                status="success",
+                message=next_text or "CSAT logged successfully to Google Sheets"
+            )
         else:
             raise HTTPException(status_code=500, detail="Failed to write CSAT row to Google Sheets")
     except HTTPException:
