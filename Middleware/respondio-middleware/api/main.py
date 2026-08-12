@@ -3589,13 +3589,14 @@ async def agent_interact_inner(
             return AgentInteractResponse(
                 status="success",
                 reply_text=full_reply,
-                derivacion=None  # Stay with MAX so user can send details in Turn 2
+                derivacion="NA"
             )
         else:
             # Turn 2: Received details from user -> Clear Redis state -> Send Google Chat Alert -> Reassign to DerivacionFraudes
             await redis.delete(fraud_collecting_key)
 
             try:
+                from .google_chat_service import google_chat_service
                 cached_url = await redis.get(f"contact:last_image:{contact_id}")
                 media_attach = ""
                 if cached_url:
