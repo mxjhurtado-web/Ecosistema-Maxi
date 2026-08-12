@@ -3917,7 +3917,7 @@ async def agent_interact_inner(
             cached_code = await redis.get(code_key)
             bill_code = cached_code.decode('utf-8') if cached_code else None
             
-        if bill_code and bill_code.upper().startswith("TRK"):
+        if bill_code:
             # Call bill status check logic
             req = BillCheckRequest(
                 contact_id=contact_id,
@@ -3937,8 +3937,8 @@ async def agent_interact_inner(
                 translated = await translate_script_if_needed(sc13_text, user_text)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
         else:
-            reply = "Por favor proporcione el número de rastreo (Tracking Number) de su pago de bill/servicio (debe iniciar con TRK):"
-            translated = await translate_script_if_needed(reply, user_text)
+            sc10_1_text = scripts.get("SC.010.1", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?.")
+            translated = await translate_script_if_needed(sc10_1_text, user_text)
             return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
 
     # ------------------------------------------------------------
