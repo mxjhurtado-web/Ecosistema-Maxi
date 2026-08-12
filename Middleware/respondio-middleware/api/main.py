@@ -3559,8 +3559,8 @@ async def agent_interact_inner(
     # Handle global commands or keywords (e.g. human transfer or ending)
     user_text_lower = user_text.lower()
     
-    # Detección de Fraude (RNE.50 / SC.030) - Prioridad Absoluta
-    fraud_keywords = ["estafa", "fraude", "engaño", "phishing", "robo", "robado", "extorsión", "sospechosa", "víctima", "scam"]
+    # Detección de Fraude y Riesgo / BSA (RNE.50 / RNE.51 / SC.030) - Prioridad Absoluta
+    fraud_keywords = ["estafa", "fraude", "engaño", "phishing", "robo", "robado", "extorsión", "sospechosa", "víctima", "scam", "bsa", "fraccionar", "fraccionamiento", "estructuración"]
     fraud_collecting_key = f"session:fraud_collecting:{contact_id}"
     is_fraud_collecting = await redis.get(fraud_collecting_key)
 
