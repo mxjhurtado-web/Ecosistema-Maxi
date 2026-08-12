@@ -358,8 +358,10 @@ class ConfigManager:
     async def get_google_chat_config(self) -> GoogleChatAlertConfig:
         """Get current Google Chat configuration"""
         if not self.enabled:
+            sa_b64_env = settings.GOOGLE_CHATS_SA_BASE64 or ""
             return GoogleChatAlertConfig(
-                sa_json_b64=settings.GOOGLE_CHATS_SA_BASE64 or "",
+                enabled=True if sa_b64_env else False,
+                sa_json_b64=sa_b64_env,
                 default_space_id=settings.GOOGLE_CHATS_DEFAULT_SPACE or ""
             )
         try:
@@ -369,16 +371,20 @@ class ConfigManager:
             alert_mcp = await self.redis.get("config:google_chat:alert_on_mcp_error")
             alert_cb = await self.redis.get("config:google_chat:alert_on_circuit_breaker")
 
+            sa_b64_val = sa_json.decode() if sa_json else (settings.GOOGLE_CHATS_SA_BASE64 or "")
+            is_enabled = enabled.decode() == "true" if enabled else bool(sa_b64_val)
+
             return GoogleChatAlertConfig(
-                enabled=enabled.decode() == "true" if enabled else False,
-                sa_json_b64=sa_json.decode() if sa_json else (settings.GOOGLE_CHATS_SA_BASE64 or ""),
+                enabled=is_enabled,
+                sa_json_b64=sa_b64_val,
                 default_space_id=space_id.decode() if space_id else (settings.GOOGLE_CHATS_DEFAULT_SPACE or ""),
                 alert_on_mcp_error=alert_mcp.decode() == "true" if alert_mcp else True,
                 alert_on_circuit_breaker=alert_cb.decode() == "true" if alert_cb else True
             )
         except Exception as e:
             logger.error(f"Failed to get google chat config: {str(e)}")
-            return GoogleChatAlertConfig()
+            sa_b64_env = settings.GOOGLE_CHATS_SA_BASE64 or ""
+            return GoogleChatAlertConfig(enabled=True if sa_b64_env else False)
 
     async def update_google_chat_config(self, config: GoogleChatAlertConfig) -> bool:
         """Update Google Chat configuration"""

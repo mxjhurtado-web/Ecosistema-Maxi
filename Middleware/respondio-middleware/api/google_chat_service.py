@@ -141,10 +141,9 @@ class GoogleChatService:
         if not target_space.startswith("spaces/"):
             target_space = f"spaces/{target_space}"
 
-        # If general config is disabled and no explicit space_id or override was passed, prevent it.
-        # But if space_id or sa_b64_override is explicitly passed, let it proceed!
-        if not config.enabled and not space_id and not sa_b64_override:
-            return False, "Google Chat alerts are globally disabled (enabled = False) and no explicit space_id or override was provided"
+        # If sa_b64 credentials exist, allow alert execution
+        if not config.enabled and not space_id and not sa_b64_override and not sa_b64:
+            return False, "Google Chat alerts are globally disabled (enabled = False) and no Service Account credentials exist"
 
         try:
             # Decode and load credentials
