@@ -1143,11 +1143,24 @@ async def google_chat_notify_handler_inner(
                     last_user_text = cached_txt.decode('utf-8')
             except Exception:
                 pass
+
+        # Contextual intention & detail determination
+        is_soporte = "SOPORTE" in message_text.upper() or (request.destino and "soporte" in request.destino.lower()) or (target_space and "AAQAQhx5RTM" in str(target_space))
+        is_fraude = "FRAUDE" in message_text.upper() or (request.destino and "fraude" in request.destino.lower()) or (target_space and "AAQAQM9pDpg" in str(target_space))
         
-        detail_val = last_user_text or "Reporte de posible fraude o estafa recibido"
-        message_text = message_text.replace("🎯 *Intención:* null", "🎯 *Intención:* Reporte de Fraude / Estafa")
-        message_text = message_text.replace("🎯 *Intenci\u00f3n:* null", "🎯 *Intención:* Reporte de Fraude / Estafa")
-        message_text = message_text.replace("📝 *Detalle:* null", f"📝 *Detalle:* {detail_val}")
+        if is_soporte:
+            default_intent = "Soporte Técnico / Asistencia"
+            default_detail = last_user_text or "Falla o reporte de soporte técnico recibido"
+        elif is_fraude:
+            default_intent = "Reporte de Fraude / Estafa"
+            default_detail = last_user_text or "Reporte de posible fraude o estafa recibido"
+        else:
+            default_intent = "Notificación de Atención"
+            default_detail = last_user_text or "Detalle de notificación no especificado"
+
+        message_text = message_text.replace("🎯 *Intención:* null", f"🎯 *Intención:* {default_intent}")
+        message_text = message_text.replace("🎯 *Intenci\u00f3n:* null", f"🎯 *Intención:* {default_intent}")
+        message_text = message_text.replace("📝 *Detalle:* null", f"📝 *Detalle:* {default_detail}")
 
     # REJ.03 Enforcement: High Priority Alert Headers for Fraudes / BSA
     if request.destino and request.destino.lower() in ["fraudes", "fraude", "prevencion_de_fraudes", "bsa", "bsa_monitoring"]:
