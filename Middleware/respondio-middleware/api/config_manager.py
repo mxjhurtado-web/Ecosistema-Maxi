@@ -426,7 +426,7 @@ class ConfigManager:
     # ============================================================
 
     async def get_users(self) -> List[DashboardUser]:
-        """Get all dashboard users"""
+        """Get all dashboard users from Redis"""
         redis = await self._ensure_redis()
         if not redis:
             return [DashboardUser(
@@ -435,10 +435,31 @@ class ConfigManager:
                 role=UserRole.ADMIN
             )]
         try:
-            user_keys = await redis.keys("config:users:*")
+            config_keys = await redis.keys("config:users:*")
+            orbit_keys = await redis.keys("orbit:user:*")
+            all_keys = list(set(config_keys + orbit_keys))
             users = []
+            seen_usernames = set()
 
-            if not user_keys:
+            for key in all_keys:
+                user_data = await redis.get(key)
+                if user_data:
+                    try:
+                        raw = user_data.decode('utf-8') if isinstance(user_data, bytes) else str(user_data)
+                        data_dict = json.loads(raw)
+                        uname = data_dict.get("username") or data_dict.get("email") or ""
+                        uname = uname.strip().lower()
+                        if uname and uname not in seen_usernames:
+                            seen_usernames.add(uname)
+                            users.append(DashboardUser(
+                                username=uname,
+                                password=data_dict.get("password") or "maxi-secret-2025",
+                                role=data_dict.get("role") or UserRole.SUPERVISOR
+                            ))
+                    except Exception as parse_err:
+                        logger.warning(f"Could not parse user key {key}: {parse_err}")
+
+            if not users:
                 default_user = DashboardUser(
                     username=settings.DASHBOARD_USERNAME,
                     password=settings.DASHBOARD_PASSWORD,
@@ -447,39 +468,51 @@ class ConfigManager:
                 await self.add_user(default_user)
                 return [default_user]
 
-            for key in user_keys:
-                user_data = await redis.get(key)
-                if user_data:
-                    users.append(DashboardUser.model_validate_json(user_data))
-
             return users
         except Exception as e:
-            logger.error(f"Failed to get users: {str(e)}")
-            return []
+            logger.error(f"Failed to get users from Redis: {str(e)}")
+            return [DashboardUser(
+                username=settings.DASHBOARD_USERNAME,
+                password=settings.DASHBOARD_PASSWORD,
+                role=UserRole.ADMIN
+            )]
 
     async def add_user(self, user: DashboardUser) -> bool:
-        """Add or update a user"""
-        if not self.enabled:
+        """Add or update a user in Redis (dual namespace)"""
+        redis = await self._ensure_redis()
+        if not redis:
+            logger.error("Failed to acquire Redis connection to add user")
             return False
         try:
-            await self.redis.set(f"config:users:{user.username}", user.model_dump_json())
+            user_json = user.model_dump_json()
+            orbit_json = json.dumps({
+                "email": user.username,
+                "name": user.username.split("@")[0].replace(".", " ").title(),
+                "role": user.role.value if hasattr(user.role, 'value') else str(user.role)
+            })
+            await redis.set(f"config:users:{user.username}", user_json)
+            await redis.set(f"orbit:user:{user.username}", orbit_json)
+            logger.info(f"✅ User {user.username} saved to Redis config:users and orbit:user")
             return True
         except Exception as e:
-            logger.error(f"Failed to add user: {str(e)}")
+            logger.error(f"Failed to add user to Redis: {str(e)}")
             return False
 
     async def delete_user(self, username: str) -> bool:
-        """Delete a user"""
-        if not self.enabled:
+        """Delete a user from Redis"""
+        redis = await self._ensure_redis()
+        if not redis:
             return False
         try:
             if username == settings.DASHBOARD_USERNAME:
                 logger.warning(f"Prevented deletion of default admin: {username}")
                 return False
-            await self.redis.delete(f"config:users:{username}")
+            await redis.delete(f"config:users:{username}")
+            await redis.delete(f"orbit:user:{username}")
+            logger.info(f"🗑️ User {username} deleted from Redis")
             return True
         except Exception as e:
-            logger.error(f"Failed to delete user: {str(e)}")
+            logger.error(f"Failed to delete user from Redis: {str(e)}")
             return False
 
     # ============================================================

@@ -173,22 +173,30 @@ class UsuariosState(rx.State):
             rx.toast.error("No se puede eliminar a un Super Admin.")
             return
 
-        if r_client:
-            try:
-                key = f"orbit:user:{email}"
-                r_client.delete(key)
-                rx.toast.success(f"Usuario {email} eliminado.")
-                # Log audit action
-                auth_state = await self.get_state(AuthState)
-                await api_client.log_audit_action({
-                    "username": auth_state.username or "admin",
-                    "role": auth_state.role or "admin",
-                    "action": "CONFIG_CHANGE",
-                    "details": f"Deleted dashboard access for user {email}"
-                })
-                await self.load_users()
-            except Exception as e:
-                rx.toast.error(f"Error al eliminar usuario: {str(e)}")
+        try:
+            # 1. Direct Redis delete if r_client is available
+            if r_client:
+                try:
+                    r_client.delete(f"orbit:user:{email}")
+                    r_client.delete(f"config:users:{email}")
+                except Exception:
+                    pass
+
+            # 2. Call Backend API
+            res = await api_client.delete_user(email)
+            rx.toast.success(f"Usuario {email} eliminado exitosamente.")
+            
+            # Log audit action
+            auth_state = await self.get_state(AuthState)
+            await api_client.log_audit_action({
+                "username": auth_state.username or "admin",
+                "role": auth_state.role or "admin",
+                "action": "CONFIG_CHANGE",
+                "details": f"Deleted dashboard access for user {email}"
+            })
+            await self.load_users()
+        except Exception as e:
+            rx.toast.error(f"Error al eliminar usuario: {str(e)}")
 
     async def add_user(self):
         if not self.new_email or not self.new_name:
@@ -205,34 +213,45 @@ class UsuariosState(rx.State):
             # Admins can only register supervisors
             role_to_set = "supervisor"
 
-        if r_client:
-            try:
-                key = f"orbit:user:{self.new_email}"
-                user_data = {
-                    "email": self.new_email,
-                    "name": self.new_name,
-                    "role": role_to_set
-                }
-                r_client.set(key, json.dumps(user_data))
-                rx.toast.success(f"Usuario {self.new_email} registrado exitosamente.")
-                
-                # Log audit action
-                auth_state = await self.get_state(AuthState)
-                await api_client.log_audit_action({
-                    "username": auth_state.username or "admin",
-                    "role": auth_state.role or "admin",
-                    "action": "CONFIG_CHANGE",
-                    "details": f"Registered new user {self.new_email} with role {role_to_set}"
-                })
+        try:
+            # 1. Write to local r_client if available
+            if r_client:
+                try:
+                    key = f"orbit:user:{self.new_email}"
+                    user_data = {
+                        "email": self.new_email,
+                        "name": self.new_name,
+                        "role": role_to_set
+                    }
+                    r_client.set(key, json.dumps(user_data))
+                except Exception:
+                    pass
 
-                # Clear fields
-                self.new_email = ""
-                self.new_name = ""
-                self.new_role = "supervisor"
-                
-                await self.load_users()
-            except Exception as e:
-                rx.toast.error(f"Error al registrar usuario: {str(e)}")
+            # 2. Call API Backend to persist user in production Redis
+            res = await api_client.add_user({
+                "username": self.new_email,
+                "password": "maxi-secret-2025",
+                "role": role_to_set
+            })
+            
+            rx.toast.success(f"Usuario {self.new_email} registrado exitosamente.")
+            
+            # Log audit action
+            await api_client.log_audit_action({
+                "username": auth_state.username or "admin",
+                "role": auth_state.role or "admin",
+                "action": "CONFIG_CHANGE",
+                "details": f"Registered new user {self.new_email} with role {role_to_set}"
+            })
+
+            # Clear fields
+            self.new_email = ""
+            self.new_name = ""
+            self.new_role = "supervisor"
+            
+            await self.load_users()
+        except Exception as e:
+            rx.toast.error(f"Error al registrar usuario: {str(e)}")
 
     async def on_load(self):
         await self.load_users()
