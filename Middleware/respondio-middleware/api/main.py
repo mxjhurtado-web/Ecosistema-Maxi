@@ -3568,9 +3568,39 @@ async def agent_interact_inner(
         logger.info(f"🚨 Fraud flow active for contact {contact_id} (collecting={bool(is_fraud_collecting)})")
         
         if not is_fraud_collecting:
-            # Turn 1: Deliver Welcome (CU.A1) + SC.030 + Request 3 Security Fields + Set Redis state
+            # Turn 1: Deliver SC.030 + Request 3 Security Fields + Send Google Chat Alert Immediately!
             await redis.set(fraud_collecting_key, "1", ex=3600)
             
+            # Fire Google Chat Fraud Alert immediately on Turn 1 so it is NEVER missed!
+            try:
+                from .google_chat_service import google_chat_service
+                cached_url = await redis.get(f"contact:last_image:{contact_id}")
+                media_attach = ""
+                if cached_url:
+                    try:
+                        url_str = cached_url.decode('utf-8')
+                        if url_str and "http" in url_str:
+                            emoji_attach = "📄" if ".pdf" in url_str.lower() else "📷"
+                            media_attach = f"\n\n{emoji_attach} *Adjunto:* {url_str}"
+                    except Exception:
+                        pass
+
+                alert_msg = (
+                    f"🚨 *ALERTA CRÍTICA DE FRAUDE/ESTAFA*\n\n"
+                    f"👤 *Usuario:* Contacto #{contact_id}\n"
+                    f"🎯 *Intención:* Reporte de Fraude / Estafa\n"
+                    f"📝 *Detalle:* {user_text}{media_attach}"
+                )
+                await google_chat_service.send_alert_detailed(
+                    title="Alerta de Orbit",
+                    message=alert_msg,
+                    level="ERROR",
+                    space_id=os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or getattr(settings, "GOOGLE_CHATS_FRAUDES_SPACE", None) or "spaces/AAQAQM9pDpg"
+                )
+                logger.info(f"✅ Google Chat Fraud Alert sent successfully for contact {contact_id} on Turn 1")
+            except Exception as gchat_err:
+                logger.error(f"⚠️ Failed to send Google Chat Fraud Alert on Turn 1: {gchat_err}")
+
             sc30_text = scripts.get("SC.030", "Su solicitud es de alta prioridad para nosotros. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
             sc30_trans = await translate_script_if_needed(sc30_text, user_text)
 
@@ -3589,37 +3619,25 @@ async def agent_interact_inner(
                 derivacion="NA"
             )
         else:
-            # Turn 2: Received details from user -> Clear Redis state -> Send Google Chat Alert -> Reassign to DerivacionFraudes
+            # Turn 2: Received details from user -> Clear Redis state -> Send Google Chat Update -> Reassign to DerivacionFraudes
             await redis.delete(fraud_collecting_key)
 
             try:
                 from .google_chat_service import google_chat_service
-                cached_url = await redis.get(f"contact:last_image:{contact_id}")
-                media_attach = ""
-                if cached_url:
-                    try:
-                        url_str = cached_url.decode('utf-8')
-                        if url_str and "http" in url_str:
-                            emoji_attach = "📄" if ".pdf" in url_str.lower() else "📷"
-                            media_attach = f"\n\n{emoji_attach} *Adjunto:* {url_str}"
-                    except Exception:
-                        pass
-
                 alert_msg = (
-                    f"🚨 *ALERTA DE FRAUDE/ESTAFA*\n\n"
+                    f"📝 *DETALLES ADICIONALES DE FRAUDE RECIBIDOS*\n\n"
                     f"👤 *Usuario:* Contacto #{contact_id}\n"
-                    f"🎯 *Intención:* Reporte de Fraude / Estafa\n"
-                    f"📝 *Detalle:* {user_text}{media_attach}"
+                    f"📝 *Datos proporcionados por el cliente:* {user_text}"
                 )
                 await google_chat_service.send_alert_detailed(
                     title="Alerta de Orbit",
                     message=alert_msg,
-                    level="ERROR",
+                    level="INFO",
                     space_id=os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or getattr(settings, "GOOGLE_CHATS_FRAUDES_SPACE", None) or "spaces/AAQAQM9pDpg"
                 )
-                logger.info(f"✅ Google Chat Fraud Alert sent successfully for contact {contact_id}")
+                logger.info(f"✅ Google Chat Fraud Details update sent for contact {contact_id}")
             except Exception as gchat_err:
-                logger.error(f"⚠️ Failed to send Google Chat Fraud Alert: {gchat_err}")
+                logger.error(f"⚠️ Failed to send Google Chat Fraud Details update: {gchat_err}")
 
             return AgentInteractResponse(
                 status="success",
