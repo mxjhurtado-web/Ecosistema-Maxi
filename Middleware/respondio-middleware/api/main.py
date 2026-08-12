@@ -3571,10 +3571,7 @@ async def agent_interact_inner(
             # Turn 1: Deliver Welcome (CU.A1) + SC.030 + Request 3 Security Fields + Set Redis state
             await redis.set(fraud_collecting_key, "1", ex=3600)
             
-            cua1_text = scripts.get("CU.A1", "¡Gracias por comunicarse a Maxitransfers! Para conocer cómo protegemos sus datos personales, consulte nuestro aviso de privacidad en www.maxitransfers.com/privacidad.")
             sc30_text = scripts.get("SC.030", "Su solicitud es de alta prioridad para nosotros. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-
-            cua1_trans = await translate_script_if_needed(cua1_text, user_text)
             sc30_trans = await translate_script_if_needed(sc30_text, user_text)
 
             request_details_text = (
@@ -3584,7 +3581,7 @@ async def agent_interact_inner(
                 "3) La clave de envío o transacción, si aplica."
             )
 
-            full_reply = f"{cua1_trans}\n\n{sc30_trans}{request_details_text}"
+            full_reply = f"{sc30_trans}{request_details_text}"
             
             return AgentInteractResponse(
                 status="success",

@@ -1131,6 +1131,24 @@ async def google_chat_notify_handler_inner(
     message_text = request.message
     media_url = request.media_url
 
+    # Sanitize null values in message_text if Respond.io variables evaluated to string 'null'
+    if message_text and ("null" in message_text.lower()):
+        last_user_text = None
+        if request.contact_id:
+            try:
+                from shared.redis_client import get_redis_client
+                redis = await get_redis_client()
+                cached_txt = await redis.get(f"contact:last_text:{request.contact_id}")
+                if cached_txt:
+                    last_user_text = cached_txt.decode('utf-8')
+            except Exception:
+                pass
+        
+        detail_val = last_user_text or "Reporte de posible fraude o estafa recibido"
+        message_text = message_text.replace("🎯 *Intención:* null", "🎯 *Intención:* Reporte de Fraude / Estafa")
+        message_text = message_text.replace("🎯 *Intenci\u00f3n:* null", "🎯 *Intención:* Reporte de Fraude / Estafa")
+        message_text = message_text.replace("📝 *Detalle:* null", f"📝 *Detalle:* {detail_val}")
+
     # REJ.03 Enforcement: High Priority Alert Headers for Fraudes / BSA
     if request.destino and request.destino.lower() in ["fraudes", "fraude", "prevencion_de_fraudes", "bsa", "bsa_monitoring"]:
         if "[ALERTA CRÍTICA" not in message_text and "[ATENDIDO INICIALMENTE" not in message_text:
