@@ -1511,13 +1511,14 @@ async def check_transaction_status_inner(
             except Exception as e:
                 logger.error(f"Error setting attempts in Redis: {e}")
                 
+        scripts_dict = get_compliance_scripts()
         if attempts >= 2:
             if redis:
                 try:
                     await redis.set(attempts_key, "0", ex=3600)
                 except Exception as e:
                     logger.error(f"Error resetting attempts in Redis: {e}")
-            sc12 = scripts.get("SC.012", "No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+            sc12 = scripts_dict.get("SC.012", "No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
             sc12 = await translate_script_if_needed(sc12, user_text)
             return StatusCheckResponse(
                 status="success",
@@ -1526,7 +1527,7 @@ async def check_transaction_status_inner(
                 validation_success=False
             )
         else:
-            sc29 = scripts.get("SC.029", "No he podido localizar la información con los datos que me ha proporcionado. Por favor, confírmelos y escríbalos nuevamente para realizar una nueva consulta.")
+            sc29 = scripts_dict.get("SC.029", "No he podido localizar la información con los datos que me ha proporcionado. Por favor, confírmelos y escríbalos nuevamente para realizar una nueva consulta.")
             sc29 = await translate_script_if_needed(sc29, user_text)
             return StatusCheckResponse(
                 status="success",
