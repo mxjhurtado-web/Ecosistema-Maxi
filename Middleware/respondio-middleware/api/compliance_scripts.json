@@ -9,7 +9,7 @@
     "SC.006.1": "Con gusto. Por favor, indíqueme su siguiente consulta para brindarle el apoyo que necesita.",
     "SC.007": "Para proceder con su consulta, realizaremos la validación de los datos de su operación.",
     "SC.008": "¿Me comparte la clave de confirmación de su operación, por favor? También puede enviar una foto del recibo para ayudarle más rápido.",
-    "SC.009": "Entiendo que tiene dificultad para localizar la clave de su operación. Le comparto una imagen de referencia para que pueda identificar este dato”.  Agente de IA enviaría la imagen de los 2 tipos de recibo: térmico y windows para la transacción que aplique (envío de dinero, pago de bill o recarga).",
+    "SC.009": "Entiendo que tiene dificultad para localizar la clave de su operación. Le comparto una imagen de referencia para que pueda identificar este dato.",
     "SC.010": "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de quien envió el dinero y el nombre completo de quien lo recibe, por favor?.",
     "SC.010.1": "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?.",
     "SC.010.2": "Para continuar, necesito validar algunos datos. ¿Me comparte el número telefónico de la persona quien hizo la recarga y el número al que se realizó, por favor?.",
