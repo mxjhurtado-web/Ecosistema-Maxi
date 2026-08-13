@@ -3464,6 +3464,7 @@ async def clear_redis_session(redis, contact_id: str):
         f"session:mo:code:{contact_id}",
         f"session:mo:amount:{contact_id}",
         f"session:mo:reason:{contact_id}",
+        f"session:welcome_sent:{contact_id}",
     ]
     for k in keys:
         try:
@@ -3479,6 +3480,28 @@ async def agent_interact(
     secret: Optional[str] = None
 ):
     resp = await agent_interact_inner(request, x_webhook_secret, secret)
+    
+    # GARANTÍA ABSOLUTA DEL SCRIPT DE BIENVENIDA OBLIGATORIO EN EL PRIMER TURNO (CU.A1 / RNE.01)
+    if resp and resp.reply_text:
+        contact_id = request.contact_id.replace("{", "").replace("}", "").strip()
+        if contact_id not in ["contact.id", "contactid", "$contact.id", ""]:
+            try:
+                redis = await get_redis_client()
+                welcome_key = f"session:welcome_sent:{contact_id}"
+                welcome_sent = await redis.get(welcome_key)
+                
+                if not welcome_sent:
+                    await redis.set(welcome_key, "1", ex=3600)
+                    scripts = get_compliance_scripts()
+                    cuA1_text = scripts.get("CU.A1", "¡Gracias por comunicarse a Maxitransfers! Para conocer cómo protegemos sus datos personales, consulte nuestro aviso de privacidad en www.maxitransfers.com/privacidad.").strip()
+                    cuA1_trans = await translate_script_if_needed(cuA1_text, request.user_text, contact_id=contact_id)
+                    
+                    if cuA1_trans and "maxitransfers" not in resp.reply_text.lower():
+                        resp.reply_text = f"{cuA1_trans}\n\n{resp.reply_text}"
+                        logger.info(f"✨ Mandatory Turn 1 Welcome Script (CU.A1) prepended for contact {contact_id}")
+            except Exception as w_err:
+                logger.error(f"⚠️ Error enforcing mandatory welcome script CU.A1: {w_err}")
+
     if resp:
         await log_fsm_decision(
             contact_id=request.contact_id,
