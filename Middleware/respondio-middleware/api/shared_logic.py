@@ -83,40 +83,46 @@ async def detect_language(user_text: str, contact_id: str = None) -> str:
     cleaned = user_text.strip()
     cleaned_lower = cleaned.lower()
 
-    # 1. Check Redis for established session language preference if contact_id is provided
+    # 1. Expand Spanish & English keyword dictionaries for reliable detection
+    en_words = {
+        "the", "my", "please", "is", "are", "have", "can", "need", "want", "money", 
+        "status", "send", "sent", "help", "how", "what", "where", "why", "who", "when", 
+        "check", "tracking", "claim", "number", "transfer", "receiver", "sender", "hello",
+        "hi", "good", "morning", "afternoon", "thanks", "thank", "you", "scam", "fraud"
+    }
+    es_words = {
+        "el", "la", "los", "las", "un", "una", "por", "favor", "está", "estan",
+        "tengo", "puedo", "necesito", "quiero", "dinero", "estatus", "envio", "envío", "enviar", "envié",
+        "ayuda", "cómo", "como", "qué", "que", "dónde", "donde", "cuándo", "cuando",
+        "clave", "rastreo", "remesa", "transferencia", "receptor", "remitente", "hola",
+        "buenos", "días", "dias", "gracias", "tardes", "noches", "cancelacion", "modificacion", "agencia"
+    }
+
+    tokens = set(re.findall(r'\b[a-zñáéíóú]+\b', cleaned_lower))
+    en_matches = len(tokens.intersection(en_words))
+    es_matches = len(tokens.intersection(es_words))
+
+    # If current turn has clear Spanish indicators, reset session language to Spanish (LNG.02)
+    if es_matches > en_matches or es_matches >= 2 or any(w in cleaned_lower for w in ["gracias", "hola", "buenos días", "buenas tardes", "por favor", "necesito"]):
+        if redis and contact_id and contact_id != "-1":
+            try:
+                await redis.set(f"session_lang:{contact_id}", "es", ex=3600)
+            except Exception:
+                pass
+        return "es"
+
+    # Check Redis for established session language preference if contact_id is provided
     if redis and contact_id and contact_id != "-1":
         try:
             cached_lang = await redis.get(f"session_lang:{contact_id}")
             if cached_lang:
                 session_lang_str = cached_lang.decode('utf-8').strip().lower()
-                # Check for explicit language switch requests in current turn (LNG.02)
-                if any(phrase in cleaned_lower for phrase in ["español", "spanish", "hablar en español", "cambiar a español"]):
-                    await redis.set(f"session_lang:{contact_id}", "es", ex=3600)
-                    logger.info(f"🌐 Explicit language switch to Spanish ('es') for contact {contact_id}")
-                    return "es"
-                elif any(phrase in cleaned_lower for phrase in ["english", "inglés", "ingles", "speak english", "switch to english"]):
-                    await redis.set(f"session_lang:{contact_id}", "en", ex=3600)
-                    logger.info(f"🌐 Explicit language switch to English ('en') for contact {contact_id}")
+                if session_lang_str == "en" and es_matches == 0:
                     return "en"
-                # Keep active session language
-                return session_lang_str
         except Exception as e:
             logger.warning(f"Error checking session_lang in Redis: {e}")
 
-    # CRÍTICO: Si el texto contiene sintaxis de variables o plantillas (Respond.io), default a "es"
-    if "{{" in cleaned or "}}" in cleaned or "$" in cleaned:
-        return "es"
-
-    # 2. Check for single-word English triggers (LNG.01)
-    single_word_en = {
-        "hello", "hi", "hey", "good morning", "good afternoon", "good evening",
-        "thanks", "thank you", "please", "status", "tracking", "help", "agent",
-        "english", "check", "scam", "fraud", "cancel", "money"
-    }
-    
-    tokens = set(re.findall(r'\b[a-zñáéíóú]+\b', cleaned_lower))
-    
-    # Direct trigger for single word or greetings
+    # Check for single-word English triggers (LNG.01)
     if any(term in cleaned_lower for term in ["hello", "good morning", "good afternoon", "good evening", "english", "speak english"]):
         if redis and contact_id and contact_id != "-1":
             try:
@@ -126,29 +132,8 @@ async def detect_language(user_text: str, contact_id: str = None) -> str:
         logger.info(f"🌐 Instant English trigger detected for: '{cleaned[:30]}'")
         return "en"
 
-    # Common English stopwords/keywords heuristic
-    en_words = {
-        "the", "my", "please", "is", "are", "have", "can", "need", "want", "money", 
-        "status", "send", "sent", "help", "how", "what", "where", "why", "who", "when", 
-        "check", "tracking", "claim", "number", "transfer", "receiver", "sender", "hello",
-        "hi", "good", "morning", "afternoon", "thanks", "thank", "you"
-    }
-    # Common Spanish stopwords/keywords
-    es_words = {
-        "el", "la", "los", "las", "un", "una", "por", "favor", "está", "estan",
-        "tengo", "puedo", "necesito", "quiero", "dinero", "estatus", "enviar", "envié",
-        "ayuda", "cómo", "como", "qué", "que", "dónde", "donde", "cuándo", "cuando",
-        "clave", "rastreo", "remesa", "transferencia", "receptor", "remitente", "hola",
-        "buenos", "días", "gracias", "tardes", "noches"
-    }
-
-    en_matches = len(tokens.intersection(en_words))
-    es_matches = len(tokens.intersection(es_words))
-
     detected_lang = "es"
-    if es_matches > en_matches:
-        detected_lang = "es"
-    elif en_matches > es_matches and en_matches >= 1:
+    if en_matches > es_matches and en_matches >= 2:
         detected_lang = "en"
 
     # Save to Redis if detected as English
