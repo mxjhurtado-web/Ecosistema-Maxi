@@ -3650,12 +3650,44 @@ async def agent_interact_inner(
                 derivacion="DerivacionFraudes"
             )
         
-    # Asesor humano explícito
-    human_keywords = ["asesor", "humano", "persona", "soporte", "hablar con alguien", "agent", "human", "representative"]
+    # Detección dedicada de Soporte Técnico / Hardware de Agencia (Scanner, Impresora, POS, Lector)
+    tech_support_keywords = ["scanner", "escaner", "escáner", "impresora", "pos", "terminal", "lector", "falla técnica", "falla tecnica", "soporte técnico", "soporte tecnico"]
+    if any(k in user_text_lower for k in tech_support_keywords):
+        logger.info(f"🛠️ Tech support hardware request detected for contact {contact_id}: '{user_text[:50]}'")
+        try:
+            from .google_chat_service import google_chat_service
+            soporte_msg = (
+                f"🛠️ *REPORTE DE SOPORTE TÉCNICO*\n\n"
+                f"👤 *Usuario:* {contact_id}\n"
+                f"🏢 *Agencia:* General\n"
+                f"🎯 *Intención:* Soporte Técnico / Falla Hardware ({user_text[:40]})\n"
+                f"📝 *Detalle:* {user_text}"
+            )
+            soporte_space = os.getenv("GOOGLE_CHATS_SOPORTE_SPACE") or "spaces/AAQAQhx5RTM"
+            await google_chat_service.send_alert_detailed(
+                title="Alerta de Soporte Técnico",
+                message=soporte_msg,
+                level="INFO",
+                space_id=soporte_space
+            )
+            logger.info(f"✅ Google Chat Tech Support alert sent to {soporte_space}")
+        except Exception as gchat_err:
+            logger.error(f"⚠️ Failed to send Google Chat Tech Support alert: {gchat_err}")
+
+        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores de Soporte Técnico. Por favor espere un momento.")
+        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated,
+            derivacion="AgenteComunicador"
+        )
+
+    # Asesor humano explícito (excluyendo soporte técnico para evitar secuestro de cola)
+    human_keywords = ["asesor", "humano", "persona", "hablar con alguien", "agent", "human", "representative"]
     if any(k in user_text_lower for k in human_keywords):
         logger.info(f"👤 Explicit human request for contact {contact_id}")
         sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-        translated = await translate_script_if_needed(sc13_text, user_text)
+        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
         return AgentInteractResponse(
             status="success",
             reply_text=translated,
