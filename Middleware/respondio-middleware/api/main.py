@@ -3754,9 +3754,9 @@ async def agent_interact_inner(
         translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
         return AgentInteractResponse(status="success", reply_text=translated, derivacion="VentasInternas")
 
-    # Asesor humano explícito (excluyendo soporte técnico para evitar secuestro de cola)
-    human_keywords = ["asesor", "humano", "persona", "hablar con alguien", "agent", "human", "representative"]
-    if any(k in user_text_lower for k in human_keywords):
+    # Asesor humano explícito (usando palabras completas para evitar que 'agente' coincida con 'agent')
+    human_keywords = ["asesor", "humano", "persona", "hablar con alguien", "representative", "human agent"]
+    if any(k in user_text_lower.split() or k in user_text_lower for k in human_keywords if k != "agent"):
         logger.info(f"👤 Explicit human request for contact {contact_id}")
         sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
         translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
