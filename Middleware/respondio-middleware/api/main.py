@@ -3717,7 +3717,10 @@ async def agent_interact_inner(
             await redis.set(f"session:mo:reason:{contact_id}", user_text, ex=3600)
             # Fetch transfer script
             sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-            translated = await translate_script_if_needed(sc13_text, user_text)
+            sc24_text = scripts.get("SC.024", "Para proceder con la solicitud de cancelación de su Money Order, compártame los datos del instrumento.")
+            sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+            combined_text = f"{sc24_text}\n\n{sc13_text}"
+            translated = await translate_script_if_needed(combined_text, user_text, contact_id=contact_id)
             # Clear money order session keys
             await redis.delete(f"session:mo:code:{contact_id}")
             await redis.delete(f"session:mo:amount:{contact_id}")
@@ -3725,16 +3728,18 @@ async def agent_interact_inner(
             return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
     # ------------------------------------------------------------
-    # 2. SPECIALIZED AGENTS: CancelacionEnvio / ModificacionDatos
+    # 2. SPECIALIZED AGENTS: CancelacionEnvio / ModificacionDatos (RNE.52 / RNE.44)
     # ------------------------------------------------------------
     if agent_name in ["CancelacionEnvio", "ModificacionDatos"]:
         logger.info(f"🚫 Channel exclusion applied for {agent_name}")
-        sc31_text = scripts.get("SC.031", "Por razones de seguridad transaccional, no es posible realizar modificaciones o cancelaciones a través de este canal de mensajería.")
-        translated = await translate_script_if_needed(sc31_text, user_text)
+        sc31_text = scripts.get("SC.031", "Por razones de seguridad transaccional, no es posible realizar modificaciones o cancelaciones a través de este canal de mensajería. Por favor acuda a la agencia física donde realizó el envío.")
+        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+        combined_text = f"{sc31_text}\n\n{sc13_text}"
+        translated = await translate_script_if_needed(combined_text, user_text, contact_id=contact_id)
         return AgentInteractResponse(
             status="success",
             reply_text=translated,
-            derivacion="cerrar"
+            derivacion="Exclusion"
         )
 
     # ------------------------------------------------------------
@@ -3742,7 +3747,7 @@ async def agent_interact_inner(
     # ------------------------------------------------------------
     if agent_name == "CancelacionBillRecargas":
         sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-        translated = await translate_script_if_needed(sc13_text, user_text)
+        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
         return AgentInteractResponse(
             status="success",
             reply_text=translated,
@@ -3750,11 +3755,18 @@ async def agent_interact_inner(
         )
 
     # ------------------------------------------------------------
-    # 2c. SPECIALIZED AGENTS: CoordinacionPago / AgenteComunicador / Derivaciones
+    # 2c. SPECIALIZED AGENTS: CoordinacionPago / AgenteComunicador / Derivaciones (RNE.41)
     # ------------------------------------------------------------
     if agent_name in ["CoordinacionPago", "AgenteComunicador", "DerivacionFraudes", "DerivacionBSA"]:
+        if agent_name == "CoordinacionPago":
+            sc22_text = scripts.get("SC.022", "Para asistirlo con el detalle de las tarifas y comisiones de su envío:")
+            sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+            combined_text = f"{sc22_text}\n\n{sc13_text}"
+            translated = await translate_script_if_needed(combined_text, user_text, contact_id=contact_id)
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+
         sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-        translated = await translate_script_if_needed(sc13_text, user_text)
+        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
         team = "Servicio al Cliente"
         if agent_name == "DerivacionFraudes":
             team = "DerivacionFraudes"
