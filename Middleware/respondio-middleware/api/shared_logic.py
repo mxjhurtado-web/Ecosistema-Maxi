@@ -39,26 +39,92 @@ def resolve_script_text(script_text: str) -> str:
     return script_text
 
 
-async def detect_language(user_text: str) -> str:
+# Pre-compiled high-quality English translations for core compliance scripts (LNG.01 / LNG.02)
+PRECOMPILED_EN_SCRIPTS = {
+    "CU.A1": "Thank you for contacting Maxitransfers.\n\nI am Max, your virtual assistant. To begin helping you, could you please provide your full name?\n\nBy continuing in this chat, you accept the processing of your data under our Privacy Policy: (link-coming soon).\n\n• For your security, the session will automatically close after 10 minutes of inactivity.\n• You may end this conversation at any time by sending the word 'End'.\n• If you wish to speak with an advisor, send the message 'Speak with an advisor'.",
+    "SC.001": "I did not quite understand your message. Please share the details of your request so I can assist you properly.",
+    "SC.002": "I'm sorry, I still can't understand your request. I will transfer your conversation to a customer service representative to assist you directly.",
+    "SC.005": "I'm still here to help. Please share the requested information to continue with your inquiry.",
+    "SC.006": "To better assist you, could you please provide more information about what you need?",
+    "SC.010": "To continue, I need to validate some information. Could you please share the full name of the person who sent the money and the full name of the recipient?",
+    "SC.010.1": "To continue, I need to validate some information. Could you please share the full name of the person who made the payment and the name of the company?",
+    "SC.010.2": "To continue, I need to validate some information. Could you please share the phone number of the person who made the top-up and the number to which it was sent?",
+    "SC.011": "I understand your request. This case requires attention from a specialized department.\n\nI will route your request so an advisor can follow up and contact you as soon as possible.\nThank you for contacting Maxitransfers. Have a great day.",
+    "SC.012": "It was not possible to process your request with the provided code. I will transfer you to one of our representatives. Please wait a moment.",
+    "SC.013": "I will transfer you to one of our representatives. Please wait a moment.",
+    "SC.019": "We understand your inquiry. However, for security reasons, we can only share transaction information with the person who sent the money. We suggest asking them to contact us directly through this channel so we can assist appropriately. Thank you for your understanding.",
+    "SC.020": "The timeframe to collect the money transfer has expired. I will transfer you to an advisor. Please wait a moment.",
+    "SC.027": "Our representatives are currently unavailable. An advisor will follow up on your request as soon as service resumes. Thank you for your patience.",
+    "SC.027.1": "I'm sorry for what happened. Our representatives are currently unavailable.\n\nPlease share the following information:\n1. Your full name.\n2. Details of what occurred with your report.\n\nIf known:\n3. Money transfer code(s).\n4. Agency number from where you are contacting us.\n\nYour request has been registered and an advisor will assist you immediately through this chat as soon as our operational hours begin. Thank you for your patience.",
+    "SC.029": "I could not locate the information with the details provided. Please verify and send them again to perform a new search.",
+    "SC.030": "Your request is a high priority for us. I will transfer you to one of our representatives. Please wait a moment.",
+    "SC.030.1": "I'm sorry for what happened. I will route your request to a specialized department, and an advisor will contact you through a direct channel.\n\nPlease share the following information:\n1. Your full name.\n2. Details of what occurred with your report.\n\nIf known:\n3. Money transfer code(s).\n4. Agency number from where you are contacting us.",
+    "SC.030.2": "I'm sorry for what happened. I will route your request to an advisor.\n\nPlease share the following information:\n1. Your full name.\n2. Details of what occurred with your report.\n\nIf known:\n3. Money transfer code(s).\n4. Agency number from where you are contacting us.",
+    "SC.031": "For security reasons, this request must be handled in person. Please visit the Maxitransfers agency where you placed your transfer to receive assistance. Thank you for your understanding.",
+    "SC.031.1": "For security reasons, this request must be handled in person. Please ask the sender of the transfer to visit the Maxitransfers agency where they made the operation to receive assistance. Thank you for your understanding.",
+    "SC.034": "How would you rate the service received today on a scale from 1 to 5, where 5 is excellent and 1 is bad?",
+    "SC.035": "Thank you for rating our service. We would appreciate it if you could briefly share what we can improve to provide a better experience.",
+    "SC.036": "Thank you for contacting Maxitransfers. Have a great day!"
+}
+
+
+async def detect_language(user_text: str, contact_id: str = None) -> str:
     """
-    Detects the language of the incoming user_text.
-    Returns ISO-639-1 language code (e.g. 'es', 'en', 'fr', etc.) or 'es' if default/ambiguous.
-    Uses quick heuristic first for English/Spanish, then Gemini if ambiguous.
+    Detects the language of incoming user_text and persists session preference in Redis (LNG.01 / LNG.02).
+    Returns ISO-639-1 language code ('es', 'en', etc.). Default is 'es'.
     """
     if not user_text:
         return "es"
 
+    import re
+    from shared.redis_client import get_redis_client
+    redis = await get_redis_client()
+
     cleaned = user_text.strip()
-    
+    cleaned_lower = cleaned.lower()
+
+    # 1. Check Redis for established session language preference if contact_id is provided
+    if redis and contact_id and contact_id != "-1":
+        try:
+            cached_lang = await redis.get(f"session_lang:{contact_id}")
+            if cached_lang:
+                session_lang_str = cached_lang.decode('utf-8').strip().lower()
+                # Check for explicit language switch requests in current turn (LNG.02)
+                if any(phrase in cleaned_lower for phrase in ["español", "spanish", "hablar en español", "cambiar a español"]):
+                    await redis.set(f"session_lang:{contact_id}", "es", ex=3600)
+                    logger.info(f"🌐 Explicit language switch to Spanish ('es') for contact {contact_id}")
+                    return "es"
+                elif any(phrase in cleaned_lower for phrase in ["english", "inglés", "ingles", "speak english", "switch to english"]):
+                    await redis.set(f"session_lang:{contact_id}", "en", ex=3600)
+                    logger.info(f"🌐 Explicit language switch to English ('en') for contact {contact_id}")
+                    return "en"
+                # Keep active session language
+                return session_lang_str
+        except Exception as e:
+            logger.warning(f"Error checking session_lang in Redis: {e}")
+
     # CRÍTICO: Si el texto contiene sintaxis de variables o plantillas (Respond.io), default a "es"
     if "{{" in cleaned or "}}" in cleaned or "$" in cleaned:
         return "es"
 
-    if len(cleaned) < 3:
-        return "es"
-
-    import re
-    cleaned_lower = cleaned.lower()
+    # 2. Check for single-word English triggers (LNG.01)
+    single_word_en = {
+        "hello", "hi", "hey", "good morning", "good afternoon", "good evening",
+        "thanks", "thank you", "please", "status", "tracking", "help", "agent",
+        "english", "check", "scam", "fraud", "cancel", "money"
+    }
+    
+    tokens = set(re.findall(r'\b[a-zñáéíóú]+\b', cleaned_lower))
+    
+    # Direct trigger for single word or greetings
+    if any(term in cleaned_lower for term in ["hello", "good morning", "good afternoon", "good evening", "english", "speak english"]):
+        if redis and contact_id and contact_id != "-1":
+            try:
+                await redis.set(f"session_lang:{contact_id}", "en", ex=3600)
+            except Exception:
+                pass
+        logger.info(f"🌐 Instant English trigger detected for: '{cleaned[:30]}'")
+        return "en"
 
     # Common English stopwords/keywords heuristic
     en_words = {
@@ -76,63 +142,47 @@ async def detect_language(user_text: str) -> str:
         "buenos", "días", "gracias", "tardes", "noches"
     }
 
-    tokens = set(re.findall(r'\b[a-zñáéíóú]+\b', cleaned_lower))
     en_matches = len(tokens.intersection(en_words))
     es_matches = len(tokens.intersection(es_words))
 
-    # Si hay coincidencias claras de español, retornar "es" de inmediato sin ir al LLM
+    detected_lang = "es"
     if es_matches > en_matches:
-        return "es"
-    if en_matches > es_matches and en_matches >= 2:
-        logger.info(f"🌐 Fast heuristic detected English ('en') for input: '{user_text[:50]}...'")
-        return "en"
+        detected_lang = "es"
+    elif en_matches > es_matches and en_matches >= 1:
+        detected_lang = "en"
 
-    # If non-trivial text with 3+ words, query Gemini for language detection
-    if len(cleaned_lower.split()) >= 3:
+    # Save to Redis if detected as English
+    if detected_lang == "en" and redis and contact_id and contact_id != "-1":
         try:
-            import httpx
-            from .config import settings
-            from shared.redis_client import get_redis_client
-            redis = await get_redis_client()
-            redis_key = await redis.get("config:mcp:gemini_api_key")
-            api_key = redis_key.decode('utf-8') if redis_key else settings.GEMINI_API_KEY
-            if api_key:
-                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key={api_key}"
-                prompt = (
-                    "Identify the language of this customer message. "
-                    "Respond ONLY with the 2-letter ISO 639-1 code (e.g., 'es', 'en', 'fr', 'pt'). "
-                    f"Message: \"{user_text[:200]}\""
-                )
-                payload = {
-                    "contents": [{"parts": [{"text": prompt}]}]
-                }
-                async with httpx.AsyncClient(timeout=2.0) as client:
-                    resp = await client.post(url, json=payload)
-                    if resp.status_code == 200:
-                        res_json = resp.json()
-                        lang_code = res_json["candidates"][0]["content"]["parts"][0]["text"].strip().lower()
-                        lang_code = re.sub(r'[^a-z]', '', lang_code)[:2]
-                        if lang_code:
-                            logger.info(f"🌐 Gemini detected language: '{lang_code}' for user_text")
-                            return lang_code
-        except Exception as e:
-            logger.warning(f"Error in Gemini language detection: {e}")
+            await redis.set(f"session_lang:{contact_id}", "en", ex=3600)
+        except Exception:
+            pass
 
-    return "es"
+    return detected_lang
 
 
-async def translate_script_if_needed(script_text: str, user_text: str) -> str:
+async def translate_script_if_needed(script_text: str, user_text: str, contact_id: str = None) -> str:
     """
-    Detects user_text language. If not Spanish ('es'), translates script_text to target language using Gemini.
-    Preserves placeholders, proper names, order numbers, and formal customer service tone.
+    Detects user_text language or active session language. If not Spanish ('es'), translates script_text to target language.
+    Uses instant pre-compiled dictionary for official compliance scripts (LNG.01 / LNG.02).
     """
-    if not script_text or not user_text:
+    if not script_text:
         return script_text
 
-    target_lang = await detect_language(user_text)
+    target_lang = await detect_language(user_text or "", contact_id=contact_id)
     if target_lang == "es":
         return script_text
 
+    # 1. Instant lookup in pre-compiled English script dictionary
+    if target_lang == "en":
+        comp_scripts = get_compliance_scripts()
+        for code, full_es_txt in comp_scripts.items():
+            if script_text.strip().replace('\r\n', '\n') == full_es_txt.strip().replace('\r\n', '\n'):
+                if code in PRECOMPILED_EN_SCRIPTS:
+                    logger.info(f"🌐 Fast pre-compiled English script delivered for {code}")
+                    return PRECOMPILED_EN_SCRIPTS[code]
+
+    # 2. Translate dynamically using Gemini LLM if not pre-compiled
     try:
         import httpx
         import re
@@ -164,10 +214,8 @@ async def translate_script_if_needed(script_text: str, user_text: str) -> str:
                 res_json = resp.json()
                 translated = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
                 if translated:
-                    logger.info(f"🌐 Translated script to '{target_lang}' successfully")
+                    logger.info(f"🌐 Translated script to '{target_lang}' successfully via Gemini")
                     return translated
-            else:
-                logger.warning(f"Gemini translation HTTP error status: {resp.status_code}")
     except Exception as e:
         logger.error(f"Error translating script to '{target_lang}': {e}")
 
