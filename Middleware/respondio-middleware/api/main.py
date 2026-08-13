@@ -3650,12 +3650,82 @@ async def agent_interact_inner(
                 derivacion="DerivacionFraudes"
             )
         
-    # Detección dedicada de Soporte Técnico / Hardware de Agencia (Scanner, Impresora, POS, Lector)
+    # ------------------------------------------------------------
+    # ENRUTADOR INTELIGENTE DE DEPARTAMENTOS (AGENTE COMUNICADOR / NOTIFICACIONES HTTP)
+    # ------------------------------------------------------------
+    from .google_chat_service import google_chat_service
+
+    # 1. Agent Oversight (IRS / Carta del IRS / Auditoría / Supervisión de Agente)
+    oversight_keywords = ["irs", "oversight", "auditoría", "auditoria", "visita de inspección", "inspección", "inspeccion", "supervisión", "supervision", "carta del irs"]
+    if any(k in user_text_lower for k in oversight_keywords):
+        logger.info(f"🛡️ Agent Oversight request detected for contact {contact_id}: '{user_text[:50]}'")
+        try:
+            msg = f"🛡️ *REPORTE DE AGENT OVERSIGHT*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Requerimiento IRS / Auditoría\n📝 *Resumen:* {user_text}"
+            await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="WARNING", space_id="spaces/AAQAJiVCDAU")
+            logger.info("✅ Google Chat Agent Oversight alert sent to spaces/AAQAJiVCDAU")
+        except Exception as err:
+            logger.error(f"Failed to send Agent Oversight alert: {err}")
+        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="AgentOversight")
+
+    # 2. Capacitación (Manuales / POS / Entrenamientos)
+    capacitacion_keywords = ["capacitación", "capacitacion", "manual de uso", "entrenamiento", "curso pos", "capacitar"]
+    if any(k in user_text_lower for k in capacitacion_keywords):
+        logger.info(f"🎓 Capacitación request detected for contact {contact_id}: '{user_text[:50]}'")
+        try:
+            msg = f"🎓 *REPORTE DE CAPACITACIÓN*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Consulta de Capacitación\n📝 *Resumen:* {user_text}"
+            await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="INFO", space_id="spaces/AAQAMKgsazw")
+        except Exception as err:
+            logger.error(f"Failed to send Capacitacion alert: {err}")
+        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Capacitacion")
+
+    # 3. Cumplimiento (Forma P-4 / AML / KYC)
+    cumplimiento_keywords = ["forma p-4", "forma p4", "p-4", "p4", "cumplimiento", "aml", "kyc", "regulatorio"]
+    if any(k in user_text_lower for k in cumplimiento_keywords):
+        logger.info(f"⚖️ Cumplimiento request detected for contact {contact_id}: '{user_text[:50]}'")
+        try:
+            msg = f"⚖️ *REPORTE DE CUMPLIMIENTO (AML/KYC)*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Requerimiento de Cumplimiento\n📝 *Resumen:* {user_text}"
+            await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="WARNING", space_id="spaces/AAQAbvCUAko")
+        except Exception as err:
+            logger.error(f"Failed to send Cumplimiento alert: {err}")
+        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Cumplimiento")
+
+    # 4. Cobranza (Comisiones / Saldos / Adeudos)
+    cobranza_keywords = ["cobranza", "cobranzas", "comisión de agencia", "saldo pendiente", "adeudo"]
+    if any(k in user_text_lower for k in cobranza_keywords):
+        logger.info(f"💰 Cobranza request detected for contact {contact_id}: '{user_text[:50]}'")
+        try:
+            msg = f"💰 *REPORTE DE COBRANZA*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Consulta de Cobranza / Comisiones\n📝 *Resumen:* {user_text}"
+            await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="INFO", space_id="spaces/AAQAcEu8NTc")
+        except Exception as err:
+            logger.error(f"Failed to send Cobranza alert: {err}")
+        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Cobranza")
+
+    # 5. Cheques (Depósitos / Nómina)
+    cheques_keywords = ["cheque", "cheques", "nómina", "depósito de cheque", "paycheck"]
+    if any(k in user_text_lower for k in cheques_keywords):
+        logger.info(f"🎫 Cheques request detected for contact {contact_id}: '{user_text[:50]}'")
+        try:
+            msg = f"🎫 *REPORTE DE CHEQUES*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Consulta / Depósito de Cheque\n📝 *Resumen:* {user_text}"
+            await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="INFO", space_id="spaces/AAQAGZ_m434")
+        except Exception as err:
+            logger.error(f"Failed to send Cheques alert: {err}")
+        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Cheques")
+
+    # 6. Soporte Técnico / Hardware de Agencia (Scanner, Impresora, POS, Lector)
     tech_support_keywords = ["scanner", "escaner", "escáner", "impresora", "pos", "terminal", "lector", "falla técnica", "falla tecnica", "soporte técnico", "soporte tecnico"]
     if any(k in user_text_lower for k in tech_support_keywords):
         logger.info(f"🛠️ Tech support hardware request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
-            from .google_chat_service import google_chat_service
             soporte_msg = (
                 f"🛠️ *REPORTE DE SOPORTE TÉCNICO*\n\n"
                 f"👤 *Usuario:* {contact_id}\n"
@@ -3664,23 +3734,25 @@ async def agent_interact_inner(
                 f"📝 *Detalle:* {user_text}"
             )
             soporte_space = os.getenv("GOOGLE_CHATS_SOPORTE_SPACE") or "spaces/AAQAQhx5RTM"
-            await google_chat_service.send_alert_detailed(
-                title="Alerta de Soporte Técnico",
-                message=soporte_msg,
-                level="INFO",
-                space_id=soporte_space
-            )
-            logger.info(f"✅ Google Chat Tech Support alert sent to {soporte_space}")
+            await google_chat_service.send_alert_detailed(title="Alerta de Soporte Técnico", message=soporte_msg, level="INFO", space_id=soporte_space)
         except Exception as gchat_err:
             logger.error(f"⚠️ Failed to send Google Chat Tech Support alert: {gchat_err}")
-
         sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores de Soporte Técnico. Por favor espere un momento.")
         translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(
-            status="success",
-            reply_text=translated,
-            derivacion="AgenteComunicador"
-        )
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="AgenteComunicador")
+
+    # 7. Ventas Internas (Nuevas agencias / Registros)
+    ventas_keywords = ["alta de agencia", "nueva agencia", "ventas internas", "registro de agencia", "abrir agencia"]
+    if any(k in user_text_lower for k in ventas_keywords):
+        logger.info(f"💼 Ventas Internas request detected for contact {contact_id}: '{user_text[:50]}'")
+        try:
+            msg = f"💼 *REPORTE DE VENTAS INTERNAS*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Solicitud de Nueva Agencia\n📝 *Detalle:* {user_text}"
+            await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="SUCCESS", space_id="spaces/AAQAUghCztE")
+        except Exception as err:
+            logger.error(f"Failed to send Ventas alert: {err}")
+        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
+        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="VentasInternas")
 
     # Asesor humano explícito (excluyendo soporte técnico para evitar secuestro de cola)
     human_keywords = ["asesor", "humano", "persona", "hablar con alguien", "agent", "human", "representative"]
