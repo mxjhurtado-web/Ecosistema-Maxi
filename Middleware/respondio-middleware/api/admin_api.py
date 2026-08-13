@@ -1112,7 +1112,7 @@ async def google_chat_notify_handler_inner(
         elif destino_lower in ["cobranza", "cobranzas"]:
             target_space = os.getenv("GOOGLE_CHATS_COBRANZA_SPACE") or "spaces/AAQAcEu8NTc"
         elif destino_lower in ["cheques", "cheque"]:
-            target_space = "spaces/AAQAQhx5RTM"
+            target_space = os.getenv("GOOGLE_CHATS_CHEQUES_SPACE") or "spaces/AAQAGZ_m434"
         elif destino_lower in ["soporte", "soporte_tecnico", "soporte_técnico"]:
             target_space = os.getenv("GOOGLE_CHATS_SOPORTE_SPACE") or "spaces/AAQAQhx5RTM"
         elif destino_lower in ["ventas", "ventas_internas"]:
