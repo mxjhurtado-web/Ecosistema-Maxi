@@ -1103,16 +1103,24 @@ async def google_chat_notify_handler_inner(
         destino_lower = request.destino.lower()
         if destino_lower == "alertas":
             target_space = settings.GOOGLE_CHATS_DEFAULT_SPACE
-        elif destino_lower == "soporte":
-            target_space = os.getenv("GOOGLE_CHATS_SOPORTE_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
-        elif destino_lower == "ventas":
-            target_space = os.getenv("GOOGLE_CHATS_VENTAS_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
-        elif destino_lower == "cumplimiento":
-            target_space = os.getenv("GOOGLE_CHATS_CUMPLIMIENTO_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
+        elif destino_lower in ["agent_oversight", "oversight"]:
+            target_space = "spaces/AAQAJiVCDAU"
+        elif destino_lower in ["capacitacion", "capacitación"]:
+            target_space = "spaces/AAQAMKgsazw"
+        elif destino_lower in ["cumplimiento", "aml", "kyc"]:
+            target_space = os.getenv("GOOGLE_CHATS_CUMPLIMIENTO_SPACE") or "spaces/AAQAbvCUAko"
+        elif destino_lower in ["cobranza", "cobranzas"]:
+            target_space = os.getenv("GOOGLE_CHATS_COBRANZA_SPACE") or "spaces/AAQAcEu8NTc"
+        elif destino_lower in ["cheques", "cheque"]:
+            target_space = "spaces/AAQAQhx5RTM"
+        elif destino_lower in ["soporte", "soporte_tecnico", "soporte_técnico"]:
+            target_space = os.getenv("GOOGLE_CHATS_SOPORTE_SPACE") or "spaces/AAQAQhx5RTM"
+        elif destino_lower in ["ventas", "ventas_internas"]:
+            target_space = os.getenv("GOOGLE_CHATS_VENTAS_SPACE") or "spaces/AAQAUghCztE"
         elif destino_lower in ["fraudes", "fraude", "prevencion_de_fraudes"]:
-            target_space = os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or getattr(settings, "GOOGLE_CHATS_FRAUDES_SPACE", None) or "spaces/AAQAQM9pDpg"
+            target_space = os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or "spaces/AAQAQM9pDpg"
         elif destino_lower in ["bsa", "bsa_monitoring"]:
-            target_space = os.getenv("GOOGLE_CHATS_BSA_SPACE") or settings.GOOGLE_CHATS_DEFAULT_SPACE
+            target_space = os.getenv("GOOGLE_CHATS_BSA_SPACE") or "spaces/AAQAQM9pDpg"
         else:
             target_space = settings.GOOGLE_CHATS_DEFAULT_SPACE
 
