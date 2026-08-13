@@ -82,6 +82,7 @@ class Settings(BaseSettings):
     GOOGLE_CHATS_SA_BASE64: Optional[str] = None
     GOOGLE_CHATS_DEFAULT_SPACE: Optional[str] = None
     GOOGLE_CHATS_FRAUDES_SPACE: str = "spaces/AAQAQM9pDpg"
+    GOOGLE_CHATS_BSA_SPACE: str = "spaces/AAQA3WL2JIk"
     MAXIBOT_SA_BASE64: Optional[str] = None
     MAXIBOT_TELEMETRY_SHEET_ID: str = "1KVUM2T3pajHo1Vl-t1zQoWjP8Bx3RSNE1QgsWB738mI"
     DEVOPS_MCP_URL: str = "https://mcp.mylabs.mx/tools/operations/mcp/"
