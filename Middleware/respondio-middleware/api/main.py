@@ -3678,6 +3678,9 @@ async def agent_interact_inner(
     # ------------------------------------------------------------
     from .google_chat_service import google_chat_service
 
+    # Script homologado oficial de canalización departamental (SC.011)
+    sc11_default = "Gracias por su información. He canalizado su solicitud con nuestro departamento correspondiente. Un asesor le dará seguimiento a la brevedad."
+
     # 1. Agent Oversight (IRS / Carta del IRS / Auditoría / Supervisión de Agente)
     oversight_keywords = ["irs", "oversight", "auditoría", "auditoria", "visita de inspección", "inspección", "inspeccion", "supervisión", "supervision", "carta del irs"]
     if any(k in user_text_lower for k in oversight_keywords):
@@ -3688,9 +3691,9 @@ async def agent_interact_inner(
             logger.info("✅ Google Chat Agent Oversight alert sent to spaces/AAQAJiVCDAU")
         except Exception as err:
             logger.error(f"Failed to send Agent Oversight alert: {err}")
-        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="AgentOversight")
+        sc11_text = scripts.get("SC.011", sc11_default)
+        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
     # 2. Capacitación (Manuales / POS / Entrenamientos)
     capacitacion_keywords = ["capacitación", "capacitacion", "manual de uso", "entrenamiento", "curso pos", "capacitar"]
@@ -3701,9 +3704,9 @@ async def agent_interact_inner(
             await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="INFO", space_id="spaces/AAQAMKgsazw")
         except Exception as err:
             logger.error(f"Failed to send Capacitacion alert: {err}")
-        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Capacitacion")
+        sc11_text = scripts.get("SC.011", sc11_default)
+        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
     # 3. Cumplimiento (Forma P-4 / AML / KYC)
     cumplimiento_keywords = ["forma p-4", "forma p4", "p-4", "p4", "cumplimiento", "aml", "kyc", "regulatorio"]
@@ -3714,9 +3717,9 @@ async def agent_interact_inner(
             await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="WARNING", space_id="spaces/AAQAbvCUAko")
         except Exception as err:
             logger.error(f"Failed to send Cumplimiento alert: {err}")
-        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Cumplimiento")
+        sc11_text = scripts.get("SC.011", sc11_default)
+        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
     # 4. Cobranza (Comisiones / Saldos / Adeudos)
     cobranza_keywords = ["cobranza", "cobranzas", "comisión de agencia", "saldo pendiente", "adeudo"]
@@ -3727,9 +3730,9 @@ async def agent_interact_inner(
             await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="INFO", space_id="spaces/AAQAcEu8NTc")
         except Exception as err:
             logger.error(f"Failed to send Cobranza alert: {err}")
-        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Cobranza")
+        sc11_text = scripts.get("SC.011", sc11_default)
+        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
     # 5. Cheques (Depósitos / Nómina)
     cheques_keywords = ["cheque", "cheques", "nómina", "depósito de cheque", "paycheck"]
@@ -3740,9 +3743,9 @@ async def agent_interact_inner(
             await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="INFO", space_id="spaces/AAQAGZ_m434")
         except Exception as err:
             logger.error(f"Failed to send Cheques alert: {err}")
-        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Cheques")
+        sc11_text = scripts.get("SC.011", sc11_default)
+        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
     # 6. Soporte Técnico / Hardware de Agencia (Scanner, Impresora, POS, Lector)
     tech_support_keywords = ["scanner", "escaner", "escáner", "impresora", "pos", "terminal", "lector", "falla técnica", "falla tecnica", "soporte técnico", "soporte tecnico"]
@@ -3760,9 +3763,9 @@ async def agent_interact_inner(
             await google_chat_service.send_alert_detailed(title="Alerta de Soporte Técnico", message=soporte_msg, level="INFO", space_id=soporte_space)
         except Exception as gchat_err:
             logger.error(f"⚠️ Failed to send Google Chat Tech Support alert: {gchat_err}")
-        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores de Soporte Técnico. Por favor espere un momento.")
-        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="AgenteComunicador")
+        sc11_text = scripts.get("SC.011", sc11_default)
+        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
     # 7. Ventas Internas (Nuevas agencias / Registros)
     ventas_keywords = ["alta de agencia", "nueva agencia", "ventas internas", "registro de agencia", "abrir agencia"]
@@ -3773,9 +3776,9 @@ async def agent_interact_inner(
             await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="SUCCESS", space_id="spaces/AAQAUghCztE")
         except Exception as err:
             logger.error(f"Failed to send Ventas alert: {err}")
-        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="VentasInternas")
+        sc11_text = scripts.get("SC.011", sc11_default)
+        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
     # Asesor humano explícito (usando palabras completas para evitar que 'agente' coincida con 'agent')
     human_keywords = ["asesor", "humano", "persona", "hablar con alguien", "representative", "human agent"]
