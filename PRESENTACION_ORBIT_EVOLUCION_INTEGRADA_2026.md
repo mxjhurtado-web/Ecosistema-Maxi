@@ -1,10 +1,10 @@
-# 🪐 DOCUMENTO MAESTRO INTEGRADO: EVOLUCIÓN, ARQUITECTURA Y OPERACIÓN DE ORBIT v4.7
-**Expediente Actualizado de Presentación con todos los Avances Técnicos y Operativos al 14 de Agosto de 2026**
+# 🪐 DOCUMENTO MAESTRO INTEGRADO: EVOLUCIÓN, ARQUITECTURA Y MÁQUINA DE ESTADOS (FSM) DE ORBIT v4.7
+**Expediente Exhaustivo de Presentación con el Motor de Estados, Integraciones a Google Chat y Avances al 14 de Agosto de 2026**
 
 ---
 
-> 💡 **ACTUALIZACIÓN INTEGRADA AL 14 DE AGOSTO DE 2026:**  
-> Este documento integra el contenido original de la presentación de ORBIT enriquecido con todos los hitos, mejoras, integraciones a Google Chat, solución de scripts homologados (`SC.011`), enforcer de bienvenida (`CU.A1`), ruteador inteligente de departamentos y resultados de pruebas E2E alcanzados hasta agosto de 2026.
+> 💡 **EXPEDIENTE INTEGRADO DE MÁXIMA COBERTURA (AGOSTO 2026):**  
+> Este expediente consolida toda la especificación técnica y de negocio de ORBIT v4.7, incluyendo la arquitectura de la Máquina de Estados Finitos (FSM), la matriz de los 15 agentes virtuales, las 9 integraciones a Google Chat, el enforcer de bienvenida (`CU.A1`), la solución de scripts homologados (`SC.011`) y los resultados de pruebas E2E.
 
 ---
 
@@ -23,7 +23,8 @@ flowchart TD
     A["📱 Respond.io (Experiencia del Cliente / Frontend)"] <-->|Webhook HTTP POST| B["🚀 ORBIT Middleware (Cerebro Determinístico / Backend)"]
     C["📋 CMS Google Sheets (Reglas RNE y Scripts SC)"] -->|Actualización en Vivo| B
     B <-->|Consultas SQL| D["🐘 BD Chronos Supabase"]
-    B -->|Tarjetas Cards v2| E["📢 9 Canales de Google Chat"]
+    B <-->|FSM & Sesiones| E["⚡ Caché Redis"]
+    B -->|Tarjetas Cards v2| F["📢 9 Canales de Google Chat"]
 ```
 
 * **Respond.io (Experiencia del Cliente / Frontend):**  
@@ -33,22 +34,29 @@ flowchart TD
 
 ---
 
-## 📈 3. La Evolución Histórica de ORBIT: De Middleware Pasivo a Plataforma de Inteligencia Avanzada
+## ⚙️ 3. La Máquina de Estados Finitos (FSM): El Control del Ciclo de Vida de la Conversación
 
-La evolución de ORBIT se consolida en tres fases históricas que marcan la transformación de la eficiencia operativa de Maxitransfers:
+Para evitar que las conversaciones caigan en bucles infinitos, pierdan el contexto o respondan fuera de orden, ORBIT opera mediante una **Máquina de Estados Finitos (FSM)** alojada en la memoria ultrarrápida de Redis. La FSM administra rigurosamente cada estado por el que pasa el usuario:
 
-1. **Fase 1: El Middleware Pasivo (Integrador Simple - Histórico):**  
-   Nació como un puente básico para conectar sistemas. Recibía datos de WhatsApp, los traducía para consultar la base de datos de envíos (Chronos) y devolvía el estatus. Limitaciones: Si el cliente requería ser transferido, el bot intentaba decidir usando inteligencia artificial no controlada, lo que causaba alucinaciones y transferencias erróneas.
-2. **Fase 2: Plataforma de Orquestación e Inteligencia (Estabilización):**  
-   ORBIT asumió el control determinístico total. Se integró el CMS conversacional dinámico en Google Sheets (permitiendo a Procesos cambiar scripts sin programadores), la inyección del script cortesía `SC.033`, el protocolo de cumplimiento PO.033 (Human-in-the-Loop) y las reglas normativas de impuestos estatales (OBBA, Texas, Oklahoma).
-3. **Fase 3: Estabilización Avanzada y Ruteo Inteligente (Agosto 2026 - Estado Actual):**  
-   Se implementó el Smart Department Router con **9 canales dedicados en Google Chat**, el *Welcome Script Enforcer* (`CU.A1` en Turno 1), la entrega literal del script `SC.011` en handoffs departamentales, la resolución de coincidencia por palabra completa (liberando 'Agente' vs 'Agent') y la suite automatizada de 61 pruebas unitarias (61/61 PASSED).
+| Estado FSM en Redis | Descripción y Evento Detonador | Garantía de Negocio Ejecutada por ORBIT |
+| :--- | :--- | :--- |
+| **UNINITIALIZED / IDLE** | Contacto nuevo o sesión cerrada previa. | Prepara el entorno Redis para registrar el `contact_id`. |
+| **WELCOME_SENT (Turno 1)** | El cliente envía su primer mensaje. | Ejecuta el Welcome Script Enforcer (`CU.A1` + Aviso de Privacidad). Marca `session:welcome_sent` en Redis. |
+| **PROFILING_REQUIRED** | ORBIT requiere validar si es Remitente o Beneficiario. | Envía el script `SC.003` o `SC.008` para solicitar perfilamiento. |
+| **PROFILING_COMPLETED** | El usuario confirma su perfil de cliente. | Guarda el perfil verificado en Redis para aplicar reglas como `SC.019` (Privacidad beneficiario). |
+| **INTENT_DETECTION** | El usuario expresa su necesidad en lenguaje natural. | El clasificador de ORBIT identifica la intención (Estatus, Fraude, Hardware, etc.). |
+| **COLLECTING_TRANSACTION** | Se requiere clave de envío o ticket de remesa. | Envía `SC.008` solicitando la clave de transacción (ej. `CE123456789US`). |
+| **QUERYING_CHRONOS** | ORBIT consulta la BD Supabase PostgreSQL. | Realiza la consulta en tiempo real en la base de datos de Chronos de Maxitransfers. |
+| **HANDOFF_PENDING** | La intención requiere atención humana o especializada. | Notifica a Google Chat + envía script `SC.011` + asigna la variable `derivacion` para Respond.io. |
+| **CSAT_ELIGIBLE** | La consulta automatizada concluyó con éxito. | Bloquea el cierre directo y presenta la encuesta de satisfacción `SC.034`. |
+| **CSAT_COMPLETED** | El cliente envía su calificación (1 a 5). | Registra la nota en Google Sheets y despide con script `SC.036`. |
+| **CLOSED** | Sesión finalizada formalmente o por timeout (10 min). | Elimina las llaves temporales en Redis para permitir un nuevo inicio limpio. |
 
 ---
 
 ## 📢 4. Notificaciones en Tiempo Real a las 9 Áreas Corporativas en Google Chat
 
-En la Fase 3, ORBIT incorporó notificaciones automáticas en tiempo real utilizando la API oficial de Google Chat con Cuentas de Servicio dedicadas para alertar a los 9 departamentos de la empresa:
+ORBIT incorpora notificaciones automáticas en tiempo real utilizando la API oficial de Google Chat con Cuentas de Servicio dedicadas para alertar a los 9 departamentos de la empresa:
 
 | Departamento / Área | Canal Dedicado en Google Chat | Función de la Alerta en Tiempo Real |
 | :--- | :--- | :--- |
