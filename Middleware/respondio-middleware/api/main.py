@@ -4451,7 +4451,7 @@ async def agent_interact_inner(
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
             else:
                 await redis.set(attempts_key, str(attempts), ex=3600)
-                sc9_text = scripts.get("SC.009", "No he podido detectar la clave. Por favor compártala de nuevo.")
+                sc9_text = scripts.get("SC.009", "Entiendo que tiene dificultad para localizar la información solicitada. Le comparto una imagen de referencia para que pueda identificar estos datos.")
                 translated = await translate_script_if_needed(sc9_text, user_text)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
 
