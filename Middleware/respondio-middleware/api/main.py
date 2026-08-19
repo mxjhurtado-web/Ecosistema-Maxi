@@ -3583,6 +3583,17 @@ async def agent_interact_inner(
     
     # Pre-load scripts
     scripts = get_compliance_scripts()
+
+    # AIS.05: CONTROL DE LONGITUD DE ENTRADA / TOKEN DEFENSE (>500 CARACTERES)
+    if len(user_text) > 500:
+        logger.warning(f"🛡️ AIS.05 Token Defense activated: contact {contact_id} sent message of length {len(user_text)} chars (>500)")
+        sc_defense = "Por favor, para poder ayudarle de manera clara y directa, le pedimos que resuma su consulta en un mensaje más breve."
+        translated_defense = await translate_script_if_needed(sc_defense, user_text, contact_id=contact_id)
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated_defense,
+            derivacion="NA"
+        )
     
     # Handle global commands or keywords (e.g. human transfer or ending)
     user_text_lower = user_text.lower()
