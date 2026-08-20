@@ -52,8 +52,8 @@ class MaxiDB:
         try:
             with self._get_connection() as conn:
                 with conn.cursor() as cur:
-                    # Buscamos en Base_completa (o pre_envios si ya migramos)
-                    sql = 'SELECT * FROM "Base_completa" WHERE folio::text ILIKE %s OR "Numero_telefonico" ILIKE %s LIMIT 5'
+                    # Muestra aleatoria dinámicamente sobre la base completa de 1,000 registros
+                    sql = 'SELECT * FROM "Base_completa" WHERE folio::text ILIKE %s OR "Numero_telefonico" ILIKE %s ORDER BY RANDOM() LIMIT 20'
                     pattern = f"%{search_term}%"
                     cur.execute(sql, (pattern, pattern))
                     return cur.fetchall()
@@ -134,7 +134,8 @@ async def query(request: MCPRequest):
         search = match_folio.group(1) if match_folio else query_text
         results = db.query_shipment(search)
         if results:
-            r = results[0]
+            import random
+            r = random.choice(results)
             return MCPResponse(response=f"🔍 **Estatus (PETTE_STATUS):**\nFolio: {r['folio']}\nEstado: **{r['status']}**\nNota: {r['message_to_user']}")
 
     # 3. GENERACIÓN (Simulada)
