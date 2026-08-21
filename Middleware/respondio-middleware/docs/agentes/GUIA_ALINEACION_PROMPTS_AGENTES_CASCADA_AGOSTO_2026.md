@@ -95,3 +95,54 @@ Incluir en la sección de bucle de cada uno de los 14 agentes especialistas:
 13. **`@DerivacionBSA`** (BSA Monitoring / KYC) — ID: `{{@ai-agent.1130615}}`
 14. **`@AgenteCSAT`** (Encuestas Calidad) — ID: `{{@ai-agent.1130620}}`
 15. **`@AgenteGenerador`** (Emisión / Notario) — ID: `{{@ai-agent.1130621}}`
+
+
+---
+
+## 📝 Textos Listos para Copiar y Pegar en los Cuadros de Instrucción de Respond.io (Todos < 1,000 caracteres)
+
+### 1️⃣ Cuadro: "Asignar a agente o equipo" (Assign to Agent or Team - Max 1,000 chars)
+```text
+* Configurar según respuesta del campo derivacion de ORBIT:
+* estatus_transaccion -> @VerificadorEstatus ({{@ai-agent.1129471}})
+* cancelacion_money_order -> @CancelacionMoneyOrder ({{@ai-agent.1130467}})
+* historial_envios -> @HistorialEnvios ({{@ai-agent.1130490}})
+* cancelacion_envio -> @CancelacionEnvio ({{@ai-agent.1130493}})
+* modificacion_datos -> @ModificacionDatos ({{@ai-agent.1130499}})
+* pagos_bill_recarga_deposito -> @CoordinacionPago ({{@ai-agent.1130509}})
+* soporte_interno -> @AgenteComunicador ({{@ai-agent.1130619}})
+* fraude_estafa -> @DerivacionFraudes ({{@ai-agent.1130613}})
+* actividad_sospechosa -> @DerivacionBSA ({{@ai-agent.1130615}})
+* tipo_input=documento -> @OrquestadorDocumentos ({{@ai-agent.1130617}})
+* hablar_con_humano -> Asesores Servicio al Cliente ({{@team.43621}})
+* bucle_retorno_maestro -> @Max ({{@ai-agent.1130619}})
+```
+
+### 2️⃣ Cuadro: "Cerrar conversaciones" (Close Conversations - Max 1,000 chars)
+```text
+- Si el cliente escribe "finalizar", cerrar conversación.
+- Si el cliente escribe "terminar", cerrar conversación.
+- Si el cliente indica que desea concluir la conversación ("es todo", "nada más", "nada mas"), cerrar conversación.
+- Si el sistema o el agente entrega el script oficial de despedida SC.041 o el cierre de encuesta CSAT SC.036, cerrar conversación.
+```
+
+### 3️⃣ Cuadro: "Actualizar campos de contacto" (Update Contact Fields - Max 1,000 chars)
+```text
+Cada vez que en la conversación se mencione o detecte información de contacto:
+- perfil_usuario (Texto): Asignar perfil detectado (Remitente, Beneficiario o Agente Autorizado).
+- canal_entrada (Texto): Canal por el que ingresa (ej: WhatsApp).
+- ultimo_codigo_envio (Texto): Código de envío, folio o tracking number detectado (ej: CE448912564).
+- motivo_consulta (Texto): Categoría detectada (Estatus, Cancelación MO, Fraude, BSA, Cobranza).
+- estatus_transaccion (Texto): Estatus reportado (PAID, PAYMENT READY, VERIFY HOLD, CANCELLED).
+```
+
+### 4️⃣ Cuadro: "Añadir comentarios" (Add Comments - Max 1,000 chars)
+```text
+Añade un comentario interno privado antes de asignar a un equipo humano o reasignar agente:
+📌 [NOTA INTERNA DE TRANSFERENCIA]
+• Agente emisor: $agent.name
+• Perfil usuario: $contact.perfil_usuario
+• Clave / Folio: $contact.ultimo_codigo_envio
+• Motivo transferencia: $contact.motivo_consulta
+• Idioma detectado: Idioma del cliente
+```
