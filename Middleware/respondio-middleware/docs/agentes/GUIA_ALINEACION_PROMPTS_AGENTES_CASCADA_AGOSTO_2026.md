@@ -146,3 +146,447 @@ Añade un comentario interno privado antes de asignar a un equipo humano o reasi
 • Motivo transferencia: $contact.motivo_consulta
 • Idioma detectado: Idioma del cliente
 ```
+
+
+---
+
+## 🏛️ Configuración Específica de las 4 Acciones Nativas para Cada Uno de los 15 Agentes
+
+Cada agente es independiente y tiene su propia tarjeta de configuración en Respond.io. A continuación se detallan los textos exactos para copiar y pegar en los 4 cuadros de cada agente especializado:
+
+---
+
+### 👑 1. Agente Maestro — Max (`@Max`) - ID: `{{@ai-agent.1130619}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "Max"}}
+  ```
+* **Asignar a agente o equipo (Max 1,000 chars):**
+  ```text
+  * Configurar según instrucción de derivación devuelta por ORBIT:
+  * estatus_transaccion -> @VerificadorEstatus ({{@ai-agent.1129471}})
+  * cancelacion_money_order -> @CancelacionMoneyOrder ({{@ai-agent.1130467}})
+  * historial_envios -> @HistorialEnvios ({{@ai-agent.1130490}})
+  * cancelacion_envio -> @CancelacionEnvio ({{@ai-agent.1130493}})
+  * modificacion_datos -> @ModificacionDatos ({{@ai-agent.1130499}})
+  * pagos_bill_recarga_deposito -> @CoordinacionPago ({{@ai-agent.1130509}})
+  * soporte_interno -> @AgenteComunicador ({{@ai-agent.1130619}})
+  * fraude_estafa -> @DerivacionFraudes ({{@ai-agent.1130613}})
+  * actividad_sospechosa -> @DerivacionBSA ({{@ai-agent.1130615}})
+  * tipo_input=documento -> @OrquestadorDocumentos ({{@ai-agent.1130617}})
+  * hablar_con_humano -> Asesores Servicio al Cliente ({{@team.43621}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - Si el cliente escribe "finalizar", "terminar", "es todo" o "nada más", cerrar conversación.
+  - Si se entrega el script oficial de despedida SC.041, cerrar conversación.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - perfil_usuario: Asignar Remitente, Beneficiario o Agente.
+  - canal_entrada: WhatsApp.
+  - motivo_consulta: Asignar categoría detectada (Estatus, Cancela MO, Fraude, BSA).
+  ```
+* **Añadir comentarios:**
+  ```text
+  Añade nota interna antes de derivar a Fraudes o BSA:
+  📌 [ALERTA DE TRANSFERENCIA DESDE @MAX]
+  • Contacto: $contact.id | Motivo: $contact.motivo_consulta | Idioma: Idioma del cliente
+  ```
+
+---
+
+### 🔍 2. Agente Verificador de Estatus (`@VerificadorEstatus`) - ID: `{{@ai-agent.1129471}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "VerificadorEstatus"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Si requiere asesor humano o se cumplen 2 intentos fallidos: Asesores Servicio al Cliente ({{@team.43621}})
+  * Si la consulta cambia de tema o es fuera de alcance: @Max ({{@ai-agent.1130619}})
+  * Si concluye consulta y requiere encuesta: @AgenteCSAT ({{@ai-agent.1130620}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - Si el cliente indica que concluyó ("es todo", "nada más", "finalizar"), transferir a @AgenteCSAT o cerrar conversación tras SC.041.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - ultimo_codigo_envio: Clave de envío detectada (ej: CE448912564).
+  - estatus_transaccion: Estatus devuelto (PAID, PAYMENT READY, VERIFY HOLD, CANCELLED).
+  ```
+* **Añadir comentarios:**
+  ```text
+  📌 [REPORTE ESTATUS GIRO - ESCALAMIENTO]
+  • Código: $contact.ultimo_codigo_envio | Estatus: $contact.estatus_transaccion
+  • Motivo transferencia: Escalamiento a asesor humano Servicio al Cliente.
+  ```
+
+---
+
+### 🧾 3. Agente Verificador Pago Bill (`@VerificadorPagoBill`) - ID: `{{@ai-agent.1130509}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "VerificadorPagoBill"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Si requiere aclaración de factura o asesor humano: Asesores Servicio al Cliente ({{@team.43621}})
+  * Si el usuario cambia de tema: @Max ({{@ai-agent.1130619}})
+  * Si concluyó exitosamente: @AgenteCSAT ({{@ai-agent.1130620}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - Si el cliente escribe "finalizar", "terminar", "es todo", "nada más", transferir a CSAT o cerrar.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - ultimo_codigo_envio: Número de tracking TRK detectado.
+  - estatus_transaccion: Estatus de bill payment (PAID, CANCELLED, PENDING).
+  ```
+* **Añadir comentarios:**
+  ```text
+  📌 [REPORTE BILL PAYMENT]
+  • Tracking TRK: $contact.ultimo_codigo_envio | Estatus: $contact.estatus_transaccion
+  • Motivo: Requiere atención especializada de factura.
+  ```
+
+---
+
+### 📱 4. Agente Estatus Recargas (`@VerificadorEstatusRecargas`) - ID: `{{@ai-agent.1130510}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "VerificadorEstatusRecargas"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Si requiere aclaración técnica o refund: Asesores Servicio al Cliente ({{@team.43621}})
+  * Si el usuario cambia de tema: @Max ({{@ai-agent.1130619}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - Cierra la conversación al entregar el comprobante de recarga o tras recibir comando de término.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - ultimo_codigo_envio: Número de celular o transacción recarga.
+  - estatus_transaccion: Estatus de topup (APLICADA, PENDIENTE, FALLIDA).
+  ```
+* **Añadir comentarios:**
+  ```text
+  📌 [REPORTE RECARGA TELEFÓNICA]
+  • Número: $contact.ultimo_codigo_envio | Estatus: $contact.estatus_transaccion
+  ```
+
+---
+
+### 🎟️ 5. Agente Cancelación Money Order (`@CancelacionMoneyOrder`) - ID: `{{@ai-agent.1130467}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "CancelacionMoneyOrder"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Transferencia obligatoria tras recaudar datos de MO: Asesores Servicio al Cliente ({{@team.43621}})
+  * Si la consulta no es sobre Money Order: @Max ({{@ai-agent.1130619}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - NO CERRAR. Transferir siempre a asesor humano para procesar reembolso físico.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - ultimo_codigo_envio: Número de Money Order / Folio.
+  - motivo_consulta: Cancelación de Money Order.
+  ```
+* **Añadir comentarios:**
+  ```text
+  📌 [SOLICITUD CANCELACIÓN MONEY ORDER]
+  • Folio MO: $contact.ultimo_codigo_envio | Remitente: $contact.name
+  • Estado: Datos recaudados, listo para procesar cheque de reembolso.
+  ```
+
+---
+
+### ✏️ 6. Agente Modificación de Datos (`@ModificacionDatos`) - ID: `{{@ai-agent.1130499}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "ModificacionDatos"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Transferencia obligatoria con datos: Asesores Servicio al Cliente ({{@team.43621}})
+  * Si cambia de tema: @Max ({{@ai-agent.1130619}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - NO CERRAR. Transferir a asesor humano para corregir el nombre en sistema.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - ultimo_codigo_envio: Clave de envío a modificar.
+  - motivo_consulta: Modificación de Nombre / Corrección de Datos.
+  ```
+* **Añadir comentarios:**
+  ```text
+  📌 [SOLICITUD MODIFICACIÓN DE DATOS GIRO]
+  • Clave Giro: $contact.ultimo_codigo_envio
+  • Corrección solicitada: $message.text
+  ```
+
+---
+
+### 🚫 7. Agente Cancelación de Envío (`@CancelacionEnvio`) - ID: `{{@ai-agent.1130493}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "CancelacionEnvio"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Transferencia obligatoria: Asesores Servicio al Cliente ({{@team.43621}})
+  * Si cambia de tema: @Max ({{@ai-agent.1130619}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - NO CERRAR. Transferir a asesor humano para detener el pago en pagador.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - ultimo_codigo_envio: Clave de envío a cancelar.
+  - motivo_consulta: Cancelación de Giro Activo.
+  ```
+* **Añadir comentarios:**
+  ```text
+  📌 [SOLICITUD CANCELACIÓN DE GIRO]
+  • Clave Giro: $contact.ultimo_codigo_envio | Perfil: $contact.perfil_usuario
+  • Prioridad: Alta (Detener pago urgente).
+  ```
+
+---
+
+### 📜 8. Agente Historial de Envíos (`@HistorialEnvios`) - ID: `{{@ai-agent.1130490}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "HistorialEnvios"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Transferencia a asesor para envío de estado de cuenta: Asesores Servicio al Cliente ({{@team.43621}})
+  * Si cambia de tema: @Max ({{@ai-agent.1130619}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - Cierra tras entregar el resumen en texto o transferir a asesor.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - motivo_consulta: Consulta de Historial / Reporte Anual.
+  ```
+* **Añadir comentarios:**
+  ```text
+  📌 [SOLICITUD HISTORIAL DE TRANSACCIONES]
+  • Cliente: $contact.name | Teléfono: $contact.phone
+  ```
+
+---
+
+### 💳 9. Agente Coordinación de Pago (`@CoordinacionPago`) - ID: `{{@ai-agent.1130509}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "CoordinacionPago"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Si es ficha de depósito / balance agencia: Equipo de Cobranza ({{@team.43625}})
+  * Si es cliente regular: Asesores Servicio al Cliente ({{@team.43621}})
+  * Si cambia de tema: @Max ({{@ai-agent.1130619}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - NO CERRAR. Transferir a equipo de Cobranza / Asesor.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - motivo_consulta: Coordinación de Pagos / Ficha Depósito.
+  ```
+* **Añadir comentarios:**
+  ```text
+  📌 [NOTIFICACIÓN DE FICHA DE DEPÓSITO / COBRANZA]
+  • Agencia / Usuario: $contact.name | Detalle: $message.text
+  ```
+
+---
+
+### 📢 10. Agente Comunicador Interno (`@AgenteComunicador`) - ID: `{{@ai-agent.1130619}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "AgenteComunicador"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Si es Oversight / IRS: Equipo Auditoría / Compliance
+  * Si es Soporte POS / Hardware: Equipo Soporte Técnico ({{@team.43630}})
+  * Si es consulta general: @Max ({{@ai-agent.1130619}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - Cierra tras notificar al canal de Google Chat correspondiente.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - motivo_consulta: Soporte Agencia / Comunicado Interno.
+  ```
+* **Añadir comentarios:**
+  ```text
+  📌 [REPORTE INTERNO DE AGENCIA / SOPORTE]
+  • Destino: Google Chat Alerta enviada | Intención: $contact.motivo_consulta
+  ```
+
+---
+
+### 🚨 11. Agente Derivación Fraudes (`@DerivacionFraudes`) - ID: `{{@ai-agent.1130613}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "DerivacionFraudes"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Transferencia URGENTE a departamento especializado: Equipo Prevención de Fraudes ({{@team.43610}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - NO CERRAR NUNCA AUTOMÁTICAMENTE. Requiere atención y protocolo humano obligatorio.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - motivo_consulta: ALERTA CRÍTICA FRAUDE / ESTAFA.
+  ```
+* **Añadir comentarios:**
+  ```text
+  🚨 [ALERTA CRÍTICA - REPORTE DE FRAUDE / ESTAFA]
+  • Cliente: $contact.name | Teléfono: $contact.phone
+  • Clave Giro: $contact.ultimo_codigo_envio
+  • Detalle reporte: $message.text
+  ```
+
+---
+
+### 🔍 12. Agente Derivación BSA (`@DerivacionBSA`) - ID: `{{@ai-agent.1130615}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "DerivacionBSA"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Transferencia a departamento de Cumplimiento: Equipo Cumplimiento BSA ({{@team.43615}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - NO CERRAR. Transferir a oficial de Cumplimiento BSA.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - motivo_consulta: Cumplimiento BSA / Retención KYC.
+  ```
+* **Añadir comentarios:**
+  ```text
+  🔍 [REPORTE CUMPLIMIENTO BSA / KYC HOLD]
+  • Clave Giro: $contact.ultimo_codigo_envio | Retención: VERIFY HOLD (KYC)
+  • Acción requerida: Validación de documentos de identidad / Formulario P-4.
+  ```
+
+---
+
+### 📄 13. Agente Orquestador Documentos (`@OrquestadorDocumentos`) - ID: `{{@ai-agent.1130617}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "OrquestadorDocumentos"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Si OCR detecta recibo de remesa: @VerificadorEstatus ({{@ai-agent.1129471}})
+  * Si es ID / Carta KYC: @DerivacionBSA ({{@ai-agent.1130615}})
+  * Si es ilegible o texto libre: @Max ({{@ai-agent.1130619}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - No cerrar directamente; derivar según clasificación visual.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - ultimo_codigo_envio: Código leido por OCR en la imagen.
+  - motivo_consulta: Documento Recibido / OCR Multimodal.
+  ```
+* **Añadir comentarios:**
+  ```text
+  📸 [LECTURA OCR COMPLETADA]
+  • Código extraído: $contact.ultimo_codigo_envio
+  • Tipo de documento: Recibo de remesa / Identificación detectada.
+  ```
+
+---
+
+### ⭐️ 14. Agente Encuestas CSAT (`@AgenteCSAT`) - ID: `{{@ai-agent.1130620}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "AgenteCSAT"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Si la calificación es 1 a 3 (Inconformidad): Asesores Servicio al Cliente ({{@team.43621}})
+  * Si el cliente desea nueva consulta: @Max ({{@ai-agent.1130619}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - Si el cliente califica y se entrega el script SC.036, cerrar conversación inmediatamente.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - rating_csat: Calificación otorgada (1 al 5).
+  ```
+* **Añadir comentarios:**
+  ```text
+  ⭐ [RESULTADO ENCUESTA CSAT]
+  • Calificación: $message.text de 5 estrellas.
+  ```
+
+---
+
+### ⚙️ 15. Agente Generador (`@AgenteGenerador`) - ID: `{{@ai-agent.1130621}}`
+
+* **HTTP Request (`interactuar_con_orbit`):**
+  ```json
+  {"user_text": "$message.text", "contact_id": "$contact.id", "metadata": {"agent_name": "AgenteGenerador"}}
+  ```
+* **Asignar a agente o equipo:**
+  ```text
+  * Si requiere validación notarial humana: Asesores Servicio al Cliente ({{@team.43621}})
+  ```
+* **Cerrar conversaciones:**
+  ```text
+  - Cierra la conversación tras emitir el folio digital y comprobante.
+  ```
+* **Actualizar campos de contacto:**
+  ```text
+  - ultimo_codigo_envio: Folio digital generado.
+  ```
+* **Añadir comentarios:**
+  ```text
+  🎫 [EMISIÓN DE FOLIO DIGITAL COMPLETADA]
+  • Folio: $contact.ultimo_codigo_envio | Estatus: Registrado exitosamente.
+  ```
