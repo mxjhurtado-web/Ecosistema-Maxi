@@ -17,7 +17,7 @@ En la interfaz de Respond.io, al editar cada uno de los 15 Agentes IA, asegúrat
 ### 2. Cerrar conversaciones (Close Conversations)
 - **Toggle:** `ON`
 - **Directrices:**
-  - Si el cliente escribe: `"finalizar"`, `"terminar"`, `"es todo"`, `"nada más"`, `"nada mas"`.
+  - Si el cliente escribe: `"finalizar"`, `"terminar"`, `"es todo"`, `"nada mas"`, `"nada mas"`.
   - Si se entrega el script oficial de despedida **SC.041** o el cierre de encuesta **SC.036**.
 
 ### 3. Actualizar campos de contacto (Update Contact Fields)
@@ -44,7 +44,7 @@ En la interfaz de Respond.io, al editar cada uno de los 15 Agentes IA, asegúrat
 
 ---
 
-## 🌐 Bloque Estándar de Idioma Vivo para Todos los System Prompts
+## 🌐 Bloque Estandar de Idioma Vivo para Todos los System Prompts
 
 Copia y pega este bloque en la parte superior de cada uno de los 15 agentes en Respond.io:
 
@@ -52,7 +52,7 @@ Copia y pega este bloque en la parte superior de cada uno de los 15 agentes en R
 # 🌐 GESTIÓN DE IDIOMA Y TRADUCCIÓN NATIVA DE RESPOND.IO (LNG.01 - LNG.03)
 
 1. **DETECCIÓN E IDENTIFICACIÓN AUTOMÁTICA DE IDIOMA (LNG.01):**
-   - Aprovecha el motor nativo de IA de Respond.io para detectar de forma automática el idioma del usuario (Inglés, Español, Portugués, Francés, etc.).
+   - Aprovecha el motor nativo de IA de Respond.io para detectar de forma automatica el idioma del usuario (Inglés, Español, Portugués, Francés, etc.).
    - Tu respuesta DEBE ser entregada 100% EN EL MISMO IDIOMA en el que el usuario escribió.
 
 2. **SINCRONIZACIÓN Y CAMBIO DINÁMICO DE IDIOMA (LNG.02):**
@@ -67,7 +67,7 @@ Copia y pega este bloque en la parte superior de cada uno de los 15 agentes en R
 
 ---
 
-## 🔁 Regla Estándar del Bucle de Retorno al Maestro (@Max)
+## 🔁 Regla Estandar del Bucle de Retorno al Maestro (@Max)
 
 Incluir en la sección de bucle de cada uno de los 14 agentes especialistas:
 
@@ -122,7 +122,7 @@ Incluir en la sección de bucle de cada uno de los 14 agentes especialistas:
 ```text
 - Si el cliente escribe "finalizar", cerrar conversación.
 - Si el cliente escribe "terminar", cerrar conversación.
-- Si el cliente indica que desea concluir la conversación ("es todo", "nada más", "nada mas"), cerrar conversación.
+- Si el cliente indica que desea concluir la conversación ("es todo", "nada mas", "nada mas"), cerrar conversación.
 - Si el sistema o el agente entrega el script oficial de despedida SC.041 o el cierre de encuesta CSAT SC.036, cerrar conversación.
 ```
 
@@ -179,7 +179,7 @@ Cada agente es independiente y tiene su propia tarjeta de configuración en Resp
   ```
 * **Cerrar conversaciones:**
   ```text
-  - Si el cliente escribe "finalizar", "terminar", "es todo" o "nada más", cerrar conversación.
+  - Si el cliente escribe "finalizar", "terminar", "es todo" o "nada mas", cerrar conversación.
   - Si se entrega el script oficial de despedida SC.041, cerrar conversación.
   ```
 * **Actualizar campos de contacto:**
@@ -211,7 +211,7 @@ Cada agente es independiente y tiene su propia tarjeta de configuración en Resp
   ```
 * **Cerrar conversaciones:**
   ```text
-  - Si el cliente indica que concluyó ("es todo", "nada más", "finalizar"), transferir a @AgenteCSAT o cerrar conversación tras SC.041.
+  - Si el cliente indica que concluyó ("es todo", "nada mas", "finalizar"), transferir a @AgenteCSAT o cerrar conversación tras SC.041.
   ```
 * **Actualizar campos de contacto:**
   ```text
@@ -241,7 +241,7 @@ Cada agente es independiente y tiene su propia tarjeta de configuración en Resp
   ```
 * **Cerrar conversaciones:**
   ```text
-  - Si el cliente escribe "finalizar", "terminar", "es todo", "nada más", transferir a CSAT o cerrar.
+  - Si el cliente escribe "finalizar", "terminar", "es todo", "nada mas", transferir a CSAT o cerrar.
   ```
 * **Actualizar campos de contacto:**
   ```text
