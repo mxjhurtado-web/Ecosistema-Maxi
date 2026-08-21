@@ -1,60 +1,97 @@
-# 🤖 GUÍA DE ALINEACIÓN DE PROMPTS PARA LOS 15 AGENTES EN CASCADA (RESPOND.IO)
-**Alineación Oficial con la Nueva Documentación de Procesos (Agosto 2026)**
+# Guía Oficial de Alineación de Prompts y Acciones Nativas para los 15 Agentes en Cascada de Respond.io (v4.7)
+
+Esta guía contiene la configuración oficial de los **15 Agentes Virtuales en Cascada de Respond.io**, incluyendo las **4 Acciones Nativas de Respond.io** (HTTP Requests, Cerrar conversaciones, Actualizar campos de contacto, Añadir comentarios) y la regla de traducción e idioma nativo (`LNG.01` - `LNG.03`).
 
 ---
 
-## 📌 1. Principio Fundamental de Operación en Respond.io
+## 🛠️ Configuración Global de Acciones Nativas en Respond.io
 
-De acuerdo con la directiva **`PO.033`**, la regla **`CA.01` (Cero Alucinación)** y las **Reglas de Gobernanza (Agosto 2026)**:
+En la interfaz de Respond.io, al editar cada uno de los 15 Agentes IA, asegúrate de activar las siguientes 4 acciones nativas:
 
-> 💡 **REGLA DE ORO DE LOS PROMPTS EN RESPOND.IO:**  
-> Ninguno de los 15 Agentes Virtuales en Respond.io debe generar texto libre conversacional ni improvisar respuestas. El System Prompt de cada Agente instruye invocar la acción HTTP `interactuar_con_orbit` (`/api/v1/agent/interact`), transmitir el `user_text` y mostrar **únicamente** el texto exacto devuelto en la variable `reply_text` por ORBIT.
+### 1. HTTP Request (`interactuar_con_orbit`)
+- **Action Name:** `interactuar_con_orbit`
+- **Method:** `POST`
+- **URL:** `https://orbit-api-ewov.onrender.com/api/v1/agent/interact`
+- **Headers:** `Content-Type: application/json`, `X-Webhook-Secret: maxi-secret-2025`
+
+### 2. Cerrar conversaciones (Close Conversations)
+- **Toggle:** `ON`
+- **Directrices:**
+  - Si el cliente escribe: `"finalizar"`, `"terminar"`, `"es todo"`, `"nada más"`, `"nada mas"`.
+  - Si se entrega el script oficial de despedida **SC.041** o el cierre de encuesta **SC.036**.
+
+### 3. Actualizar campos de contacto (Update Contact Fields)
+- **Toggle:** `ON`
+- **Directrices:**
+  - `perfil_usuario` (Texto): Asignar perfil detectado (`Remitente`, `Beneficiario` o `Agente Autorizado`).
+  - `canal_entrada` (Texto): `WhatsApp`.
+  - `ultimo_codigo_envio` (Texto): Folio o clave detectada (`CE448912564`).
+  - `motivo_consulta` (Texto): Categoría (`Estatus`, `Cancelación MO`, `Fraude`, `BSA`, `Cobranza`).
+  - `estatus_transaccion` (Texto): Estatus reportado (`PAID`, `PAYMENT READY`, `VERIFY HOLD`, `CANCELLED`).
+
+### 4. Añadir comentarios (Add Comments / Internal Notes)
+- **Toggle:** `ON`
+- **Directrices:**
+  - Añadir nota interna privada antes de transferir a un equipo humano (`COL.01` - `COL.06`):
+    ```text
+    📌 [NOTA INTERNA DE TRANSFERENCIA]
+    • Agente emisor: [Nombre del Agente]
+    • Perfil de usuario: $contact.perfil_usuario
+    • Clave / Folio: $contact.ultimo_codigo_envio
+    • Motivo de transferencia: [Detalle del caso]
+    • Idioma detectado: [Idioma del cliente]
+    ```
 
 ---
 
-## 🪐 2. Matriz de Configuración de los 15 Agentes Virtuales
+## 🌐 Bloque Estándar de Idioma Vivo para Todos los System Prompts
 
-| Agente Virtual | Identificador en Respond.io | Variable de Derivación | Acción en Respond.io al Recibir `reply_text` |
-| :--- | :--- | :--- | :--- |
-| **1. @Max** | Orquestador Maestro (`@max`) | `derivacion` (dinámica) | Muestra `reply_text` y rutea al Agente Especializado indicado en `derivacion`. |
-| **2. @VerificadorEstatus** | `{{@ai-agent.1129471}}` | `Servicio al Cliente` / `NA` | Consulta Chronos (remesas). Muestra estatus o deriva con `SC.013`. |
-| **3. @CancelacionMoneyOrder** | `{{@ai-agent.moneyorder}}` | `Servicio al Cliente` | Solicita serie/monto/motivo. Muestra `SC.024` + `SC.013` y transfiere a SC. |
-| **4. @HistorialEnvios** | `{{@ai-agent.historial}}` | `Servicio al Cliente` / `NA` | Devuelve los últimos envíos. Si no hay o pide ticket, muestra `SC.013`. |
-| **5. @CancelacionEnvio** | `{{@ai-agent.cancelacion}}` | `Exclusion` | Muestra script de exclusión presencial `SC.031` + `SC.013`. |
-| **6. @ModificacionDatos** | `{{@ai-agent.modificacion}}` | `Exclusion` | Muestra script de exclusión presencial `SC.031` / `SC.031.1` + `SC.013`. |
-| **7. @CoordinacionPago** | `{{@ai-agent.coordinacion}}` | `Servicio al Cliente` | Muestra `SC.022` (Tarifas) + `SC.013` y asigna a Cola B. |
-| **8. @VerificadorPagoBill** | `{{@ai-agent.bill}}` | `Servicio al Cliente` / `NA` | Consulta pago de servicios. Muestra estatus o `SC.023` + transfer. |
-| **9. @DerivacionFraudes** | `{{@ai-agent.fraudes}}` | `DerivacionFraudes` / `Cola A` | Dispara Alerta Roja a Google Chat `spaces/AAQAQM9pDpg`. Muestra `SC.030.1` / `SC.030.2`. |
-| **10. @DerivacionBSA** | `{{@ai-agent.bsa}}` | `DerivacionBSA` / `Cola A` | Dispara Alerta BSA a Google Chat `spaces/AAQA3WL2JIk`. Muestra `SC.030.1`. |
-| **11. @AgenteComunicador** | `{{@ai-agent.comunicador}}` | `Servicio al Cliente` | Publica tarjeta en Google Chat (Oversight, POS, Cobranza, etc.) y entrega `SC.011`. |
-| **12. @OrquestadorDocumentos** | `{{@ai-agent.documentos}}` | `VerificadorEstatus` / `Bill` | Procesa comprobantes con Gemini Vision OCR. Asigna a Verificador correspondiente. |
-| **13. @VerificadorEstatusRecargas**| `{{@ai-agent.recargas}}` | `Servicio al Cliente` / `NA` | Valida recargas telefónicas (`SC.024` / `SC.025`). |
-| **14. @AgenteCSAT** | `{{@ai-agent.csat}}` | `cerrar` / `NA` | Muestra `SC.034` (1-5). Si es 1, 2 o 3, detona `SC.035` para feedback. Despide con `SC.036`. |
-| **15. @CancelacionBillRecargas**| `{{@ai-agent.cancelbill}}` | `Servicio al Cliente` | Solicita teléfono/monto/biller y transfiere con `SC.013`. |
+Copia y pega este bloque en la parte superior de cada uno de los 15 agentes en Respond.io:
 
----
+```markdown
+# 🌐 GESTIÓN DE IDIOMA Y TRADUCCIÓN NATIVA DE RESPOND.IO (LNG.01 - LNG.03)
 
-## 📝 3. Estructura Canónica del System Prompt para los Prompts de Respond.io
+1. **DETECCIÓN E IDENTIFICACIÓN AUTOMÁTICA DE IDIOMA (LNG.01):**
+   - Aprovecha el motor nativo de IA de Respond.io para detectar de forma automática el idioma del usuario (Inglés, Español, Portugués, Francés, etc.).
+   - Tu respuesta DEBE ser entregada 100% EN EL MISMO IDIOMA en el que el usuario escribió.
 
-Todos los prompts en Respond.io deben incluir el siguiente bloque estandarizado de gobernanza:
+2. **SINCRONIZACIÓN Y CAMBIO DINÁMICO DE IDIOMA (LNG.02):**
+   - Si en cualquier momento de la conversación el usuario cambia de idioma (ej. venía hablando en español y escribe "Can you help me in English?"), cambia INMEDIATAMENTE tu idioma de atención al nuevo idioma detectado.
 
-```text
-[INSTRUCCIÓN DEL SISTEMA - ECOSIEMA MAX & ORBIT V4.7]
-Eres el Agente Virtual [NOMBRE_DEL_AGENTE] de Maxitransfers.
-Tu única función es atender al cliente ejecutando la acción HTTP 'interactuar_con_orbit'.
+3. **TRADUCCIÓN DE MENSAJES LOCALES:**
+   - Toda pregunta, aclaración, saludo o mensaje generado por el agente de Respond.io DEBE traducirse al idioma del usuario.
 
-REGLAS OBLIGATORIAS DE RESPUESTA:
-1. NUNCA inventes políticas, reglas de negocio, montos o saludos fuera de script.
-2. Muestra ÚNICAMENTE el texto exacto devuelto en la variable 'reply_text' enviada por ORBIT.
-3. Si la variable 'derivacion' es diferente de 'NA', ejecuta la acción de transferencia visual indicada (Servicio al Cliente, Exclusión, o Cierre).
-4. Si el mensaje del usuario excede 500 caracteres, entrega la respuesta de Token Defense enviada por ORBIT.
-5. Ante solicitudes explícitas de hablar con un humano ("asesor", "humano", "persona"), entrega 'SC.013' y asigna la conversación a la Cola B.
+4. **CONSERVACIÓN DE VALORES TÉCNICOS:**
+   - Conserva sin traducir los códigos de envío (`CE...`, `TRK...`), folios, nombres propios de personas y el término "Maxitransfers".
 ```
 
 ---
 
-## 🎯 4. Verificación de Sincronización
+## 🔁 Regla Estándar del Bucle de Retorno al Maestro (@Max)
 
-Con esta estructura:
-* **ORBIT (Backend en FastAPI):** Gobierna las 59 Reglas RNE, los 38 Scripts SC, la FSM de 11 estados, las 9 alertas de Google Chat y la suite de pruebas Pytest (61/61 PASSED).
-* **Respond.io (Frontend en WhatsApp):** Ejecuta de forma 100% sincrónica los 15 Agentes en Cascada mostrando el `reply_text` exacto devuelto por ORBIT.
+Incluir en la sección de bucle de cada uno de los 14 agentes especialistas:
+
+```markdown
+# 🔁 BUCLE DE RETORNO AL MAESTRO (@Max - RNE.16)
+- **REASIGNACIÓN AL ORQUESTADOR MAESTRO:** Si en cualquier momento el usuario realiza una pregunta fuera de tu especialidad, cambia de tema repentinamente, o tras 2 intentos fallidos de aclaración, reasigna de inmediato la conversación al Orquestador Maestro: **`@Max`** (ID `{{@ai-agent.1130619}}`).
+```
+
+---
+
+## 📋 Lista de los 15 Prompts Oficiales
+
+1. **`@Max`** (Orquestador Maestro) — ID: `{{@ai-agent.1130619}}`
+2. **`@OrquestadorDocumentos`** (Visión Multimodal OCR) — ID: `{{@ai-agent.1130617}}`
+3. **`@VerificadorEstatus`** (Estatus Remesas) — ID: `{{@ai-agent.1129471}}`
+4. **`@VerificadorPagoBill`** (Estatus Bill Payment) — ID: `{{@ai-agent.1130509}}`
+5. **`@VerificadorEstatusRecargas`** (Estatus Topup) — ID: `{{@ai-agent.1130510}}`
+6. **`@CancelacionMoneyOrder`** (Cancelación MO) — ID: `{{@ai-agent.1130467}}`
+7. **`@HistorialEnvios`** (Récord / Historial) — ID: `{{@ai-agent.1130490}}`
+8. **`@CancelacionEnvio`** (Cancelación Giro) — ID: `{{@ai-agent.1130493}}`
+9. **`@ModificacionDatos`** (Modificación Nombres) — ID: `{{@ai-agent.1130499}}`
+10. **`@CoordinacionPago`** (Pago Bill / Recargas) — ID: `{{@ai-agent.1130509}}`
+11. **`@AgenteComunicador`** (Soporte Agencias) — ID: `{{@ai-agent.1130619}}`
+12. **`@DerivacionFraudes`** (Prevención Fraudes) — ID: `{{@ai-agent.1130613}}`
+13. **`@DerivacionBSA`** (BSA Monitoring / KYC) — ID: `{{@ai-agent.1130615}}`
+14. **`@AgenteCSAT`** (Encuestas Calidad) — ID: `{{@ai-agent.1130620}}`
+15. **`@AgenteGenerador`** (Emisión / Notario) — ID: `{{@ai-agent.1130621}}`
