@@ -680,6 +680,37 @@ async def webhook(
         # 1. If we detect a tracking code anywhere in the user text, we jump straight to tracking mode
         if detected_code:
             logger.info(f"🔍 Tracking code '{detected_code}' detected. Starting status check flow.")
+            profile_in_text = detect_profile_from_text(user_text_clean)
+            
+            # Single-Turn Extraction: If user text contains code AND profile AND (name or info), process immediately
+            if profile_in_text:
+                # Extract potential name (words excluding keywords and code)
+                clean_name_words = [w for w in re.findall(r'\b[A-Za-zÁÉÍÓÚáéíóúÑñ]{3,}\b', user_text_clean) 
+                                    if w.lower() not in ["hola", "buenos", "dias", "tardes", "noches", "estatus", "status", "envio", "cruz", "codigo", "folio", "remitente", "beneficiario", "para", "de", "mi", "el", "la", "los", "las", "un", "una"]]
+                possible_name = " ".join(clean_name_words).strip()
+                
+                if len(possible_name) >= 3:
+                    logger.info(f"⚡ Single-Turn Status Check triggered: Code={detected_code}, Profile={profile_in_text}, Name='{possible_name}'")
+                    status_req = StatusCheckRequest(
+                        codigo_envio=detected_code,
+                        perfil=profile_in_text,
+                        contact_id=request.contact_id,
+                        contact_name=request.contact_name,
+                        user_text=user_text_clean,
+                        nombre_remitente=possible_name if profile_in_text == "REMITENTE" else None,
+                        nombre_beneficiario=possible_name if profile_in_text == "BENEFICIARIO" else None,
+                        metadata=request.metadata
+                    )
+                    status_resp = await check_transaction_status_inner(status_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                    mcp_response = await translate_script_if_needed(status_resp.reply_text, request.user_text)
+                    total_latency_ms = int((time.time() - start_time) * 1000)
+                    return RespondioResponse(
+                        status=ResponseStatus.OK,
+                        reply_text=mcp_response,
+                        trace_id=trace_id,
+                        latency_ms=total_latency_ms,
+                        derivacion=status_resp.derivacion
+                    )
             if redis:
                 await redis.set(code_key, detected_code, ex=3600)
                 await redis.set(state_key, "AWAITING_PROFILE", ex=3600)
@@ -1927,17 +1958,13 @@ async def check_transaction_status_inner(
                         derivacion = "Fuera de Horario Depto"
                         reply_text = "Entiendo su solicitud. Su caso requiere atención de un área especializada y por el momento no se encuentra disponible. Se notificó sobre su caso y se comunicarán con usted en cuanto reinicien operaciones. Gracias por su paciencia."
                 elif "VERIFY HOLD (KYC)" in status_upper:
-                    if check_department_hours("PREVENCION DE FRAUDES", ct_now):
-                        derivacion = "Fraudes"
-                        reply_text = "Entiendo su solicitud. Este caso requiere atención de un área especializada (Prevención de Fraudes). Canalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible."
+                    if check_department_hours("CUMPLIMIENTO", ct_now):
+                        derivacion = "Cumplimiento"
+                        scripts = get_compliance_scripts()
+                        reply_text = scripts.get("SC.011.1", "Su operación está siendo procesada por nuestro departamento de Cumplimiento (BSA/KYC). Lo transferiré con un asesor para validar su documentación.")
                     else:
-                        # Emergency overflow (RNE.56)
-                        if check_department_hours("SERVICIO AL CLIENTE", ct_now):
-                            derivacion = "Servicio al Cliente"
-                            reply_text = "Entiendo la situación. Su solicitud es de alta prioridad para nosotros, lo comunicaré inmediatamente con un asesor de Servicio al Cliente para darle atención urgente (Desborde de Emergencia por Horario)."
-                        else:
-                            derivacion = "Fuera de Horario SC"
-                            reply_text = "En este momento nuestros asesores no se encuentran disponibles. Un asesor dará seguimiento a su solicitud en cuanto retomemos el servicio. Gracias por su paciencia."
+                        derivacion = "Fuera de Horario Depto"
+                        reply_text = "Entiendo su solicitud. Su caso requiere atención del área de Cumplimiento (BSA) y por el momento no se encuentra disponible. Un asesor se comunicará en cuanto reinicien operaciones."
                 elif status_upper in ["PAID", "PAGADO"]:
                     reply_text = "Verificando la información, el envío aparece en el sistema como pagado."
                     derivacion = "NA"
@@ -3733,7 +3760,7 @@ async def agent_interact_inner(
         return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
     # 4. Cobranza (Comisiones / Saldos / Adeudos)
-    cobranza_keywords = ["cobranza", "cobranzas", "comisión de agencia", "saldo pendiente", "adeudo"]
+    cobranza_keywords = ["cobranza", "cobranzas", "comisión", "comision", "comisiones", "saldo pendiente", "adeudo", "estado de cuenta", "depósito retenido", "deposito retenido", "factura de agencia"]
     if any(k in user_text_lower for k in cobranza_keywords):
         logger.info(f"💰 Cobranza request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
@@ -4630,3 +4657,25 @@ if __name__ == "__main__":
         port=settings.API_PORT,
         reload=True
     )
+
+
+
+async def translate_script_if_needed(script_text: str, user_text: str, contact_id: str = "") -> str:
+    """
+    LNG.01 / LNG.02: Detects user language and translates verbatim script accurately.
+    If user_text is in English or non-Spanish, translates script_text to user's language.
+    """
+    if not script_text or not user_text:
+        return script_text
+    
+    try:
+        from .translation_utils import detect_language, translate_text
+        lang = await detect_language(user_text)
+        if lang and lang != "es":
+            logger.info(f"🌐 LNG.01/LNG.02: Translating script to target language '{lang}' for contact '{contact_id}'")
+            translated = await translate_text(script_text, target_lang=lang)
+            return translated or script_text
+    except Exception as err:
+        logger.warning(f"Translation error: {err}")
+    
+    return script_text

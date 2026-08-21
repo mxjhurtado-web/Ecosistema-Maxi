@@ -522,7 +522,7 @@ class TestStatusCheckEndpoint:
             assert "por el momento no se encuentra disponible" in data["reply_text"]
 
     def test_emergency_overflow_kyc_routing(self, client):
-        """Test RNE.56 emergency routing for KYC holds when Fraud is closed but SC is open"""
+        """Test BSA/Cumplimiento routing for KYC holds"""
         record = {
             "Codigo_de_envio": "CE12345678",
             "status": "VERIFY HOLD (KYC)",
@@ -541,9 +541,7 @@ class TestStatusCheckEndpoint:
         from unittest.mock import patch
         
         def mock_check_dept(depto, dt):
-            if "PREVENCION" in depto or "FRAUD" in depto:
-                return False
-            if "SERVICIO" in depto or "SC" in depto:
+            if "CUMPLIMIENTO" in depto or "BSA" in depto:
                 return True
             return False
 
@@ -559,8 +557,8 @@ class TestStatusCheckEndpoint:
             )
             assert response.status_code == 200
             data = response.json()
-            assert data["derivacion"] == "Servicio al Cliente"
-            assert "Desborde de Emergencia por Horario" in data["reply_text"]
+            assert data["derivacion"] == "Cumplimiento"
+            assert "Cumplimiento" in data["reply_text"]
 
     def test_status_check_stale_data_isolation(self, client):
         """Test status check ignores stale session variables when not explicitly passed in payload"""
