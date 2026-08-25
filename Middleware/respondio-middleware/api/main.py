@@ -3706,6 +3706,7 @@ async def agent_interact_inner(
                 logger.error(f"⚠️ Failed to send Google Chat Fraud Details update: {gchat_err}")
 
             # RNE.50 / RNE.51 / RNE.60 / RNE.61: Evaluate Department Operating Hours
+            from zoneinfo import ZoneInfo
             ct_now = datetime.now(ZoneInfo("America/Chicago"))
             in_fraudes_hours = check_department_hours("PREVENCION DE FRAUDES", ct_now)
             
