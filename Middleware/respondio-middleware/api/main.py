@@ -3661,13 +3661,19 @@ async def agent_interact_inner(
                     f"🎯 *Intención:* {alert_intent}\n"
                     f"📝 *Detalle:* {user_text}{media_attach}"
                 )
+                target_gchat_space = (
+                    os.getenv("GOOGLE_CHATS_BSA_SPACE") or getattr(settings, "GOOGLE_CHATS_BSA_SPACE", None) or "spaces/AAQA3WL2JIk"
+                ) if is_bsa_report else (
+                    os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or getattr(settings, "GOOGLE_CHATS_FRAUDES_SPACE", None) or "spaces/AAQAQM9pDpg"
+                )
+
                 await google_chat_service.send_alert_detailed(
                     title="Alerta de Orbit",
                     message=alert_msg,
                     level="ERROR",
-                    space_id=os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or getattr(settings, "GOOGLE_CHATS_FRAUDES_SPACE", None) or "spaces/AAQAQM9pDpg"
+                    space_id=target_gchat_space
                 )
-                logger.info(f"✅ Google Chat Fraud Alert sent successfully for contact {contact_id} on Turn 1")
+                logger.info(f"✅ Google Chat Alert sent successfully to {target_gchat_space} for contact {contact_id} on Turn 1")
             except Exception as gchat_err:
                 logger.error(f"⚠️ Failed to send Google Chat Fraud Alert on Turn 1: {gchat_err}")
 
@@ -3694,16 +3700,22 @@ async def agent_interact_inner(
 
             try:
                 from .google_chat_service import google_chat_service
+                alert_header_t2 = "📝 *DETALLES ADICIONALES DE BSA RECIBIDOS*" if is_bsa_report else "📝 *DETALLES ADICIONALES DE FRAUDE RECIBIDOS*"
                 alert_msg = (
-                    f"📝 *DETALLES ADICIONALES DE FRAUDE RECIBIDOS*\n\n"
+                    f"{alert_header_t2}\n\n"
                     f"👤 *Usuario:* Contacto #{contact_id}\n"
                     f"📝 *Datos proporcionados por el cliente:* {user_text}"
+                )
+                target_gchat_space_t2 = (
+                    os.getenv("GOOGLE_CHATS_BSA_SPACE") or getattr(settings, "GOOGLE_CHATS_BSA_SPACE", None) or "spaces/AAQA3WL2JIk"
+                ) if is_bsa_report else (
+                    os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or getattr(settings, "GOOGLE_CHATS_FRAUDES_SPACE", None) or "spaces/AAQAQM9pDpg"
                 )
                 await google_chat_service.send_alert_detailed(
                     title="Alerta de Orbit",
                     message=alert_msg,
                     level="INFO",
-                    space_id=os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or getattr(settings, "GOOGLE_CHATS_FRAUDES_SPACE", None) or "spaces/AAQAQM9pDpg"
+                    space_id=target_gchat_space_t2
                 )
                 logger.info(f"✅ Google Chat Fraud Details update sent for contact {contact_id}")
             except Exception as gchat_err:
