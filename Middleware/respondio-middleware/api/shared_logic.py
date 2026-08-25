@@ -34,18 +34,29 @@ def get_compliance_scripts():
             _compliance_scripts = {}
     return _compliance_scripts
 
+import re
+
+def strip_script_code_prefix(text: str) -> str:
+    """Removes leading script code prefixes like 'SC.030:', 'SC.037.1:', 'CU.A1:' from user-facing text."""
+    if not text:
+        return ""
+    # Strip any prefix matching (SC|CU).xxx:
+    cleaned = re.sub(r'^(?:SC|CU)\.[\w\.]+\s*:\s*', '', text.strip(), flags=re.IGNORECASE)
+    return cleaned.strip()
+
 def resolve_script_text(script_text: str) -> str:
-    """If script_text is a script code (e.g. 'SC 018' or 'SC.018'), resolve it to full text from compliance_scripts.json."""
+    """If script_text is a script code (e.g. 'SC 018' or 'SC.018'), resolve it to full text and strip code prefixes."""
     if not script_text:
         return ""
     comp_scripts = get_compliance_scripts()
     clean = script_text.strip()
     clean_dot = clean.replace(" ", ".")
+    resolved = script_text
     if clean_dot in comp_scripts:
-        return comp_scripts[clean_dot]
-    if clean in comp_scripts:
-        return comp_scripts[clean]
-    return script_text
+        resolved = comp_scripts[clean_dot]
+    elif clean in comp_scripts:
+        resolved = comp_scripts[clean]
+    return strip_script_code_prefix(resolved)
 
 
 # Pre-compiled high-quality English translations for core compliance scripts (LNG.01 / LNG.02)

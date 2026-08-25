@@ -1139,8 +1139,9 @@ async def google_chat_notify_handler_inner(
     message_text = request.message
     media_url = request.media_url
 
-    # Sanitize null values in message_text if Respond.io variables evaluated to string 'null'
-    if message_text and ("null" in message_text.lower()):
+    # Sanitize empty or null values in message_text if Respond.io variables evaluated to empty or 'null'
+    if message_text:
+        import re
         last_user_text = None
         if request.contact_id:
             try:
@@ -1153,22 +1154,27 @@ async def google_chat_notify_handler_inner(
                 pass
 
         # Contextual intention & detail determination
-        is_soporte = "SOPORTE" in message_text.upper() or (request.destino and "soporte" in request.destino.lower()) or (target_space and "AAQAQhx5RTM" in str(target_space))
+        is_bsa = "BSA" in message_text.upper() or (request.destino and "bsa" in request.destino.lower()) or (target_space and "AAQA3WL2JIk" in str(target_space))
         is_fraude = "FRAUDE" in message_text.upper() or (request.destino and "fraude" in request.destino.lower()) or (target_space and "AAQAQM9pDpg" in str(target_space))
+        is_soporte = "SOPORTE" in message_text.upper() or (request.destino and "soporte" in request.destino.lower()) or (target_space and "AAQAQhx5RTM" in str(target_space))
         
-        if is_soporte:
-            default_intent = "Soporte Técnico / Asistencia"
-            default_detail = last_user_text or "Falla o reporte de soporte técnico recibido"
+        if is_bsa:
+            default_intent = "BSA Monitoring / Actividad Inusual o Sospechosa"
+            default_detail = last_user_text or "Reporte de actividad inusual o aviso de sistema en perfil"
         elif is_fraude:
             default_intent = "Reporte de Fraude / Estafa"
             default_detail = last_user_text or "Reporte de posible fraude o estafa recibido"
+        elif is_soporte:
+            default_intent = "Soporte Técnico / Asistencia"
+            default_detail = last_user_text or "Falla o reporte de soporte técnico recibido"
         else:
             default_intent = "Notificación de Atención"
             default_detail = last_user_text or "Detalle de notificación no especificado"
 
-        message_text = message_text.replace("🎯 *Intención:* null", f"🎯 *Intención:* {default_intent}")
-        message_text = message_text.replace("🎯 *Intenci\u00f3n:* null", f"🎯 *Intención:* {default_intent}")
-        message_text = message_text.replace("📝 *Detalle:* null", f"📝 *Detalle:* {default_detail}")
+        # Regex replace empty or null intention
+        message_text = re.sub(r'🎯\s*\*Intenci[oó]n:\*\s*(?:null|\$intencion_solicitud|\$intencion)?(?=\n|$)', f'🎯 *Intención:* {default_intent}', message_text, flags=re.IGNORECASE)
+        # Regex replace empty or null detail
+        message_text = re.sub(r'📝\s*\*Detalle:\*\s*(?:null|\$resumen_solicitud|\$resumen)?(?=\n|$)', f'📝 *Detalle:* {default_detail}', message_text, flags=re.IGNORECASE)
 
     # REJ.03 Enforcement: High Priority Alert Headers for Fraudes / BSA
     if request.destino and request.destino.lower() in ["fraudes", "fraude", "prevencion_de_fraudes", "bsa", "bsa_monitoring"]:

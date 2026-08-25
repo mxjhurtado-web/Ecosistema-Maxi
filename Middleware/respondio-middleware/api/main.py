@@ -3522,9 +3522,14 @@ async def agent_interact(
 ):
     resp = await agent_interact_inner(request, x_webhook_secret, secret)
     
-    # GARANTÍA ABSOLUTA DEL SCRIPT DE BIENVENIDA OBLIGATORIO EN EL PRIMER TURNO (CU.A1 / RNE.01)
+    # GARANTÍA ABSOLUTA DEL SCRIPT DE BIENVENIDA OBLIGATORIO EN EL PRIMER TURNO (CU.A1 / RNE.01) Y DEDUPLICACIÓN
     if resp and resp.reply_text:
         contact_id = request.contact_id.replace("{", "").replace("}", "").strip()
+        
+        # Always strip internal code prefixes like SC.030: or SC.037.1: from response
+        from .shared_logic import strip_script_code_prefix
+        resp.reply_text = strip_script_code_prefix(resp.reply_text)
+        
         if contact_id not in ["contact.id", "contactid", "$contact.id", ""]:
             try:
                 redis = await get_redis_client()
@@ -3536,9 +3541,11 @@ async def agent_interact(
                     scripts = get_compliance_scripts()
                     cuA1_text = scripts.get("CU.A1", "Gracias por comunicarse a Maxitransfers.\n\nSoy Max, su asistente virtual. Para comenzar a ayudarle, ¿puede indicarme su nombre completo, por favor?\n\nAl continuar en este chat, acepta el tratamiento de sus datos bajo nuestra Política de Privacidad en www.maxitransfers.com/privacidad.\n\n• Por su seguridad, la sesión se cerrará automáticamente si pasa 10 minutos sin actividad.\n• Puede terminar esta conversación en cualquier momento enviando la palabra \"Finalizar\".\n• Si desea hablar con un asesor envíe el mensaje \"Hablar con un asesor\".").strip()
                     cuA1_trans = await translate_script_if_needed(cuA1_text, request.user_text, contact_id=contact_id)
+                    cuA1_clean = strip_script_code_prefix(cuA1_trans)
                     
-                    if cuA1_trans:
-                        resp.reply_text = f"{cuA1_trans}\n\n{resp.reply_text}"
+                    # Deduplication check: do not prepend CU.A1 if resp.reply_text already starts with it
+                    if cuA1_clean and not resp.reply_text.startswith(cuA1_clean[:30]):
+                        resp.reply_text = f"{cuA1_clean}\n\n{resp.reply_text}"
                         logger.info(f"✨ Mandatory Turn 1 Welcome Script (CU.A1) prepended for contact {contact_id}")
             except Exception as w_err:
                 logger.error(f"⚠️ Error enforcing mandatory welcome script CU.A1: {w_err}")
@@ -3665,7 +3672,8 @@ async def agent_interact_inner(
                     except Exception:
                         pass
 
-                is_bsa_report = any(k in user_text_lower for k in ["bsa", "fraccionar", "fraccionamiento", "estructuración", "ctr", "deny list", "lista negra"])
+                bsa_keywords = ["bsa", "fraccionar", "fraccionamiento", "estructuración", "ctr", "deny list", "lista negra", "notificacion", "notificación", "usando mi perfil", "alguien usando mi perfil", "notificacion a mi celular", "notificación a mi celular"]
+                is_bsa_report = any(k in user_text_lower for k in bsa_keywords)
                 alert_header = "🚨 *ALERTA CRÍTICA - BSA MONITORING / CUMPLIMIENTO*" if is_bsa_report else "🚨 *ALERTA CRÍTICA DE FRAUDE/ESTAFA*"
                 alert_intent = "Reporte de Actividad Sospechosa / BSA" if is_bsa_report else "Reporte de Fraude / Estafa"
 
