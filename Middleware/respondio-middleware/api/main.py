@@ -4271,15 +4271,25 @@ async def agent_interact_inner(
                 )
 
     if is_greeting or current_state == "NEW":
-        # Check if we should transition VerificadorEstatus directly
-        if current_state == "NEW" and agent_name == "VerificadorEstatus":
+        # VerificadorEstatus directly handles status inquiry without repeating CU.A1 greeting
+        if agent_name == "VerificadorEstatus":
             cached_code = await redis.get(code_key)
             cached_code_str = cached_code.decode('utf-8') if cached_code else None
             if cached_code_str:
                 logger.info(f"🎯 VerificadorEstatus starting with pre-extracted OCR code: {cached_code_str}")
                 await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
-                sc10_text = scripts.get("SC.010", "Por favor proporcione su nombre completo:")
-                translated = await translate_script_if_needed(sc10_text, user_text)
+                sc10_text = scripts.get("SC.010", "Por favor proporcione el nombre completo del remitente y del beneficiario:")
+                translated = await translate_script_if_needed(sc10_text, user_text, contact_id=contact_id)
+                return AgentInteractResponse(
+                    status="success",
+                    reply_text=translated,
+                    derivacion="NA"
+                )
+            else:
+                logger.info(f"🔍 VerificadorEstatus starting for contact {contact_id}. Requesting 3 required items (SC.008)")
+                await redis.set(state_key, "WAITING_FOR_DATA", ex=3600)
+                sc8_text = scripts.get("SC.008", "Para consultar el estatus de su envío, por favor compártame la siguiente información:\n• Nombre completo de la persona que realizó el envío\n• Nombre completo de la persona que recibe el envío\n• Clave del envío (CE...)").strip()
+                translated = await translate_script_if_needed(sc8_text, user_text, contact_id=contact_id)
                 return AgentInteractResponse(
                     status="success",
                     reply_text=translated,
@@ -4290,7 +4300,7 @@ async def agent_interact_inner(
         await clear_redis_session(redis, contact_id)
         
         cuA1_text = scripts.get("CU.A1", "Gracias por comunicarse a Maxitransfers. Soy Max, su asistente virtual. Para comenzar a ayudarle, ¿puede indicarme su nombre completo, por favor?")
-        translated = await translate_script_if_needed(cuA1_text, user_text)
+        translated = await translate_script_if_needed(cuA1_text, user_text, contact_id=contact_id)
         await redis.set(state_key, "WAITING_FOR_PROFILE", ex=3600)
         return AgentInteractResponse(
             status="success",
