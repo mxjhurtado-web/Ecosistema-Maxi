@@ -3651,10 +3651,14 @@ async def agent_interact_inner(
                     except Exception:
                         pass
 
+                is_bsa_report = any(k in user_text_lower for k in ["bsa", "fraccionar", "fraccionamiento", "estructuración", "ctr", "deny list", "lista negra"])
+                alert_header = "🚨 *ALERTA CRÍTICA - BSA MONITORING / CUMPLIMIENTO*" if is_bsa_report else "🚨 *ALERTA CRÍTICA DE FRAUDE/ESTAFA*"
+                alert_intent = "Reporte de Actividad Sospechosa / BSA" if is_bsa_report else "Reporte de Fraude / Estafa"
+
                 alert_msg = (
-                    f"🚨 *ALERTA CRÍTICA DE FRAUDE/ESTAFA*\n\n"
+                    f"{alert_header}\n\n"
                     f"👤 *Usuario:* Contacto #{contact_id}\n"
-                    f"🎯 *Intención:* Reporte de Fraude / Estafa\n"
+                    f"🎯 *Intención:* {alert_intent}\n"
                     f"📝 *Detalle:* {user_text}{media_attach}"
                 )
                 await google_chat_service.send_alert_detailed(
