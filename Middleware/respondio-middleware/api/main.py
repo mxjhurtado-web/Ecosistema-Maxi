@@ -3646,11 +3646,19 @@ async def agent_interact_inner(
     # Handle global commands or keywords (e.g. human transfer or ending)
     user_text_lower = user_text.lower()
     
-    # Detección de Fraude y Riesgo / BSA (RNE.50 / RNE.51 / SC.030) - Prioridad Absoluta
+    # Matriz Canónica de Palabras Clave desde "Palabras clave derivacion.xlsx"
     fraud_keywords = [
         "estafa", "fraude", "engaño", "phishing", "robo", "robado", "extorsión", "sospechosa", "sospechoso", 
-        "víctima", "scam", "bsa", "fraccionar", "fraccionamiento", "estructuración", "cantidades fuertes", 
-        "comprobante de ingresos", "varios envíos", "varios envios", "mil o mas", "mil o más", "montos altos", "montos elevados"
+        "víctima", "scam", "estafado", "estafada", "me estafaron", "me engañaron", "fraude del beneficiario", 
+        "estafa del beneficiario", "beneficiario me estafó", "beneficiario me engañó", "víctima de fraude", 
+        "víctima de estafa", "fui víctima", "me defraudaron", "me hicieron fraude", "fraude contra el remitente", 
+        "estafa contra el remitente", "cancelar por fraude", "cancelar por estafa", "cancelar porque me estafaron", 
+        "cancelar porque me engañaron", "detener por fraude", "detener por estafa", "recuperar dinero por estafa", 
+        "cliente estafado", "cliente estafada", "cliente víctima", "cliente fue engañado", "cliente fue estafado", 
+        "beneficiario estafó al cliente", "beneficiario engañó al cliente", "fraude en agencia", "estafa en agencia", 
+        "agencia víctima de fraude", "agencia fue estafada", "defraudaron a la agencia", "engañaron a la agencia", 
+        "beneficiario fraudulento", "beneficiario estafador", "incluir por fraude", "incluir por estafa", 
+        "bloquear por fraude", "bloquear por estafa", "reportar por fraude", "reportar por estafa"
     ]
     fraud_collecting_key = f"session:fraud_collecting:{contact_id}"
     is_fraud_collecting = await redis.get(fraud_collecting_key)
@@ -3678,9 +3686,28 @@ async def agent_interact_inner(
 
                 bsa_keywords = [
                     "bsa", "fraccionar", "fraccionamiento", "estructuración", "ctr", "deny list", "lista negra", 
-                    "notificacion", "notificación", "usando mi perfil", "alguien usando mi perfil", "notificacion a mi celular", 
-                    "notificación a mi celular", "cantidades fuertes", "comprobante de ingresos", "varios envíos", 
-                    "varios envios", "mil o mas", "mil o más", "montos altos", "montos elevados", "sospechoso"
+                    "lista restrictiva", "notificacion", "notificación", "usando mi perfil", "alguien usando mi perfil", 
+                    "notificacion a mi celular", "notificación a mi celular", "no reconozco", "no reconozco el envío", 
+                    "envío no reconocido", "envío desconocido", "no hice el envío", "yo no hice ese envío", "no autoricé", 
+                    "no autoricé el envío", "no autoricé la transacción", "transacción no autorizada", "envío no autorizado", 
+                    "transferencia no autorizada", "recibí un mensaje de un envío que no hice", "alguien usó mi cuenta", 
+                    "alguien está usando mi perfil", "uso indebido del perfil", "uso no autorizado", "actividad no reconocida", 
+                    "más de $10,000", "más de 10 mil dólares", "superior a $10,000", "superior a 10 mil dólares", 
+                    "supera los $10,000", "supera los 10 mil dólares", "envíos por más de $10,000", "envíos superiores a $10,000", 
+                    "más de 10 mil en un día", "se negó a proporcionar información", "se negó a proporcionar identificación", 
+                    "no quiere proporcionar identificación", "se negó a proporcionar ssn", "no quiere proporcionar ssn", 
+                    "se negó a proporcionar número de seguridad social", "no quiere proporcionar número de seguridad social", 
+                    "se negó a presentar comprobante de ingresos", "no quiere presentar comprobante de ingresos", 
+                    "se negó a proporcionar documentación", "no quiere proporcionar documentación", "información para ctr", 
+                    "documentación para ctr", "actividad sospechosa", "actividad inusual", "comportamiento sospechoso", 
+                    "comportamiento inusual", "operación sospechosa", "operaciones sospechosas", "operación inusual", 
+                    "operaciones inusuales", "envío sospechoso", "envíos sospechosos", "envío inusual", "envíos inusuales", 
+                    "patrón sospechoso", "patrón inusual", "comportamiento extraño", "comportamiento irregular", 
+                    "actividad irregular", "actividad fuera de lo normal", "comportamiento fuera de lo normal", 
+                    "operaciones fuera de lo normal", "movimientos sospechosos", "transacciones sospechosas", 
+                    "transacción inusual", "transacciones inusuales", "múltiples envíos", "muchos envíos", "frecuencia inusual", 
+                    "patrón de envíos", "comportamiento atípico", "actividad atípica", "cantidades fuertes", "comprobante de ingresos", 
+                    "varios envíos", "varios envios", "mil o mas", "mil o más", "montos altos", "montos elevados", "sospechoso"
                 ]
                 is_bsa_report = any(k in user_text_lower for k in bsa_keywords)
                 alert_header = "🚨 *ALERTA CRÍTICA - BSA MONITORING / CUMPLIMIENTO*" if is_bsa_report else "🚨 *ALERTA CRÍTICA DE FRAUDE/ESTAFA*"
