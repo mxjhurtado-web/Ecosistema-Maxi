@@ -560,6 +560,36 @@ class TestStatusCheckEndpoint:
             assert data["derivacion"] == "Cumplimiento"
             assert "Cumplimiento" in data["reply_text"]
 
+    def test_fraud_sc37_rne50_close_conversation(self, client):
+        """Test RNE.50 / RNE.60 / SC.037 delivering close conversation on Turn 2 when Fraudes is in working hours"""
+        from unittest.mock import patch
+        
+        async def mock_redis_get(key):
+            if "fraud_collecting" in key:
+                return b"1"
+            return None
+
+        self.mock_redis.get.side_effect = mock_redis_get
+
+        def mock_check_dept(depto, dt):
+            if "FRAUDES" in depto or "PREVENCION" in depto:
+                return True
+            return False
+
+        with patch("api.main.check_department_hours", side_effect=mock_check_dept):
+            response = client.post(
+                f"/api/v1/agent/interact?secret={settings.WEBHOOK_SECRET}",
+                json={
+                    "contact_id": "test_fraud_contact",
+                    "user_text": "Me llamo Juan Perez, fui victima de estafa en el envio CE12345678",
+                    "agent_name": "Max"
+                }
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["derivacion"] == "cerrar"
+            assert "área especializada" in data["reply_text"]
+
     def test_status_check_stale_data_isolation(self, client):
         """Test status check ignores stale session variables when not explicitly passed in payload"""
         # Mock Redis get to return "hola" (session active, but code/names missing from text)

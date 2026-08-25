@@ -3705,11 +3705,39 @@ async def agent_interact_inner(
             except Exception as gchat_err:
                 logger.error(f"⚠️ Failed to send Google Chat Fraud Details update: {gchat_err}")
 
-            return AgentInteractResponse(
-                status="success",
-                reply_text="Gracias. He registrado la información de su reporte y en este momento lo estoy transfiriendo con un asesor del departamento de Prevención de Fraudes.",
-                derivacion="DerivacionFraudes"
-            )
+            # RNE.50 / RNE.51 / RNE.60 / RNE.61: Evaluate Department Operating Hours
+            ct_now = datetime.now(ZoneInfo("America/Chicago"))
+            in_fraudes_hours = check_department_hours("PREVENCION DE FRAUDES", ct_now)
+            
+            # Check if user provided details or if empty text
+            has_details = len(user_text.strip()) > 3 and not any(k in user_text.lower() for k in ["no", "nada", "no tengo", "ninguno"])
+            
+            if has_details:
+                sc_code = "SC.037"
+                default_sc = "Gracias por la información proporcionada. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.\n\nGracias por comunicarse con Maxitransfers, le atendió Max."
+            else:
+                sc_code = "SC.037.1"
+                default_sc = "Debido a que su solicitud es de alta prioridad. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.\n\nGracias por comunicarse con Maxitransfers, le atendió Max."
+            
+            sc_text = scripts.get(sc_code, default_sc)
+            sc_translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+            
+            if in_fraudes_hours:
+                # RNE.50 / RNE.60 / RNE.61: Close conversation immediately when Fraudes is open
+                logger.info(f"🔒 RNE.50/60/61: Fraudes open. Delivering {sc_code} and closing conversation for contact {contact_id}")
+                return AgentInteractResponse(
+                    status="success",
+                    reply_text=sc_translated,
+                    derivacion="cerrar"
+                )
+            else:
+                # RNE.51: Transfer to Customer Service when Fraudes is closed
+                logger.info(f"🕒 RNE.51: Fraudes closed. Delivering {sc_code} and routing to Servicio al Cliente for contact {contact_id}")
+                return AgentInteractResponse(
+                    status="success",
+                    reply_text=sc_translated,
+                    derivacion="Servicio al Cliente"
+                )
         
     # ------------------------------------------------------------
     # ENRUTADOR INTELIGENTE DE DEPARTAMENTOS (AGENTE COMUNICADOR / NOTIFICACIONES HTTP)
