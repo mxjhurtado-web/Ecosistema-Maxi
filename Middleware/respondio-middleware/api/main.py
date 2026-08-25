@@ -3647,18 +3647,22 @@ async def agent_interact_inner(
     user_text_lower = user_text.lower()
     
     # Detección de Fraude y Riesgo / BSA (RNE.50 / RNE.51 / SC.030) - Prioridad Absoluta
-    fraud_keywords = ["estafa", "fraude", "engaño", "phishing", "robo", "robado", "extorsión", "sospechosa", "víctima", "scam", "bsa", "fraccionar", "fraccionamiento", "estructuración"]
+    fraud_keywords = [
+        "estafa", "fraude", "engaño", "phishing", "robo", "robado", "extorsión", "sospechosa", "sospechoso", 
+        "víctima", "scam", "bsa", "fraccionar", "fraccionamiento", "estructuración", "cantidades fuertes", 
+        "comprobante de ingresos", "varios envíos", "varios envios", "mil o mas", "mil o más", "montos altos", "montos elevados"
+    ]
     fraud_collecting_key = f"session:fraud_collecting:{contact_id}"
     is_fraud_collecting = await redis.get(fraud_collecting_key)
 
     if (any(k in user_text_lower for k in fraud_keywords) or is_fraud_collecting) and agent_name != "DerivacionFraudes":
-        logger.info(f"🚨 Fraud flow active for contact {contact_id} (collecting={bool(is_fraud_collecting)})")
+        logger.info(f"🚨 Fraud/BSA flow active for contact {contact_id} (collecting={bool(is_fraud_collecting)})")
         
         if not is_fraud_collecting:
             # Turn 1: Deliver SC.030 + Request 3 Security Fields + Send Google Chat Alert Immediately!
             await redis.set(fraud_collecting_key, "1", ex=3600)
             
-            # Fire Google Chat Fraud Alert immediately on Turn 1 so it is NEVER missed!
+            # Fire Google Chat Alert immediately on Turn 1 so it is NEVER missed!
             try:
                 from .google_chat_service import google_chat_service
                 cached_url = await redis.get(f"contact:last_image:{contact_id}")
@@ -3672,7 +3676,12 @@ async def agent_interact_inner(
                     except Exception:
                         pass
 
-                bsa_keywords = ["bsa", "fraccionar", "fraccionamiento", "estructuración", "ctr", "deny list", "lista negra", "notificacion", "notificación", "usando mi perfil", "alguien usando mi perfil", "notificacion a mi celular", "notificación a mi celular"]
+                bsa_keywords = [
+                    "bsa", "fraccionar", "fraccionamiento", "estructuración", "ctr", "deny list", "lista negra", 
+                    "notificacion", "notificación", "usando mi perfil", "alguien usando mi perfil", "notificacion a mi celular", 
+                    "notificación a mi celular", "cantidades fuertes", "comprobante de ingresos", "varios envíos", 
+                    "varios envios", "mil o mas", "mil o más", "montos altos", "montos elevados", "sospechoso"
+                ]
                 is_bsa_report = any(k in user_text_lower for k in bsa_keywords)
                 alert_header = "🚨 *ALERTA CRÍTICA - BSA MONITORING / CUMPLIMIENTO*" if is_bsa_report else "🚨 *ALERTA CRÍTICA DE FRAUDE/ESTAFA*"
                 alert_intent = "Reporte de Actividad Sospechosa / BSA" if is_bsa_report else "Reporte de Fraude / Estafa"
@@ -3709,13 +3718,20 @@ async def agent_interact_inner(
                 "3) La clave de envío o transacción, si aplica."
             )
 
-            full_reply = f"{sc30_trans}{request_details_text}"
-            
-            return AgentInteractResponse(
-                status="success",
-                reply_text=full_reply,
-                derivacion="NA"
-            )
+            if is_bsa_report:
+                logger.info(f"⚖️ Direct immediate handoff to DerivacionBSA for contact {contact_id}")
+                return AgentInteractResponse(
+                    status="success",
+                    reply_text=sc30_trans,
+                    derivacion="DerivacionBSA"
+                )
+            else:
+                full_reply = f"{sc30_trans}{request_details_text}"
+                return AgentInteractResponse(
+                    status="success",
+                    reply_text=full_reply,
+                    derivacion="NA"
+                )
         else:
             # Turn 2: Received details from user -> Clear Redis state -> Send Google Chat Update -> Reassign to DerivacionFraudes
             await redis.delete(fraud_collecting_key)

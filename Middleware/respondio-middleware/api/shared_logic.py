@@ -37,12 +37,22 @@ def get_compliance_scripts():
 import re
 
 def strip_script_code_prefix(text: str) -> str:
-    """Removes leading script code prefixes like 'SC.030:', 'SC.037.1:', 'CU.A1:' from user-facing text."""
+    """Removes leading script code prefixes like 'SC.030:', 'SC.037.1:', 'SC.037 / SC.011.1', 'CU.A1:' from user-facing text."""
     if not text:
         return ""
-    # Strip any prefix matching (SC|CU).xxx:
-    cleaned = re.sub(r'^(?:SC|CU)\.[\w\.]+\s*:\s*', '', text.strip(), flags=re.IGNORECASE)
-    return cleaned.strip()
+    lines = text.splitlines()
+    clean_lines = []
+    for line in lines:
+        l = line.strip()
+        # If line consists solely of codes like 'SC.037 / SC.011.1' or 'SC.030'
+        if re.match(r'^(?:(?:SC|CU)\.[\w\.]+\s*(?:/\s*(?:SC|CU)\.[\w\.]+\s*)*)$', l, flags=re.IGNORECASE):
+            continue
+        # Strip leading code prefix like 'SC.030: ' or 'SC.037: '
+        l = re.sub(r'^(?:SC|CU)\.[\w\.]+\s*:\s*', '', l, flags=re.IGNORECASE)
+        clean_lines.append(l)
+    
+    result = '\n'.join(clean_lines)
+    return re.sub(r'\n{3,}', '\n\n', result).strip()
 
 def resolve_script_text(script_text: str) -> str:
     """If script_text is a script code (e.g. 'SC 018' or 'SC.018'), resolve it to full text and strip code prefixes."""
