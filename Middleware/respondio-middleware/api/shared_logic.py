@@ -37,7 +37,7 @@ def get_compliance_scripts():
 import re
 
 def strip_script_code_prefix(text: str) -> str:
-    """Removes leading script code prefixes like 'SC.030:', 'SC.037.1:', 'SC.037 / SC.011.1', 'CU.A1:' from user-facing text."""
+    """Removes leading script code prefixes like 'SC.030:', 'SC.037.1:', 'SC.037 / SC.011.1', 'CU.A1:' anywhere in user-facing text."""
     if not text:
         return ""
     lines = text.splitlines()
@@ -49,6 +49,8 @@ def strip_script_code_prefix(text: str) -> str:
             continue
         # Strip leading code prefix like 'SC.030: ' or 'SC.037: '
         l = re.sub(r'^(?:SC|CU)\.[\w\.]+\s*:\s*', '', l, flags=re.IGNORECASE)
+        # ALSO strip any inline code prefix like 'SC.030: ' anywhere inside the line
+        l = re.sub(r'\b(?:SC|CU)\.[\w\.]+\s*:\s*', '', l, flags=re.IGNORECASE)
         clean_lines.append(l)
     
     result = '\n'.join(clean_lines)

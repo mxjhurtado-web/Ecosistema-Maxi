@@ -3551,6 +3551,10 @@ async def agent_interact(
                 logger.error(f"⚠️ Error enforcing mandatory welcome script CU.A1: {w_err}")
 
     if resp:
+        if resp.reply_text:
+            from .shared_logic import strip_script_code_prefix
+            resp.reply_text = strip_script_code_prefix(resp.reply_text)
+            
         await log_fsm_decision(
             contact_id=request.contact_id,
             active_agent=request.agent_name,
