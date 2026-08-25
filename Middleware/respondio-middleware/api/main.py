@@ -3534,10 +3534,10 @@ async def agent_interact(
                 if not welcome_sent:
                     await redis.set(welcome_key, "1", ex=3600)
                     scripts = get_compliance_scripts()
-                    cuA1_text = scripts.get("CU.A1", "¡Gracias por comunicarse a Maxitransfers! Para conocer cómo protegemos sus datos personales, consulte nuestro aviso de privacidad en www.maxitransfers.com/privacidad.").strip()
+                    cuA1_text = scripts.get("CU.A1", "Gracias por comunicarse a Maxitransfers.\n\nSoy Max, su asistente virtual. Para comenzar a ayudarle, ¿puede indicarme su nombre completo, por favor?\n\nAl continuar en este chat, acepta el tratamiento de sus datos bajo nuestra Política de Privacidad en www.maxitransfers.com/privacidad.\n\n• Por su seguridad, la sesión se cerrará automáticamente si pasa 10 minutos sin actividad.\n• Puede terminar esta conversación en cualquier momento enviando la palabra \"Finalizar\".\n• Si desea hablar con un asesor envíe el mensaje \"Hablar con un asesor\".").strip()
                     cuA1_trans = await translate_script_if_needed(cuA1_text, request.user_text, contact_id=contact_id)
                     
-                    if cuA1_trans and "maxitransfers" not in resp.reply_text.lower():
+                    if cuA1_trans:
                         resp.reply_text = f"{cuA1_trans}\n\n{resp.reply_text}"
                         logger.info(f"✨ Mandatory Turn 1 Welcome Script (CU.A1) prepended for contact {contact_id}")
             except Exception as w_err:
