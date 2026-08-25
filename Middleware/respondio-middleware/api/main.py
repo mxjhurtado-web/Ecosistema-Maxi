@@ -238,6 +238,17 @@ async def startup_event():
         # Pre-initialize dynamic QA auditor agent
         await init_qa_agent_config()
         
+        # Pre-fetch and cache official scripts from Google Sheets (18VE3tdVt4E-eNrf0dD4zlk1aLV2nfv9_ncdUvLPaNic)
+        try:
+            from .google_sheets_service import google_sheets_service
+            from .shared_logic import update_compliance_scripts_cache
+            live_scripts = await google_sheets_service.fetch_official_scripts(settings.GOOGLE_SHEET_ID_SCRIPTS)
+            if live_scripts:
+                update_compliance_scripts_cache(live_scripts)
+                logger.info(f"✅ Dynamic Scripts pre-loaded from Google Sheets: {len(live_scripts)} scripts active")
+        except Exception as script_err:
+            logger.warning(f"⚠️ Dynamic script pre-fetch skipped: {script_err}")
+        
     except Exception as e:
         logger.warning(f"⚠️ Redis connection failed: {str(e)}")
         logger.warning("Telemetry and config management will be disabled")
@@ -3285,12 +3296,15 @@ async def get_scripts_inner(codes: str):
         from .google_sheets_service import google_sheets_service
         try:
             cached_scripts = await google_sheets_service.fetch_official_scripts(settings.GOOGLE_SHEET_ID_SCRIPTS)
-            if cached_scripts and redis:
-                try:
-                    await redis.setex("google_sheets:scripts_cache", 3600, json.dumps(cached_scripts))
-                    logger.info("Saved scripts to Redis cache (3600s TTL)")
-                except Exception as cache_err:
-                    logger.error(f"Failed to cache scripts in Redis: {cache_err}")
+            if cached_scripts:
+                from .shared_logic import update_compliance_scripts_cache
+                update_compliance_scripts_cache(cached_scripts)
+                if redis:
+                    try:
+                        await redis.setex("google_sheets:scripts_cache", 3600, json.dumps(cached_scripts))
+                        logger.info("Saved scripts to Redis cache (3600s TTL)")
+                    except Exception as cache_err:
+                        logger.error(f"Failed to cache scripts in Redis: {cache_err}")
         except Exception as sheet_err:
             logger.error(f"Failed to fetch scripts from Google Sheets: {sheet_err}")
             

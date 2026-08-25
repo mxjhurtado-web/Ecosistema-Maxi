@@ -6,6 +6,15 @@ logger = logging.getLogger(__name__)
 
 _compliance_scripts = None
 
+def update_compliance_scripts_cache(new_scripts: dict):
+    """Update in-memory scripts cache with fresh scripts from Google Sheets or Redis."""
+    global _compliance_scripts
+    if _compliance_scripts is None:
+        _compliance_scripts = {}
+    if isinstance(new_scripts, dict):
+        _compliance_scripts.update(new_scripts)
+        logger.info(f"Updated in-memory compliance scripts cache ({len(new_scripts)} entries)")
+
 def get_compliance_scripts():
     """Load and cache compliance scripts from JSON."""
     global _compliance_scripts
