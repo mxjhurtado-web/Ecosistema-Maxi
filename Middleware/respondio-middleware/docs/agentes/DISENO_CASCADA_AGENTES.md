@@ -152,7 +152,23 @@ Para cualquier otra consulta, aplica el script de bienvenida CU.A1 y canaliza di
 
 ---
 
-## 🔍 2. Agente Verificador de Estatus (`@VerificadorEstatus`) - ID: `{{@ai-agent.1129471}}`
+## 🔍 3. Agente Verificador de Estatus (`@VerificadorEstatus`) - ID: `{{@ai-agent.1129471}}`
+
+### 🛠️ Acciones Nativas Específicas:
+- **HTTP Request (`consultar_estatus_envio`):**
+  - **Endpoint:** `https://orbit-api-ewov.onrender.com/api/v1/status/check`
+  - **Método:** `POST`
+  - **Headers:** `Content-Type: application/json`, `X-Webhook-Secret: maxi-secret-2025`
+  - **Body JSON:**
+    ```json
+    {
+      "contact_id": "$contact.id",
+      "user_text": "$message.text",
+      "codigo_envio": "$contact.ultimo_codigo_envio",
+      "nombre_remitente": "$contact.name",
+      "perfil": "$contact.perfil_usuario"
+    }
+    ```
 
 ### 📜 System Prompt Completo y Enriquecido (Hasta 10,000 caracteres):
 
