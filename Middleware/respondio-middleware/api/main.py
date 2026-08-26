@@ -50,6 +50,15 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
+
+def match_keyword_safe(keyword: str, text: str) -> bool:
+    kw = keyword.lower().strip()
+    txt = text.lower()
+    if len(kw) <= 4 and kw.isalnum():
+        import re
+        return bool(re.search(r'\b' + re.escape(kw) + r'\b', txt))
+    return kw in txt
+
 async def log_fsm_decision(
     contact_id: str,
     active_agent: str,
