@@ -3687,8 +3687,34 @@ async def agent_interact_inner(
     ]
     fraud_collecting_key = f"session:fraud_collecting:{contact_id}"
     is_fraud_collecting = await redis.get(fraud_collecting_key)
+    bsa_keywords = [
+        "bsa", "fraccionar", "fraccionamiento", "estructuración", "ctr", "deny list", "lista negra", 
+        "lista restrictiva", "notificacion", "notificación", "usando mi perfil", "alguien usando mi perfil", 
+        "notificacion a mi celular", "notificación a mi celular", "no reconozco", "no reconozco el envío", 
+        "envío no reconocido", "envío desconocido", "no hice el envío", "yo no hice ese envío", "no autoricé", 
+        "no autoricé el envío", "no autoricé la transacción", "transacción no autorizada", "envío no autorizado", 
+        "transferencia no autorizada", "recibí un mensaje de un envío que no hice", "alguien usó mi cuenta", 
+        "alguien está usando mi perfil", "uso indebido del perfil", "uso no autorizado", "actividad no reconocida", 
+        "más de $10,000", "más de 10 mil dólares", "superior a $10,000", "superior a 10 mil dólares", 
+        "supera los $10,000", "supera los 10 mil dólares", "envíos por más de $10,000", "envíos superiores a $10,000", 
+        "más de 10 mil en un día", "se negó a proporcionar información", "se negó a proporcionar identificación", 
+        "no quiere proporcionar identificación", "se negó a proporcionar ssn", "no quiere proporcionar ssn", 
+        "se negó a proporcionar número de seguridad social", "no quiere proporcionar número de seguridad social", 
+        "se negó a presentar comprobante de ingresos", "no quiere presentar comprobante de ingresos", 
+        "se negó a proporcionar documentación", "no quiere proporcionar documentación", "información para ctr", 
+        "documentación para ctr", "actividad sospechosa", "actividad inusual", "comportamiento sospechoso", 
+        "comportamiento inusual", "operación sospechosa", "operaciones sospechosas", "operación inusual", 
+        "operaciones inusuales", "envío sospechoso", "envíos sospechosos", "envío inusual", "envíos inusuales", 
+        "patrón sospechoso", "patrón inusual", "comportamiento extraño", "comportamiento irregular", 
+        "actividad irregular", "actividad fuera de lo normal", "comportamiento fuera de lo normal", 
+        "operaciones fuera de lo normal", "movimientos sospechosos", "transacciones sospechosas", 
+        "transacción inusual", "transacciones inusuales", "múltiples envíos", "muchos envíos", "frecuencia inusual", 
+        "patrón de envíos", "comportamiento atípico", "actividad atípica", "cantidades fuertes", "comprobante de ingresos", 
+        "varios envíos", "varios envios", "mil o mas", "mil o más", "montos altos", "montos elevados", "sospechoso"
+    ]
+    is_bsa_report = any(match_keyword_safe(k, user_text_lower) for k in bsa_keywords)
 
-    if (any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or is_fraud_collecting) and agent_name != "DerivacionFraudes":
+    if (any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or is_fraud_collecting):
         logger.info(f"🚨 Fraud/BSA flow active for contact {contact_id} (collecting={bool(is_fraud_collecting)})")
         
         if not is_fraud_collecting:
@@ -3709,32 +3735,7 @@ async def agent_interact_inner(
                     except Exception:
                         pass
 
-                bsa_keywords = [
-                    "bsa", "fraccionar", "fraccionamiento", "estructuración", "ctr", "deny list", "lista negra", 
-                    "lista restrictiva", "notificacion", "notificación", "usando mi perfil", "alguien usando mi perfil", 
-                    "notificacion a mi celular", "notificación a mi celular", "no reconozco", "no reconozco el envío", 
-                    "envío no reconocido", "envío desconocido", "no hice el envío", "yo no hice ese envío", "no autoricé", 
-                    "no autoricé el envío", "no autoricé la transacción", "transacción no autorizada", "envío no autorizado", 
-                    "transferencia no autorizada", "recibí un mensaje de un envío que no hice", "alguien usó mi cuenta", 
-                    "alguien está usando mi perfil", "uso indebido del perfil", "uso no autorizado", "actividad no reconocida", 
-                    "más de $10,000", "más de 10 mil dólares", "superior a $10,000", "superior a 10 mil dólares", 
-                    "supera los $10,000", "supera los 10 mil dólares", "envíos por más de $10,000", "envíos superiores a $10,000", 
-                    "más de 10 mil en un día", "se negó a proporcionar información", "se negó a proporcionar identificación", 
-                    "no quiere proporcionar identificación", "se negó a proporcionar ssn", "no quiere proporcionar ssn", 
-                    "se negó a proporcionar número de seguridad social", "no quiere proporcionar número de seguridad social", 
-                    "se negó a presentar comprobante de ingresos", "no quiere presentar comprobante de ingresos", 
-                    "se negó a proporcionar documentación", "no quiere proporcionar documentación", "información para ctr", 
-                    "documentación para ctr", "actividad sospechosa", "actividad inusual", "comportamiento sospechoso", 
-                    "comportamiento inusual", "operación sospechosa", "operaciones sospechosas", "operación inusual", 
-                    "operaciones inusuales", "envío sospechoso", "envíos sospechosos", "envío inusual", "envíos inusuales", 
-                    "patrón sospechoso", "patrón inusual", "comportamiento extraño", "comportamiento irregular", 
-                    "actividad irregular", "actividad fuera de lo normal", "comportamiento fuera de lo normal", 
-                    "operaciones fuera de lo normal", "movimientos sospechosos", "transacciones sospechosas", 
-                    "transacción inusual", "transacciones inusuales", "múltiples envíos", "muchos envíos", "frecuencia inusual", 
-                    "patrón de envíos", "comportamiento atípico", "actividad atípica", "cantidades fuertes", "comprobante de ingresos", 
-                    "varios envíos", "varios envios", "mil o mas", "mil o más", "montos altos", "montos elevados", "sospechoso"
-                ]
-                is_bsa_report = any(match_keyword_safe(k, user_text_lower) for k in bsa_keywords)
+                
                 alert_header = "🚨 *ALERTA CRÍTICA - BSA MONITORING / CUMPLIMIENTO*" if is_bsa_report else "🚨 *ALERTA CRÍTICA DE FRAUDE/ESTAFA*"
                 alert_intent = "Reporte de Actividad Sospechosa / BSA" if is_bsa_report else "Reporte de Fraude / Estafa"
 
@@ -4069,7 +4070,7 @@ async def agent_interact_inner(
     # ------------------------------------------------------------
     # 2c. SPECIALIZED AGENTS: CoordinacionPago / AgenteComunicador / Derivaciones (RNE.41)
     # ------------------------------------------------------------
-    if agent_name in ["CoordinacionPago", "AgenteComunicador", "DerivacionFraudes", "DerivacionBSA"]:
+    if agent_name in ["CoordinacionPago", "AgenteComunicador"]:
         if agent_name == "CoordinacionPago":
             sc22_text = scripts.get("SC.022", "Para asistirlo con el detalle de las tarifas y comisiones de su envío:")
             sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
