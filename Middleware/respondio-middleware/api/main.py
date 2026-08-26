@@ -3760,28 +3760,37 @@ async def agent_interact_inner(
             except Exception as gchat_err:
                 logger.error(f"⚠️ Failed to send Google Chat Fraud Alert on Turn 1: {gchat_err}")
 
-            sc30_text = scripts.get("SC.030", "Su solicitud es de alta prioridad para nosotros. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-            sc30_trans = await translate_script_if_needed(sc30_text, user_text)
+            # RNE.50 / RNE.51: Select SC.030.1 (In Hours) vs SC.030.2 (Out of Hours)
+            from zoneinfo import ZoneInfo
+            ct_now = datetime.now(ZoneInfo("America/Chicago"))
+            target_dept = "BSA MONITORING" if is_bsa_report else "PREVENCION DE FRAUDES"
+            in_hours = check_department_hours(target_dept, ct_now)
 
-            request_details_text = (
-                "\n\nMientras tanto, para agilizar la atención con su asesor, por favor compártame en un mensaje:\n"
-                "1) Su nombre completo.\n"
-                "2) Los detalles de lo ocurrido con la estafa o situación.\n"
-                "3) La clave de envío o transacción, si aplica."
+            sc_turn1_code = "SC.030.1" if in_hours else "SC.030.2"
+            default_sc_turn1 = (
+                "Lamento lo sucedido, su solicitud debe ser atendida con alta prioridad.\n\n"
+                "Por favor compártame la siguiente información:\n"
+                "1. Su nombre completo.\n"
+                "2. Los detalles de lo ocurrido con la situación que reporta.\n\n"
+                "Si conoce la siguiente información:\n"
+                "3. Clave(s) de envío(s) de dinero.\n"
+                "4. Número de agencia desde donde se comunica."
             )
+            sc_turn1_text = scripts.get(sc_turn1_code, default_sc_turn1)
+            sc_turn1_trans = await translate_script_if_needed(sc_turn1_text, user_text, contact_id=contact_id)
 
             if is_bsa_report:
-                logger.info(f"⚖️ Direct immediate handoff to DerivacionBSA for contact {contact_id}")
+                logger.info(f"⚖️ Direct immediate handoff to DerivacionBSA for contact {contact_id} using {sc_turn1_code}")
                 return AgentInteractResponse(
                     status="success",
-                    reply_text=sc30_trans,
+                    reply_text=sc_turn1_trans,
                     derivacion="DerivacionBSA"
                 )
             else:
-                full_reply = f"{sc30_trans}{request_details_text}"
+                logger.info(f"🚨 Direct immediate handoff for Fraud for contact {contact_id} using {sc_turn1_code}")
                 return AgentInteractResponse(
                     status="success",
-                    reply_text=full_reply,
+                    reply_text=sc_turn1_trans,
                     derivacion="NA"
                 )
         else:
