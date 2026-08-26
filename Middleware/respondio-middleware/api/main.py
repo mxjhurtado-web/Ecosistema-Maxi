@@ -3652,8 +3652,8 @@ async def agent_interact_inner(
     
     # Matriz Canónica de Palabras Clave desde "Palabras clave derivacion.xlsx"
     fraud_keywords = [
-        "estafa", "fraude", "engaño", "phishing", "robo", "robado", "extorsión", "sospechosa", "sospechoso", 
-        "víctima", "scam", "estafado", "estafada", "me estafaron", "me engañaron", "fraude del beneficiario", 
+        "estafa", "fraude", "engaño", "phishing", "robo", "robado", "extorsión", "extorsion", "sospechosa", "sospechoso", 
+        "víctima", "victima", "scam", "estafado", "estafada", "me estafaron", "me engañaron", "fraude del beneficiario", 
         "estafa del beneficiario", "beneficiario me estafó", "beneficiario me engañó", "víctima de fraude", 
         "víctima de estafa", "fui víctima", "me defraudaron", "me hicieron fraude", "fraude contra el remitente", 
         "estafa contra el remitente", "cancelar por fraude", "cancelar por estafa", "cancelar porque me estafaron", 
@@ -3662,12 +3662,24 @@ async def agent_interact_inner(
         "beneficiario estafó al cliente", "beneficiario engañó al cliente", "fraude en agencia", "estafa en agencia", 
         "agencia víctima de fraude", "agencia fue estafada", "defraudaron a la agencia", "engañaron a la agencia", 
         "beneficiario fraudulento", "beneficiario estafador", "incluir por fraude", "incluir por estafa", 
-        "bloquear por fraude", "bloquear por estafa", "reportar por fraude", "reportar por estafa"
+        "bloquear por fraude", "bloquear por estafa", "reportar por fraude", "reportar por estafa",
+        "pidiendo mi clave", "pidiendo clave", "pidiendo mi número", "pidiendo mi numero", "pidiendo datos", 
+        "me piden mi clave", "me piden clave", "me piden datos", "me están hablando por teléfono", 
+        "me estan hablando por telefono", "me están llamando", "me estan llamando", "hablando por teléfono", 
+        "hablando por telefono", "llamando por teléfono", "llamando por telefono", "llamada por teléfono", 
+        "llamada por telefono", "pidiendo la clave", "pidiendo mi nip", "pidiendo nip", "pidiendo contraseña", 
+        "pidiendo contrasena", "clave para depositarme", "clave para depositar", "llamada sospechosa", 
+        "llamaron por teléfono", "llamaron por telefono", "me dijeron que me iban a depositar", 
+        "pidiendo mi clave para depositarme", "pidiendo clave para depositarme", "hablando por teléfono pidiendo",
+        "hablando por telefono pidiendo", "pidieron clave", "pidieron mi clave", "clave por teléfono", 
+        "clave por telefono", "para depositarme", "pedir clave", "pedir mi clave", "pedirme la clave", 
+        "pedirme mi clave", "pidiendo la clave", "pidiéndome la clave", "pidiéndome mi clave", 
+        "pidiendome mi clave", "pidiendome la clave", "me hablaron por teléfono", "me hablaron por telefono"
     ]
     fraud_collecting_key = f"session:fraud_collecting:{contact_id}"
     is_fraud_collecting = await redis.get(fraud_collecting_key)
 
-    if (any(k in user_text_lower for k in fraud_keywords) or is_fraud_collecting) and agent_name != "DerivacionFraudes":
+    if (any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or is_fraud_collecting) and agent_name != "DerivacionFraudes":
         logger.info(f"🚨 Fraud/BSA flow active for contact {contact_id} (collecting={bool(is_fraud_collecting)})")
         
         if not is_fraud_collecting:
@@ -3713,7 +3725,7 @@ async def agent_interact_inner(
                     "patrón de envíos", "comportamiento atípico", "actividad atípica", "cantidades fuertes", "comprobante de ingresos", 
                     "varios envíos", "varios envios", "mil o mas", "mil o más", "montos altos", "montos elevados", "sospechoso"
                 ]
-                is_bsa_report = any(k in user_text_lower for k in bsa_keywords)
+                is_bsa_report = any(match_keyword_safe(k, user_text_lower) for k in bsa_keywords)
                 alert_header = "🚨 *ALERTA CRÍTICA - BSA MONITORING / CUMPLIMIENTO*" if is_bsa_report else "🚨 *ALERTA CRÍTICA DE FRAUDE/ESTAFA*"
                 alert_intent = "Reporte de Actividad Sospechosa / BSA" if is_bsa_report else "Reporte de Fraude / Estafa"
 
@@ -3835,7 +3847,7 @@ async def agent_interact_inner(
 
     # 1. Agent Oversight (IRS / Carta del IRS / Auditoría / Supervisión de Agente)
     oversight_keywords = ["irs", "oversight", "auditoría", "auditoria", "visita de inspección", "inspección", "inspeccion", "supervisión", "supervision", "carta del irs"]
-    if any(k in user_text_lower for k in oversight_keywords):
+    if any(match_keyword_safe(k, user_text_lower) for k in oversight_keywords):
         logger.info(f"🛡️ Agent Oversight request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
             msg = f"🛡️ *REPORTE DE AGENT OVERSIGHT*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Requerimiento IRS / Auditoría\n📝 *Resumen:* {user_text}"
@@ -3849,7 +3861,7 @@ async def agent_interact_inner(
 
     # 2. Capacitación (Manuales / POS / Entrenamientos)
     capacitacion_keywords = ["capacitación", "capacitacion", "manual de uso", "entrenamiento", "curso pos", "capacitar"]
-    if any(k in user_text_lower for k in capacitacion_keywords):
+    if any(match_keyword_safe(k, user_text_lower) for k in capacitacion_keywords):
         logger.info(f"🎓 Capacitación request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
             msg = f"🎓 *REPORTE DE CAPACITACIÓN*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Consulta de Capacitación\n📝 *Resumen:* {user_text}"
@@ -3862,7 +3874,7 @@ async def agent_interact_inner(
 
     # 3. Cumplimiento (Forma P-4 / AML / KYC)
     cumplimiento_keywords = ["forma p-4", "forma p4", "p-4", "p4", "cumplimiento", "aml", "kyc", "regulatorio"]
-    if any(k in user_text_lower for k in cumplimiento_keywords):
+    if any(match_keyword_safe(k, user_text_lower) for k in cumplimiento_keywords):
         logger.info(f"⚖️ Cumplimiento request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
             msg = f"⚖️ *REPORTE DE CUMPLIMIENTO (AML/KYC)*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Requerimiento de Cumplimiento\n📝 *Resumen:* {user_text}"
@@ -3875,7 +3887,7 @@ async def agent_interact_inner(
 
     # 4. Cobranza (Comisiones / Saldos / Adeudos)
     cobranza_keywords = ["cobranza", "cobranzas", "comisión", "comision", "comisiones", "saldo pendiente", "adeudo", "estado de cuenta", "depósito retenido", "deposito retenido", "factura de agencia"]
-    if any(k in user_text_lower for k in cobranza_keywords):
+    if any(match_keyword_safe(k, user_text_lower) for k in cobranza_keywords):
         logger.info(f"💰 Cobranza request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
             msg = f"💰 *REPORTE DE COBRANZA*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Consulta de Cobranza / Comisiones\n📝 *Resumen:* {user_text}"
@@ -3888,7 +3900,7 @@ async def agent_interact_inner(
 
     # 5. Cheques (Depósitos / Nómina)
     cheques_keywords = ["cheque", "cheques", "nómina", "depósito de cheque", "paycheck"]
-    if any(k in user_text_lower for k in cheques_keywords):
+    if any(match_keyword_safe(k, user_text_lower) for k in cheques_keywords):
         logger.info(f"🎫 Cheques request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
             msg = f"🎫 *REPORTE DE CHEQUES*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Consulta / Depósito de Cheque\n📝 *Resumen:* {user_text}"
@@ -3901,7 +3913,7 @@ async def agent_interact_inner(
 
     # 6. Soporte Técnico / Hardware de Agencia (Scanner, Impresora, POS, Lector)
     tech_support_keywords = ["scanner", "escaner", "escáner", "impresora", "pos", "terminal", "lector", "falla técnica", "falla tecnica", "soporte técnico", "soporte tecnico"]
-    if any(k in user_text_lower for k in tech_support_keywords):
+    if any(match_keyword_safe(k, user_text_lower) for k in tech_support_keywords):
         logger.info(f"🛠️ Tech support hardware request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
             soporte_msg = (
@@ -3921,7 +3933,7 @@ async def agent_interact_inner(
 
     # 7. Ventas Internas (Nuevas agencias / Registros)
     ventas_keywords = ["alta de agencia", "nueva agencia", "ventas internas", "registro de agencia", "abrir agencia"]
-    if any(k in user_text_lower for k in ventas_keywords):
+    if any(match_keyword_safe(k, user_text_lower) for k in ventas_keywords):
         logger.info(f"💼 Ventas Internas request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
             msg = f"💼 *REPORTE DE VENTAS INTERNAS*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Solicitud de Nueva Agencia\n📝 *Detalle:* {user_text}"
