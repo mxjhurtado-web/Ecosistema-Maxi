@@ -3720,6 +3720,7 @@ async def agent_interact_inner(
         if not is_fraud_collecting:
             # Turn 1: Deliver SC.030 + Request 3 Security Fields + Send Google Chat Alert Immediately!
             await redis.set(fraud_collecting_key, "1", ex=3600)
+            await redis.set(f"session:fraud_turn1_text:{contact_id}", user_text_lower, ex=3600)
             
             # Fire Google Chat Alert immediately on Turn 1 so it is NEVER missed!
             try:
@@ -3795,8 +3796,25 @@ async def agent_interact_inner(
                     derivacion="NA"
                 )
         else:
-            # Turn 2: Received details from user -> Clear Redis state -> Send Google Chat Update -> Reassign to DerivacionFraudes
+            # Turn 2: Verify if user_text is a NEW message or the same Turn 1 text passed by agent handoff
+            cached_turn1_text = await redis.get(f"session:fraud_turn1_text:{contact_id}")
+            cached_turn1_str = cached_turn1_text.decode('utf-8').strip() if cached_turn1_text else ""
+            
+            # If the user_text is identical to Turn 1 text, the customer has NOT replied yet (handoff in progress)
+            if user_text_lower == cached_turn1_str:
+                logger.info(f"⏳ Fraud handoff in progress for contact {contact_id}. Waiting for new customer input...")
+                sc_turn1_code = "SC.030.1" if in_hours else "SC.030.2"
+                sc_turn1_text = scripts.get(sc_turn1_code, default_sc_turn1)
+                sc_turn1_trans = await translate_script_if_needed(sc_turn1_text, user_text, contact_id=contact_id)
+                return AgentInteractResponse(
+                    status="success",
+                    reply_text=sc_turn1_trans,
+                    derivacion="NA"
+                )
+
+            # Customer typed a NEW message -> Clear Redis state -> Send Google Chat Update -> Close/Transfer
             await redis.delete(fraud_collecting_key)
+            await redis.delete(f"session:fraud_turn1_text:{contact_id}")
 
             try:
                 from .google_chat_service import google_chat_service
