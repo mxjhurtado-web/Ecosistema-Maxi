@@ -11,11 +11,11 @@ from temis_web.state import FlowState
 
 SYMBOLS_CATALOG = [
     # Proceso Base
-    {"type": "node_start", "label": "Inicio Proceso", "icon": "play-circle", "color": "#2563eb", "bg": "#dbeafe", "category": "Base"},
-    {"type": "node_end", "label": "Fin Proceso", "icon": "stop-circle", "color": "#475569", "bg": "#f1f5f9", "category": "Base"},
+    {"type": "node_start", "label": "Inicio Proceso", "icon": "circle-play", "color": "#2563eb", "bg": "#dbeafe", "category": "Base"},
+    {"type": "node_end", "label": "Fin Proceso", "icon": "circle-stop", "color": "#475569", "bg": "#f1f5f9", "category": "Base"},
     {"type": "node_io", "label": "Entrada / Salida", "icon": "arrow-left-right", "color": "#0284c7", "bg": "#e0f2fe", "category": "Base"},
-    {"type": "node_activity", "label": "Actividad (Infinitivo)", "icon": "check-square", "color": "#16a34a", "bg": "#dcfce7", "category": "Base"},
-    {"type": "node_decision", "label": "Decisión (¿Es válido?)", "icon": "help-circle", "color": "#d97706", "bg": "#fef3c7", "category": "Base"},
+    {"type": "node_activity", "label": "Actividad (Infinitivo)", "icon": "square-check", "color": "#16a34a", "bg": "#dcfce7", "category": "Base"},
+    {"type": "node_decision", "label": "Decisión (¿Es válido?)", "icon": "circle-help", "color": "#d97706", "bg": "#fef3c7", "category": "Base"},
     
     # Compuertas & Tiempo
     {"type": "node_split_and", "label": "Símbolo Y (Paralelo ⊗)", "icon": "git-merge", "color": "#7c3aed", "bg": "#ede9fe", "category": "Compuertas"},
