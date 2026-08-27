@@ -41,7 +41,8 @@ app = rx.App(
         appearance="light",
         accent_color="blue",
         radius="medium",
-    )
+    ),
+    stylesheets=["style.css"],
 )
 
 app.add_page(index, title="TEMIS Web Flow - Herramienta de Flujos y Gobierno")

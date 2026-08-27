@@ -1,0 +1,11 @@
+/* Hide "Built with Reflex" badge */
+a[href*="reflex.dev"],
+div:has(a[href*="reflex.dev"]),
+button:has(a[href*="reflex.dev"]),
+[class*="BuiltWithReflex"],
+[class*="built-with-reflex"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
