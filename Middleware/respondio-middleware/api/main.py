@@ -4444,8 +4444,69 @@ async def agent_interact_inner(
                 )
 
     if is_greeting or current_state == "NEW":
-        # VerificadorEstatus directly handles status inquiry without repeating CU.A1 greeting
-        if agent_name == "VerificadorEstatus":
+        # Handle specialized status verification agents directly on turn 1 / NEW state
+        if agent_name == "VerificadorEstatusRecargas":
+            code_candidate = extraer_codigo_router(user_text) or (await redis.get(code_key))
+            if isinstance(code_candidate, bytes):
+                code_candidate = code_candidate.decode('utf-8')
+            phones = re.findall(r'\b\d{4,15}\b', user_text)
+            
+            if code_candidate and len(phones) >= 1:
+                logger.info(f"🎯 VerificadorEstatusRecargas executing topup lookup directly on turn 1 for code {code_candidate}")
+                cust_phone = phones[0]
+                cell_phone = phones[1] if len(phones) > 1 else cust_phone
+                topup_req = TopupCheckRequest(
+                    contact_id=contact_id,
+                    user_text=f"{user_text} {code_candidate}",
+                    transaction_id=code_candidate,
+                    customer_number=cust_phone,
+                    cellular_number=cell_phone,
+                    perfil="CLIENTE"
+                )
+                topup_resp = await check_topup_status_inner(topup_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                if topup_resp.validation_success:
+                    await redis.set(state_key, "COMPLETED", ex=3600)
+                    return AgentInteractResponse(status="success", reply_text=topup_resp.reply_text, derivacion="VerificadorEstatusRecargas")
+            
+            await redis.set(state_key, "WAITING_FOR_TOPUP_PHONES", ex=3600)
+            sc10_text = scripts.get("SC.010.2", "Con gusto le ayudo a consultar el estatus de su recarga. Por favor compártame el Transaction ID o Folio, el número de quien hizo la recarga y el número receptor.")
+            translated = await translate_script_if_needed(sc10_text, user_text, contact_id=contact_id)
+            return AgentInteractResponse(
+                status="success",
+                reply_text=translated,
+                derivacion="VerificadorEstatusRecargas"
+            )
+
+        elif agent_name == "VerificadorPagoBill":
+            code_candidate = extraer_codigo_router(user_text) or (await redis.get(code_key))
+            if isinstance(code_candidate, bytes):
+                code_candidate = code_candidate.decode('utf-8')
+            
+            if code_candidate and len(user_text.strip()) > 10:
+                logger.info(f"🎯 VerificadorPagoBill executing bill lookup directly on turn 1 for code {code_candidate}")
+                bill_req = BillCheckRequest(
+                    contact_id=contact_id,
+                    user_text=f"{user_text} {code_candidate}",
+                    tracking_number=code_candidate,
+                    biller=user_text,
+                    nombre_completo_customer=user_text,
+                    perfil="CLIENTE"
+                )
+                bill_resp = await check_bill_status_inner(bill_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                if bill_resp.validation_success:
+                    await redis.set(state_key, "COMPLETED", ex=3600)
+                    return AgentInteractResponse(status="success", reply_text=bill_resp.reply_text, derivacion="VerificadorPagoBill")
+
+            await redis.set(state_key, "WAITING_FOR_BILL_INFO", ex=3600)
+            sc10_text = scripts.get("SC.010.1", "Con gusto le ayudo a consultar el estatus de su pago de bill/servicio. Por favor compártame el Tracking Number, el nombre de la compañía y el nombre del cliente.")
+            translated = await translate_script_if_needed(sc10_text, user_text, contact_id=contact_id)
+            return AgentInteractResponse(
+                status="success",
+                reply_text=translated,
+                derivacion="VerificadorPagoBill"
+            )
+
+        elif agent_name == "VerificadorEstatus":
             cached_code = await redis.get(code_key)
             cached_code_str = cached_code.decode('utf-8') if cached_code else None
             if cached_code_str:
