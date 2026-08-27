@@ -107,13 +107,13 @@ def flowchart_canvas() -> rx.Component:
     return rx.vstack(
         # Top Diagram Toolbar
         rx.hstack(
-            rx.icon("git-commit", size=20, color="#3b82f6"),
+            rx.icon("git-branch", size=20, color="#3b82f6"),
             rx.heading(FlowState.diagram_title, size="4", weight="bold", color="#1e293b"),
             rx.button(
                 rx.icon("save", size=14),
                 " Guardar Cambios",
                 on_click=FlowState.save_diagram,
-                color_scheme="emerald",
+                color_scheme="green",
                 size="2",
                 variant="solid",
                 radius="medium",
