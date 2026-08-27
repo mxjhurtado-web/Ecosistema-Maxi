@@ -1172,7 +1172,10 @@ def detect_profile_from_text(text: str) -> Optional[str]:
     KEYWORDS_REMITENTE = [
         "remitente", "sender", "envia", "envió", "envio", "envié", 
         "hice un envio", "hice un envío", "hice el envio", "hice el envío",
-        "hice una recarga", "hice un pago", "pago de servicio", "recarga telefonica",
+        "hice una recarga", "hice un pago", "pago de servicio", "pago de bill",
+        "pagos de bill", "pago de servicios", "pagos de servicios", "recarga telefonica",
+        "recarga", "recargas", "bill", "bills", "estatus de bill", "estatus de un pago",
+        "estatus de pago", "estatus de envio", "estatus de envío", "estatus",
         "yo envie", "yo envié", "hice la transferencia", "enviar dinero",
         "soy quien envio", "soy quien envió", "fui quien envio", "fui quien envió"
     ]
@@ -4610,17 +4613,74 @@ async def agent_interact_inner(
                     await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
                     return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
         else:
-            # Unrecognized profile input
+            # If code or data is present in text, default to CLIENTE profile automatically to resolve immediately
+            if codigo_envio or len(user_text.strip()) > 15:
+                logger.info(f"🎯 Defaulting perfil to 'CLIENTE' for contact {contact_id} because code/data is present in user_text")
+                perfil = "CLIENTE"
+                await redis.set(perfil_key, perfil, ex=3600)
+                await redis.set(attempts_key, "0", ex=3600)
+                
+                # Proceed directly to check execution
+                try:
+                    if agent_name == "VerificadorEstatusRecargas" or "recarga" in user_text.lower():
+                        phones = re.findall(r'\b\d{7,15}\b', user_text)
+                        cust_phone = phones[0] if len(phones) > 0 else user_text
+                        cell_phone = phones[1] if len(phones) > 1 else cust_phone
+                        topup_req = TopupCheckRequest(
+                            contact_id=contact_id,
+                            user_text=f"{user_text} {codigo_envio or ''}",
+                            transaction_id=codigo_envio or extraer_codigo_router(user_text),
+                            customer_number=cust_phone,
+                            cellular_number=cell_phone,
+                            perfil="CLIENTE"
+                        )
+                        topup_resp = await check_topup_status_inner(topup_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                        if topup_resp.validation_success:
+                            await redis.set(state_key, "COMPLETED", ex=3600)
+                            await clear_redis_session(redis, contact_id)
+                            return AgentInteractResponse(status="success", reply_text=topup_resp.reply_text, derivacion=topup_resp.derivacion)
+                    elif agent_name == "VerificadorPagoBill" or "bill" in user_text.lower() or "factura" in user_text.lower():
+                        bill_req = BillCheckRequest(
+                            contact_id=contact_id,
+                            user_text=f"{user_text} {codigo_envio or ''}",
+                            tracking_number=codigo_envio or extraer_codigo_router(user_text),
+                            biller=user_text,
+                            nombre_completo_customer=user_text,
+                            perfil="CLIENTE"
+                        )
+                        bill_resp = await check_bill_status_inner(bill_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                        if bill_resp.validation_success:
+                            await redis.set(state_key, "COMPLETED", ex=3600)
+                            await clear_redis_session(redis, contact_id)
+                            return AgentInteractResponse(status="success", reply_text=bill_resp.reply_text, derivacion=bill_resp.derivacion)
+                    else:
+                        status_req = StatusCheckRequest(
+                            contact_id=contact_id,
+                            user_text=f"{user_text} {codigo_envio or ''}",
+                            nombre_remitente=user_text,
+                            nombre_beneficiario=user_text,
+                            codigo_envio=codigo_envio or extraer_codigo_router(user_text),
+                            perfil="CLIENTE"
+                        )
+                        status_resp = await check_transaction_status_inner(status_req, x_webhook_secret=settings.WEBHOOK_SECRET)
+                        if status_resp.validation_success:
+                            await redis.set(state_key, "COMPLETED", ex=3600)
+                            await clear_redis_session(redis, contact_id)
+                            return AgentInteractResponse(status="success", reply_text=status_resp.reply_text, derivacion=status_resp.derivacion)
+                except Exception as direct_err:
+                    logger.info(f"Direct resolution in profile fallback failed: {direct_err}")
+            
+            # Standard profile prompt fallback if no code/data is present
             attempts_val = await redis.get(attempts_key)
             attempts = int(attempts_val.decode('utf-8')) if attempts_val else 0
             attempts += 1
             if attempts >= 2:
-                sc2_text = scripts.get("SC.002", "Lo transferiré con uno de nuestros asesores...")
+                sc2_text = scripts.get("SC.002", "No fue posible procesar su solicitud con la información proporcionada. Lo transferiré con un asesor...")
                 translated = await translate_script_if_needed(sc2_text, user_text)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
             else:
                 await redis.set(attempts_key, str(attempts), ex=3600)
-                sc3_text = scripts.get("SC.003", "¿Es usted remitente, beneficiario o agente?")
+                sc3_text = scripts.get("SC.003", "Para ayudarle mejor, indíqueme cuál de estas opciones describe su caso...")
                 translated = await translate_script_if_needed(sc3_text, user_text)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
 
