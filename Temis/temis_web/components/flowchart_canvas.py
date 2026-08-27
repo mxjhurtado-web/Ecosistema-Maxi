@@ -94,8 +94,8 @@ def render_node(node: rx.Var) -> rx.Component:
     return rx.box(
         shape,
         position="absolute",
-        left=rx.concat(node["x"].to(str), "px"),
-        top=rx.concat(node["y"].to(str), "px"),
+        left=f"{node['x']}px",
+        top=f"{node['y']}px",
         box_shadow=shadow,
         cursor="pointer",
         on_click=lambda: FlowState.select_node(node_id),
