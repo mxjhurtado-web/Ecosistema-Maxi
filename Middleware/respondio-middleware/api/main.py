@@ -4995,7 +4995,7 @@ async def test_gemini_api():
     if not api_key:
         return {"status": "error", "gemini_active": False, "message": "GEMINI_API_KEY no configurada en las variables de entorno de Render."}
     
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     payload = {"contents": [{"parts": [{"text": "Responde estrictamente con la palabra OK."}]}]}
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
