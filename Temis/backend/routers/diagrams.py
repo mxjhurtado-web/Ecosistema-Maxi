@@ -225,3 +225,44 @@ FORMATO DE SALIDA (SOLO JSON VÁLIDO):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar diagrama con IA: {str(e)}")
+
+
+class ExportRequest(BaseModel):
+    title: str = "Diagrama_TEMIS"
+    swimlanes: List[str] = []
+    nodes: List[Dict[str, Any]] = []
+    edges: List[Dict[str, Any]] = []
+
+
+@router.post("/export/csv")
+def export_diagram_csv(data: ExportRequest):
+    """Export shape data and process activities as CSV (Lucidchart format)"""
+    import io
+    import csv
+    from fastapi.responses import StreamingResponse
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID Nodo", "Tipo de Símbolo", "Etiqueta / Verbo Infinitivo", "Swimlane / Rol", "Número Actividad", "Sistema Adjunto", "Canal Adjunto", "Posición X", "Posición Y"])
+
+    for n in data.nodes:
+        writer.writerow([
+            n.get("id", ""),
+            n.get("type", ""),
+            n.get("label", ""),
+            n.get("swimlane", ""),
+            n.get("activity_number", ""),
+            n.get("attached_system", ""),
+            n.get("attached_channel", ""),
+            n.get("x", 0),
+            n.get("y", 0)
+        ])
+
+    output.seek(0)
+    filename = f"{data.title.replace(' ', '_')}_shape_data.csv"
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+

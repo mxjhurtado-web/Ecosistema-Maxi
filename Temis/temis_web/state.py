@@ -201,6 +201,22 @@ class FlowState(rx.State):
         except Exception as e:
             self.status_message = f"Error de conexión: {str(e)}"
 
+    # Export Diagram to JSON (Lucidchart compatible format)
+    def export_as_json(self):
+        data = {
+            "title": self.diagram_title,
+            "project_id": self.project_id,
+            "swimlanes": self.swimlanes,
+            "nodes": self.nodes,
+            "edges": self.edges
+        }
+        json_str = json.dumps(data, indent=2, ensure_ascii=False)
+        self.status_message = "Diagrama exportado a JSON exitosamente"
+        return rx.download(
+            data=json_str,
+            filename=f"{self.diagram_title.replace(' ', '_')}.json"
+        )
+
     # Node Edit Modal State
     show_modal: bool = False
     modal_node_id: str = ""

@@ -121,6 +121,29 @@ def flowchart_canvas() -> rx.Component:
                 variant="solid",
                 radius="medium",
             ),
+            rx.menu.root(
+                rx.menu.trigger(
+                    rx.button(
+                        rx.icon("download", size=14),
+                        " Exportar...",
+                        color_scheme="blue",
+                        size="2",
+                        variant="soft",
+                        radius="medium",
+                    ),
+                ),
+                rx.menu.content(
+                    rx.menu.item(
+                        rx.hstack(
+                            rx.icon("file-json", size=14),
+                            rx.text("Exportar JSON (Lucidchart)"),
+                            align="center",
+                            spacing="2",
+                        ),
+                        on_click=FlowState.export_as_json,
+                    ),
+                ),
+            ),
             rx.spacer(),
             rx.cond(
                 FlowState.selected_node_id != "",
