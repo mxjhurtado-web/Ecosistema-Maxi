@@ -778,7 +778,7 @@ async def webhook(
                 
                 if agent_name == "VerificadorEstatusRecargas":
                     mcp_response = scripts.get("SC.010.2", "Para continuar, necesito validar algunos datos. ¿Me comparte el número telefónico de la persona quien hizo la recarga y el número al que se realizó, por favor?.")
-                elif saved_code.upper().startswith("TRK"):
+                elif agent_name == "VerificadorPagoBill" or "bill" in user_text.lower():
                     mcp_response = scripts.get("SC.010.1", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?.")
                 else:
                     mcp_response = scripts.get("SC.008", "Para verificar su identidad, por favor indique su nombre completo.")
@@ -848,7 +848,7 @@ async def webhook(
                     )
                     status_resp = await check_topup_status_inner(topup_req, x_webhook_secret=settings.WEBHOOK_SECRET)
                 # Check if it's a Bill check (starts with TRK)
-                elif saved_code.upper().startswith("TRK"):
+                elif agent_name == "VerificadorPagoBill" or "bill" in user_text.lower():
                     bill_req = BillCheckRequest(
                         tracking_number=saved_code,
                         contact_id=request.contact_id,
@@ -4219,7 +4219,7 @@ async def agent_interact_inner(
                 await redis.delete(f"session:attempts_doc:{contact_id}")
                 
                 # Determine destination depending on code format
-                if t_code.startswith("TRK"):
+                if agent_name == "VerificadorPagoBill" or "bill" in user_text.lower():
                     dest = "VerificadorPagoBill"
                 else:
                     dest = "VerificadorEstatus"
@@ -4490,7 +4490,7 @@ async def agent_interact_inner(
                             await redis.delete(code_key)
                             await redis.delete(name_key)
                             return AgentInteractResponse(status="success", reply_text=topup_resp.reply_text, derivacion=topup_resp.derivacion)
-                    elif codigo_envio.upper().startswith("TRK"):
+                    elif agent_name == "VerificadorPagoBill" or "bill" in user_text.lower() or "factura" in user_text.lower():
                         bill_req = BillCheckRequest(
                             contact_id=contact_id,
                             user_text=f"{user_text} {codigo_envio}",
@@ -4538,7 +4538,7 @@ async def agent_interact_inner(
                     translated = await translate_script_if_needed(sc10_text, user_text)
                     await redis.set(state_key, "WAITING_FOR_TOPUP_PHONES", ex=3600)
                     return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
-                elif codigo_envio.upper().startswith("TRK"):
+                elif agent_name == "VerificadorPagoBill" or "bill" in user_text.lower() or "factura" in user_text.lower():
                     sc10_text = scripts.get("SC.010.1", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?.")
                     translated = await translate_script_if_needed(sc10_text, user_text)
                     await redis.set(state_key, "WAITING_FOR_BILL_INFO", ex=3600)
@@ -4588,7 +4588,7 @@ async def agent_interact_inner(
                         await redis.delete(code_key)
                         await redis.delete(name_key)
                         return AgentInteractResponse(status="success", reply_text=topup_resp.reply_text, derivacion=topup_resp.derivacion)
-                elif codigo_envio.upper().startswith("TRK"):
+                elif agent_name == "VerificadorPagoBill" or "bill" in user_text.lower() or "factura" in user_text.lower():
                     bill_req = BillCheckRequest(
                         contact_id=contact_id,
                         user_text=f"{user_text} {codigo_envio}",
@@ -4636,7 +4636,7 @@ async def agent_interact_inner(
                 translated = await translate_script_if_needed(sc10_text, user_text)
                 await redis.set(state_key, "WAITING_FOR_TOPUP_PHONES", ex=3600)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
-            elif codigo_envio.upper().startswith("TRK"):
+            elif agent_name == "VerificadorPagoBill" or "bill" in user_text.lower() or "factura" in user_text.lower():
                 sc10_text = scripts.get("SC.010.1", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?.")
                 translated = await translate_script_if_needed(sc10_text, user_text)
                 await redis.set(state_key, "WAITING_FOR_BILL_INFO", ex=3600)
