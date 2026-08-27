@@ -3716,7 +3716,10 @@ async def agent_interact_inner(
         "hablando por telefono pidiendo", "pidieron clave", "pidieron mi clave", "clave por teléfono", 
         "clave por telefono", "para depositarme", "pedir clave", "pedir mi clave", "pedirme la clave", 
         "pedirme mi clave", "pidiendo la clave", "pidiéndome la clave", "pidiéndome mi clave", 
-        "pidiendome mi clave", "pidiendome la clave", "me hablaron por teléfono", "me hablaron por telefono"
+        "pidiendome mi clave", "pidiendome la clave", "me hablaron por teléfono", "me hablaron por telefono",
+        "llamda", "llamda telefónica", "llamda telefonica", "recibi una llamda", "recibí una llamda", "recibi una llamada",
+        "recibí una llamada", "reportar una llamada", "reportar llamda", "pidiendome dar informacion", "pidiéndome dar información",
+        "pidiendome informacion", "pidiéndome información", "dar informacion acerca de un envio", "dar información acerca de un envío"
     ]
     fraud_collecting_key = f"session:fraud_collecting:{contact_id}"
     is_fraud_collecting = await redis.get(fraud_collecting_key)
