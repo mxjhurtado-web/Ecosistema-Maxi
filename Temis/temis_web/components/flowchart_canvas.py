@@ -154,6 +154,21 @@ def flowchart_canvas() -> rx.Component:
                     ),
                 ),
             ),
+            # Import Upload Button
+            rx.upload(
+                rx.button(
+                    rx.icon("upload", size=14),
+                    " Importar...",
+                    color_scheme="indigo",
+                    size="2",
+                    variant="soft",
+                    radius="medium",
+                ),
+                id="upload_diagram",
+                on_drop=FlowState.handle_file_upload,
+                accept={"application/json": [".json", ".temis.json"]},
+                max_files=1,
+            ),
             rx.spacer(),
             rx.cond(
                 FlowState.selected_node_id != "",
@@ -212,24 +227,25 @@ def flowchart_canvas() -> rx.Component:
                     # Arrowhead marker definition
                     rx.el.defs(
                         rx.el.marker(
-                            rx.el.polygon(points="0 0, 10 3.5, 0 7", fill="#64748b"),
-                            id="arrow",
+                            rx.el.polygon(points="0 0, 10 3.5, 0 7", fill="#2563eb"),
+                            id="arrow-blue",
                             viewBox="0 0 10 10",
-                            refX="5",
+                            refX="6",
                             refY="3.5",
-                            markerWidth="6",
-                            markerHeight="6",
+                            markerWidth="7",
+                            markerHeight="7",
                             orient="auto-start-reverse",
                         ),
                     ),
-                    # Dynamic Connection lines between nodes
+                    # Smooth Bézier Connection lines between nodes
                     rx.foreach(
                         FlowState.edges,
                         lambda edge: rx.el.path(
-                            d="M 120 140 L 280 140",
-                            stroke="#64748b",
-                            stroke_width="2",
-                            marker_end="url(#arrow)",
+                            d="M 120 140 C 200 140, 200 140, 280 140",
+                            stroke="#2563eb",
+                            stroke_width="2.5",
+                            fill="none",
+                            marker_end="url(#arrow-blue)",
                         ),
                     ),
                     width="100%",

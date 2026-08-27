@@ -242,6 +242,38 @@ class FlowState(rx.State):
             filename=f"Paquete_Proyecto_{self.project_name.replace(' ', '_')}.temis.json"
         )
 
+    # Import Diagram or Project from JSON file
+    def import_diagram_from_json(self, json_content: str):
+        try:
+            data = json.loads(json_content)
+            if "nodes" in data and "edges" in data:
+                self.nodes = data["nodes"]
+                self.edges = data["edges"]
+                if "swimlanes" in data:
+                    self.swimlanes = data["swimlanes"]
+                if "title" in data:
+                    self.diagram_title = data["title"]
+                self.status_message = "Diagrama importado exitosamente al lienzo"
+            elif "project" in data and "diagrams" in data and len(data["diagrams"]) > 0:
+                d = data["diagrams"][0]
+                self.nodes = d.get("nodes", [])
+                self.edges = d.get("edges", [])
+                if "swimlanes" in d:
+                    self.swimlanes = d.get("swimlanes", self.swimlanes)
+                self.diagram_title = d.get("title", self.diagram_title)
+                self.project_name = data["project"].get("name", self.project_name)
+                self.status_message = f"Proyecto '{self.project_name}' importado exitosamente"
+            else:
+                self.status_message = "Estructura de archivo JSON no válida"
+        except Exception as e:
+            self.status_message = f"Error al importar archivo: {str(e)}"
+
+    async def handle_file_upload(self, files: List[rx.UploadFile]):
+        for file in files:
+            upload_data = await file.read()
+            json_text = upload_data.decode("utf-8")
+            self.import_diagram_from_json(json_text)
+
     # Node Edit Modal State
     show_modal: bool = False
     modal_node_id: str = ""
