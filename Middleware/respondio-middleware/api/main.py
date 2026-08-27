@@ -4751,8 +4751,8 @@ async def agent_interact_inner(
             
             # --- Trial check: if user_text already contains names/info, attempt query immediately ---
             try:
-                if agent_name == "VerificadorEstatusRecargas":
-                    phones = re.findall(r'\b\d{7,15}\b', user_text)
+                if agent_name == "VerificadorEstatusRecargas" or "recarga" in user_text.lower():
+                    phones = re.findall(r'\b\d{4,15}\b', user_text)
                     cust_phone = phones[0] if len(phones) > 0 else user_text
                     cell_phone = phones[1] if len(phones) > 1 else cust_phone
                     topup_req = TopupCheckRequest(
@@ -4813,11 +4813,11 @@ async def agent_interact_inner(
             except Exception as trial_err:
                 logger.info(f"Trial query in WAITING_FOR_CODE failed (missing info): {trial_err}")
 
-            if agent_name == "VerificadorEstatusRecargas":
+            if agent_name == "VerificadorEstatusRecargas" or "recarga" in user_text.lower():
                 sc10_text = scripts.get("SC.010.2", "Para continuar, necesito validar algunos datos. ¿Me comparte el número telefónico de la persona quien hizo la recarga y el número al que se realizó, por favor?.")
                 translated = await translate_script_if_needed(sc10_text, user_text)
                 await redis.set(state_key, "WAITING_FOR_TOPUP_PHONES", ex=3600)
-                return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="VerificadorEstatusRecargas")
             elif agent_name == "VerificadorPagoBill" or "bill" in user_text.lower() or "factura" in user_text.lower():
                 sc10_text = scripts.get("SC.010.1", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?.")
                 translated = await translate_script_if_needed(sc10_text, user_text)
