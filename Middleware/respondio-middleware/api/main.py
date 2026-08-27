@@ -4978,3 +4978,35 @@ async def translate_script_if_needed(script_text: str, user_text: str, contact_i
         logger.warning(f"Translation error: {err}")
     
     return script_text
+
+@app.get("/api/v1/test/gemini")
+async def test_gemini_api():
+    """Diagnostic endpoint to verify Gemini API Key status live on Render"""
+    config = await config_manager.get_mcp_config()
+    api_key = config.gemini_api_key or os.getenv("GEMINI_API_KEY") or getattr(settings, "GEMINI_API_KEY", None)
+    if not api_key:
+        return {"status": "error", "message": "GEMINI_API_KEY no configurada en el servidor de Render."}
+    
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    payload = {"contents": [{"parts": [{"text": "Responde estrictamente con la palabra OK."}]}]}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            res = await client.post(url, json=payload)
+            if res.status_code == 200:
+                text_out = res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                return {
+                    "status": "success",
+                    "gemini_active": True,
+                    "model": "gemini-1.5-flash",
+                    "gemini_response": text_out,
+                    "message": "✅ Gemini API activa, autenticada y respondiendo correctamente."
+                }
+            else:
+                return {
+                    "status": "error",
+                    "gemini_active": False,
+                    "http_code": res.status_code,
+                    "detail": res.text[:300]
+                }
+    except Exception as err:
+        return {"status": "error", "gemini_active": False, "exception": str(err)}
