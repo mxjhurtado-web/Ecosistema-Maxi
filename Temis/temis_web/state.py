@@ -152,6 +152,55 @@ class FlowState(rx.State):
         self.selected_node_id = ""
         self.status_message = "Nodo eliminado"
 
+    # Set diagram title handler
+    def set_diagram_title(self, title: str):
+        self.diagram_title = title
+
+    # Duplicate Selected Node
+    def duplicate_selected_node(self):
+        if not self.selected_node_id:
+            return
+        target = None
+        for n in self.nodes:
+            if n["id"] == self.selected_node_id:
+                target = n
+                break
+        if target:
+            count = len(self.nodes) + 1
+            new_node = dict(target)
+            new_node["id"] = f"node-{count}"
+            new_node["x"] = target["x"] + 40
+            new_node["y"] = target["y"] + 40
+            new_node["label"] = f"{target['label']} (Copia)"
+            self.nodes.append(new_node)
+            self.status_message = "Nodo duplicado"
+
+    # Save Diagram to Backend Database
+    def save_diagram(self):
+        import os
+        api_base = os.getenv("API_BASE_URL", "http://localhost:8000")
+        if not api_base.startswith("http"):
+            api_base = f"http://{api_base}:8000"
+        url = f"{api_base.rstrip('/')}/api/diagrams/"
+
+        self.status_message = "Guardando diagrama en la base de datos..."
+        try:
+            payload = {
+                "project_id": self.project_id,
+                "title": self.diagram_title,
+                "swimlanes": self.swimlanes,
+                "nodes": self.nodes,
+                "edges": self.edges,
+                "viewport": {"x": 0, "y": 0, "zoom": 1}
+            }
+            res = requests.post(url, json=payload, timeout=15)
+            if res.status_code in [200, 201]:
+                self.status_message = "Diagrama guardado exitosamente en PostgreSQL"
+            else:
+                self.status_message = f"Error al guardar ({res.status_code}): {res.text}"
+        except Exception as e:
+            self.status_message = f"Error de conexión: {str(e)}"
+
     # AI Generation with Gemini
     def generate_with_gemini(self):
         if not self.ai_prompt_text.strip():

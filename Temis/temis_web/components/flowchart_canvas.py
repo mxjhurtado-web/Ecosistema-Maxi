@@ -107,20 +107,40 @@ def flowchart_canvas() -> rx.Component:
     return rx.vstack(
         # Top Diagram Toolbar
         rx.hstack(
+            rx.icon("git-commit", size=20, color="#3b82f6"),
             rx.heading(FlowState.diagram_title, size="4", weight="bold", color="#1e293b"),
+            rx.button(
+                rx.icon("save", size=14),
+                " Guardar Cambios",
+                on_click=FlowState.save_diagram,
+                color_scheme="emerald",
+                size="2",
+                variant="solid",
+                radius="medium",
+            ),
             rx.spacer(),
             rx.cond(
                 FlowState.selected_node_id != "",
                 rx.hstack(
-                    rx.badge(f"Nodo Seleccionado: {FlowState.selected_node_id}", color_scheme="blue"),
+                    rx.badge(f"Nodo: {FlowState.selected_node_id}", color_scheme="blue", variant="soft"),
+                    rx.button(
+                        rx.icon("copy", size=14),
+                        "Duplicar",
+                        on_click=FlowState.duplicate_selected_node,
+                        color_scheme="blue",
+                        variant="soft",
+                        size="1",
+                    ),
                     rx.button(
                         rx.icon("trash-2", size=14),
-                        "Eliminar Nodo",
+                        "Eliminar",
                         on_click=FlowState.delete_selected_node,
                         color_scheme="red",
+                        variant="soft",
                         size="1",
                     ),
                     spacing="2",
+                    align="center",
                 ),
             ),
             width="100%",
