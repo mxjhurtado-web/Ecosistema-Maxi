@@ -4982,10 +4982,17 @@ async def translate_script_if_needed(script_text: str, user_text: str, contact_i
 @app.get("/api/v1/test/gemini")
 async def test_gemini_api():
     """Diagnostic endpoint to verify Gemini API Key status live on Render"""
-    config = await config_manager.get_mcp_config()
-    api_key = config.gemini_api_key or os.getenv("GEMINI_API_KEY") or getattr(settings, "GEMINI_API_KEY", None)
+    api_key = os.getenv("GEMINI_API_KEY") or getattr(settings, "GEMINI_API_KEY", None)
     if not api_key:
-        return {"status": "error", "message": "GEMINI_API_KEY no configurada en el servidor de Render."}
+        try:
+            config = await config_manager.get_mcp_config()
+            if config:
+                api_key = config.gemini_api_key
+        except Exception:
+            pass
+
+    if not api_key:
+        return {"status": "error", "gemini_active": False, "message": "GEMINI_API_KEY no configurada en las variables de entorno de Render."}
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
     payload = {"contents": [{"parts": [{"text": "Responde estrictamente con la palabra OK."}]}]}
