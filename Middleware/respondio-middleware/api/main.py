@@ -1368,7 +1368,8 @@ async def check_transaction_status_inner(
                 return None
             v_str = cleaned
         if (v_str in [",", "%", "", "null", "None"] or 
-            v_str.startswith("$")):
+            v_str.startswith("$") or v_str.startswith(".") or
+            v_str in [".message", ".transaction_id", ".customer_number", ".cellular_number", ".codigo_envio"]):
             return None
         return v_str
 
@@ -2154,7 +2155,8 @@ async def check_bill_status_inner(
                 return None
             v_str = cleaned
         if (v_str in [",", "%", "", "null", "None"] or 
-            v_str.startswith("$")):
+            v_str.startswith("$") or v_str.startswith(".") or
+            v_str in [".message", ".transaction_id", ".customer_number", ".cellular_number", ".codigo_envio"]):
             return None
         return v_str
 
@@ -2673,7 +2675,8 @@ async def check_topup_status_inner(
                 return None
             v_str = cleaned
         if (v_str in [",", "%", "", "null", "None"] or 
-            v_str.startswith("$")):
+            v_str.startswith("$") or v_str.startswith(".") or
+            v_str in [".message", ".transaction_id", ".customer_number", ".cellular_number", ".codigo_envio"]):
             return None
         return v_str
 
@@ -2694,7 +2697,7 @@ async def check_topup_status_inner(
             transaction_id = extracted_code
             logger.info(f"🎯 Auto-extracted transaction_id '{transaction_id}' from user_text in topup check")
 
-    phones = re.findall(r'\b\d{7,15}\b', user_text or "")
+    phones = re.findall(r'\b\d{4,15}\b', user_text or "")
     if not customer_number:
         customer_number = phones[0] if len(phones) > 0 else user_text
     if not cellular_number:
@@ -2860,6 +2863,14 @@ async def check_topup_status_inner(
     
     customer_ok = (user_customer_cleaned == db_customer_cleaned) if (user_customer_cleaned is not None and db_customer_cleaned is not None) else False
     cellular_ok = (user_cellular_cleaned == db_cellular_cleaned) if (user_cellular_cleaned is not None and db_cellular_cleaned is not None) else False
+
+    # Also check if db_customer or db_cellular digits are present anywhere in user_text
+    if user_text:
+        u_digits = re.findall(r'\d+', user_text)
+        if db_customer_cleaned and str(db_customer_cleaned) in u_digits:
+            customer_ok = True
+        if db_cellular_cleaned and str(db_cellular_cleaned) in u_digits:
+            cellular_ok = True
     
     # Flexible validation: if at least one matches or if only one was provided, pass validation
     if not (customer_ok or cellular_ok):
@@ -3005,10 +3016,6 @@ async def check_topup_status_inner(
                 "retomemos el servicio. Gracias por su paciencia."
             )
             
-    # Prepend safety headers
-    safety_header = f"[TRANSACTION ID: {transaction_id}] [CUSTOMER NUMBER: {db_customer}] [CELLULAR NUMBER: {db_cellular}] [STATUS: {db_status}] "
-    reply_text_with_header = safety_header + reply_text
-
     if derivacion == "NA":
         reply_text = append_courtesy_sc33(reply_text, request.contact_name)
 
@@ -3016,11 +3023,9 @@ async def check_topup_status_inner(
     if reply_text and user_text:
         reply_text = await translate_script_if_needed(reply_text, user_text)
 
-    reply_text_with_header = safety_header + reply_text
-
     return TopupCheckResponse(
         status="success",
-        reply_text=reply_text_with_header,
+        reply_text=reply_text,
         derivacion=derivacion,
         validation_success=True,
         transaction_status=db_status,
