@@ -1223,10 +1223,13 @@ def is_no_more_help_needed(text: str) -> bool:
 def extraer_codigo_router(texto: str) -> Optional[str]:
     texto_limpio = re.sub(r'https?://\S+', '', texto)
     patrones = [
-        r'\bCE\d{8,}\b',
-        r'\bTRK\d{6,}\b',
-        r'\b[A-Z]{2}\d{8,}\b',
-        r'\b[A-Z0-9]{8,}\b'
+        r'\bCE\d{6,}\b',
+        r'\bTRK[A-Z0-9]{4,}\b',
+        r'\bTXN\d{3,}\b',
+        r'\bTX\d+:\d+:\d+\b',
+        r'\b[A-Z]{2}\d{6,}\b',
+        r'\b\d{7,12}\b',
+        r'\b[A-Z0-9]{7,}\b'
     ]
     for patron in patrones:
         m = re.search(patron, texto_limpio.upper())
@@ -1483,6 +1486,7 @@ async def check_transaction_status_inner(
     table_type = None # "remesa" or "bill"
     
     # Try Supabase REST API first (fastest, IPv4/IPv6 compatible via HTTPS)
+    record = None
     try:
         supabase_url = os.getenv("SUPABASE_URL", "https://tzlomvpugmrpdfatscxe.supabase.co")
         supabase_anon_key = os.getenv(
@@ -2834,7 +2838,8 @@ async def check_topup_status_inner(
     customer_ok = (user_customer_cleaned == db_customer_cleaned) if (user_customer_cleaned is not None and db_customer_cleaned is not None) else False
     cellular_ok = (user_cellular_cleaned == db_cellular_cleaned) if (user_cellular_cleaned is not None and db_cellular_cleaned is not None) else False
     
-    if not customer_ok or not cellular_ok:
+    # Flexible validation: if at least one matches or if only one was provided, pass validation
+    if not (customer_ok or cellular_ok):
         val_attempts += 1
         if redis:
             try:
