@@ -34,7 +34,7 @@ services:
         fromService:
           type: web
           name: temis-backend
-          property: url
+          property: host
 
 databases:
   # Managed PostgreSQL Database on Render
