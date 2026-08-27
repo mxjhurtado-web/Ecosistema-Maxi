@@ -10,114 +10,92 @@ import reflex as rx
 from temis_web.state import FlowState
 
 
-def render_node(node: dict) -> rx.Component:
+def render_node(node: rx.Var) -> rx.Component:
     """Render individual diagram node according to official PDF symbology"""
     node_id = node["id"]
-    node_type = node.get("type", "node_activity")
-    label = node.get("label", "")
-    swimlane = node.get("swimlane", "")
-    x = node.get("x", 100)
-    y = node.get("y", 100)
-    act_num = node.get("activity_number")
-    system = node.get("attached_system", "")
-    channel = node.get("attached_channel", "")
+    node_type = node["type"]
+    label = node["label"]
 
     is_selected = FlowState.selected_node_id == node_id
-
-    # Common wrapper style
-    border_color = rx.cond(is_selected, "#2563eb", "#e2e8f0")
     shadow = rx.cond(is_selected, "0 0 0 3px rgba(37, 99, 235, 0.3)", "0 2px 5px rgba(0,0,0,0.08)")
 
-    # Render Node Types
-    if node_type == "node_start":
-        shape = rx.box(
-            rx.text(label, size="2", weight="bold", color="#1e40af"),
-            background_color="#dbeafe",
-            border="2px solid #2563eb",
-            border_radius="9999px",
-            padding_x="5",
-            padding_y="2",
-        )
-    elif node_type == "node_end":
-        shape = rx.box(
-            rx.text(label, size="2", weight="bold", color="#334155"),
-            background_color="#f1f5f9",
-            border="2px solid #475569",
-            border_radius="9999px",
-            padding_x="5",
-            padding_y="2",
-        )
-    elif node_type == "node_decision":
-        shape = rx.box(
+    # 1. Start Node Symbol
+    start_shape = rx.box(
+        rx.text(label, size="2", weight="bold", color="#1e40af"),
+        background_color="#dbeafe",
+        border="2px solid #2563eb",
+        border_radius="9999px",
+        padding_x="5",
+        padding_y="2",
+    )
+
+    # 2. End Node Symbol
+    end_shape = rx.box(
+        rx.text(label, size="2", weight="bold", color="#334155"),
+        background_color="#f1f5f9",
+        border="2px solid #475569",
+        border_radius="9999px",
+        padding_x="5",
+        padding_y="2",
+    )
+
+    # 3. Decision Node Symbol (Rombo)
+    decision_shape = rx.box(
+        rx.vstack(
+            rx.icon("circle-help", size=16, color="#d97706"),
+            rx.text(label, size="2", weight="bold", color="#92400e", align="center"),
+            align="center",
+            spacing="1",
+        ),
+        background_color="#fef3c7",
+        border="2px solid #d97706",
+        border_radius="lg",
+        padding="3",
+        width="140px",
+    )
+
+    # 4. Activity Node Symbol (Recuadro Verde)
+    activity_shape = rx.box(
+        rx.hstack(
             rx.vstack(
-                rx.icon("help-circle", size=16, color="#d97706"),
-                rx.text(label, size="2", weight="bold", color="#92400e", align="center"),
-                align="center",
+                rx.text(label, size="2", weight="bold", color="#1e293b"),
                 spacing="1",
+                align="start",
             ),
-            background_color="#fef3c7",
-            border="2px solid #d97706",
-            border_radius="lg",
-            padding="3",
-            transform="rotate(0deg)",
-            width="140px",
-        )
-    elif node_type == "node_activity":
-        shape = rx.box(
-            rx.hstack(
-                # Sequential activity badge (1), (2)...
-                rx.cond(
-                    act_num != None,
-                    rx.box(
-                        rx.text(f"{act_num}", size="1", weight="bold", color="#ffffff"),
-                        background_color="#16a34a",
-                        border_radius="full",
-                        width="20px",
-                        height="20px",
-                        display="flex",
-                        align_items="center",
-                        justify_content="center",
-                    ),
-                ),
-                rx.vstack(
-                    rx.text(label, size="2", weight="bold", color="#1e293b"),
-                    # Attached System Badge
-                    rx.cond(
-                        system != "",
-                        rx.badge(f"💻 {system}", color_scheme="emerald", variant="soft", size="1"),
-                    ),
-                    # Attached Channel Badge
-                    rx.cond(
-                        channel != "",
-                        rx.badge(f"💬 {channel}", color_scheme="blue", variant="soft", size="1"),
-                    ),
-                    spacing="1",
-                    align="start",
-                ),
-                spacing="2",
-                align="center",
-            ),
-            background_color="#ffffff",
-            border="2px solid #16a34a",
-            border_radius="lg",
-            padding="3",
-            width="180px",
-        )
-    else:
-        # Default / Fallback Symbol
-        shape = rx.box(
-            rx.text(label, size="2", weight="medium", color="#1e293b"),
-            background_color="#ffffff",
-            border="1px solid #cbd5e1",
-            border_radius="md",
-            padding="2.5",
-        )
+            spacing="2",
+            align="center",
+        ),
+        background_color="#ffffff",
+        border="2px solid #16a34a",
+        border_radius="lg",
+        padding="3",
+        width="180px",
+    )
+
+    # 5. Default / Fallback Symbol
+    default_shape = rx.box(
+        rx.text(label, size="2", weight="medium", color="#1e293b"),
+        background_color="#ffffff",
+        border="1px solid #cbd5e1",
+        border_radius="md",
+        padding="2.5",
+    )
+
+    # Dynamic React Pattern Matching for Reactive Vars
+    shape = rx.match(
+        node_type,
+        ("node_start", start_shape),
+        ("node_end", end_shape),
+        ("node_decision", decision_shape),
+        ("node_activity", activity_shape),
+        default_shape,
+    )
 
     return rx.box(
         shape,
         position="absolute",
-        left=f"{x}px",
-        top=f"{y}px",
+        left=rx.concat(node["x"].to(str), "px"),
+        top=rx.concat(node["y"].to(str), "px"),
         box_shadow=shadow,
         cursor="pointer",
         on_click=lambda: FlowState.select_node(node_id),

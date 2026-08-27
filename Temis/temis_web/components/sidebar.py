@@ -16,7 +16,7 @@ PHASES_DATA = [
     {"num": 4, "name": "Ejecución Iterativa", "icon": "code"},
     {"num": 5, "name": "Monitoreo y Control", "icon": "activity"},
     {"num": 6, "name": "Mejora Continua", "icon": "trending-up"},
-    {"num": 7, "name": "Cierre del Proyecto", "icon": "check-circle"},
+    {"num": 7, "name": "Cierre del Proyecto", "icon": "circle-check"},
 ]
 
 
