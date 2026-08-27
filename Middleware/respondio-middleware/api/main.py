@@ -2164,6 +2164,18 @@ async def check_bill_status_inner(
     biller = sanitize_input(request.biller) or sanitize_input(metadata.get("biller"))
     nombre_completo_customer = sanitize_input(request.nombre_completo_customer) or sanitize_input(metadata.get("nombre_completo_customer"))
     perfil = sanitize_input(request.perfil) or sanitize_input(metadata.get("perfil")) or sanitize_input(metadata.get("perfil_usuario"))
+
+    # Auto-extract missing tracking number, biller or customer name from user_text
+    if not tracking_number and user_text:
+        extracted_code = extraer_codigo_router(user_text)
+        if extracted_code:
+            tracking_number = extracted_code
+            logger.info(f"🎯 Auto-extracted tracking_number '{tracking_number}' from user_text in bill check")
+
+    if not biller and user_text:
+        biller = user_text
+    if not nombre_completo_customer and user_text:
+        nombre_completo_customer = user_text
     
     if perfil:
         perfil = perfil.upper()
@@ -2676,6 +2688,19 @@ async def check_topup_status_inner(
     customer_number = sanitize_input(request.customer_number) or sanitize_input(metadata.get("customer_number"))
     cellular_number = sanitize_input(request.cellular_number) or sanitize_input(metadata.get("cellular_number"))
     perfil = sanitize_input(request.perfil) or sanitize_input(metadata.get("perfil")) or sanitize_input(metadata.get("perfil_usuario"))
+
+    # Auto-extract missing transaction_id or phones from user_text
+    if not transaction_id and user_text:
+        extracted_code = extraer_codigo_router(user_text)
+        if extracted_code:
+            transaction_id = extracted_code
+            logger.info(f"🎯 Auto-extracted transaction_id '{transaction_id}' from user_text in topup check")
+
+    phones = re.findall(r'\b\d{7,15}\b', user_text or "")
+    if not customer_number:
+        customer_number = phones[0] if len(phones) > 0 else user_text
+    if not cellular_number:
+        cellular_number = phones[1] if len(phones) > 1 else customer_number
     
     if perfil:
         perfil = perfil.upper()
