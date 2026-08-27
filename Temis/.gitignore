@@ -46,6 +46,9 @@ alembic/versions/*.pyc
 htmlcov/
 .pytest_cache/
 
+# Reflex
+.web/
+
 # Temporary
 temp/
 tmp/

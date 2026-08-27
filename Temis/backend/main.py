@@ -21,8 +21,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from backend.database import engine, Base, get_db
-from backend.routers import auth, projects, groups, daily_log, eod, phases, members, chat, wizard, shared_db
-from backend.models import user, group, project, phase, daily_log as daily_log_model, chat_message
+from backend.routers import auth, projects, groups, daily_log, eod, phases, members, chat, wizard, shared_db, diagrams
+from backend.models import user, group, project, phase, daily_log as daily_log_model, chat_message, diagram
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -54,6 +54,7 @@ app.include_router(members.router, prefix="/api/members", tags=["members"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(wizard.router)  # Wizard has its own prefix
 app.include_router(shared_db.router, prefix="/api/shared-db", tags=["shared-db"])
+app.include_router(diagrams.router)
 
 
 @app.get("/")

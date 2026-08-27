@@ -11,11 +11,13 @@ from backend.models.group import Group, GroupMember, GroupMemberRole
 from backend.models.project import Project, ProjectStatus, ProjectMember, ProjectMemberRole
 from backend.models.phase import Phase, PhaseStatus, PHASE_NAMES
 from backend.models.chat_message import ChatMessage
+from backend.models.diagram import Diagram
 
 __all__ = [
     'User', 'UserRole',
     'Group', 'GroupMember', 'GroupMemberRole',
     'Project', 'ProjectStatus', 'ProjectMember', 'ProjectMemberRole',
     'Phase', 'PhaseStatus', 'PHASE_NAMES',
-    'ChatMessage'
+    'ChatMessage',
+    'Diagram'
 ]
