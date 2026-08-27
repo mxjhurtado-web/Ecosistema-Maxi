@@ -2493,18 +2493,13 @@ async def check_bill_status_inner(
         derivacion = "NA"
         reply_text = append_courtesy_sc33(reply_text, request.contact_name)
 
-    # Prepend safety headers
-    safety_header = f"[BILLER: {db_biller}] [NOMBRE DEL CUSTOMER: {db_customer_name}] [STATUS: {status_clean}] "
-    
     # Auto-translate response if customer wrote in a non-Spanish language
     if reply_text and user_text:
         reply_text = await translate_script_if_needed(reply_text, user_text)
 
-    reply_text_with_header = safety_header + reply_text
-
     return BillCheckResponse(
         status="success",
-        reply_text=reply_text_with_header,
+        reply_text=reply_text,
         derivacion=derivacion,
         validation_success=True,
         transaction_status=status_clean,
