@@ -201,6 +201,55 @@ class FlowState(rx.State):
         except Exception as e:
             self.status_message = f"Error de conexión: {str(e)}"
 
+    # Node Edit Modal State
+    show_modal: bool = False
+    modal_node_id: str = ""
+    modal_label: str = ""
+    modal_system: str = ""
+    modal_channel: str = ""
+    modal_activity_num: str = ""
+
+    def set_modal_label(self, val: str):
+        self.modal_label = val
+
+    def set_modal_system(self, val: str):
+        self.modal_system = val
+
+    def set_modal_channel(self, val: str):
+        self.modal_channel = val
+
+    def set_modal_activity_num(self, val: str):
+        self.modal_activity_num = val
+
+    def open_node_edit_modal(self, node_id: str):
+        self.modal_node_id = node_id
+        for n in self.nodes:
+            if n["id"] == node_id:
+                self.modal_label = n.get("label", "")
+                self.modal_system = n.get("attached_system", "")
+                self.modal_channel = n.get("attached_channel", "")
+                act_num = n.get("activity_number")
+                self.modal_activity_num = str(act_num) if act_num is not None else ""
+                break
+        self.show_modal = True
+
+    def close_node_edit_modal(self):
+        self.show_modal = False
+
+    def save_node_edit_modal(self):
+        for n in self.nodes:
+            if n["id"] == self.modal_node_id:
+                n["label"] = self.modal_label
+                n["attached_system"] = self.modal_system
+                n["attached_channel"] = self.modal_channel
+                if self.modal_activity_num.isdigit():
+                    n["activity_number"] = int(self.modal_activity_num)
+                else:
+                    n["activity_number"] = None
+                break
+        self.show_modal = False
+        self.status_message = f"Propiedades del nodo {self.modal_node_id} actualizadas"
+
     # AI Generation with Gemini
     def generate_with_gemini(self):
         if not self.ai_prompt_text.strip():

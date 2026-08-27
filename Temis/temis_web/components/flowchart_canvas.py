@@ -102,9 +102,12 @@ def render_node(node: rx.Var) -> rx.Component:
     )
 
 
+from temis_web.components.edit_modal import edit_node_modal
+
 def flowchart_canvas() -> rx.Component:
     """Main Canvas component rendering Swimlanes and Flowchart"""
     return rx.vstack(
+        edit_node_modal(),
         # Top Diagram Toolbar
         rx.hstack(
             rx.icon("git-branch", size=20, color="#3b82f6"),
@@ -123,6 +126,14 @@ def flowchart_canvas() -> rx.Component:
                 FlowState.selected_node_id != "",
                 rx.hstack(
                     rx.badge(f"Nodo: {FlowState.selected_node_id}", color_scheme="blue", variant="soft"),
+                    rx.button(
+                        rx.icon("pencil", size=14),
+                        "Editar Propiedades",
+                        on_click=lambda: FlowState.open_node_edit_modal(FlowState.selected_node_id),
+                        color_scheme="indigo",
+                        variant="soft",
+                        size="1",
+                    ),
                     rx.button(
                         rx.icon("copy", size=14),
                         "Duplicar",
