@@ -98,6 +98,10 @@ class FlowState(rx.State):
         self.current_phase = phase_num
         self.phase_name = PHASE_NAMES.get(phase_num, f"Fase {phase_num}")
 
+    # Set prompt text handler
+    def set_ai_prompt_text(self, val: str):
+        self.ai_prompt_text = val
+
     # Add Node from Symbology Palette
     def add_node_by_type(self, node_type: str, label: str):
         count = len(self.nodes) + 1
@@ -157,10 +161,16 @@ class FlowState(rx.State):
         self.is_generating_ai = True
         self.status_message = "Gemini AI analizando el proceso..."
 
+        import os
+        api_base = os.getenv("API_BASE_URL", "http://localhost:8000")
+        if not api_base.startswith("http"):
+            api_base = f"http://{api_base}:8000"
+        url = f"{api_base.rstrip('/')}/api/diagrams/generate-ai"
+
         try:
             # Call backend API
             res = requests.post(
-                "http://localhost:8000/api/diagrams/generate-ai",
+                url,
                 json={
                     "process_description": self.ai_prompt_text,
                     "swimlanes": self.swimlanes
