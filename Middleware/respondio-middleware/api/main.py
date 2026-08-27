@@ -4982,6 +4982,7 @@ async def translate_script_if_needed(script_text: str, user_text: str, contact_i
 @app.get("/api/v1/test/gemini")
 async def test_gemini_api():
     """Diagnostic endpoint to verify Gemini API Key status live on Render"""
+    import httpx
     api_key = os.getenv("GEMINI_API_KEY") or getattr(settings, "GEMINI_API_KEY", None)
     if not api_key:
         try:
