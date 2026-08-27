@@ -166,11 +166,11 @@ def flowchart_canvas() -> rx.Component:
             # Interactive Flowchart Board
             rx.box(
                 # Render SVG Connections (Edges)
-                rx.svg(
+                rx.el.svg(
                     # Arrowhead marker definition
-                    rx.svg.defs(
-                        rx.svg.marker(
-                            rx.svg.polygon(points="0 0, 10 3.5, 0 7", fill="#64748b"),
+                    rx.el.defs(
+                        rx.el.marker(
+                            rx.el.polygon(points="0 0, 10 3.5, 0 7", fill="#64748b"),
                             id="arrow",
                             viewBox="0 0 10 10",
                             refX="5",
@@ -183,7 +183,7 @@ def flowchart_canvas() -> rx.Component:
                     # Dynamic Connection lines between nodes
                     rx.foreach(
                         FlowState.edges,
-                        lambda edge: rx.svg.path(
+                        lambda edge: rx.el.path(
                             d="M 120 140 L 280 140",
                             stroke="#64748b",
                             stroke_width="2",

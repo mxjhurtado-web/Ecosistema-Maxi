@@ -13,10 +13,10 @@ PHASES_DATA = [
     {"num": 1, "name": "Diagnóstico Estratégico", "icon": "file-search"},
     {"num": 2, "name": "Inicio del Proyecto", "icon": "rocket"},
     {"num": 3, "name": "Planificación Híbrida", "icon": "layout-grid"},
-    {"num": 4, "name": "Ejecución Iterativa", "icon": "code-2"},
+    {"num": 4, "name": "Ejecución Iterativa", "icon": "code"},
     {"num": 5, "name": "Monitoreo y Control", "icon": "activity"},
     {"num": 6, "name": "Mejora Continua", "icon": "trending-up"},
-    {"num": 7, "name": "Cierre del Proyecto", "icon": "check-circle-2"},
+    {"num": 7, "name": "Cierre del Proyecto", "icon": "check-circle"},
 ]
 
 
