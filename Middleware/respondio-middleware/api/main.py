@@ -3719,13 +3719,14 @@ async def agent_interact_inner(
     ]
     is_bsa_report = any(match_keyword_safe(k, user_text_lower) for k in bsa_keywords)
 
-    if (any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or is_fraud_collecting):
+    if (any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or is_bsa_report or is_fraud_collecting):
         logger.info(f"🚨 Fraud/BSA flow active for contact {contact_id} (collecting={bool(is_fraud_collecting)})")
         
         if not is_fraud_collecting:
             # Turn 1: Deliver SC.030 + Request 3 Security Fields + Send Google Chat Alert Immediately!
             await redis.set(fraud_collecting_key, "1", ex=3600)
             await redis.set(f"session:fraud_turn1_text:{contact_id}", user_text_lower, ex=3600)
+            await redis.set(f"session:is_bsa:{contact_id}", "1" if is_bsa_report else "0", ex=3600)
             
             # Fire Google Chat Alert immediately on Turn 1 so it is NEVER missed!
             try:
@@ -3801,7 +3802,28 @@ async def agent_interact_inner(
                     derivacion="NA"
                 )
         else:
-            # Turn 2: Verify if user_text is a NEW message or the same Turn 1 text passed by agent handoff
+            # Retrieve cached BSA status from Turn 1
+            cached_is_bsa = await redis.get(f"session:is_bsa:{contact_id}")
+            if cached_is_bsa is not None:
+                is_bsa_report = (cached_is_bsa.decode('utf-8') == "1")
+
+            # Determine department operating hours for Turn 1/2
+            from zoneinfo import ZoneInfo
+            ct_now = datetime.now(ZoneInfo("America/Chicago"))
+            target_dept = "BSA MONITORING" if is_bsa_report else "PREVENCION DE FRAUDES"
+            in_hours = check_department_hours(target_dept, ct_now)
+
+            default_sc_turn1 = (
+                "Lamento lo sucedido, su solicitud debe ser atendida con alta prioridad.\n\n"
+                "Por favor compártame la siguiente información:\n"
+                "1. Su nombre completo.\n"
+                "2. Los detalles de lo ocurrido con la situación que reporta.\n\n"
+                "Si conoce la siguiente información:\n"
+                "3. Clave(s) de envío(s) de dinero.\n"
+                "4. Número de agencia desde donde se comunica."
+            )
+
+            # Verify if user_text is a NEW message or the same Turn 1 text passed by agent handoff
             cached_turn1_text = await redis.get(f"session:fraud_turn1_text:{contact_id}")
             cached_turn1_str = cached_turn1_text.decode('utf-8').strip() if cached_turn1_text else ""
             
@@ -3820,14 +3842,28 @@ async def agent_interact_inner(
             # Customer typed a NEW message -> Clear Redis state -> Send Google Chat Update -> Close/Transfer
             await redis.delete(fraud_collecting_key)
             await redis.delete(f"session:fraud_turn1_text:{contact_id}")
+            await redis.delete(f"session:is_bsa:{contact_id}")
 
             try:
                 from .google_chat_service import google_chat_service
-                alert_header_t2 = "📝 *DETALLES ADICIONALES DE BSA RECIBIDOS*" if is_bsa_report else "📝 *DETALLES ADICIONALES DE FRAUDE RECIBIDOS*"
+                cached_url = await redis.get(f"contact:last_image:{contact_id}")
+                media_attach_t2 = ""
+                if cached_url:
+                    try:
+                        url_str = cached_url.decode('utf-8')
+                        if url_str and "http" in url_str:
+                            emoji_attach = "📄" if ".pdf" in url_str.lower() else "📷"
+                            media_attach_t2 = f"\n\n{emoji_attach} *Adjunto:* {url_str}"
+                    except Exception:
+                        pass
+
+                alert_header_t2 = "📝 *DETALLES COMPLETOS DE BSA RECIBIDOS (TURNO 2)*" if is_bsa_report else "📝 *DETALLES COMPLETOS DE FRAUDE RECIBIDOS (TURNO 2)*"
                 alert_msg = (
                     f"{alert_header_t2}\n\n"
                     f"👤 *Usuario:* Contacto #{contact_id}\n"
-                    f"📝 *Datos proporcionados por el cliente:* {user_text}"
+                    f"⚖️ *Categoría:* {'BSA Monitoring / Cumplimiento' if is_bsa_report else 'Prevención de Fraudes'}\n"
+                    f"📝 *Reporte Inicial (Turno 1):* {cached_turn1_str}\n"
+                    f"📋 *Datos Proporcionados por el Cliente (Turno 2):* {user_text}{media_attach_t2}"
                 )
                 target_gchat_space_t2 = (
                     os.getenv("GOOGLE_CHATS_BSA_SPACE") or getattr(settings, "GOOGLE_CHATS_BSA_SPACE", None) or "spaces/AAQA3WL2JIk"
@@ -3840,7 +3876,7 @@ async def agent_interact_inner(
                     level="INFO",
                     space_id=target_gchat_space_t2
                 )
-                logger.info(f"✅ Google Chat Fraud Details update sent for contact {contact_id}")
+                logger.info(f"✅ Google Chat BSA/Fraud Details update sent to {target_gchat_space_t2} for contact {contact_id}")
             except Exception as gchat_err:
                 logger.error(f"⚠️ Failed to send Google Chat Fraud Details update: {gchat_err}")
 
