@@ -142,6 +142,16 @@ def flowchart_canvas() -> rx.Component:
                         ),
                         on_click=FlowState.export_as_json,
                     ),
+                    rx.menu.separator(),
+                    rx.menu.item(
+                        rx.hstack(
+                            rx.icon("package", size=14),
+                            rx.text("Exportar Paquete Completo (.temis.json)"),
+                            align="center",
+                            spacing="2",
+                        ),
+                        on_click=FlowState.export_project_package,
+                    ),
                 ),
             ),
             rx.spacer(),

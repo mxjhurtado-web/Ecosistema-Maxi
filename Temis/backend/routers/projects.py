@@ -15,7 +15,9 @@ from backend.database import get_db
 from backend.models.user import User
 from backend.models.project import Project, ProjectStatus, ProjectMember, ProjectMemberRole
 from backend.models.phase import Phase, PhaseStatus, PHASE_NAMES
+from backend.models.diagram import Diagram
 from backend.services.drive_service import DriveService
+import json
 
 router = APIRouter()
 
@@ -637,3 +639,82 @@ async def update_project_from_document(
         traceback.print_exc()
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class ImportBundleRequest(BaseModel):
+    bundle: dict
+    user_id: Optional[str] = "demo-user"
+
+
+@router.get("/{project_id}/export-bundle")
+def export_project_bundle(project_id: str, db: Session = Depends(get_db)):
+    """Export complete TEMIS project package as JSON bundle (Lucidchart/TEMIS compatible)"""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Proyecto no encontrado")
+
+    phases = db.query(Phase).filter(Phase.project_id == project_id).all()
+    diagrams = db.query(Diagram).filter(Diagram.project_id == project_id).all()
+
+    bundle = {
+        "version": "1.0.0",
+        "exported_at": datetime.utcnow().isoformat(),
+        "project": {
+            "id": project.id,
+            "name": project.name,
+            "description": project.description,
+            "status": project.status.value if hasattr(project.status, 'value') else str(project.status),
+            "current_phase": project.current_phase,
+        },
+        "phases": [
+            {
+                "phase_number": p.phase_number,
+                "name": p.name,
+                "description": p.description,
+                "tasks": p.tasks,
+                "deliverables": p.deliverables,
+                "status": p.status.value if hasattr(p.status, 'value') else str(p.status),
+                "progress": p.progress
+            } for p in phases
+        ],
+        "diagrams": [d.to_dict() for d in diagrams]
+    }
+    return bundle
+
+
+@router.post("/import-bundle", status_code=status.HTTP_201_CREATED)
+def import_project_bundle(req: ImportBundleRequest, db: Session = Depends(get_db)):
+    """Import complete TEMIS project package from JSON bundle into database"""
+    bundle = req.bundle
+    p_data = bundle.get("project", {})
+    if not p_data.get("name"):
+        raise HTTPException(status_code=400, detail="Formato de paquete no válido")
+
+    # Create Project
+    new_project = Project(
+        name=f"{p_data.get('name')} (Importado)",
+        description=p_data.get("description", ""),
+        status=ProjectStatus.ACTIVE,
+        current_phase=p_data.get("current_phase", 1),
+        created_by=req.user_id or "demo-user"
+    )
+    db.add(new_project)
+    db.commit()
+    db.refresh(new_project)
+
+    # Create Diagrams
+    for d_data in bundle.get("diagrams", []):
+        diagram = Diagram(
+            project_id=new_project.id,
+            title=d_data.get("title", "Diagrama Importado"),
+            description=d_data.get("description", ""),
+            swimlanes=json.dumps(d_data.get("swimlanes", [])),
+            nodes=json.dumps(d_data.get("nodes", [])),
+            edges=json.dumps(d_data.get("edges", [])),
+            viewport=json.dumps(d_data.get("viewport", {}))
+        )
+        db.add(diagram)
+
+    db.commit()
+    return {"message": "Proyecto importado exitosamente", "project_id": new_project.id, "name": new_project.name}
+

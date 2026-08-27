@@ -217,6 +217,31 @@ class FlowState(rx.State):
             filename=f"{self.diagram_title.replace(' ', '_')}.json"
         )
 
+    # Export Complete Project Package (.temis.json)
+    def export_project_package(self):
+        package = {
+            "version": "1.0.0",
+            "project": {
+                "id": self.project_id,
+                "name": self.project_name,
+                "current_phase": self.current_phase,
+            },
+            "diagrams": [
+                {
+                    "title": self.diagram_title,
+                    "swimlanes": self.swimlanes,
+                    "nodes": self.nodes,
+                    "edges": self.edges
+                }
+            ]
+        }
+        json_str = json.dumps(package, indent=2, ensure_ascii=False)
+        self.status_message = "Paquete de proyecto exportado exitosamente"
+        return rx.download(
+            data=json_str,
+            filename=f"Paquete_Proyecto_{self.project_name.replace(' ', '_')}.temis.json"
+        )
+
     # Node Edit Modal State
     show_modal: bool = False
     modal_node_id: str = ""
