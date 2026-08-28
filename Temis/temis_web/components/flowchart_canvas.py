@@ -242,15 +242,14 @@ def flowchart_canvas() -> rx.Component:
             background_color="#ffffff",
             border_bottom="1px solid #e2e8f0",
         ),
-        # Multi-Tab Diagram Page Navigation Bar (Lucidchart Document Pages)
-        rx.cond(
-            FlowState.project_pages.length() > 0,
-            rx.hstack(
-                rx.icon("layers", size=16, color="#4f46e5"),
-                rx.text("Pestañas del Documento:", size="2", weight="bold", color="#334155"),
-                rx.foreach(
-                    FlowState.project_pages,
-                    lambda page, idx: rx.button(
+        # Multi-Tab Diagram Page Navigation Bar (Lucidchart / Enterprise style)
+        rx.hstack(
+            rx.icon("layers", size=16, color="#4f46e5"),
+            rx.text("Pestañas del Proyecto:", size="2", weight="bold", color="#334155"),
+            rx.foreach(
+                FlowState.project_pages,
+                lambda page, idx: rx.hstack(
+                    rx.button(
                         page["name"],
                         on_click=lambda: FlowState.select_page_tab(idx),
                         color_scheme=rx.cond(FlowState.active_page_index == idx, "indigo", "gray"),
@@ -258,16 +257,38 @@ def flowchart_canvas() -> rx.Component:
                         size="1",
                         radius="medium",
                     ),
+                    rx.cond(
+                        FlowState.project_pages.length() > 1,
+                        rx.button(
+                            rx.icon("x", size=12),
+                            on_click=lambda: FlowState.delete_tab_page(idx),
+                            color_scheme="gray",
+                            variant="ghost",
+                            size="1",
+                        ),
+                    ),
+                    align="center",
+                    spacing="1",
                 ),
-                align="center",
-                spacing="2",
-                padding_x="3",
-                padding_y="2",
-                background_color="#f1f5f9",
-                border_bottom="1px solid #cbd5e1",
-                width="100%",
-                overflow_x="auto",
             ),
+            # Add New Tab Button
+            rx.button(
+                rx.icon("plus", size=14),
+                "Nueva Pestaña",
+                on_click=FlowState.add_new_tab_page,
+                color_scheme="indigo",
+                variant="outline",
+                size="1",
+                radius="medium",
+            ),
+            align="center",
+            spacing="2",
+            padding_x="3",
+            padding_y="2",
+            background_color="#f1f5f9",
+            border_bottom="1px solid #cbd5e1",
+            width="100%",
+            overflow_x="auto",
         ),
         # Swimlanes Layout & Canvas Area
         rx.box(

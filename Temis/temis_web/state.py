@@ -223,20 +223,190 @@ class FlowState(rx.State):
                 break
         self.status_message = f"Nodo {self.selected_node_id} reposicionado"
 
-    # Project Multi-Tab Diagram Pages
-    project_pages: List[Dict[str, Any]] = []
+    # Project Multi-Tab Diagram Pages State
+    project_pages: List[Dict[str, Any]] = [
+        {
+            "page_id": "1",
+            "name": "Página 1: Flujo Principal",
+            "nodes": [
+                {
+                    "id": "node-1",
+                    "type": "node_start",
+                    "label": "Inicio Proceso",
+                    "swimlane": "Input",
+                    "x": 40,
+                    "y": 120,
+                    "activity_number": None,
+                    "attached_system": "",
+                    "attached_channel": ""
+                },
+                {
+                    "id": "node-2",
+                    "type": "node_activity",
+                    "label": "Enviar solicitud de soporte",
+                    "swimlane": "Actor 1 (ej. Usuario)",
+                    "x": 280,
+                    "y": 120,
+                    "activity_number": 1,
+                    "attached_system": "Freshdesk",
+                    "attached_channel": "WhatsApp"
+                },
+                {
+                    "id": "node-3",
+                    "type": "node_decision",
+                    "label": "¿Datos completos?",
+                    "swimlane": "Actor 2 (ej. Sistema)",
+                    "x": 540,
+                    "y": 120,
+                    "activity_number": None,
+                    "attached_system": "Chronos",
+                    "attached_channel": ""
+                },
+                {
+                    "id": "node-4",
+                    "type": "node_end",
+                    "label": "Fin",
+                    "swimlane": "Output",
+                    "x": 800,
+                    "y": 120,
+                    "activity_number": None,
+                    "attached_system": "",
+                    "attached_channel": ""
+                }
+            ],
+            "edges": [
+                {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
+                {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""},
+                {"id": "e3-4", "source": "node-3", "target": "node-4", "label": "Sí"}
+            ],
+            "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"]
+        }
+    ]
     active_page_index: int = 0
+    show_recent_modal: bool = False
+    recent_projects: List[Dict[str, Any]] = []
+
+    def set_project_name(self, name: str):
+        """Set project title"""
+        self.project_name = name
+
+    def create_new_project(self):
+        """Reset canvas and initialize a new empty project"""
+        self.project_name = "Nuevo Proyecto TEMIS"
+        self.diagram_title = "Flujo de Proceso Operativo"
+        self.nodes = [
+            {
+                "id": "node-1",
+                "type": "node_start",
+                "label": "Inicio Proceso",
+                "swimlane": "Input",
+                "x": 80,
+                "y": 120,
+                "activity_number": None,
+                "attached_system": "",
+                "attached_channel": ""
+            }
+        ]
+        self.edges = []
+        self.project_pages = [
+            {
+                "page_id": "1",
+                "name": "Página 1: Flujo Principal",
+                "nodes": list(self.nodes),
+                "edges": [],
+                "swimlanes": list(self.swimlanes)
+            }
+        ]
+        self.active_page_index = 0
+        self.selected_node_id = ""
+        self.status_message = "Nuevo proyecto creado"
 
     def select_page_tab(self, index: int):
-        """Switch active diagram tab page"""
+        """Save current tab state and switch active page"""
+        if 0 <= self.active_page_index < len(self.project_pages):
+            self.project_pages[self.active_page_index]["nodes"] = list(self.nodes)
+            self.project_pages[self.active_page_index]["edges"] = list(self.edges)
+
         if 0 <= index < len(self.project_pages):
             self.active_page_index = index
             page = self.project_pages[index]
-            self.nodes = page.get("nodes", [])
-            self.edges = page.get("edges", [])
+            self.nodes = list(page.get("nodes", []))
+            self.edges = list(page.get("edges", []))
             if page.get("swimlanes"):
-                self.swimlanes = page["swimlanes"]
+                self.swimlanes = list(page["swimlanes"])
             self.status_message = f"Cargada {page.get('name', 'Pestaña')}"
+
+    def add_new_tab_page(self):
+        """Add a new blank page tab to the current project"""
+        # Save current active page
+        if 0 <= self.active_page_index < len(self.project_pages):
+            self.project_pages[self.active_page_index]["nodes"] = list(self.nodes)
+            self.project_pages[self.active_page_index]["edges"] = list(self.edges)
+
+        count = len(self.project_pages) + 1
+        new_page = {
+            "page_id": str(count),
+            "name": f"Página {count}",
+            "nodes": [
+                {
+                    "id": "node-1",
+                    "type": "node_start",
+                    "label": "Inicio",
+                    "swimlane": "Input",
+                    "x": 80,
+                    "y": 120,
+                    "activity_number": None,
+                    "attached_system": "",
+                    "attached_channel": ""
+                }
+            ],
+            "edges": [],
+            "swimlanes": ["Input", "Actor 1", "Output"]
+        }
+        self.project_pages.append(new_page)
+        self.select_page_tab(len(self.project_pages) - 1)
+        self.status_message = f"Pestaña 'Página {count}' creada"
+
+    def delete_tab_page(self, index: int):
+        """Delete a diagram page tab from the project"""
+        if len(self.project_pages) <= 1:
+            self.status_message = "El proyecto debe conservar al menos una pestaña"
+            return
+
+        if 0 <= index < len(self.project_pages):
+            deleted = self.project_pages.pop(index)
+            new_idx = max(0, min(self.active_page_index, len(self.project_pages) - 1))
+            self.active_page_index = new_idx
+            page = self.project_pages[new_idx]
+            self.nodes = list(page.get("nodes", []))
+            self.edges = list(page.get("edges", []))
+            self.status_message = f"Pestaña '{deleted.get('name')}' eliminada"
+
+    def open_recent_modal(self):
+        """Open recent projects modal and fetch from backend database"""
+        self.show_recent_modal = True
+        self.fetch_recent_projects()
+
+    def close_recent_modal(self):
+        """Close recent projects modal"""
+        self.show_recent_modal = False
+
+    def fetch_recent_projects(self):
+        """Fetch list of saved projects from backend database"""
+        import os
+        api_base = os.getenv("API_BASE_URL", "https://temis-backend.onrender.com")
+        if not api_base.startswith("http"):
+            api_base = f"https://{api_base}"
+        url = f"{api_base.rstrip('/')}/api/projects"
+
+        try:
+            res = requests.get(url, timeout=10)
+            if res.status_code == 200:
+                self.recent_projects = res.json()
+            else:
+                self.recent_projects = []
+        except Exception:
+            self.recent_projects = []
 
     # Set diagram title handler
     def set_diagram_title(self, title: str):

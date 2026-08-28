@@ -14,13 +14,64 @@ def header() -> rx.Component:
     """Header bar component"""
     return rx.box(
         rx.hstack(
-            # Logo & Title
+            # Logo, File Menu & Editable Project Title
             rx.hstack(
-                rx.icon("git-branch", size=28, color="#3b82f6"),
-                rx.vstack(
-                    rx.heading("TEMIS Web Flow", size="5", weight="bold", color="#1e293b"),
-                    rx.text("Herramienta de Flujos & Gobierno de Proyectos", size="1", color="#64748b"),
-                    spacing="0",
+                rx.icon("git-branch", size=26, color="#3b82f6"),
+                # File Menu Dropdown (Archivo ▾)
+                rx.menu.root(
+                    rx.menu.trigger(
+                        rx.button(
+                            rx.icon("folder-open", size=15),
+                            " Archivo ▾",
+                            color_scheme="gray",
+                            variant="soft",
+                            size="2",
+                            radius="medium",
+                        ),
+                    ),
+                    rx.menu.content(
+                        rx.menu.item(
+                            rx.hstack(rx.icon("file-plus", size=14), rx.text("Nuevo Proyecto"), align="center", spacing="2"),
+                            on_click=FlowState.create_new_project,
+                        ),
+                        rx.menu.item(
+                            rx.hstack(rx.icon("folder", size=14), rx.text("Abrir Reciente..."), align="center", spacing="2"),
+                            on_click=FlowState.open_recent_modal,
+                        ),
+                        rx.menu.item(
+                            rx.hstack(rx.icon("save", size=14), rx.text("Guardar Cambios"), align="center", spacing="2"),
+                            on_click=FlowState.save_diagram,
+                        ),
+                        rx.menu.separator(),
+                        rx.menu.item(
+                            rx.hstack(rx.icon("upload", size=14), rx.text("Importar Diagrama / PDF..."), align="center", spacing="2"),
+                            on_click=FlowState.open_import_modal,
+                        ),
+                        rx.menu.item(
+                            rx.hstack(rx.icon("download", size=14), rx.text("Exportar JSON..."), align="center", spacing="2"),
+                            on_click=FlowState.export_as_json,
+                        ),
+                        rx.menu.item(
+                            rx.hstack(rx.icon("package", size=14), rx.text("Exportar Paquete (.temis.json)"), align="center", spacing="2"),
+                            on_click=FlowState.export_project_package,
+                        ),
+                    ),
+                ),
+                # Editable Project Name Input
+                rx.hstack(
+                    rx.input(
+                        value=FlowState.project_name,
+                        on_change=FlowState.set_project_name,
+                        width="240px",
+                        size="2",
+                        variant="ghost",
+                        weight="bold",
+                        radius="medium",
+                        color="#1e293b",
+                    ),
+                    rx.icon("pencil", size=12, color="#94a3b8"),
+                    align="center",
+                    spacing="1",
                 ),
                 align="center",
                 spacing="3",

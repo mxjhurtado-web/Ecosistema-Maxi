@@ -13,11 +13,13 @@ from temis_web.components.header import header
 from temis_web.components.sidebar import sidebar
 from temis_web.components.symbology_palette import symbology_palette
 from temis_web.components.flowchart_canvas import flowchart_canvas
+from temis_web.components.project_modal import recent_projects_modal
 
 
 def index() -> rx.Component:
     """Main page layout of TEMIS Web Flow"""
     return rx.box(
+        recent_projects_modal(),
         rx.vstack(
             header(),
             rx.hstack(
