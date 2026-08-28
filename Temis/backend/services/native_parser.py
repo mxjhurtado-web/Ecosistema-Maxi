@@ -4,7 +4,7 @@
 """
 Native Direct Diagram Parsers for TEMIS
 Imports Lucidchart CSV of shape data, JSON, and SVG directly without LLM/Gemini intervention
-100% Deterministic, preserves exact text, shapes, connections and positions per diagram page
+100% Deterministic, preserves exact text, shapes, connections and positions per diagram page tab
 """
 
 import csv
@@ -53,22 +53,14 @@ def clean_id(val: Any) -> str:
     return str(val or "").strip().lower()
 
 
-def build_single_page_diagram(page_id: str, raw_shapes: List[Dict[str, Any]], raw_lines: List[Tuple[str, str, str]], page_num: int) -> Dict[str, Any]:
-    """Build clean nodes and edges for a single diagram page"""
+def build_single_page_diagram(page_id: str, raw_shapes: List[Dict[str, Any]], raw_lines: List[Tuple[str, str, str]], page_title: str) -> Dict[str, Any]:
+    """Build clean nodes and edges for a single diagram page tab"""
     shape_id_map = {}
     id_to_shape = {}
-    detected_page_title = None
 
     for idx, shape in enumerate(raw_shapes):
         node_id = f"node-{idx+1}"
         id_to_shape[node_id] = shape
-
-        shape_name = (shape.get("name") or shape.get("shape library") or "").strip()
-        text = (shape.get("text area 1") or shape.get("name") or shape.get("text") or "").strip()
-
-        # Extract page title if page header shape is present
-        if shape_name.lower() in ["page", "document"] and text and not detected_page_title:
-            detected_page_title = text
 
         raw_id = shape.get("id")
         raw_shape_id = shape.get("shape id")
@@ -156,13 +148,13 @@ def build_single_page_diagram(page_id: str, raw_shapes: List[Dict[str, Any]], ra
                 shape.get("text") or 
                 ""
             )
-            shape_name = shape.get("name") or shape.get("shape library") or ""
+            shape_name = (shape.get("name") or shape.get("shape library") or "").strip().lower()
 
             # Skip empty decorative icons or page title shapes
             if text.strip() in ["User Image", "User Images", ""] and nid not in adj_in and nid not in adj_out:
                 continue
 
-            if shape_name.lower() in ["page", "document"] and nid not in adj_in and nid not in adj_out:
+            if shape_name in ["page", "document"] and nid not in adj_in and nid not in adj_out:
                 continue
 
             if not text.strip():
@@ -201,11 +193,6 @@ def build_single_page_diagram(page_id: str, raw_shapes: List[Dict[str, Any]], ra
             }
             nodes.append(node_dict)
 
-    if detected_page_title:
-        page_title = f"{detected_page_title} ({len(nodes)} nodos)"
-    else:
-        page_title = f"Página {page_num} ({len(nodes)} nodos)"
-
     return {
         "page_id": page_id,
         "name": page_title,
@@ -219,61 +206,53 @@ def build_single_page_diagram(page_id: str, raw_shapes: List[Dict[str, Any]], ra
 def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
     """
     Parse Lucidchart 'CSV of shape data' export directly
-    Groups shapes and lines by Page ID to produce multi-tab diagram pages
+    Splits document by exact Lucidchart Page Tab boundaries (Name == 'Page')
     """
     f = io.StringIO(csv_content)
     reader = csv.DictReader(f)
 
-    page_shapes = {}
-    page_lines = {}
-
-    for idx, row in enumerate(reader):
+    rows = []
+    for row in reader:
         norm_row = {clean_id(k): (v or "").strip() for k, v in row.items() if k}
-        page_id = norm_row.get("page id") or "1"
+        rows.append(norm_row)
 
-        line_src = (
-            norm_row.get("line source") or 
-            norm_row.get("linesource") or 
-            norm_row.get("source") or 
-            norm_row.get("from")
-        )
-        line_dst = (
-            norm_row.get("line destination") or 
-            norm_row.get("linedestination") or 
-            norm_row.get("destination") or 
-            norm_row.get("to")
-        )
+    # Find page boundaries (rows with Name == 'page')
+    page_boundaries = []
+    for idx, row in enumerate(rows):
+        name_val = row.get("name", "").strip().lower()
+        if name_val == "page":
+            title = row.get("text area 1") or f"Página {len(page_boundaries)+1}"
+            page_boundaries.append((idx, title))
 
-        if line_src and line_dst:
-            label = (
-                norm_row.get("text area 1") or 
-                norm_row.get("label") or 
-                norm_row.get("text") or 
-                ""
-            )
-            page_lines.setdefault(page_id, []).append((clean_id(line_src), clean_id(line_dst), label))
-        else:
-            page_shapes.setdefault(page_id, []).append(norm_row)
+    # Fallback if no page boundaries found
+    if not page_boundaries:
+        page_boundaries = [(0, "Lienzo Principal")]
 
-    # Build diagram objects for all pages with shapes/lines
     parsed_pages = []
-    for p_num, pid in enumerate(page_shapes.keys(), start=1):
-        lines = page_lines.get(pid, [])
-        shapes = page_shapes.get(pid, [])
-        # Only include pages with actual content
-        if len(shapes) > 0:
-            p_diagram = build_single_page_diagram(pid, shapes, lines, p_num)
+    for b_idx in range(len(page_boundaries)):
+        start_idx = page_boundaries[b_idx][0]
+        end_idx = page_boundaries[b_idx + 1][0] if b_idx + 1 < len(page_boundaries) else len(rows)
+        title = page_boundaries[b_idx][1]
+
+        chunk_rows = rows[start_idx:end_idx]
+        raw_shapes = []
+        raw_lines = []
+
+        for r in chunk_rows:
+            line_src = r.get("line source") or r.get("linesource") or r.get("source") or r.get("from")
+            line_dst = r.get("line destination") or r.get("linedestination") or r.get("destination") or r.get("to")
+            label = r.get("text area 1") or r.get("label") or r.get("text") or ""
+
+            if line_src and line_dst:
+                raw_lines.append((clean_id(line_src), clean_id(line_dst), label))
+            else:
+                raw_shapes.append(r)
+
+        if len(raw_shapes) > 0:
+            p_diagram = build_single_page_diagram(str(b_idx + 1), raw_shapes, raw_lines, title)
             parsed_pages.append(p_diagram)
 
-    # Sort pages so real operational flowcharts with lines come first!
-    parsed_pages.sort(key=lambda p: p.get("line_count", 0), reverse=True)
-
-    # Update page titles to be clean sequential tab names
-    for idx, page in enumerate(parsed_pages, start=1):
-        clean_name = page["name"].split(" (")[0]
-        page["name"] = f"Pestaña {idx}: {clean_name}"
-
-    # Select initial page (main flowchart with most lines)
+    # Select initial active page (first tab with process content, e.g. Tab 1 'Bloques As Is y To Be')
     active = parsed_pages[0] if parsed_pages else {
         "page_id": "1", "name": "Lienzo Principal", "nodes": [], "edges": [], "swimlanes": ["Lienzo Principal"]
     }
