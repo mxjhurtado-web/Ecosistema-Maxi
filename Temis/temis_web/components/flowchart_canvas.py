@@ -167,7 +167,7 @@ def flowchart_canvas() -> rx.Component:
                 radius="medium",
             ),
             rx.button(
-                rx.icon("columns", size=14),
+                rx.icon("columns-2", size=14),
                 rx.cond(FlowState.show_swimlanes, " Ocultar Swimlanes", " Ver Swimlanes"),
                 on_click=FlowState.toggle_swimlanes,
                 color_scheme="gray",

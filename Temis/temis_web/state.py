@@ -211,6 +211,18 @@ class FlowState(rx.State):
         self.selected_node_id = ""
         self.status_message = "Nodo eliminado"
 
+    # Move Selected Node
+    def move_selected_node(self, dx: int, dy: int):
+        """Move or reposition selected node on canvas"""
+        if not self.selected_node_id:
+            return
+        for n in self.nodes:
+            if n["id"] == self.selected_node_id:
+                n["x"] = max(10, n.get("x", 0) + dx)
+                n["y"] = max(10, n.get("y", 0) + dy)
+                break
+        self.status_message = f"Nodo {self.selected_node_id} reposicionado"
+
     # Project Multi-Tab Diagram Pages
     project_pages: List[Dict[str, Any]] = []
     active_page_index: int = 0
