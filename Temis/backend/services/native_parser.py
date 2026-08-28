@@ -57,10 +57,18 @@ def build_single_page_diagram(page_id: str, raw_shapes: List[Dict[str, Any]], ra
     """Build clean nodes and edges for a single diagram page"""
     shape_id_map = {}
     id_to_shape = {}
+    detected_page_title = None
 
     for idx, shape in enumerate(raw_shapes):
         node_id = f"node-{idx+1}"
         id_to_shape[node_id] = shape
+
+        shape_name = (shape.get("name") or shape.get("shape library") or "").strip()
+        text = (shape.get("text area 1") or shape.get("name") or shape.get("text") or "").strip()
+
+        # Extract page title if page header shape is present
+        if shape_name.lower() in ["page", "document"] and text and not detected_page_title:
+            detected_page_title = text
 
         raw_id = shape.get("id")
         raw_shape_id = shape.get("shape id")
@@ -148,15 +156,18 @@ def build_single_page_diagram(page_id: str, raw_shapes: List[Dict[str, Any]], ra
                 shape.get("text") or 
                 ""
             )
-            
-            # Skip empty unmapped decorative user images
+            shape_name = shape.get("name") or shape.get("shape library") or ""
+
+            # Skip empty decorative icons or page title shapes
             if text.strip() in ["User Image", "User Images", ""] and nid not in adj_in and nid not in adj_out:
+                continue
+
+            if shape_name.lower() in ["page", "document"] and nid not in adj_in and nid not in adj_out:
                 continue
 
             if not text.strip():
                 text = f"Paso {nid}"
 
-            shape_name = shape.get("name") or shape.get("shape library") or ""
             container = shape.get("contained by") or shape.get("swimlane") or "Lienzo Principal"
 
             if container:
@@ -190,14 +201,18 @@ def build_single_page_diagram(page_id: str, raw_shapes: List[Dict[str, Any]], ra
             }
             nodes.append(node_dict)
 
-    page_title = f"Pestaña {page_num}: Página {page_id} ({len(nodes)} nodos, {len(valid_edges)} conectores)"
+    if detected_page_title:
+        page_title = f"{detected_page_title} ({len(nodes)} nodos)"
+    else:
+        page_title = f"Página {page_num} ({len(nodes)} nodos)"
 
     return {
         "page_id": page_id,
         "name": page_title,
         "swimlanes": list(swimlanes_set) if swimlanes_set else ["Lienzo Principal"],
         "nodes": nodes,
-        "edges": valid_edges
+        "edges": valid_edges,
+        "line_count": len(valid_edges)
     }
 
 
@@ -240,15 +255,25 @@ def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
         else:
             page_shapes.setdefault(page_id, []).append(norm_row)
 
-    # Sort pages by line count (pages with fewest lines / cleaner flowcharts first, e.g. Page 2 with 68 lines!)
-    sorted_page_ids = sorted(page_shapes.keys(), key=lambda p: len(page_lines.get(p, [])))
-
+    # Build diagram objects for all pages with shapes/lines
     parsed_pages = []
-    for p_num, pid in enumerate(sorted_page_ids, start=1):
-        p_diagram = build_single_page_diagram(pid, page_shapes.get(pid, []), page_lines.get(pid, []), p_num)
-        parsed_pages.append(p_diagram)
+    for p_num, pid in enumerate(page_shapes.keys(), start=1):
+        lines = page_lines.get(pid, [])
+        shapes = page_shapes.get(pid, [])
+        # Only include pages with actual content
+        if len(shapes) > 0:
+            p_diagram = build_single_page_diagram(pid, shapes, lines, p_num)
+            parsed_pages.append(p_diagram)
 
-    # Select initial page (first cleaner page with lines)
+    # Sort pages so real operational flowcharts with lines come first!
+    parsed_pages.sort(key=lambda p: p.get("line_count", 0), reverse=True)
+
+    # Update page titles to be clean sequential tab names
+    for idx, page in enumerate(parsed_pages, start=1):
+        clean_name = page["name"].split(" (")[0]
+        page["name"] = f"Pestaña {idx}: {clean_name}"
+
+    # Select initial page (main flowchart with most lines)
     active = parsed_pages[0] if parsed_pages else {
         "page_id": "1", "name": "Lienzo Principal", "nodes": [], "edges": [], "swimlanes": ["Lienzo Principal"]
     }
