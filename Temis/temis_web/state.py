@@ -268,11 +268,21 @@ class FlowState(rx.State):
         except Exception as e:
             self.status_message = f"Error al importar archivo: {str(e)}"
 
+    # Import Modal State
+    show_import_modal: bool = False
+
+    def open_import_modal(self):
+        self.show_import_modal = True
+
+    def close_import_modal(self):
+        self.show_import_modal = False
+
     async def handle_file_upload(self, files: List[rx.UploadFile]):
         for file in files:
             upload_data = await file.read()
             json_text = upload_data.decode("utf-8")
             self.import_diagram_from_json(json_text)
+        self.show_import_modal = False
 
     # Node Edit Modal State
     show_modal: bool = False

@@ -103,11 +103,13 @@ def render_node(node: rx.Var) -> rx.Component:
 
 
 from temis_web.components.edit_modal import edit_node_modal
+from temis_web.components.import_modal import import_modal
 
 def flowchart_canvas() -> rx.Component:
     """Main Canvas component rendering Swimlanes and Flowchart"""
     return rx.vstack(
         edit_node_modal(),
+        import_modal(),
         # Top Diagram Toolbar
         rx.hstack(
             rx.icon("git-branch", size=20, color="#3b82f6"),
@@ -154,20 +156,15 @@ def flowchart_canvas() -> rx.Component:
                     ),
                 ),
             ),
-            # Import Upload Button
-            rx.upload(
-                rx.button(
-                    rx.icon("upload", size=14),
-                    " Importar...",
-                    color_scheme="indigo",
-                    size="2",
-                    variant="soft",
-                    radius="medium",
-                ),
-                id="upload_diagram",
-                on_drop=FlowState.handle_file_upload,
-                accept={"application/json": [".json", ".temis.json"]},
-                max_files=1,
+            # Import Modal Trigger Button
+            rx.button(
+                rx.icon("upload", size=14),
+                " Importar...",
+                on_click=FlowState.open_import_modal,
+                color_scheme="indigo",
+                size="2",
+                variant="soft",
+                radius="medium",
             ),
             rx.spacer(),
             rx.cond(
