@@ -4711,6 +4711,11 @@ async def agent_interact_inner(
                             await redis.set(state_key, "COMPLETED", ex=3600)
                             await clear_redis_session(redis, contact_id)
                             return AgentInteractResponse(status="success", reply_text=topup_resp.reply_text, derivacion=topup_resp.derivacion)
+                        else:
+                            sc10_text = scripts.get("SC.010.2", "Para continuar, necesito validar algunos datos. ¿Me comparte el número telefónico de la persona quien hizo la recarga y el número al que se realizó, por favor?.")
+                            translated = await translate_script_if_needed(sc10_text, user_text, contact_id=contact_id)
+                            await redis.set(state_key, "WAITING_FOR_TOPUP_PHONES", ex=3600)
+                            return AgentInteractResponse(status="success", reply_text=translated, derivacion="VerificadorEstatusRecargas")
                     elif agent_name == "VerificadorPagoBill" or "bill" in user_text.lower() or "factura" in user_text.lower():
                         bill_req = BillCheckRequest(
                             contact_id=contact_id,
@@ -4725,6 +4730,11 @@ async def agent_interact_inner(
                             await redis.set(state_key, "COMPLETED", ex=3600)
                             await clear_redis_session(redis, contact_id)
                             return AgentInteractResponse(status="success", reply_text=bill_resp.reply_text, derivacion=bill_resp.derivacion)
+                        else:
+                            sc10_text = scripts.get("SC.010.1", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?.")
+                            translated = await translate_script_if_needed(sc10_text, user_text, contact_id=contact_id)
+                            await redis.set(state_key, "WAITING_FOR_BILL_INFO", ex=3600)
+                            return AgentInteractResponse(status="success", reply_text=translated, derivacion="VerificadorPagoBill")
                     else:
                         status_req = StatusCheckRequest(
                             contact_id=contact_id,
@@ -4743,17 +4753,28 @@ async def agent_interact_inner(
                     logger.info(f"Direct resolution in profile fallback failed: {direct_err}")
             
             # Standard profile prompt fallback if no code/data is present
+            if "recarga" in user_text.lower():
+                sc10_text = scripts.get("SC.010.2", "Para continuar, necesito validar algunos datos. ¿Me comparte el número telefónico de la persona quien hizo la recarga y el número al que se realizó, por favor?.")
+                translated = await translate_script_if_needed(sc10_text, user_text, contact_id=contact_id)
+                await redis.set(state_key, "WAITING_FOR_TOPUP_PHONES", ex=3600)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="VerificadorEstatusRecargas")
+            elif "bill" in user_text.lower() or "factura" in user_text.lower() or "servicio" in user_text.lower():
+                sc10_text = scripts.get("SC.010.1", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?.")
+                translated = await translate_script_if_needed(sc10_text, user_text, contact_id=contact_id)
+                await redis.set(state_key, "WAITING_FOR_BILL_INFO", ex=3600)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="VerificadorPagoBill")
+
             attempts_val = await redis.get(attempts_key)
             attempts = int(attempts_val.decode('utf-8')) if attempts_val else 0
             attempts += 1
             if attempts >= 2:
                 sc2_text = scripts.get("SC.002", "No fue posible procesar su solicitud con la información proporcionada. Lo transferiré con un asesor...")
-                translated = await translate_script_if_needed(sc2_text, user_text)
+                translated = await translate_script_if_needed(sc2_text, user_text, contact_id=contact_id)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
             else:
                 await redis.set(attempts_key, str(attempts), ex=3600)
                 sc3_text = scripts.get("SC.003", "Para ayudarle mejor, indíqueme cuál de estas opciones describe su caso...")
-                translated = await translate_script_if_needed(sc3_text, user_text)
+                translated = await translate_script_if_needed(sc3_text, user_text, contact_id=contact_id)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
 
     elif current_state == "WAITING_FOR_CODE":
@@ -4840,17 +4861,28 @@ async def agent_interact_inner(
                 await redis.set(state_key, "WAITING_FOR_NAME", ex=3600)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
         else:
+            if "recarga" in user_text.lower():
+                sc10_text = scripts.get("SC.010.2", "Para continuar, necesito validar algunos datos. ¿Me comparte el número telefónico de la persona quien hizo la recarga y el número al que se realizó, por favor?.")
+                translated = await translate_script_if_needed(sc10_text, user_text, contact_id=contact_id)
+                await redis.set(state_key, "WAITING_FOR_TOPUP_PHONES", ex=3600)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="VerificadorEstatusRecargas")
+            elif "bill" in user_text.lower() or "factura" in user_text.lower() or "servicio" in user_text.lower():
+                sc10_text = scripts.get("SC.010.1", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?.")
+                translated = await translate_script_if_needed(sc10_text, user_text, contact_id=contact_id)
+                await redis.set(state_key, "WAITING_FOR_BILL_INFO", ex=3600)
+                return AgentInteractResponse(status="success", reply_text=translated, derivacion="VerificadorPagoBill")
+
             attempts_val = await redis.get(attempts_key)
             attempts = int(attempts_val.decode('utf-8')) if attempts_val else 0
             attempts += 1
             if attempts >= 2:
                 sc2_text = scripts.get("SC.002", "Lo transferiré con uno de nuestros asesores...")
-                translated = await translate_script_if_needed(sc2_text, user_text)
+                translated = await translate_script_if_needed(sc2_text, user_text, contact_id=contact_id)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
             else:
                 await redis.set(attempts_key, str(attempts), ex=3600)
                 sc9_text = scripts.get("SC.009", "Entiendo que tiene dificultad para localizar la información solicitada. Le comparto una imagen de referencia para que pueda identificar estos datos.")
-                translated = await translate_script_if_needed(sc9_text, user_text)
+                translated = await translate_script_if_needed(sc9_text, user_text, contact_id=contact_id)
                 return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
 
     elif current_state == "WAITING_FOR_BILL_INFO":
