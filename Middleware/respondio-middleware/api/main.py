@@ -3585,8 +3585,13 @@ async def agent_interact(
                     cuA1_trans = await translate_script_if_needed(cuA1_text, request.user_text, contact_id=contact_id)
                     cuA1_clean = strip_script_code_prefix(cuA1_trans)
                     
-                    # Deduplication check: do not prepend CU.A1 if resp.reply_text already starts with it
-                    if cuA1_clean and not resp.reply_text.startswith(cuA1_clean[:30]):
+                    # Deduplication & compliance check: do NOT prepend CU.A1 if resp.reply_text is empty or contains specialized compliance scripts (SC.030, SC.037, etc.) or if requested by specialized agents
+                    is_specialized_script = any(sc in resp.reply_text for sc in [
+                        "Lamento lo sucedido", "alta prioridad", "Su reporte ya fue canalizado", "compártame la siguiente información",
+                        "Verificando la información", "por favor compártame", "número telefónico", "Tracking Number"
+                    ]) or request.agent_name in ["DerivacionBSA", "DerivacionFraudes", "VerificadorEstatusRecargas", "VerificadorPagoBill"]
+
+                    if cuA1_clean and resp.reply_text and not is_specialized_script and not resp.reply_text.startswith(cuA1_clean[:30]):
                         resp.reply_text = f"{cuA1_clean}\n\n{resp.reply_text}"
                         logger.info(f"✨ Mandatory Turn 1 Welcome Script (CU.A1) prepended for contact {contact_id}")
             except Exception as w_err:
