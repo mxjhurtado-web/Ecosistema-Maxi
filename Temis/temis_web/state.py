@@ -88,6 +88,24 @@ class FlowState(rx.State):
     node_label_edit: str = ""
     node_swimlane_edit: str = ""
 
+    # Canvas Zoom State (Figma / Miro / Lucidchart style)
+    zoom_level: float = 1.0
+
+    @rx.var
+    def zoom_percent(self) -> str:
+        return f"{int(round(self.zoom_level * 100))}%"
+
+    def zoom_in(self):
+        if self.zoom_level < 3.0:
+            self.zoom_level = round(self.zoom_level + 0.1, 2)
+
+    def zoom_out(self):
+        if self.zoom_level > 0.3:
+            self.zoom_level = round(self.zoom_level - 0.1, 2)
+
+    def reset_zoom(self):
+        self.zoom_level = 1.0
+
     # AI Text-to-Diagram Generation State
     ai_prompt_text: str = ""
     is_generating_ai: bool = False
