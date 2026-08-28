@@ -3818,15 +3818,16 @@ async def agent_interact_inner(
             sc_turn1_text = scripts.get(sc_turn1_code, default_sc_turn1)
             sc_turn1_trans = await translate_script_if_needed(sc_turn1_text, user_text, contact_id=contact_id)
 
-            if is_bsa_report:
-                logger.info(f"⚖️ Direct immediate handoff to DerivacionBSA for contact {contact_id} using {sc_turn1_code}")
+            target_deriv = "DerivacionBSA" if is_bsa_report else "DerivacionFraudes"
+            if agent_name == "Max":
+                logger.info(f"⚖️ Silent handoff from Max to {target_deriv} for contact {contact_id} (preventing duplicate script delivery)")
                 return AgentInteractResponse(
                     status="success",
-                    reply_text=sc_turn1_trans,
-                    derivacion="DerivacionBSA"
+                    reply_text="",
+                    derivacion=target_deriv
                 )
             else:
-                logger.info(f"🚨 Direct immediate handoff for Fraud for contact {contact_id} using {sc_turn1_code}")
+                logger.info(f"🚨 Delivering Turn 1 script {sc_turn1_code} from {agent_name} for contact {contact_id}")
                 return AgentInteractResponse(
                     status="success",
                     reply_text=sc_turn1_trans,
