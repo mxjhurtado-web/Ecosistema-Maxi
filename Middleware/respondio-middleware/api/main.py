@@ -3825,14 +3825,16 @@ async def agent_interact_inner(
 
             target_deriv = "DerivacionBSA" if is_bsa_report else "DerivacionFraudes"
             if agent_name == "Max":
-                logger.info(f"⚖️ Silent handoff from Max to {target_deriv} for contact {contact_id} (preventing duplicate script delivery)")
+                logger.info(f"⚖️ Delivering exact CU.A1 from Max and derivating to {target_deriv} for contact {contact_id}")
+                cuA1_text = scripts.get("CU.A1", "Gracias por comunicarse a Maxitransfers.\n\nSoy Max, su asistente virtual. Para comenzar a ayudarle, ¿puede indicarme su nombre completo, por favor?\n\nAl continuar en este chat, acepta el tratamiento de sus datos bajo nuestra Política de Privacidad en www.maxitransfers.com/privacidad.\n\n• Por su seguridad, la sesión se cerrará automáticamente si pasa 10 minutos sin actividad.\n• Puede terminar esta conversación en cualquier momento enviando la palabra \"Finalizar\".\n• Si desea hablar con un asesor envíe el mensaje \"Hablar con un asesor\".").strip()
+                cuA1_trans = await translate_script_if_needed(cuA1_text, user_text, contact_id=contact_id)
                 return AgentInteractResponse(
                     status="success",
-                    reply_text="",
+                    reply_text=cuA1_trans,
                     derivacion=target_deriv
                 )
             else:
-                logger.info(f"🚨 Delivering Turn 1 script {sc_turn1_code} from {agent_name} for contact {contact_id}")
+                logger.info(f"🚨 Delivering exact Turn 1 script {sc_turn1_code} from {agent_name} for contact {contact_id}")
                 return AgentInteractResponse(
                     status="success",
                     reply_text=sc_turn1_trans,
