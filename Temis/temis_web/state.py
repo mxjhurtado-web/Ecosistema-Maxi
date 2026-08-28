@@ -323,32 +323,20 @@ class FlowState(rx.State):
 
             elif filename.endswith(".csv"):
                 try:
-                    import csv
-                    import io
+                    from backend.services.native_parser import parse_lucidchart_csv
                     csv_text = upload_data.decode("utf-8-sig")
-                    reader = csv.reader(io.StringIO(csv_text))
-                    header = next(reader, None)
-                    new_nodes = []
-                    count = 1
-                    for row in reader:
-                        if len(row) >= 3:
-                            new_nodes.append({
-                                "id": f"node-{count}",
-                                "type": row[1] if len(row) > 1 and row[1] else "node_activity",
-                                "label": row[2] if len(row) > 2 else f"Paso {count}",
-                                "swimlane": row[3] if len(row) > 3 and row[3] else "Actor 1",
-                                "activity_number": int(row[4]) if len(row) > 4 and row[4].isdigit() else count,
-                                "attached_system": row[5] if len(row) > 5 else "",
-                                "attached_channel": row[6] if len(row) > 6 else "",
-                                "x": 100 + (count * 160) % 700,
-                                "y": 120 + (count * 40) % 300,
-                            })
-                            count += 1
-                    if new_nodes:
-                        self.nodes = new_nodes
-                        self.status_message = f"CSV '{file.filename}' importado ({len(new_nodes)} nodos)"
+                    result = parse_lucidchart_csv(csv_text)
+                    if result.get("nodes"):
+                        self.nodes = result["nodes"]
+                        self.edges = result.get("edges", [])
+                        if result.get("swimlanes"):
+                            self.swimlanes = result["swimlanes"]
+                        self.diagram_title = result.get("title", self.diagram_title)
+                        self.status_message = f"CSV de Lucidchart importado directamente ({len(result['nodes'])} nodos, {len(result.get('edges', []))} conectores)"
+                    else:
+                        self.status_message = "No se encontraron nodos en el CSV"
                 except Exception as e:
-                    self.status_message = f"Error al importar CSV: {str(e)}"
+                    self.status_message = f"Error al importar CSV de Lucidchart: {str(e)}"
 
             else:
                 try:
