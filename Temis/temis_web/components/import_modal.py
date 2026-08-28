@@ -16,7 +16,7 @@ def import_modal() -> rx.Component:
         rx.dialog.content(
             rx.dialog.title("Importar Diagrama o Proyecto", size="4", weight="bold"),
             rx.dialog.description(
-                "Selecciona o arrastra un archivo de diagrama (.json) o paquete de proyecto (.temis.json):",
+                "Selecciona o arrastra un archivo en formato PDF, JSON, CSV o paquete .temis.json:",
                 size="2",
                 color="#64748b",
             ),
@@ -24,15 +24,19 @@ def import_modal() -> rx.Component:
                 rx.upload(
                     rx.vstack(
                         rx.icon("cloud-upload", size=36, color="#3b82f6"),
-                        rx.text("Haz clic o arrastra tu archivo JSON aquí", size="2", weight="bold", color="#334155"),
-                        rx.text("Formatos permitidos: .json, .temis.json", size="1", color="#94a3b8"),
+                        rx.text("Haz clic o arrastra tu archivo PDF, JSON o CSV aquí", size="2", weight="bold", color="#334155"),
+                        rx.text("Formatos permitidos: .pdf, .json, .csv, .temis.json", size="1", color="#94a3b8"),
                         align="center",
                         spacing="2",
                         padding="4",
                     ),
                     id="upload_diagram",
                     on_drop=FlowState.handle_file_upload,
-                    accept={"application/json": [".json", ".temis.json"]},
+                    accept={
+                        "application/pdf": [".pdf"],
+                        "application/json": [".json", ".temis.json"],
+                        "text/csv": [".csv"],
+                    },
                     max_files=1,
                     border="2px dashed #cbd5e1",
                     border_radius="xl",

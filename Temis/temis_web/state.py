@@ -297,9 +297,66 @@ class FlowState(rx.State):
 
     async def handle_file_upload(self, files: List[rx.UploadFile]):
         for file in files:
+            filename = file.filename.lower()
             upload_data = await file.read()
-            json_text = upload_data.decode("utf-8")
-            self.import_diagram_from_json(json_text)
+
+            if filename.endswith(".pdf"):
+                self.status_message = "Procesando PDF con Gemini AI..."
+                try:
+                    import io
+                    import PyPDF2
+                    pdf_reader = PyPDF2.PdfReader(io.BytesIO(upload_data))
+                    extracted_text = ""
+                    for page in pdf_reader.pages:
+                        txt = page.extract_text()
+                        if txt:
+                            extracted_text += txt + "\n"
+                    
+                    if not extracted_text.strip():
+                        extracted_text = f"Diagrama de flujo extraído del archivo {file.filename}"
+
+                    self.ai_prompt_text = f"Genera el flujo a partir de este documento PDF: {extracted_text[:1500]}"
+                    self.generate_with_gemini()
+                    self.status_message = f"PDF '{file.filename}' procesado e importado con IA"
+                except Exception as e:
+                    self.status_message = f"Error al procesar PDF: {str(e)}"
+
+            elif filename.endswith(".csv"):
+                try:
+                    import csv
+                    import io
+                    csv_text = upload_data.decode("utf-8-sig")
+                    reader = csv.reader(io.StringIO(csv_text))
+                    header = next(reader, None)
+                    new_nodes = []
+                    count = 1
+                    for row in reader:
+                        if len(row) >= 3:
+                            new_nodes.append({
+                                "id": f"node-{count}",
+                                "type": row[1] if len(row) > 1 and row[1] else "node_activity",
+                                "label": row[2] if len(row) > 2 else f"Paso {count}",
+                                "swimlane": row[3] if len(row) > 3 and row[3] else "Actor 1",
+                                "activity_number": int(row[4]) if len(row) > 4 and row[4].isdigit() else count,
+                                "attached_system": row[5] if len(row) > 5 else "",
+                                "attached_channel": row[6] if len(row) > 6 else "",
+                                "x": 100 + (count * 160) % 700,
+                                "y": 120 + (count * 40) % 300,
+                            })
+                            count += 1
+                    if new_nodes:
+                        self.nodes = new_nodes
+                        self.status_message = f"CSV '{file.filename}' importado ({len(new_nodes)} nodos)"
+                except Exception as e:
+                    self.status_message = f"Error al importar CSV: {str(e)}"
+
+            else:
+                try:
+                    json_text = upload_data.decode("utf-8")
+                    self.import_diagram_from_json(json_text)
+                except Exception as e:
+                    self.status_message = f"Error al leer JSON: {str(e)}"
+
         self.show_import_modal = False
 
     # Node Edit Modal State
