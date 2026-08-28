@@ -248,13 +248,27 @@ def flowchart_canvas() -> rx.Component:
                     ),
                     # Smooth Bézier Connection lines between nodes
                     rx.foreach(
-                        FlowState.edges,
-                        lambda edge: rx.el.path(
-                            d="M 120 140 C 200 140, 200 140, 280 140",
-                            stroke="#2563eb",
-                            stroke_width="2.5",
-                            fill="none",
-                            marker_end="url(#arrow-blue)",
+                        FlowState.computed_edges,
+                        lambda edge: rx.el.g(
+                            rx.el.path(
+                                d=edge["d"],
+                                stroke="#2563eb",
+                                stroke_width="2.5",
+                                fill="none",
+                                marker_end="url(#arrow-blue)",
+                            ),
+                            rx.cond(
+                                edge["has_label"],
+                                rx.el.text(
+                                    edge["label"],
+                                    x=edge["label_x"].to(str),
+                                    y=edge["label_y"].to(str),
+                                    fill="#16a34a",
+                                    font_size="12px",
+                                    font_weight="bold",
+                                    text_anchor="middle",
+                                ),
+                            ),
                         ),
                     ),
                     width="100%",

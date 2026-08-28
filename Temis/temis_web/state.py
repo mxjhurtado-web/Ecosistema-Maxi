@@ -83,6 +83,35 @@ class FlowState(rx.State):
         {"id": "e3-4", "source": "node-3", "target": "node-4", "label": "Sí"}
     ]
 
+    @rx.var
+    def computed_edges(self) -> List[Dict[str, Any]]:
+        """Calculate dynamic SVG Bézier curve paths (M x1 y1 C cx1 cy1, cx2 cy2, x2 y2) and midpoint labels"""
+        node_map = {n["id"]: n for n in self.nodes}
+        res = []
+        for e in self.edges:
+            src = node_map.get(e["source"])
+            dst = node_map.get(e["target"])
+            if src and dst:
+                x1 = src.get("x", 0) + 150
+                y1 = src.get("y", 0) + 25
+                x2 = dst.get("x", 0)
+                y2 = dst.get("y", 0) + 25
+                dx = max(40, abs(x2 - x1) / 2)
+                cx1 = x1 + dx
+                cy1 = y1
+                cx2 = x2 - dx
+                cy2 = y2
+                lbl = e.get("label", "")
+                res.append({
+                    "id": e.get("id", ""),
+                    "d": f"M {x1} {y1} C {cx1} {cy1}, {cx2} {cy2}, {x2} {y2}",
+                    "label": lbl,
+                    "label_x": (x1 + x2) / 2,
+                    "label_y": (y1 + y2) / 2 - 8,
+                    "has_label": bool(lbl),
+                })
+        return res
+
     # Selection & Editor state
     selected_node_id: str = ""
     node_label_edit: str = ""
