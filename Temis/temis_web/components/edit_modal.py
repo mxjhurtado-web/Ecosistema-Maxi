@@ -15,7 +15,7 @@ def edit_node_modal() -> rx.Component:
     return rx.dialog.root(
         rx.dialog.content(
             rx.dialog.title("Propiedades del Nodo", size="4", weight="bold"),
-            rx.dialog.description(f"Edita la información y símbolos del nodo {FlowState.modal_node_id}:", size="2", color="#64748b"),
+            rx.dialog.description("Edita la información y símbolos del nodo ", FlowState.modal_node_id, ":", size="2", color="#64748b"),
             rx.vstack(
                 # Label field
                 rx.vstack(

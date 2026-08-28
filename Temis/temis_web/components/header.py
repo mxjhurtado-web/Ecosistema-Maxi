@@ -53,7 +53,7 @@ def header() -> rx.Component:
             # Status Badge & Project Info
             rx.hstack(
                 rx.badge(FlowState.status_message, color_scheme="blue", variant="soft", size="2"),
-                rx.badge(f"Fase {FlowState.current_phase}: {FlowState.phase_name}", color_scheme="purple", size="2"),
+                rx.badge("Fase ", FlowState.current_phase, ": ", FlowState.phase_name, color_scheme="purple", size="2"),
                 align="center",
                 spacing="2",
             ),

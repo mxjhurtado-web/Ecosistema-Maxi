@@ -170,7 +170,7 @@ def flowchart_canvas() -> rx.Component:
             rx.cond(
                 FlowState.selected_node_id != "",
                 rx.hstack(
-                    rx.badge(f"Nodo: {FlowState.selected_node_id}", color_scheme="blue", variant="soft"),
+                    rx.badge("Nodo: ", FlowState.selected_node_id, color_scheme="blue", variant="soft"),
                     rx.button(
                         rx.icon("pencil", size=14),
                         "Editar Propiedades",
@@ -264,7 +264,7 @@ def flowchart_canvas() -> rx.Component:
                 background_image="radial-gradient(#cbd5e1 1px, transparent 1px)",
                 background_size="20px 20px",
                 overflow="auto",
-                transform=f"scale({FlowState.zoom_level})",
+                transform="scale(" + FlowState.zoom_level.to(str) + ")",
                 transform_origin="top left",
                 transition="transform 0.1s ease-out",
             ),
