@@ -99,24 +99,31 @@ def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
             # Shape row
             raw_shapes.append(norm_row)
 
-    # Map raw shape IDs to clean TEMIS node IDs
+    # Map raw shape IDs to clean TEMIS node IDs (Mapping BOTH Id column and Shape ID column)
     shape_id_map = {}
     id_to_shape = {}
 
     for idx, shape in enumerate(raw_shapes):
-        raw_id = (
-            shape.get("id") or 
-            shape.get("shape id") or 
-            shape.get("key") or 
-            f"s-{idx+1}"
-        )
-        cid = clean_id(raw_id)
         node_id = f"node-{idx+1}"
-        shape_id_map[cid] = node_id
-        # Also map integer strings
-        if cid.isdigit():
-            shape_id_map[str(int(cid))] = node_id
         id_to_shape[node_id] = shape
+
+        raw_id = shape.get("id")
+        raw_shape_id = shape.get("shape id")
+        raw_key = shape.get("key")
+
+        if raw_id:
+            cid = clean_id(raw_id)
+            shape_id_map[cid] = node_id
+            if cid.isdigit():
+                shape_id_map[str(int(cid))] = node_id
+
+        if raw_shape_id:
+            cid_shape = clean_id(raw_shape_id)
+            shape_id_map[cid_shape] = node_id
+
+        if raw_key:
+            cid_key = clean_id(raw_key)
+            shape_id_map[cid_key] = node_id
 
     # Process Edges with mapped IDs
     valid_edges = []
@@ -187,8 +194,16 @@ def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
                 shape.get("text area 1") or 
                 shape.get("name") or 
                 shape.get("text") or 
-                f"Paso {nid}"
+                ""
             )
+            
+            # Skip empty unmapped decorative user images
+            if text.strip() in ["User Image", "User Images", ""] and nid not in adj_in and nid not in adj_out:
+                continue
+
+            if not text.strip():
+                text = f"Paso {nid}"
+
             shape_name = shape.get("name") or shape.get("shape library") or ""
             container = shape.get("contained by") or shape.get("swimlane") or "Lienzo Principal"
 
