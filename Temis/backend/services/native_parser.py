@@ -4,7 +4,7 @@
 """
 Native Direct Diagram Parsers for TEMIS
 Imports Lucidchart CSV of shape data, JSON, and SVG directly without LLM/Gemini intervention
-100% Deterministic, preserves exact text, shapes, connections and positions
+100% Deterministic, preserves exact text, shapes, connections and positions per diagram page
 """
 
 import csv
@@ -53,27 +53,22 @@ def clean_id(val: Any) -> str:
     return str(val or "").strip().lower()
 
 
-def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
+def parse_lucidchart_csv(csv_content: str, target_page_id: str = None) -> Dict[str, Any]:
     """
     Parse Lucidchart 'CSV of shape data' export directly
-    Extracts all shapes, text labels, line connections, and applies topological process layout
+    Groups shapes and lines by Page ID to render pristine, clean individual page flowcharts
     """
-    nodes = []
-    edges = []
-    swimlanes_set = set()
-
     # Read CSV
     f = io.StringIO(csv_content)
     reader = csv.DictReader(f)
 
-    raw_shapes = []
-    raw_lines = []
+    page_shapes = {}
+    page_lines = {}
 
     for idx, row in enumerate(reader):
-        # Normalize header keys (strip spaces / lowercase)
         norm_row = {clean_id(k): (v or "").strip() for k, v in row.items() if k}
-        
-        # Detect line connector vs shape
+        page_id = norm_row.get("page id") or "1"
+
         line_src = (
             norm_row.get("line source") or 
             norm_row.get("linesource") or 
@@ -86,7 +81,7 @@ def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
             norm_row.get("destination") or 
             norm_row.get("to")
         )
-        
+
         if line_src and line_dst:
             label = (
                 norm_row.get("text area 1") or 
@@ -94,12 +89,20 @@ def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
                 norm_row.get("text") or 
                 ""
             )
-            raw_lines.append((clean_id(line_src), clean_id(line_dst), label))
+            page_lines.setdefault(page_id, []).append((clean_id(line_src), clean_id(line_dst), label))
         else:
-            # Shape row
-            raw_shapes.append(norm_row)
+            page_shapes.setdefault(page_id, []).append(norm_row)
 
-    # Map raw shape IDs to clean TEMIS node IDs (Mapping BOTH Id column and Shape ID column)
+    # Determine best page to load (if target_page_id not specified)
+    if not target_page_id or target_page_id not in page_shapes:
+        # Find page with the highest number of line connectors
+        best_page = max(page_lines.keys(), key=lambda p: len(page_lines[p])) if page_lines else (list(page_shapes.keys())[0] if page_shapes else "1")
+        target_page_id = best_page
+
+    raw_shapes = page_shapes.get(target_page_id, [])
+    raw_lines = page_lines.get(target_page_id, [])
+
+    # Map raw shape IDs to clean TEMIS node IDs
     shape_id_map = {}
     id_to_shape = {}
 
@@ -125,7 +128,7 @@ def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
             cid_key = clean_id(raw_key)
             shape_id_map[cid_key] = node_id
 
-    # Process Edges with mapped IDs
+    # Process Edges for target page
     valid_edges = []
     adj_out = {}
     adj_in = {}
@@ -145,16 +148,14 @@ def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
             adj_out.setdefault(mapped_src, []).append(mapped_dst)
             adj_in.setdefault(mapped_dst, []).append(mapped_src)
 
-    # Topological Flowchart Layout Calculation (Level BFS)
+    # Topological Flowchart Layout Calculation
     levels = {}
     all_node_ids = list(id_to_shape.keys())
     
-    # Root nodes: nodes with no incoming edges or start/inicio nodes
     roots = [nid for nid in all_node_ids if nid not in adj_in]
     if not roots:
         roots = all_node_ids[:1]
 
-    # Assign Levels via BFS
     queue = [(nid, 0) for nid in roots]
     visited = set()
 
@@ -169,19 +170,19 @@ def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
             if next_id not in visited:
                 queue.append((next_id, lvl + 1))
 
-    # Assign level 0 for any unvisited isolated nodes
     for nid in all_node_ids:
         if nid not in levels:
             levels[nid] = 0
 
-    # Group nodes by level for grid coordinate placement
     level_groups = {}
     for nid, lvl in levels.items():
         level_groups.setdefault(lvl, []).append(nid)
 
-    # Layout Parameters
-    col_width = 280
-    row_height = 140
+    # Compact Layout Parameters matching PDF style
+    nodes = []
+    swimlanes_set = set()
+    col_width = 240
+    row_height = 110
     start_x = 80
     start_y = 100
 
@@ -212,7 +213,7 @@ def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
 
             node_type = map_lucid_shape_to_temis(shape_name, text)
 
-            # Check if Lucidchart provided explicit X, Y coordinates
+            # Check explicit coordinates
             x_val = shape.get("x") or shape.get("left") or shape.get("pos_x")
             y_val = shape.get("y") or shape.get("top") or shape.get("pos_y")
 
@@ -241,8 +242,10 @@ def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
     swimlanes_list = list(swimlanes_set) if swimlanes_set else ["Lienzo Principal"]
 
     return {
-        "title": "Diagrama Importado de Lucidchart",
+        "title": f"Diagrama Importado de Lucidchart (Página {target_page_id})",
         "swimlanes": swimlanes_list,
         "nodes": nodes,
-        "edges": valid_edges
+        "edges": valid_edges,
+        "current_page": target_page_id,
+        "total_pages": len(page_shapes)
     }
