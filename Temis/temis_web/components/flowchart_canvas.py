@@ -166,6 +166,15 @@ def flowchart_canvas() -> rx.Component:
                 variant="soft",
                 radius="medium",
             ),
+            rx.button(
+                rx.icon("columns", size=14),
+                rx.cond(FlowState.show_swimlanes, " Ocultar Swimlanes", " Ver Swimlanes"),
+                on_click=FlowState.toggle_swimlanes,
+                color_scheme="gray",
+                variant="soft",
+                size="2",
+                radius="medium",
+            ),
             rx.spacer(),
             rx.cond(
                 FlowState.selected_node_id != "",
@@ -207,15 +216,18 @@ def flowchart_canvas() -> rx.Component:
         ),
         # Swimlanes Layout & Canvas Area
         rx.box(
-            # Swimlanes Header Columns
-            rx.hstack(
-                rx.box(rx.text("INPUT", size="2", weight="bold", color="#1e293b"), width="25%", background_color="#f8fafc", padding="2", text_align="center", border_right="1px solid #e2e8f0"),
-                rx.box(rx.text("ACTOR 1 (ej. Usuario)", size="2", weight="bold", color="#16a34a"), width="25%", background_color="#f0fdf4", padding="2", text_align="center", border_right="1px solid #e2e8f0"),
-                rx.box(rx.text("ACTOR 2 (ej. Sistema)", size="2", weight="bold", color="#2563eb"), width="25%", background_color="#eff6ff", padding="2", text_align="center", border_right="1px solid #e2e8f0"),
-                rx.box(rx.text("OUTPUT", size="2", weight="bold", color="#475569"), width="25%", background_color="#f8fafc", padding="2", text_align="center"),
-                width="100%",
-                spacing="0",
-                border_bottom="2px solid #cbd5e1",
+            # Optional Swimlanes Header Columns
+            rx.cond(
+                FlowState.show_swimlanes,
+                rx.hstack(
+                    rx.box(rx.text("INPUT", size="2", weight="bold", color="#1e293b"), width="25%", background_color="#f8fafc", padding="2", text_align="center", border_right="1px solid #e2e8f0"),
+                    rx.box(rx.text("ACTOR 1 (ej. Usuario)", size="2", weight="bold", color="#16a34a"), width="25%", background_color="#f0fdf4", padding="2", text_align="center", border_right="1px solid #e2e8f0"),
+                    rx.box(rx.text("ACTOR 2 (ej. Sistema)", size="2", weight="bold", color="#2563eb"), width="25%", background_color="#eff6ff", padding="2", text_align="center", border_right="1px solid #e2e8f0"),
+                    rx.box(rx.text("OUTPUT", size="2", weight="bold", color="#475569"), width="25%", background_color="#f8fafc", padding="2", text_align="center"),
+                    width="100%",
+                    spacing="0",
+                    border_bottom="2px solid #cbd5e1",
+                ),
             ),
             # Interactive Flowchart Board
             rx.box(
@@ -258,15 +270,13 @@ def flowchart_canvas() -> rx.Component:
                     render_node,
                 ),
                 width="100%",
-                height="calc(100vh - 145px)",
+                min_height="calc(100vh - 145px)",
                 position="relative",
                 background_color="#fafafa",
                 background_image="radial-gradient(#cbd5e1 1px, transparent 1px)",
                 background_size="20px 20px",
                 overflow="auto",
-                transform="scale(" + FlowState.zoom_level.to(str) + ")",
-                transform_origin="top left",
-                transition="transform 0.1s ease-out",
+                style={"zoom": FlowState.zoom_level.to(str)},
             ),
             # Floating Zoom Controls (Lucidchart / Figma / Miro Style)
             rx.hstack(

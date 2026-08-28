@@ -21,7 +21,6 @@ def index() -> rx.Component:
         rx.vstack(
             header(),
             rx.hstack(
-                sidebar(),
                 flowchart_canvas(),
                 symbology_palette(),
                 width="100%",

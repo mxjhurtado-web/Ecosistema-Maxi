@@ -50,10 +50,31 @@ def header() -> rx.Component:
                 spacing="2",
             ),
             rx.spacer(),
-            # Status Badge & Project Info
+            # Status Badge & Governance Phase Dropdown
             rx.hstack(
                 rx.badge(FlowState.status_message, color_scheme="blue", variant="soft", size="2"),
-                rx.badge("Fase ", FlowState.current_phase, ": ", FlowState.phase_name, color_scheme="purple", size="2"),
+                rx.menu.root(
+                    rx.menu.trigger(
+                        rx.button(
+                            rx.icon("layers", size=16),
+                            " Gobernanza: Fase ",
+                            FlowState.current_phase,
+                            " ▾",
+                            color_scheme="purple",
+                            variant="soft",
+                            size="2",
+                        ),
+                    ),
+                    rx.menu.content(
+                        rx.menu.item("Fase 1: Diagnóstico Estratégico", on_click=lambda: FlowState.set_phase(1)),
+                        rx.menu.item("Fase 2: Inicio del Proyecto", on_click=lambda: FlowState.set_phase(2)),
+                        rx.menu.item("Fase 3: Planificación Híbrida", on_click=lambda: FlowState.set_phase(3)),
+                        rx.menu.item("Fase 4: Ejecución Iterativa", on_click=lambda: FlowState.set_phase(4)),
+                        rx.menu.item("Fase 5: Monitoreo y Control", on_click=lambda: FlowState.set_phase(5)),
+                        rx.menu.item("Fase 6: Mejora Continua", on_click=lambda: FlowState.set_phase(6)),
+                        rx.menu.item("Fase 7: Cierre del Proyecto", on_click=lambda: FlowState.set_phase(7)),
+                    ),
+                ),
                 align="center",
                 spacing="2",
             ),

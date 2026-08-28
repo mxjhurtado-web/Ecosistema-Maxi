@@ -90,6 +90,7 @@ class FlowState(rx.State):
 
     # Canvas Zoom State (Figma / Miro / Lucidchart style)
     zoom_level: float = 1.0
+    show_swimlanes: bool = False
 
     @rx.var
     def zoom_percent(self) -> str:
@@ -105,6 +106,9 @@ class FlowState(rx.State):
 
     def reset_zoom(self):
         self.zoom_level = 1.0
+
+    def toggle_swimlanes(self):
+        self.show_swimlanes = not self.show_swimlanes
 
     # AI Text-to-Diagram Generation State
     ai_prompt_text: str = ""
