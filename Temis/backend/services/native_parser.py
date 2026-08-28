@@ -53,56 +53,8 @@ def clean_id(val: Any) -> str:
     return str(val or "").strip().lower()
 
 
-def parse_lucidchart_csv(csv_content: str, target_page_id: str = None) -> Dict[str, Any]:
-    """
-    Parse Lucidchart 'CSV of shape data' export directly
-    Groups shapes and lines by Page ID to render pristine, clean individual page flowcharts
-    """
-    # Read CSV
-    f = io.StringIO(csv_content)
-    reader = csv.DictReader(f)
-
-    page_shapes = {}
-    page_lines = {}
-
-    for idx, row in enumerate(reader):
-        norm_row = {clean_id(k): (v or "").strip() for k, v in row.items() if k}
-        page_id = norm_row.get("page id") or "1"
-
-        line_src = (
-            norm_row.get("line source") or 
-            norm_row.get("linesource") or 
-            norm_row.get("source") or 
-            norm_row.get("from")
-        )
-        line_dst = (
-            norm_row.get("line destination") or 
-            norm_row.get("linedestination") or 
-            norm_row.get("destination") or 
-            norm_row.get("to")
-        )
-
-        if line_src and line_dst:
-            label = (
-                norm_row.get("text area 1") or 
-                norm_row.get("label") or 
-                norm_row.get("text") or 
-                ""
-            )
-            page_lines.setdefault(page_id, []).append((clean_id(line_src), clean_id(line_dst), label))
-        else:
-            page_shapes.setdefault(page_id, []).append(norm_row)
-
-    # Determine best page to load (if target_page_id not specified)
-    if not target_page_id or target_page_id not in page_shapes:
-        # Find page with the highest number of line connectors
-        best_page = max(page_lines.keys(), key=lambda p: len(page_lines[p])) if page_lines else (list(page_shapes.keys())[0] if page_shapes else "1")
-        target_page_id = best_page
-
-    raw_shapes = page_shapes.get(target_page_id, [])
-    raw_lines = page_lines.get(target_page_id, [])
-
-    # Map raw shape IDs to clean TEMIS node IDs
+def build_single_page_diagram(page_id: str, raw_shapes: List[Dict[str, Any]], raw_lines: List[Tuple[str, str, str]], page_num: int) -> Dict[str, Any]:
+    """Build clean nodes and edges for a single diagram page"""
     shape_id_map = {}
     id_to_shape = {}
 
@@ -128,7 +80,7 @@ def parse_lucidchart_csv(csv_content: str, target_page_id: str = None) -> Dict[s
             cid_key = clean_id(raw_key)
             shape_id_map[cid_key] = node_id
 
-    # Process Edges for target page
+    # Process Edges
     valid_edges = []
     adj_out = {}
     adj_in = {}
@@ -178,7 +130,6 @@ def parse_lucidchart_csv(csv_content: str, target_page_id: str = None) -> Dict[s
     for nid, lvl in levels.items():
         level_groups.setdefault(lvl, []).append(nid)
 
-    # Compact Layout Parameters matching PDF style
     nodes = []
     swimlanes_set = set()
     col_width = 240
@@ -239,13 +190,73 @@ def parse_lucidchart_csv(csv_content: str, target_page_id: str = None) -> Dict[s
             }
             nodes.append(node_dict)
 
-    swimlanes_list = list(swimlanes_set) if swimlanes_set else ["Lienzo Principal"]
+    page_title = f"Pestaña {page_num}: Página {page_id} ({len(nodes)} nodos, {len(valid_edges)} conectores)"
 
     return {
-        "title": f"Diagrama Importado de Lucidchart (Página {target_page_id})",
-        "swimlanes": swimlanes_list,
+        "page_id": page_id,
+        "name": page_title,
+        "swimlanes": list(swimlanes_set) if swimlanes_set else ["Lienzo Principal"],
         "nodes": nodes,
-        "edges": valid_edges,
-        "current_page": target_page_id,
-        "total_pages": len(page_shapes)
+        "edges": valid_edges
+    }
+
+
+def parse_lucidchart_csv(csv_content: str) -> Dict[str, Any]:
+    """
+    Parse Lucidchart 'CSV of shape data' export directly
+    Groups shapes and lines by Page ID to produce multi-tab diagram pages
+    """
+    f = io.StringIO(csv_content)
+    reader = csv.DictReader(f)
+
+    page_shapes = {}
+    page_lines = {}
+
+    for idx, row in enumerate(reader):
+        norm_row = {clean_id(k): (v or "").strip() for k, v in row.items() if k}
+        page_id = norm_row.get("page id") or "1"
+
+        line_src = (
+            norm_row.get("line source") or 
+            norm_row.get("linesource") or 
+            norm_row.get("source") or 
+            norm_row.get("from")
+        )
+        line_dst = (
+            norm_row.get("line destination") or 
+            norm_row.get("linedestination") or 
+            norm_row.get("destination") or 
+            norm_row.get("to")
+        )
+
+        if line_src and line_dst:
+            label = (
+                norm_row.get("text area 1") or 
+                norm_row.get("label") or 
+                norm_row.get("text") or 
+                ""
+            )
+            page_lines.setdefault(page_id, []).append((clean_id(line_src), clean_id(line_dst), label))
+        else:
+            page_shapes.setdefault(page_id, []).append(norm_row)
+
+    # Sort pages by line count (pages with fewest lines / cleaner flowcharts first, e.g. Page 2 with 68 lines!)
+    sorted_page_ids = sorted(page_shapes.keys(), key=lambda p: len(page_lines.get(p, [])))
+
+    parsed_pages = []
+    for p_num, pid in enumerate(sorted_page_ids, start=1):
+        p_diagram = build_single_page_diagram(pid, page_shapes.get(pid, []), page_lines.get(pid, []), p_num)
+        parsed_pages.append(p_diagram)
+
+    # Select initial page (first cleaner page with lines)
+    active = parsed_pages[0] if parsed_pages else {
+        "page_id": "1", "name": "Lienzo Principal", "nodes": [], "edges": [], "swimlanes": ["Lienzo Principal"]
+    }
+
+    return {
+        "title": "Proyecto Importado de Lucidchart",
+        "pages": parsed_pages,
+        "nodes": active["nodes"],
+        "edges": active["edges"],
+        "swimlanes": active["swimlanes"]
     }

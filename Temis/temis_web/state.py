@@ -211,17 +211,20 @@ class FlowState(rx.State):
         self.selected_node_id = ""
         self.status_message = "Nodo eliminado"
 
-    # Move Selected Node
-    def move_selected_node(self, dx: int, dy: int):
-        """Move or reposition selected node on canvas"""
-        if not self.selected_node_id:
-            return
-        for n in self.nodes:
-            if n["id"] == self.selected_node_id:
-                n["x"] = max(10, n.get("x", 0) + dx)
-                n["y"] = max(10, n.get("y", 0) + dy)
-                break
-        self.status_message = f"Nodo {self.selected_node_id} reposicionado"
+    # Project Multi-Tab Diagram Pages
+    project_pages: List[Dict[str, Any]] = []
+    active_page_index: int = 0
+
+    def select_page_tab(self, index: int):
+        """Switch active diagram tab page"""
+        if 0 <= index < len(self.project_pages):
+            self.active_page_index = index
+            page = self.project_pages[index]
+            self.nodes = page.get("nodes", [])
+            self.edges = page.get("edges", [])
+            if page.get("swimlanes"):
+                self.swimlanes = page["swimlanes"]
+            self.status_message = f"Cargada {page.get('name', 'Pestaña')}"
 
     # Set diagram title handler
     def set_diagram_title(self, title: str):
@@ -382,10 +385,13 @@ class FlowState(rx.State):
                     if result.get("nodes"):
                         self.nodes = result["nodes"]
                         self.edges = result.get("edges", [])
+                        if result.get("pages"):
+                            self.project_pages = result["pages"]
+                            self.active_page_index = 0
                         if result.get("swimlanes"):
                             self.swimlanes = result["swimlanes"]
                         self.diagram_title = result.get("title", self.diagram_title)
-                        self.status_message = f"CSV de Lucidchart importado directamente ({len(result['nodes'])} nodos, {len(result.get('edges', []))} conectores)"
+                        self.status_message = f"CSV de Lucidchart importado ({len(result.get('pages', []))} pestañas de diagramas)"
                     else:
                         self.status_message = "No se encontraron nodos en el CSV"
                 except Exception as e:

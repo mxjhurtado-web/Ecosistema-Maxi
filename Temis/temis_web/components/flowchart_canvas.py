@@ -242,6 +242,33 @@ def flowchart_canvas() -> rx.Component:
             background_color="#ffffff",
             border_bottom="1px solid #e2e8f0",
         ),
+        # Multi-Tab Diagram Page Navigation Bar (Lucidchart Document Pages)
+        rx.cond(
+            FlowState.project_pages.length() > 0,
+            rx.hstack(
+                rx.icon("layers", size=16, color="#4f46e5"),
+                rx.text("Pestañas del Documento:", size="2", weight="bold", color="#334155"),
+                rx.foreach(
+                    FlowState.project_pages,
+                    lambda page, idx: rx.button(
+                        page["name"],
+                        on_click=lambda: FlowState.select_page_tab(idx),
+                        color_scheme=rx.cond(FlowState.active_page_index == idx, "indigo", "gray"),
+                        variant=rx.cond(FlowState.active_page_index == idx, "solid", "soft"),
+                        size="1",
+                        radius="medium",
+                    ),
+                ),
+                align="center",
+                spacing="2",
+                padding_x="3",
+                padding_y="2",
+                background_color="#f1f5f9",
+                border_bottom="1px solid #cbd5e1",
+                width="100%",
+                overflow_x="auto",
+            ),
+        ),
         # Swimlanes Layout & Canvas Area
         rx.box(
             # Optional Swimlanes Header Columns
