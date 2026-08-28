@@ -125,6 +125,14 @@ class FlowState(rx.State):
     def zoom_percent(self) -> str:
         return f"{int(round(self.zoom_level * 100))}%"
 
+    @rx.var
+    def zoom_width(self) -> str:
+        return f"{int(round(100.0 / max(0.1, self.zoom_level)))}%"
+
+    @rx.var
+    def zoom_height(self) -> str:
+        return f"{int(round(100.0 / max(0.1, self.zoom_level)))}vh"
+
     def zoom_in(self):
         if self.zoom_level < 3.0:
             self.zoom_level = round(self.zoom_level + 0.1, 2)
