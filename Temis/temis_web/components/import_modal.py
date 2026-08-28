@@ -23,7 +23,7 @@ def import_modal() -> rx.Component:
             rx.vstack(
                 rx.upload(
                     rx.vstack(
-                        rx.icon("upload-cloud", size=36, color="#3b82f6"),
+                        rx.icon("cloud-upload", size=36, color="#3b82f6"),
                         rx.text("Haz clic o arrastra tu archivo JSON aquí", size="2", weight="bold", color="#334155"),
                         rx.text("Formatos permitidos: .json, .temis.json", size="1", color="#94a3b8"),
                         align="center",
