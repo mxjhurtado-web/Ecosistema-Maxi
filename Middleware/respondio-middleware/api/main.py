@@ -51,6 +51,21 @@ logging.basicConfig(
 )
 
 
+
+def parse_agency_from_text(text: str) -> str:
+    import re
+    match = re.search(r'(?:agencia|sucursal|agencia:?|sucursal:?|\b#)\s*([0-9]{3,8})', text, re.IGNORECASE)
+    if match:
+        return match.group(1)
+    return ""
+
+def parse_name_from_text(text: str) -> str:
+    import re
+    match = re.search(r'(?:soy|mi nombre es|nombre:?)\s+([A-Za-zÁÉÍÓÚáéíóúÑñ\s]{3,35})', text, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return ""
+
 def match_keyword_safe(keyword: str, text: str) -> bool:
     kw = keyword.lower().strip()
     txt = text.lower()
@@ -3802,11 +3817,20 @@ async def agent_interact_inner(
                     os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or getattr(settings, "GOOGLE_CHATS_FRAUDES_SPACE", None) or "spaces/AAQAQM9pDpg"
                 )
 
-                await google_chat_service.send_alert_detailed(
-                    title="Alerta de Orbit",
-                    message=alert_msg,
-                    level="ERROR",
-                    space_id=target_gchat_space
+                dept_tag = "BSA" if is_bsa_report else "FRAUDES"
+                parsed_name = parse_name_from_text(user_text)
+                parsed_agency = parse_agency_from_text(user_text)
+                parsed_code = sc_turn1_code if 'sc_turn1_code' in locals() else (extraer_codigo_router(user_text) or "")
+                await google_chat_service.send_unified_notification(
+                    dept_key=dept_tag,
+                    contact_id=contact_id,
+                    user_text=user_text,
+                    nombre_usuario=parsed_name or None,
+                    codigo_envio=parsed_code or None,
+                    numero_agencia=parsed_agency or None,
+                    media_url=media_url,
+                    space_id=target_gchat_space,
+                    custom_summary=alert_msg
                 )
                 logger.info(f"✅ Google Chat Alert sent successfully to {target_gchat_space} for contact {contact_id} on Turn 1")
             except Exception as gchat_err:
@@ -3917,11 +3941,20 @@ async def agent_interact_inner(
                 ) if is_bsa_report else (
                     os.getenv("GOOGLE_CHATS_FRAUDES_SPACE") or getattr(settings, "GOOGLE_CHATS_FRAUDES_SPACE", None) or "spaces/AAQAQM9pDpg"
                 )
-                await google_chat_service.send_alert_detailed(
-                    title="Alerta de Orbit",
-                    message=alert_msg,
-                    level="INFO",
-                    space_id=target_gchat_space_t2
+                dept_tag = "BSA" if is_bsa_report else "FRAUDES"
+                parsed_name = parse_name_from_text(user_text)
+                parsed_agency = parse_agency_from_text(user_text)
+                parsed_code = extraer_codigo_router(user_text) or ""
+                await google_chat_service.send_unified_notification(
+                    dept_key=dept_tag,
+                    contact_id=contact_id,
+                    user_text=user_text,
+                    nombre_usuario=parsed_name or None,
+                    codigo_envio=parsed_code or None,
+                    numero_agencia=parsed_agency or None,
+                    media_url=media_url,
+                    space_id=target_gchat_space_t2,
+                    custom_summary=alert_msg
                 )
                 logger.info(f"✅ Google Chat BSA/Fraud Details update sent to {target_gchat_space_t2} for contact {contact_id}")
             except Exception as gchat_err:
@@ -3975,8 +4008,16 @@ async def agent_interact_inner(
     if any(match_keyword_safe(k, user_text_lower) for k in oversight_keywords):
         logger.info(f"🛡️ Agent Oversight request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
-            msg = f"🛡️ *REPORTE DE AGENT OVERSIGHT*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Requerimiento IRS / Auditoría\n📝 *Resumen:* {user_text}"
-            await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="WARNING", space_id="spaces/AAQAJiVCDAU")
+            await google_chat_service.send_unified_notification(
+                dept_key="OVERSIGHT",
+                contact_id=contact_id,
+                user_text=user_text,
+                nombre_usuario=parse_name_from_text(user_text) or None,
+                numero_agencia=parse_agency_from_text(user_text) or None,
+                media_url=media_url,
+                space_id="spaces/AAQAJiVCDAU",
+                custom_summary=f"Requerimiento de Auditoría IRS / Agent Oversight: {user_text}"
+            )
             logger.info("✅ Google Chat Agent Oversight alert sent to spaces/AAQAJiVCDAU")
         except Exception as err:
             logger.error(f"Failed to send Agent Oversight alert: {err}")
@@ -3989,8 +4030,16 @@ async def agent_interact_inner(
     if any(match_keyword_safe(k, user_text_lower) for k in capacitacion_keywords):
         logger.info(f"🎓 Capacitación request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
-            msg = f"🎓 *REPORTE DE CAPACITACIÓN*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Consulta de Capacitación\n📝 *Resumen:* {user_text}"
-            await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="INFO", space_id="spaces/AAQAMKgsazw")
+            await google_chat_service.send_unified_notification(
+                dept_key="CAPACITACION",
+                contact_id=contact_id,
+                user_text=user_text,
+                nombre_usuario=parse_name_from_text(user_text) or None,
+                numero_agencia=parse_agency_from_text(user_text) or None,
+                media_url=media_url,
+                space_id="spaces/AAQAMKgsazw",
+                custom_summary=f"Consulta de Capacitación Anual / POS: {user_text}"
+            )
         except Exception as err:
             logger.error(f"Failed to send Capacitacion alert: {err}")
         sc11_text = scripts.get("SC.011", sc11_default)
@@ -4002,8 +4051,16 @@ async def agent_interact_inner(
     if any(match_keyword_safe(k, user_text_lower) for k in cumplimiento_keywords):
         logger.info(f"⚖️ Cumplimiento request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
-            msg = f"⚖️ *REPORTE DE CUMPLIMIENTO (AML/KYC)*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Requerimiento de Cumplimiento\n📝 *Resumen:* {user_text}"
-            await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="WARNING", space_id="spaces/AAQAbvCUAko")
+            await google_chat_service.send_unified_notification(
+                dept_key="BSA",
+                contact_id=contact_id,
+                user_text=user_text,
+                nombre_usuario=parse_name_from_text(user_text) or None,
+                numero_agencia=parse_agency_from_text(user_text) or None,
+                media_url=media_url,
+                space_id="spaces/AAQAbvCUAko",
+                custom_summary=f"Requerimiento de Cumplimiento AML / KYC / Forma P-4: {user_text}"
+            )
         except Exception as err:
             logger.error(f"Failed to send Cumplimiento alert: {err}")
         sc11_text = scripts.get("SC.011", sc11_default)
@@ -4015,8 +4072,16 @@ async def agent_interact_inner(
     if any(match_keyword_safe(k, user_text_lower) for k in cobranza_keywords):
         logger.info(f"💰 Cobranza request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
-            msg = f"💰 *REPORTE DE COBRANZA*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Consulta de Cobranza / Comisiones\n📝 *Resumen:* {user_text}"
-            await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="INFO", space_id="spaces/AAQAcEu8NTc")
+            await google_chat_service.send_unified_notification(
+                dept_key="COBRANZA",
+                contact_id=contact_id,
+                user_text=user_text,
+                nombre_usuario=parse_name_from_text(user_text) or None,
+                numero_agencia=parse_agency_from_text(user_text) or None,
+                media_url=media_url,
+                space_id="spaces/AAQAcEu8NTc",
+                custom_summary=f"Consulta de Cobranza / Comisiones / Balance: {user_text}"
+            )
         except Exception as err:
             logger.error(f"Failed to send Cobranza alert: {err}")
         sc11_text = scripts.get("SC.011", sc11_default)
@@ -4028,8 +4093,16 @@ async def agent_interact_inner(
     if any(match_keyword_safe(k, user_text_lower) for k in cheques_keywords):
         logger.info(f"🎫 Cheques request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
-            msg = f"🎫 *REPORTE DE CHEQUES*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Consulta / Depósito de Cheque\n📝 *Resumen:* {user_text}"
-            await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="INFO", space_id="spaces/AAQAGZ_m434")
+            await google_chat_service.send_unified_notification(
+                dept_key="CHEQUES",
+                contact_id=contact_id,
+                user_text=user_text,
+                nombre_usuario=parse_name_from_text(user_text) or None,
+                numero_agencia=parse_agency_from_text(user_text) or None,
+                media_url=media_url,
+                space_id="spaces/AAQAGZ_m434",
+                custom_summary=f"Consulta / Revisión de Cheques: {user_text}"
+            )
         except Exception as err:
             logger.error(f"Failed to send Cheques alert: {err}")
         sc11_text = scripts.get("SC.011", sc11_default)
@@ -4041,15 +4114,17 @@ async def agent_interact_inner(
     if any(match_keyword_safe(k, user_text_lower) for k in tech_support_keywords):
         logger.info(f"🛠️ Tech support hardware request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
-            soporte_msg = (
-                f"🛠️ *REPORTE DE SOPORTE TÉCNICO*\n\n"
-                f"👤 *Usuario:* {contact_id}\n"
-                f"🏢 *Agencia:* General\n"
-                f"🎯 *Intención:* Soporte Técnico / Falla Hardware ({user_text[:40]})\n"
-                f"📝 *Detalle:* {user_text}"
-            )
             soporte_space = os.getenv("GOOGLE_CHATS_SOPORTE_SPACE") or "spaces/AAQAQhx5RTM"
-            await google_chat_service.send_alert_detailed(title="Alerta de Soporte Técnico", message=soporte_msg, level="INFO", space_id=soporte_space)
+            await google_chat_service.send_unified_notification(
+                dept_key="SOPORTE_TECNICO",
+                contact_id=contact_id,
+                user_text=user_text,
+                nombre_usuario=parse_name_from_text(user_text) or None,
+                numero_agencia=parse_agency_from_text(user_text) or None,
+                media_url=media_url,
+                space_id=soporte_space,
+                custom_summary=f"Falla Hardware / Soporte Técnico Hermes: {user_text}"
+            )
         except Exception as gchat_err:
             logger.error(f"⚠️ Failed to send Google Chat Tech Support alert: {gchat_err}")
         sc11_text = scripts.get("SC.011", sc11_default)
@@ -4061,8 +4136,16 @@ async def agent_interact_inner(
     if any(match_keyword_safe(k, user_text_lower) for k in ventas_keywords):
         logger.info(f"💼 Ventas Internas request detected for contact {contact_id}: '{user_text[:50]}'")
         try:
-            msg = f"💼 *REPORTE DE VENTAS INTERNAS*\n\n👤 *Contacto:* Contacto #{contact_id}\n🎯 *Intención:* Solicitud de Nueva Agencia\n📝 *Detalle:* {user_text}"
-            await google_chat_service.send_alert_detailed(title="Alerta de Orbit", message=msg, level="SUCCESS", space_id="spaces/AAQAUghCztE")
+            await google_chat_service.send_unified_notification(
+                dept_key="VENTAS",
+                contact_id=contact_id,
+                user_text=user_text,
+                nombre_usuario=parse_name_from_text(user_text) or None,
+                numero_agencia=parse_agency_from_text(user_text) or None,
+                media_url=media_url,
+                space_id="spaces/AAQAUghCztE",
+                custom_summary=f"Solicitud de Alta de Agencia / Ventas Internas: {user_text}"
+            )
         except Exception as err:
             logger.error(f"Failed to send Ventas alert: {err}")
         sc11_text = scripts.get("SC.011", sc11_default)

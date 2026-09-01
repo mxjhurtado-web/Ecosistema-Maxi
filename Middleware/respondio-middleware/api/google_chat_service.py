@@ -184,6 +184,97 @@ class GoogleChatService:
             return False, error_msg
 
 
+    async def send_unified_notification(
+        self,
+        dept_key: str,
+        contact_id: str,
+        user_text: str,
+        nombre_usuario: Optional[str] = None,
+        perfil_nlu: Optional[str] = None,
+        codigo_envio: Optional[str] = None,
+        numero_agencia: Optional[str] = None,
+        media_url: Optional[str] = None,
+        space_id: Optional[str] = None,
+        custom_summary: Optional[str] = None
+    ) -> bool:
+        """
+        Generates and dispatches a structured 8-field Google Chat alert card.
+        """
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        timestamp_ct = datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d %H:%M:%S CT")
+        
+        dept_configs = {
+            "FRAUDES": {
+                "header": "🚨 [ALERTA CRÍTICA - PREVENCIÓN DE FRAUDES / ESTAFA]",
+                "default_space": "spaces/AAQAQM9pDpg"
+            },
+            "BSA": {
+                "header": "🛡️ [ALERTA CRÍTICA - ACTIVIDAD SOSPECHOSA / BSA MONITORING]",
+                "default_space": "spaces/AAQA3WL2JIk"
+            },
+            "OVERSIGHT": {
+                "header": "📢 [NOTIFICACIÓN DE AGENCIA - OVERSIGHT / SOPORTE INTERNO]",
+                "default_space": "spaces/AAQA3WL2JIk"
+            },
+            "CAPACITACION": {
+                "header": "🎓 [SOLICITUD DE CAPACITACIÓN - BSA / CFPB]",
+                "default_space": "spaces/AAQA3WL2JIk"
+            },
+            "COBRANZA": {
+                "header": "💰 [GESTIÓN DE COBRANZA - BALANCE DE AGENCIA]",
+                "default_space": "spaces/AAQA3WL2JIk"
+            },
+            "CHEQUES": {
+                "header": "🎟️ [SOPORTE DE CHEQUES - REVISIÓN Y CANCELACIÓN]",
+                "default_space": "spaces/AAQA3WL2JIk"
+            },
+            "SOPORTE_TECNICO": {
+                "header": "💻 [SOPORTE TÉCNICO - HERMES / EQUIPOS]",
+                "default_space": "spaces/AAQA3WL2JIk"
+            },
+            "VENTAS": {
+                "header": "📈 [SOLICITUD DE VENTAS / ALTA DE AGENCIA]",
+                "default_space": "spaces/AAQA3WL2JIk"
+            }
+        }
+        
+        cfg = dept_configs.get(dept_key.upper(), {
+            "header": f"🔔 [NOTIFICACIÓN DE SEGURIDAD - {dept_key.upper()}]",
+            "default_space": "spaces/AAQA3WL2JIk"
+        })
+        
+        if not perfil_nlu:
+            if any(k in user_text.lower() for k in ["agencia", "sucursal", "ctr", "irs", "hermes", "balance", "agente"]):
+                perfil_nlu = "AGENTE AUTORIZADO"
+            else:
+                perfil_nlu = "REMITENTE / CLIENTE"
+
+        clave_str = codigo_envio or "[No especificada]"
+        agencia_str = f"#{numero_agencia}" if numero_agencia else "[No especificada]"
+        nombre_str = nombre_usuario or "[No proporcionado]"
+        motivo_str = custom_summary or user_text
+        adjunto_str = media_url if media_url else "[Sin archivos adjuntos]"
+
+        formatted_card = (
+            f"*{cfg['header']}*\n"
+            f"─────────────────────────────────────────\n"
+            f"📅 *Timestamp:* `{timestamp_ct}`\n"
+            f"🆔 *ID de Conversación:* `{contact_id}`\n"
+            f"👥 *Perfil Identificado (NLU):* *{perfil_nlu}*\n"
+            f"👤 *Nombre Completo:* {nombre_str}\n"
+            f"🏬 *Número de Agencia:* {agencia_str}\n"
+            f"🔑 *Clave(s) de Confirmación:* `{clave_str}`\n"
+            f"─────────────────────────────────────────\n"
+            f"📋 *Motivo de Consulta:* \n{motivo_str}\n\n"
+            f"📎 *Archivos Adjuntos del Caso:* {adjunto_str}"
+        )
+
+        target_space = space_id or cfg["default_space"]
+        return await self.send_message(formatted_card, space_id=target_space)
+
+
 # Singleton instance
 google_chat_service = GoogleChatService()
 
