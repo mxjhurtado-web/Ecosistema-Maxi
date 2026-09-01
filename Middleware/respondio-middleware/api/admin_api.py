@@ -1176,16 +1176,54 @@ async def google_chat_notify_handler_inner(
         # Regex replace empty or null detail
         message_text = re.sub(r'📝\s*\*Detalle:\*\s*(?:null|\$resumen_solicitud|\$resumen)?(?=\n|$)', f'📝 *Detalle:* {default_detail}', message_text, flags=re.IGNORECASE)
 
-    # REJ.03 Enforcement: High Priority Alert Headers for Fraudes / BSA
-    if request.destino and request.destino.lower() in ["fraudes", "fraude", "prevencion_de_fraudes", "bsa", "bsa_monitoring"]:
-        if "[ALERTA CRÍTICA" not in message_text and "[ATENDIDO INICIALMENTE" not in message_text:
-            if request.level in ["WARNING", "OUT_OF_HOURS"]:
-                header_tag = "[ATENDIDO INICIALMENTE POR SERVICIO AL CLIENTE - PENDIENTE DE SEGUIMIENTO POR PREVENCIÓN DE FRAUDES]"
-            else:
-                header_tag = "[ALERTA CRÍTICA - POSIBLE ACTIVIDAD SOSPECHOSA / FRAUDE]"
-            message_text = f"🚨 *{header_tag}*\n\n{message_text}"
-    
-    # If media_url is empty, null, or placeholder, look it up in Redis cache using contact_id
+    # Determine department key for unified 8-rubro template
+    dept_key = "BSA"
+    if request.destino:
+        d_low = request.destino.lower()
+        if "fraude" in d_low:
+            dept_key = "FRAUDES"
+        elif "bsa" in d_low:
+            dept_key = "BSA"
+        elif "oversight" in d_low:
+            dept_key = "OVERSIGHT"
+        elif "capacita" in d_low:
+            dept_key = "CAPACITACION"
+        elif "cobranza" in d_low:
+            dept_key = "COBRANZA"
+        elif "cheque" in d_low:
+            dept_key = "CHEQUES"
+        elif "soporte" in d_low:
+            dept_key = "SOPORTE_TECNICO"
+        elif "venta" in d_low:
+            dept_key = "VENTAS"
+        else:
+            dept_key = d_low.upper()
+    elif target_space:
+        t_space_str = str(target_space)
+        if "AAQAQM9pDpg" in t_space_str:
+            dept_key = "FRAUDES"
+        elif "AAQA3WL2JIk" in t_space_str:
+            dept_key = "BSA"
+        elif "AAQAJiVCDAU" in t_space_str:
+            dept_key = "OVERSIGHT"
+        elif "AAQAMKgsazw" in t_space_str:
+            dept_key = "CAPACITACION"
+        elif "AAQAbvCUAko" in t_space_str:
+            dept_key = "BSA"
+        elif "AAQAcEu8NTc" in t_space_str:
+            dept_key = "COBRANZA"
+        elif "AAQAGZ_m434" in t_space_str:
+            dept_key = "CHEQUES"
+        elif "AAQAQhx5RTM" in t_space_str:
+            dept_key = "SOPORTE_TECNICO"
+        elif "AAQAUghCztE" in t_space_str:
+            dept_key = "VENTAS"
+
+    from .main import parse_name_from_text, parse_agency_from_text, extraer_codigo_router
+    parsed_name = parse_name_from_text(message_text) or None
+    parsed_agency = parse_agency_from_text(message_text) or None
+    parsed_code = extraer_codigo_router(message_text) or None
+
     if (not media_url or media_url.strip() == "null" or media_url.startswith("$")) and request.contact_id:
         try:
             from shared.redis_client import get_redis_client
@@ -1197,18 +1235,21 @@ async def google_chat_notify_handler_inner(
         except Exception as cache_err:
             logger.warning(f"Failed to retrieve cached image from Redis: {cache_err}")
 
-    if media_url and media_url.strip() and not media_url.startswith("$") and media_url != "null" and ("http" in media_url):
-        emoji_attach = "📄" if ".pdf" in media_url.lower() else "📷"
-        message_text = f"{message_text}\n\n{emoji_attach} *Adjunto:* {media_url}"
+    valid_media_url = media_url if (media_url and media_url.strip() and not media_url.startswith("$") and media_url != "null" and ("http" in media_url)) else None
 
-    # Send the alert using google_chat_service
     from .google_chat_service import google_chat_service
-    success, detail = await google_chat_service.send_alert_detailed(
-        title="Alerta de Orbit",
-        message=message_text,
-        level=request.level,
-        space_id=target_space
+    success = await google_chat_service.send_unified_notification(
+        dept_key=dept_key,
+        contact_id=request.contact_id or "RespondIO_Agent",
+        user_text=message_text,
+        nombre_usuario=parsed_name,
+        codigo_envio=parsed_code,
+        numero_agencia=parsed_agency,
+        media_url=valid_media_url,
+        space_id=target_space,
+        custom_summary=message_text
     )
+    detail = "Message sent successfully" if success else "Failed to send notification" 
     
     # Registrar el espacio activo en Redis para Orbit Bot
     if success and target_space:
