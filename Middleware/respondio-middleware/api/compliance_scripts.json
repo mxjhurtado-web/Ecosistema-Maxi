@@ -11,7 +11,7 @@
   "SC.008": "Para continuar, ¿Podría compartirme la siguiente información, por favor? \n• Nombre completo de la persona que realizó el envío\n• Nombre completo de la persona que recibe el envío\n• Clave del envío del envío\n\nTambién puede enviar una foto del recibo para ayudarle más rápido. Muchas gracias.",
   "SC.008.1": "Para continuar, ¿Podría compartirme la siguiente información, por favor? \n• Nombre completo de la persona que realizó el pago de Bill\n• Nombre de la compañía a la que se realizó el pago\n• Clave del pago de Bill\n\nTambién puede enviar una foto del recibo para ayudarle más rápido. Muchas gracias.",
   "SC.008.2": "Para continuar, ¿Podría compartirme la siguiente información, por favor? \n• Número telefónico de la persona que hizo la recarga\n• Número telefónico al que se hizo la recarga\n• Clave de la recarga telefónica\n\nTambién puede enviar una foto del recibo para ayudarle más rápido. Muchas gracias.",
-  "SC.009": "Entiendo que tiene dificultad para localizar la información solicitada. Le comparto una imagen de referencia para que pueda identificar estos datos.",
+  "SC.009": "Con gusto le ayudo. Le comparto una imagen de referencia señalando la información que le solicitamos.",
   "SC.011": "Entiendo su solicitud. Este caso requiere atención de un área especializada.\n\nCanalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible.\nGracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día.",
   "SC.019": "Entendemos su consulta. Sin embargo, por motivos de seguridad, únicamente podemos compartir información de la operación con la persona que realizó el envío. \n\nLe sugerimos pedirle que nos contacte directamente por este medio para poder ayudarle de forma adecuada.\nGracias por su comprensión.",
   "SC.030": "Su solicitud es de alta prioridad para nosotros. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.",
@@ -47,5 +47,6 @@
   "SC.035": "Su opinión es muy valiosa. Para mantener los más altos estándares en nuestra atención, ¿Podría compartirnos los detalles de su experiencia?",
   "SC.036": "Gracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día.",
   "SC.037": "Gracias por la información proporcionada. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.\n\nGracias por comunicarse con Maxitransfers, le atendió Max.",
-  "SC.037.1": "Debido a que su solicitud es de alta prioridad. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.\n\nGracias por comunicarse con Maxitransfers, le atendió Max."
+  "SC.037.1": "Debido a que su solicitud es de alta prioridad. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.\n\nGracias por comunicarse con Maxitransfers, le atendió Max.",
+  "SC.039": "Para poder brindarle una mejor atención, le pedimos que envié su consulta en un mensaje más breve. Muchas gracias."
 }

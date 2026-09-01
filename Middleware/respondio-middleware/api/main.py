@@ -3683,21 +3683,9 @@ async def agent_interact_inner(
     # Pre-load scripts
     scripts = get_compliance_scripts()
 
-    # AIS.05: CONTROL DE LONGITUD DE ENTRADA / TOKEN DEFENSE (>500 CARACTERES)
-    if len(user_text) > 500:
-        logger.warning(f"🛡️ AIS.05 Token Defense activated: contact {contact_id} sent message of length {len(user_text)} chars (>500)")
-        sc_defense = "Por favor, para poder ayudarle de manera clara y directa, le pedimos que resuma su consulta en un mensaje más breve."
-        translated_defense = await translate_script_if_needed(sc_defense, user_text, contact_id=contact_id)
-        return AgentInteractResponse(
-            status="success",
-            reply_text=translated_defense,
-            derivacion="NA"
-        )
-    
     # Handle global commands or keywords (e.g. human transfer or ending)
     user_text_lower = user_text.lower()
     
-    # Matriz Canónica de Palabras Clave desde "Palabras clave derivacion.xlsx"
     fraud_keywords = [
         "estafa", "fraude", "engaño", "phishing", "robo", "robado", "extorsión", "extorsion", "sospechosa", "sospechoso", 
         "víctima", "victima", "scam", "estafado", "estafada", "me estafaron", "me engañaron", "fraude del beneficiario", 
@@ -3754,6 +3742,26 @@ async def agent_interact_inner(
         "varios envíos", "varios envios", "mil o mas", "mil o más", "montos altos", "montos elevados", "sospechoso"
     ]
     is_bsa_report = any(match_keyword_safe(k, user_text_lower) for k in bsa_keywords)
+    is_security_dept = (
+        agent_name in ["DerivacionBSA", "DerivacionFraudes"] or 
+        is_bsa_report or 
+        any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or 
+        bool(is_fraud_collecting)
+    )
+    max_char_limit = 1000 if is_security_dept else 500
+
+    # AIS.05: CONTROL DE LONGITUD DE ENTRADA / TOKEN DEFENSE (500 GENERAL / 1,000 BSA Y FRAUDES)
+    if len(user_text) > max_char_limit:
+        logger.warning(f"🛡️ AIS.05 Token Defense activated: contact {contact_id} sent message of length {len(user_text)} chars (exceeded limit {max_char_limit})")
+        sc_defense = scripts.get("SC.039", "Para poder brindarle una mejor atención, le pedimos que envié su consulta en un mensaje más breve. Muchas gracias.")
+        translated_defense = await translate_script_if_needed(sc_defense, user_text, contact_id=contact_id)
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated_defense,
+            derivacion="NA"
+        )
+    
+
 
     if (any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or is_bsa_report or is_fraud_collecting):
         logger.info(f"🚨 Fraud/BSA flow active for contact {contact_id} (collecting={bool(is_fraud_collecting)})")
