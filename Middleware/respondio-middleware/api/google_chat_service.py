@@ -21,7 +21,8 @@ class GoogleChatService:
     def __init__(self):
         self.scopes = [
             "https://www.googleapis.com/auth/chat.messages.create",
-            "https://www.googleapis.com/auth/chat.bot"
+            "https://www.googleapis.com/auth/chat.bot",
+            "https://www.googleapis.com/auth/gmail.send"
         ]
         self._credentials_cache = {}
 
@@ -272,7 +273,22 @@ class GoogleChatService:
         )
 
         target_space = space_id or cfg["default_space"]
-        return await self.send_message(formatted_card, space_id=target_space)
+        
+        # Fire Google Chat Notification
+        chat_success = await self.send_message(formatted_card, space_id=target_space)
+        
+        # Dual Dispatch: Fire Email Notification via Gmail API asynchronously
+        try:
+            from .email_service import email_service
+            import asyncio
+            asyncio.create_task(email_service.send_gmail_notification(
+                subject=cfg['header'],
+                body_text=formatted_card
+            ))
+        except Exception as mail_err:
+            logger.warning(f"⚠️ Non-blocking email dispatch warning: {mail_err}")
+
+        return chat_success
 
 
 # Singleton instance
