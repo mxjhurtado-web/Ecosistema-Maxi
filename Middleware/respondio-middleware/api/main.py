@@ -124,34 +124,6 @@ app = FastAPI(
 app.include_router(admin_router)
 app.include_router(public_router)
 
-@app.get("/debug/read-google-sources")
-@app.get("/api/v1/debug/read-google-sources")
-async def debug_read_google_sources_app(secret: Optional[str] = Query(None)):
-    """Diagnostic endpoint to export Google Docs and Sheets live content via SA Drive export"""
-    if secret != settings.WEBHOOK_SECRET and secret != "maxi-secret-2025":
-        raise HTTPException(status_code=401, detail="Invalid secret")
-
-    from .google_sheets_service import google_sheets_service
-
-    results = {}
-
-    # 1. Export Google Doc Governance
-    doc_id = "12-fLM7wAFF3I0_ifY3Y1lahU7EfBeV5uA5GzFkkHBUw"
-    doc_text = await google_sheets_service.read_drive_document(doc_id, "google_doc")
-    results["doc_governance_text"] = doc_text or "No content returned or permission denied"
-
-    # 2. Export Reglas RNE Sheet
-    reglas_sheet_id = "1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw"
-    reglas_csv = await google_sheets_service.read_drive_document(reglas_sheet_id, "google_sheet")
-    results["reglas_rne_csv"] = reglas_csv or "No content returned or permission denied"
-
-    # 3. Export Scripts SC Sheet
-    scripts_sheet_id = "18VE3tdVt4E-eNrf0dD4zlk1aLV2nfv9_ncdUvLPaNic"
-    scripts_csv = await google_sheets_service.read_drive_document(scripts_sheet_id, "google_sheet")
-    results["scripts_sc_csv"] = scripts_csv or "No content returned or permission denied"
-
-    return results
-
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
