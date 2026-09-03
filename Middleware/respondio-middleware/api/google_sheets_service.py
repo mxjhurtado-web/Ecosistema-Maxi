@@ -419,7 +419,7 @@ class GoogleSheetsService:
         using the Service Account credentials.
         """
         config = await config_manager.get_google_chat_config()
-        sa_b64 = config.sa_json_b64
+        sa_b64 = config.sa_json_b64 or getattr(settings, 'GOOGLE_CHATS_SA_BASE64', None) or getattr(settings, 'MAXIBOT_SA_BASE64', None)
         
         if not sa_b64:
             logger.warning("Google Drive read skipped: Service Account credentials not configured")
