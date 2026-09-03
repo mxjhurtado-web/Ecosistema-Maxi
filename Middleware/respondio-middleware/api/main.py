@@ -127,6 +127,7 @@ app.include_router(public_router)
 @app.get("/debug/read-google-sources")
 @app.get("/api/v1/debug/read-google-sources")
 async def debug_read_google_sources_app(secret: Optional[str] = Query(None)):
+    import httpx
     """Diagnostic endpoint to fetch Google Docs and Sheets live content via SA"""
     if secret != settings.WEBHOOK_SECRET and secret != "maxi-secret-2025":
         raise HTTPException(status_code=401, detail="Invalid secret")

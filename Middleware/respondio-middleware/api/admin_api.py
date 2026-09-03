@@ -2155,6 +2155,7 @@ async def debug_read_google_sources(
     if incoming_secret != settings.WEBHOOK_SECRET and incoming_secret != "maxi-secret-2025":
         raise HTTPException(status_code=401, detail="Invalid secret")
 
+    import httpx
     results = {}
 
     # 1. Read Google Doc Governance (12-fLM7wAFF3I0_ifY3Y1lahU7EfBeV5uA5GzFkkHBUw)
