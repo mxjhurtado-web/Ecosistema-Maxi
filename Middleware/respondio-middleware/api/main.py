@@ -1161,8 +1161,13 @@ def check_department_hours(depto: str, dt: datetime) -> bool:
         else:
             return is_within_hours(dt, 9, 0, 19, 0)
     elif "FRAUD" in depto or "PREVENCION DE FRAUDES" in depto:
-        # Lun-Dom: 08:00 a 23:00
-        return is_within_hours(dt, 8, 0, 23, 0)
+        # Lun-Vie: 08:00 a 19:00, Sab: 08:00 a 18:00 (HOR.01)
+        w = dt.weekday()
+        if w in range(0, 5):
+            return is_within_hours(dt, 8, 0, 19, 0)
+        elif w == 5:
+            return is_within_hours(dt, 8, 0, 18, 0)
+        return False
     elif "BSA" in depto:
         # Lun-Vie: 08:00 a 19:00, Sab: 08:00 a 18:00
         w = dt.weekday()
@@ -3842,7 +3847,13 @@ async def agent_interact_inner(
             target_dept = "BSA MONITORING" if is_bsa_report else "PREVENCION DE FRAUDES"
             in_hours = check_department_hours(target_dept, ct_now)
 
-            sc_turn1_code = "SC.030.1" if in_hours else "SC.030.2"
+            cs_in_hours = check_department_hours("SERVICIO AL CLIENTE", ct_now)
+            if in_hours:
+                sc_turn1_code = "SC.030.1"  # RNE.50 (En horario laboral de Fraudes/BSA)
+            elif cs_in_hours:
+                sc_turn1_code = "SC.030.2"  # RNE.51 (Fuera de horario Fraudes/BSA, pero Servicio al Cliente en horario)
+            else:
+                sc_turn1_code = "SC.027.1"  # RNE.47.1 (Fuera de horario Fraudes/BSA y Servicio al Cliente también fuera de horario)
             default_sc_turn1 = (
                 "Lamento lo sucedido, su solicitud debe ser atendida con alta prioridad.\n\n"
                 "Por favor compártame la siguiente información:\n"
@@ -3901,7 +3912,13 @@ async def agent_interact_inner(
             # If the user_text is identical to Turn 1 text, the customer has NOT replied yet (handoff in progress)
             if user_text_lower == cached_turn1_str:
                 logger.info(f"⏳ Fraud handoff in progress for contact {contact_id}. Waiting for new customer input...")
-                sc_turn1_code = "SC.030.1" if in_hours else "SC.030.2"
+                cs_in_hours = check_department_hours("SERVICIO AL CLIENTE", ct_now)
+            if in_hours:
+                sc_turn1_code = "SC.030.1"  # RNE.50 (En horario laboral de Fraudes/BSA)
+            elif cs_in_hours:
+                sc_turn1_code = "SC.030.2"  # RNE.51 (Fuera de horario Fraudes/BSA, pero Servicio al Cliente en horario)
+            else:
+                sc_turn1_code = "SC.027.1"  # RNE.47.1 (Fuera de horario Fraudes/BSA y Servicio al Cliente también fuera de horario)
                 sc_turn1_text = scripts.get(sc_turn1_code, default_sc_turn1)
                 sc_turn1_trans = await translate_script_if_needed(sc_turn1_text, user_text, contact_id=contact_id)
                 return AgentInteractResponse(
