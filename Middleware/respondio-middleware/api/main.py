@@ -127,62 +127,28 @@ app.include_router(public_router)
 @app.get("/debug/read-google-sources")
 @app.get("/api/v1/debug/read-google-sources")
 async def debug_read_google_sources_app(secret: Optional[str] = Query(None)):
-    import httpx
-    """Diagnostic endpoint to fetch Google Docs and Sheets live content via SA"""
+    """Diagnostic endpoint to export Google Docs and Sheets live content via SA Drive export"""
     if secret != settings.WEBHOOK_SECRET and secret != "maxi-secret-2025":
         raise HTTPException(status_code=401, detail="Invalid secret")
 
+    from .google_sheets_service import google_sheets_service
+
     results = {}
 
-    try:
-        from .google_docs_service import GoogleDocsService
-        docs_service = GoogleDocsService()
-        doc_text = await docs_service.get_document_text("12-fLM7wAFF3I0_ifY3Y1lahU7EfBeV5uA5GzFkkHBUw")
-        results["doc_governance_text"] = doc_text or "No content returned or permission denied"
-    except Exception as e:
-        results["doc_governance_error"] = str(e)
+    # 1. Export Google Doc Governance
+    doc_id = "12-fLM7wAFF3I0_ifY3Y1lahU7EfBeV5uA5GzFkkHBUw"
+    doc_text = await google_sheets_service.read_drive_document(doc_id, "google_doc")
+    results["doc_governance_text"] = doc_text or "No content returned or permission denied"
 
-    try:
-        from .google_chat_service import google_chat_service
-        config = await config_manager.get_google_chat_config()
-        sa_b64 = config.sa_json_b64 or settings.GOOGLE_CHATS_SA_BASE64 or settings.MAXIBOT_SA_BASE64
-        
-        if sa_b64:
-            creds = await google_chat_service._get_credentials(sa_b64)
-            if creds:
-                from google.auth.transport.requests import Request
-                creds.refresh(Request())
-                token = creds.token
-                headers = {"Authorization": f"Bearer {token}"}
-                
-                sheets_to_read = {
-                    "reglas_rne": "1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw",
-                    "scripts_sc": "18VE3tdVt4E-eNrf0dD4zlk1aLV2nfv9_ncdUvLPaNic",
-                    "faq_kb": "1wrtj7SZ6wB9h1yd_9h613DYNPGjI69_Zj1gLigiUHtE"
-                }
-                
-                async with httpx.AsyncClient(timeout=25.0) as client:
-                    for s_key, s_id in sheets_to_read.items():
-                        url = f"https://sheets.googleapis.com/v4/spreadsheets/{s_id}?includeGridData=true"
-                        res = await client.get(url, headers=headers)
-                        if res.status_code == 200:
-                            s_data = res.json()
-                            results[s_key] = {
-                                "title": s_data.get("properties", {}).get("title"),
-                                "sheets": [
-                                    {
-                                        "title": sheet.get("properties", {}).get("title"),
-                                        "row_count": len(sheet.get("data", [{}])[0].get("rowData", []))
-                                    } for sheet in s_data.get("sheets", [])
-                                ],
-                                "raw_data_sample": s_data
-                            }
-                        else:
-                            results[f"{s_key}_error"] = f"HTTP {res.status_code}: {res.text}"
-        else:
-            results["sheets_error"] = "No SA Base64 configured"
-    except Exception as e:
-        results["sheets_exception"] = str(e)
+    # 2. Export Reglas RNE Sheet
+    reglas_sheet_id = "1eFm3L_ALVr78wTDBB2bsg7Wq6DT9ZoGzIX9tKLN9nGw"
+    reglas_csv = await google_sheets_service.read_drive_document(reglas_sheet_id, "google_sheet")
+    results["reglas_rne_csv"] = reglas_csv or "No content returned or permission denied"
+
+    # 3. Export Scripts SC Sheet
+    scripts_sheet_id = "18VE3tdVt4E-eNrf0dD4zlk1aLV2nfv9_ncdUvLPaNic"
+    scripts_csv = await google_sheets_service.read_drive_document(scripts_sheet_id, "google_sheet")
+    results["scripts_sc_csv"] = scripts_csv or "No content returned or permission denied"
 
     return results
 
