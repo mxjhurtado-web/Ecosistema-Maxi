@@ -19,6 +19,15 @@ logger = logging.getLogger(__name__)
 class GoogleSheetsService:
     """Service to interact with Google Sheets and Google Drive using the Service Account"""
     
+    async def _get_sa_b64(self) -> Optional[str]:
+        try:
+            config = await config_manager.get_google_chat_config()
+            if config and config.sa_json_b64:
+                return config.sa_json_b64
+        except Exception:
+            pass
+        return getattr(settings, 'GOOGLE_CHATS_SA_BASE64', None) or getattr(settings, 'MAXIBOT_SA_BASE64', None)
+
     def __init__(self):
         self.scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
@@ -202,8 +211,7 @@ class GoogleSheetsService:
         override_spreadsheet_id: Optional[str] = None
     ) -> bool:
         """Append a conversation log row to the Google Sheet"""
-        config = await config_manager.get_google_chat_config()
-        sa_b64 = config.sa_json_b64
+        sa_b64 = await self._get_sa_b64()
         
         if not sa_b64:
             logger.warning("Google Sheet logging skipped: Service Account credentials not configured")
@@ -265,8 +273,7 @@ class GoogleSheetsService:
         assigned_agent: str
     ) -> bool:
         """Append a CSAT response row to the designated Google Sheet"""
-        config = await config_manager.get_google_chat_config()
-        sa_b64 = config.sa_json_b64
+        sa_b64 = await self._get_sa_b64()
         
         if not sa_b64:
             logger.warning("Google Sheet CSAT logging skipped: Service Account credentials not configured")
@@ -311,8 +318,7 @@ class GoogleSheetsService:
 
     async def fetch_faq_data(self, spreadsheet_id: str) -> Optional[str]:
         """Fetch FAQ data from a Google Sheet and format it as a knowledge base block for Gemini"""
-        config = await config_manager.get_google_chat_config()
-        sa_b64 = config.sa_json_b64
+        sa_b64 = await self._get_sa_b64()
         
         if not sa_b64:
             logger.warning("Google Sheet FAQ fetch skipped: Service Account credentials not configured")
@@ -418,8 +424,7 @@ class GoogleSheetsService:
         Read the content of a Google Doc, Google Sheet, PDF, or Plain Text file from Google Drive
         using the Service Account credentials.
         """
-        config = await config_manager.get_google_chat_config()
-        sa_b64 = config.sa_json_b64 or getattr(settings, 'GOOGLE_CHATS_SA_BASE64', None) or getattr(settings, 'MAXIBOT_SA_BASE64', None)
+        sa_b64 = await self._get_sa_b64() or getattr(settings, 'GOOGLE_CHATS_SA_BASE64', None) or getattr(settings, 'MAXIBOT_SA_BASE64', None)
         
         if not sa_b64:
             logger.warning("Google Drive read skipped: Service Account credentials not configured")
@@ -517,8 +522,7 @@ class GoogleSheetsService:
 
     async def fetch_official_scripts(self, spreadsheet_id: str) -> Optional[dict]:
         """Fetch official scripts from Google Sheets and return as key-value pairs (Code -> Text)"""
-        config = await config_manager.get_google_chat_config()
-        sa_b64 = config.sa_json_b64
+        sa_b64 = await self._get_sa_b64()
         
         if not sa_b64:
             logger.warning("Google Sheets script fetch skipped: Service Account credentials not configured")
@@ -580,8 +584,7 @@ class GoogleSheetsService:
 
     async def fetch_business_rules(self, spreadsheet_id: str) -> Optional[dict]:
         """Fetch business rules from Google Sheets and return as key-value pairs (Code -> Description)"""
-        config = await config_manager.get_google_chat_config()
-        sa_b64 = config.sa_json_b64
+        sa_b64 = await self._get_sa_b64()
         
         if not sa_b64:
             logger.warning("Google Sheets rules fetch skipped: Service Account credentials not configured")
@@ -641,8 +644,7 @@ class GoogleSheetsService:
 
     async def fetch_status_rules(self, spreadsheet_id: str) -> Optional[dict]:
         """Fetch status routing rules from Google Sheets and return grouped by transaction type"""
-        config = await config_manager.get_google_chat_config()
-        sa_b64 = config.sa_json_b64
+        sa_b64 = await self._get_sa_b64()
         
         if not sa_b64:
             logger.warning("Google Sheets status rules fetch skipped: Service Account credentials not configured")
@@ -685,8 +687,7 @@ class GoogleSheetsService:
 
     async def fetch_bill_status_rules(self, spreadsheet_id: str) -> Optional[list]:
         """Fetch bill payment status rules from Google Sheets and return parsed rules list"""
-        config = await config_manager.get_google_chat_config()
-        sa_b64 = config.sa_json_b64
+        sa_b64 = await self._get_sa_b64()
         
         if not sa_b64:
             logger.warning("Google Sheets bill status rules fetch skipped: Service Account credentials not configured")
@@ -843,8 +844,7 @@ class GoogleSheetsService:
 
     async def fetch_topup_status_rules(self, spreadsheet_id: str) -> Optional[list]:
         """Fetch mobile top-up status rules from Google Sheets and return parsed rules list"""
-        config = await config_manager.get_google_chat_config()
-        sa_b64 = config.sa_json_b64
+        sa_b64 = await self._get_sa_b64()
         
         if not sa_b64:
             logger.warning("Google Sheets top-up status rules fetch skipped: Service Account credentials not configured")
@@ -920,4 +920,3 @@ class GoogleSheetsService:
 
 # Singleton instance
 google_sheets_service = GoogleSheetsService()
-
