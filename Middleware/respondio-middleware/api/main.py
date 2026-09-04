@@ -3770,6 +3770,79 @@ async def agent_interact_inner(
     )
     max_char_limit = 1000 if is_security_dept else 500
 
+
+    # ============================================================
+    # PROCESO N2: REGLAS DE SEGURIDAD, PERFIL Y CASOS PRESENCIALES
+    # ============================================================
+    
+    # Extract profile if available
+    perfil_val = await redis.get(f"session:perfil:{contact_id}")
+    perfil_str = perfil_val.decode('utf-8').upper() if perfil_val else ""
+    if not perfil_str:
+        perfil_str = detect_profile_from_text(user_text) or ""
+
+    is_beneficiario = (perfil_str == "BENEFICIARIO" or "soy beneficiario" in user_text_lower or "recibo el dinero" in user_text_lower)
+
+    # 1. Solicitudes Presenciales (Cancelación de envío / Modificación de datos)
+    in_person_keywords = [
+        "cancelar envío", "cancelar envio", "cancelar mi envío", "cancelar mi envio", 
+        "modificar datos", "cambiar nombre", "corregir nombre", "modificar envío", "modificar envio",
+        "cambio de nombre", "error en el nombre", "modificar beneficiario"
+    ]
+    if any(k in user_text_lower for k in in_person_keywords):
+        logger.info(f"🏛️ Proceso N2: In-person agency request detected for contact {contact_id} (perfil={perfil_str})")
+        sc_code = "SC.031.1" if is_beneficiario else "SC.031"
+        sc_text = scripts.get(sc_code, "Por motivos de seguridad, esta solicitud debe ser atendida de forma presencial.")
+        translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+
+    # 2. Casos Fuera de Alcance (SC.026 para Remitente/Agente / SC.026.1 para Beneficiario)
+    out_of_scope_keywords = [
+        "otra empresa", "competencia", "western union", "ria", "intermex", "vigo", "moneygram", "dolex"
+    ]
+    if any(k in user_text_lower for k in out_of_scope_keywords):
+        logger.info(f"🚫 Proceso N2: Out of scope request detected for contact {contact_id} (perfil={perfil_str})")
+        sc_code = "SC.026.1" if is_beneficiario else "SC.026"
+        sc_text = scripts.get(sc_code, "Por motivos de seguridad, esta solicitud requiere atención a través de nuestros canales directos.")
+        translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+
+    # 3. Derivaciones Interdepartamentales (RNE.48 - SC.011 en horario / SC.028 fuera de horario)
+    interdept_map = {
+        "cobranza": "COBRANZA",
+        "cheques": "CHEQUES",
+        "capacitacion": "CAPACITACION",
+        "capacitación": "CAPACITACION",
+        "oversight": "OVERSIGHT",
+        "soporte tecnico": "TECNICO",
+        "soporte técnico": "TECNICO",
+        "ventas": "VENTAS",
+        "cumplimiento": "CUMPLIMIENTO"
+    }
+    for dept_kw, dept_enum in interdept_map.items():
+        if dept_kw in user_text_lower and not is_security_dept:
+            from zoneinfo import ZoneInfo
+            ct_now = datetime.now(ZoneInfo("America/Chicago"))
+            dept_open = check_department_hours(dept_enum, ct_now)
+            sc_code = "SC.011" if dept_open else "SC.028"
+            sc_text = scripts.get(sc_code, "Entiendo su solicitud. Este caso requiere atención de un área especializada.")
+            translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+            logger.info(f"🔀 Proceso N2 (RNE.48): Interdepartmental handoff for {dept_enum} (open={dept_open}) -> {sc_code}")
+            
+            # Fire Google Chat Notification
+            try:
+                from .google_chat_service import google_chat_service
+                await google_chat_service.send_unified_notification(
+                    dept_key=dept_enum,
+                    contact_id=contact_id,
+                    user_text=user_text,
+                    media_url=media_url
+                )
+            except Exception as g_err:
+                logger.error(f"Failed to send interdepartmental GChat alert: {g_err}")
+
+            return AgentInteractResponse(status="success", reply_text=translated, derivacion=dept_enum)
+
     # AIS.05: CONTROL DE LONGITUD DE ENTRADA / TOKEN DEFENSE (500 GENERAL / 1,000 BSA Y FRAUDES)
     if len(user_text) > max_char_limit:
         logger.warning(f"🛡️ AIS.05 Token Defense activated: contact {contact_id} sent message of length {len(user_text)} chars (exceeded limit {max_char_limit})")
