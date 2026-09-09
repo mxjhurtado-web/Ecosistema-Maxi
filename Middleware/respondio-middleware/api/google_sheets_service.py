@@ -11,6 +11,7 @@ from typing import Optional
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 from .config_manager import config_manager
+from .config import settings
 from shared.redis_client import get_redis_client
 
 logger = logging.getLogger(__name__)

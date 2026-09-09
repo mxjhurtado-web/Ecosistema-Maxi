@@ -1172,9 +1172,9 @@ async def google_chat_notify_handler_inner(
             default_detail = last_user_text or "Detalle de notificación no especificado"
 
         # Regex replace empty or null intention
-        message_text = re.sub(r'🎯\s*\*Intenci[oó]n:\*\s*(?:null|\$intencion_solicitud|\$intencion)?(?=\n|$)', f'🎯 *Intención:* {default_intent}', message_text, flags=re.IGNORECASE)
-        # Regex replace empty or null detail
-        message_text = re.sub(r'📝\s*\*Detalle:\*\s*(?:null|\$resumen_solicitud|\$resumen)?(?=\n|$)', f'📝 *Detalle:* {default_detail}', message_text, flags=re.IGNORECASE)
+        message_text = re.sub(r'🎯\s*\*Intenci[oó]n:\*\s*(?:null|\$intencion_solicitud|\$intencion|\.?intencion_solicitud)?(?=\n|$)', f'🎯 *Intención:* {default_intent}', message_text, flags=re.IGNORECASE)
+        # Regex replace empty or null detail (including unparsed Respond.io variable .mensaje_notificacion)
+        message_text = re.sub(r'📝\s*\*Detalle:\*\s*(?:null|\$resumen_solicitud|\$resumen|\.?mensaje_notificacion|\$agent\.mensaje_notificacion|mensaje_notificacion)?(?=\n|$)', f'📝 *Detalle:* {default_detail}', message_text, flags=re.IGNORECASE)
 
     # Determine department key for unified 8-rubro template
     dept_key = "BSA"

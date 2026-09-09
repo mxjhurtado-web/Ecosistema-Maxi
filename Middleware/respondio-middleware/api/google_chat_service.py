@@ -217,27 +217,31 @@ class GoogleChatService:
             },
             "OVERSIGHT": {
                 "header": "📢 [NOTIFICACIÓN DE AGENCIA - OVERSIGHT / SOPORTE INTERNO]",
-                "default_space": "spaces/AAQA3WL2JIk"
+                "default_space": "spaces/AAQAJiVCDAU"
             },
             "CAPACITACION": {
                 "header": "🎓 [SOLICITUD DE CAPACITACIÓN - BSA / CFPB]",
-                "default_space": "spaces/AAQA3WL2JIk"
+                "default_space": "spaces/AAQAMKgsazw"
+            },
+            "CUMPLIMIENTO": {
+                "header": "⚖️ [NOTIFICACIÓN DE CUMPLIMIENTO / KYC / BLOQUEO]",
+                "default_space": "spaces/AAQAbvCUAko"
             },
             "COBRANZA": {
                 "header": "💰 [GESTIÓN DE COBRANZA - BALANCE DE AGENCIA]",
-                "default_space": "spaces/AAQA3WL2JIk"
+                "default_space": "spaces/AAQAcEu8NTc"
             },
             "CHEQUES": {
                 "header": "🎟️ [SOPORTE DE CHEQUES - REVISIÓN Y CANCELACIÓN]",
-                "default_space": "spaces/AAQA3WL2JIk"
+                "default_space": "spaces/AAQAGZ_m434"
             },
             "SOPORTE_TECNICO": {
                 "header": "💻 [SOPORTE TÉCNICO - HERMES / EQUIPOS]",
-                "default_space": "spaces/AAQA3WL2JIk"
+                "default_space": "spaces/AAQAQhx5RTM"
             },
             "VENTAS": {
                 "header": "📈 [SOLICITUD DE VENTAS / ALTA DE AGENCIA]",
-                "default_space": "spaces/AAQA3WL2JIk"
+                "default_space": "spaces/AAQAUghCztE"
             }
         }
         
@@ -255,7 +259,13 @@ class GoogleChatService:
         clave_str = codigo_envio or "[No especificada]"
         agencia_str = f"#{numero_agencia}" if numero_agencia else "[No especificada]"
         nombre_str = nombre_usuario or "[No proporcionado]"
-        motivo_str = custom_summary or user_text
+        
+        import re
+        motivo_raw = custom_summary or user_text or ""
+        motivo_clean = re.sub(r'(?i)(?:\.?mensaje_notificacion|\$agent\.mensaje_notificacion|\$resumen_solicitud|\$resumen|\$intencion|null)', '', motivo_raw).strip()
+        if not motivo_clean or len(motivo_clean) < 3:
+            motivo_clean = "Reporte registrado de atención prioritaria."
+        motivo_str = motivo_clean
         adjunto_str = media_url if media_url else "[Sin archivos adjuntos]"
 
         formatted_card = (
