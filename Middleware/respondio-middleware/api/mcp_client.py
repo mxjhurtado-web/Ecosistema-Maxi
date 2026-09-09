@@ -595,7 +595,7 @@ El usuario incluyó un enlace a un archivo de Google Drive/Docs (ID: **{doc_id}*
             )
             
         # Supported models in order of preference (using v1beta)
-        models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
+        models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
         
         system_prompt = context.get("system_prompt", "Eres un asistente de IA útil y profesional.")
         prompt_text = f"{system_prompt}\n\nPregunta: {query}"
