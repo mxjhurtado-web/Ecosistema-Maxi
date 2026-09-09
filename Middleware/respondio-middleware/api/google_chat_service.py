@@ -284,6 +284,20 @@ class GoogleChatService:
 
         target_space = space_id or cfg["default_space"]
         
+        # Debounce / Deduplication: Avoid sending multiple near-simultaneous alert cards for the same contact
+        if contact_id and not contact_id.startswith("sim_test"):
+            try:
+                from shared.redis_client import get_redis_client
+                redis = await get_redis_client()
+                dedup_key = f"gchat:dedup:{contact_id}:{target_space}"
+                already_sent = await redis.get(dedup_key)
+                if already_sent:
+                    logger.info(f"⏭️ [DEDUP] Suppressing duplicate Google Chat alert card for contact {contact_id} in {target_space} (debounced 45s)")
+                    return True
+                await redis.set(dedup_key, "1", ex=45)
+            except Exception as dedup_err:
+                logger.warning(f"Redis dedup check error: {dedup_err}")
+
         # Fire Google Chat Notification
         chat_success = await self.send_message(formatted_card, space_id=target_space)
         

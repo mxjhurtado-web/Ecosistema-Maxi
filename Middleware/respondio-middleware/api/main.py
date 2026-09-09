@@ -3986,12 +3986,12 @@ async def agent_interact_inner(
             if user_text_lower == cached_turn1_str:
                 logger.info(f"⏳ Fraud handoff in progress for contact {contact_id}. Waiting for new customer input...")
                 cs_in_hours = check_department_hours("SERVICIO AL CLIENTE", ct_now)
-            if in_hours:
-                sc_turn1_code = "SC.030.1"  # RNE.50 (En horario laboral de Fraudes/BSA)
-            elif cs_in_hours:
-                sc_turn1_code = "SC.030.2"  # RNE.51 (Fuera de horario Fraudes/BSA, pero Servicio al Cliente en horario)
-            else:
-                sc_turn1_code = "SC.027.1"  # RNE.47.1 (Fuera de horario Fraudes/BSA y Servicio al Cliente también fuera de horario)
+                if in_hours:
+                    sc_turn1_code = "SC.030.1"  # RNE.50 (En horario laboral de Fraudes/BSA)
+                elif cs_in_hours:
+                    sc_turn1_code = "SC.030.2"  # RNE.51 (Fuera de horario Fraudes/BSA, pero Servicio al Cliente en horario)
+                else:
+                    sc_turn1_code = "SC.027.1"  # RNE.47.1 (Fuera de horario Fraudes/BSA y Servicio al Cliente también fuera de horario)
                 sc_turn1_text = scripts.get(sc_turn1_code, default_sc_turn1)
                 sc_turn1_trans = await translate_script_if_needed(sc_turn1_text, user_text, contact_id=contact_id)
                 return AgentInteractResponse(
