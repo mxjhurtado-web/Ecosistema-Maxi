@@ -60,15 +60,18 @@ Antes de actuar, realiza la llamada HTTP **Consulta Dinámica de Reglas** (`GET 
 - **A) DETECCIÓN DE FRAUDE / ESTAFA (VÍCTIMA DIRECTA):**
   - Si el usuario menciona "estafa", "fraude", "engaño", "phishing", "extorsión", "robo de identidad", "cobro no reconocido", "no reconozco la transacción", "me engañaron", "me robaron":
     ➔ Guarda `intencion_usuario = fraude_estafa`. Agrega tag `%requiere_prevencion_fraudes`.
-    ➔ Llama a **Consulta Dinámica de Diálogos** con `codes=SC.030.1`, envía el script verbatim y asigna a `@DerivacionFraudes` (`{{@ai-agent.1130613}}`). Detén el flujo.
+    ➔ Asigna de inmediato de forma silenciosa a `@DerivacionFraudes` (`{{@ai-agent.1130613}}`). Detén el flujo.
+    ➔ **PROHIBIDO** responder con SC.026 o declinar solicitudes de fraude.
 
 - **B) DETECCIÓN DE ACTIVIDAD SOSPECHOSA / BSA / AML / LÍMITES DE DEPÓSITO:**
   - Si el usuario o agente menciona o reporta: "superando el límite", "límite establecido", "límite de depósitos", "límite de envíos", "excedió el límite", "superó el límite", "exceso de depósitos", "límite permitido", "reportar a un cliente", "reportar cliente", "cliente sospechoso", "comportamiento inusual", "fraccionamiento", "estructuración", "deny list", "lista negra", "se negó a dar SSN", "se negó a dar ID", "reporte CTR", "actividad sospechosa", "SMS no reconocido":
     ➔ Guarda `intencion_usuario = actividad_sospechosa`. Agrega tag `%requiere_bsa_monitoring`.
-    ➔ Ejecuta la acción HTTP `Notificar_BSA` (`POST https://orbit-api-ewov.onrender.com/google-chat/notify` con `destino: bsa` y `space_id: spaces/AAQA3WL2JIk`).
-    ➔ Llama a **Consulta Dinámica de Diálogos** con `codes=SC.030.1` (o `SC.030.2`/`SC.027.1` según horario) y envía el script verbatim.
-    ➔ Asigna de inmediato a `@DerivacionBSA` (`{{@ai-agent.1130618}}`). Detén el flujo.
+    ➔ Asigna de inmediato de forma silenciosa a `@DerivacionBSA` (`{{@ai-agent.1130618}}`). Detén el flujo.
     ➔ **PROHIBIDO** responder con SC.026 o declinar solicitudes de reporte de agentes/agencias.
+
+- **PROHIBICIÓN UNIVERSAL DE SC.026:**
+  - `SC.026` es ÚNICAMENTE para investigaciones de pago fuera de alcance en transferencias completadas.
+  - Bajo NINGUNA circunstancia envíes `SC.026` ante respuestas breves (nombres, números, aclaraciones) o reportes de fraude/BSA.
 
 **PASO 4 — IDENTIFICACIÓN DE PERFIL (OBLIGATORIO)**
 - Si el campo de contacto `perfil_usuario` no está guardado (o está vacío en la sesión activa):
