@@ -578,16 +578,26 @@ El usuario incluyó un enlace a un archivo de Google Drive/Docs (ID: **{doc_id}*
         )
 
     async def _query_gemini_direct(self, query: str, context: dict) -> str:
-        """Call Gemini API directly via REST (when MCP is offline)"""
-        api_key = context.get("gemini_api_key")
+        """Call Gemini API directly via REST (when MCP is offline or for conversational Google Chat responses)"""
+        import os
+        api_key = (
+            context.get("gemini_api_key") 
+            or os.getenv("GEMINI_API_KEY") 
+            or os.getenv("GEMINI_KEY") 
+            or os.getenv("GOOGLE_API_KEY") 
+            or getattr(settings, "GEMINI_API_KEY", None)
+        )
         if not api_key:
-            return "Error: Gemini API Key no configurada."
+            return (
+                "⚠️ **API Key de Gemini no configurada en el servidor**\n\n"
+                "Para poder responder consultas conversacionales directamente en Google Chat, "
+                "es necesario configurar la variable de entorno `GEMINI_API_KEY` en Render o en el panel de administración de ORBIT."
+            )
             
-        # Use Gemini 2.5 Flash (Standard for User's Projects)
-        model_id = "gemini-2.5-flash"
-        url = f"https://generativelanguage.googleapis.com/v1/models/{model_id}:generateContent?key={api_key}"
+        # Supported models in order of preference (using v1beta)
+        models_to_try = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
         
-        system_prompt = context.get("system_prompt", "Eres un asistente de IA útil.")
+        system_prompt = context.get("system_prompt", "Eres un asistente de IA útil y profesional.")
         prompt_text = f"{system_prompt}\n\nPregunta: {query}"
         
         # Multimodal parts
@@ -631,15 +641,26 @@ El usuario incluyó un enlace a un archivo de Google Drive/Docs (ID: **{doc_id}*
             }
         }
         
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, json=payload, timeout=20)
-                response.raise_for_status()
-                data = response.json()
-                return data['candidates'][0]['content']['parts'][0]['text']
-        except Exception as e:
-            logger.error(f"Direct Gemini call failed: {str(e)}")
-            return f"Error en conexión directa con Gemini: {str(e)}"
+        last_err = ""
+        async with httpx.AsyncClient() as client:
+            for model_id in models_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent?key={api_key}"
+                try:
+                    response = await client.post(url, json=payload, timeout=20)
+                    if response.status_code == 200:
+                        data = response.json()
+                        candidates = data.get('candidates', [])
+                        if candidates and 'content' in candidates[0] and 'parts' in candidates[0]['content']:
+                            return candidates[0]['content']['parts'][0]['text']
+                    else:
+                        last_err = f"HTTP {response.status_code}: {response.text[:200]}"
+                        logger.warning(f"Gemini model {model_id} returned {response.status_code}: {response.text[:200]}")
+                except Exception as e:
+                    last_err = str(e)
+                    logger.warning(f"Gemini call to {model_id} failed: {e}")
+        
+        logger.error(f"All Gemini direct calls failed. Last error: {last_err}")
+        return f"⚠️ **Error al consultar Gemini:** {last_err}"
 
     async def _query_devops_mcp(self, query: str, context: dict) -> str:
         """Connect directly to the standard DevOps MCP server and run queries using Gemini"""
