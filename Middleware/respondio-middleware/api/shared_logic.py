@@ -5,6 +5,21 @@ import logging
 logger = logging.getLogger(__name__)
 
 _compliance_scripts = None
+_compliance_rules = None
+
+def normalize_script_dict(raw: dict) -> dict:
+    """Ensure any script or rule dictionary returns clean string texts."""
+    normalized = {}
+    if not isinstance(raw, dict):
+        return normalized
+    for k, v in raw.items():
+        clean_k = str(k).strip().upper().replace(" ", "").rstrip(":")
+        if isinstance(v, dict):
+            text_val = v.get("text", "") or v.get("script", "") or v.get("description", "") or str(v)
+            normalized[clean_k] = str(text_val).strip()
+        else:
+            normalized[clean_k] = str(v).strip()
+    return normalized
 
 def update_compliance_scripts_cache(new_scripts: dict):
     """Update in-memory scripts cache with fresh scripts from Google Sheets or Redis."""
@@ -12,11 +27,11 @@ def update_compliance_scripts_cache(new_scripts: dict):
     if _compliance_scripts is None:
         _compliance_scripts = {}
     if isinstance(new_scripts, dict):
-        _compliance_scripts.update(new_scripts)
-        logger.info(f"Updated in-memory compliance scripts cache ({len(new_scripts)} entries)")
+        _compliance_scripts.update(normalize_script_dict(new_scripts))
+        logger.info(f"Updated in-memory compliance scripts cache ({len(_compliance_scripts)} entries)")
 
 def get_compliance_scripts():
-    """Load and cache compliance scripts from JSON."""
+    """Load and cache compliance scripts from JSON or memory."""
     global _compliance_scripts
     if _compliance_scripts is None:
         try:
@@ -24,8 +39,9 @@ def get_compliance_scripts():
             script_path = os.path.join(os.path.dirname(__file__), "compliance_scripts.json")
             if os.path.exists(script_path):
                 with open(script_path, "r", encoding="utf-8") as f:
-                    _compliance_scripts = json.load(f)
-                logger.info("Compliance scripts loaded successfully")
+                    raw = json.load(f)
+                    _compliance_scripts = normalize_script_dict(raw)
+                logger.info(f"Compliance scripts loaded successfully ({len(_compliance_scripts)} scripts)")
             else:
                 logger.warning(f"Compliance scripts file not found at {script_path}")
                 _compliance_scripts = {}
@@ -34,12 +50,35 @@ def get_compliance_scripts():
             _compliance_scripts = {}
     return _compliance_scripts
 
+def get_compliance_rules():
+    """Load and cache compliance rules from JSON or memory."""
+    global _compliance_rules
+    if _compliance_rules is None:
+        try:
+            rule_path = os.path.join(os.path.dirname(__file__), "compliance_rules.json")
+            if os.path.exists(rule_path):
+                with open(rule_path, "r", encoding="utf-8") as f:
+                    raw = json.load(f)
+                    _compliance_rules = normalize_script_dict(raw)
+                logger.info(f"Compliance rules loaded successfully ({len(_compliance_rules)} rules)")
+            else:
+                logger.warning(f"Compliance rules file not found at {rule_path}")
+                _compliance_rules = {}
+        except Exception as e:
+            logger.error(f"Error loading compliance rules: {str(e)}")
+            _compliance_rules = {}
+    return _compliance_rules
+
 import re
 
-def strip_script_code_prefix(text: str) -> str:
+def strip_script_code_prefix(text) -> str:
     """Removes leading script code prefixes like 'SC.030:', 'SC.037.1:', 'SC.037 / SC.011.1', 'CU.A1:' anywhere in user-facing text."""
     if not text:
         return ""
+    if isinstance(text, dict):
+        text = text.get("text", "") or str(text)
+    elif not isinstance(text, str):
+        text = str(text)
     lines = text.splitlines()
     clean_lines = []
     for line in lines:

@@ -3789,7 +3789,7 @@ async def agent_interact_inner(
         "modificar datos", "cambiar nombre", "corregir nombre", "modificar envío", "modificar envio",
         "cambio de nombre", "error en el nombre", "modificar beneficiario"
     ]
-    if any(k in user_text_lower for k in in_person_keywords):
+    if any(k in user_text_lower for k in in_person_keywords) and not is_security_dept:
         logger.info(f"🏛️ Proceso N2: In-person agency request detected for contact {contact_id} (perfil={perfil_str})")
         sc_code = "SC.031.1" if is_beneficiario else "SC.031"
         sc_text = scripts.get(sc_code, "Por motivos de seguridad, esta solicitud debe ser atendida de forma presencial.")
@@ -3800,7 +3800,7 @@ async def agent_interact_inner(
     out_of_scope_keywords = [
         "otra empresa", "competencia", "western union", "ria", "intermex", "vigo", "moneygram", "dolex"
     ]
-    if any(k in user_text_lower for k in out_of_scope_keywords):
+    if any(match_keyword_safe(k, user_text_lower) for k in out_of_scope_keywords) and not is_security_dept:
         logger.info(f"🚫 Proceso N2: Out of scope request detected for contact {contact_id} (perfil={perfil_str})")
         sc_code = "SC.026.1" if is_beneficiario else "SC.026"
         sc_text = scripts.get(sc_code, "Por motivos de seguridad, esta solicitud requiere atención a través de nuestros canales directos.")
