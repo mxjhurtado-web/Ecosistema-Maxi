@@ -426,7 +426,10 @@ class FlowState(rx.State):
     audit_findings: List[Dict[str, Any]] = []
 
     def set_connect_target_id(self, val: str):
-        self.connect_target_id = val
+        if " - " in str(val or ""):
+            self.connect_target_id = str(val).split(" - ")[0].strip()
+        else:
+            self.connect_target_id = str(val or "").strip()
 
     def set_connect_label(self, val: str):
         self.connect_label = val

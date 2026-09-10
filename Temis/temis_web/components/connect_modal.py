@@ -39,7 +39,7 @@ def connect_modal() -> rx.Component:
                     rx.select(
                         FlowState.target_node_options,
                         placeholder="Elegir nodo destino...",
-                        on_change=lambda val: FlowState.set_connect_target_id(val.split(" - ")[0] if " - " in val else val),
+                        on_change=FlowState.set_connect_target_id,
                         width="100%",
                     ),
                     align="start",
