@@ -37,7 +37,7 @@ def connect_modal() -> rx.Component:
                 rx.vstack(
                     rx.text("Selecciona el Nodo Destino:", size="2", weight="bold", color="#334155"),
                     rx.select(
-                        [n["id"] + " - " + n["label"] for n in FlowState.nodes if n["id"] != FlowState.selected_node_id],
+                        FlowState.target_node_options,
                         placeholder="Elegir nodo destino...",
                         on_change=lambda val: FlowState.set_connect_target_id(val.split(" - ")[0] if " - " in val else val),
                         width="100%",

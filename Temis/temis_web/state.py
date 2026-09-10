@@ -414,6 +414,11 @@ class FlowState(rx.State):
     connect_label: str = ""
     auto_save_status: str = "✓ Cambios Guardados"
 
+    @rx.var
+    def target_node_options(self) -> List[str]:
+        """Return candidate target node option strings for connect modal"""
+        return [f"{n['id']} - {n.get('label', '')}" for n in self.nodes if n["id"] != self.selected_node_id]
+
     # AI Process Auditor State
     show_audit_modal: bool = False
     is_auditing_ai: bool = False
