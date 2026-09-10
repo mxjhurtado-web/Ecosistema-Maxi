@@ -181,6 +181,14 @@ def flowchart_canvas() -> rx.Component:
                 rx.hstack(
                     rx.badge("Nodo: ", FlowState.selected_node_id, color_scheme="blue", variant="soft"),
                     rx.button(
+                        rx.icon("link", size=14),
+                        "Conectar Nodos",
+                        on_click=FlowState.open_connect_modal,
+                        color_scheme="blue",
+                        variant="solid",
+                        size="1",
+                    ),
+                    rx.button(
                         rx.icon("pencil", size=14),
                         "Editar Propiedades",
                         on_click=lambda: FlowState.open_node_edit_modal(FlowState.selected_node_id),

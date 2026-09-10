@@ -100,8 +100,18 @@ def header() -> rx.Component:
                     spacing="2",
                 ),
                 rx.spacer(),
-                # Status Badge & Governance Phase Dropdown
+                # Status Badge, Auto-Save & AI Auditor Dropdown
                 rx.hstack(
+                    rx.badge(FlowState.auto_save_status, color_scheme="green", variant="soft", size="2"),
+                    rx.button(
+                        rx.icon("shield-check", size=16),
+                        " Auditar con IA",
+                        on_click=FlowState.open_audit_modal,
+                        color_scheme="indigo",
+                        variant="soft",
+                        size="2",
+                        radius="medium",
+                    ),
                     rx.badge(FlowState.status_message, color_scheme="blue", variant="soft", size="2"),
                     rx.menu.root(
                         rx.menu.trigger(

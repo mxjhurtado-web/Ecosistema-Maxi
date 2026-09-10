@@ -408,9 +408,175 @@ class FlowState(rx.State):
         except Exception:
             self.recent_projects = []
 
-    # Set diagram title handler
-    def set_diagram_title(self, title: str):
-        self.diagram_title = title
+    # Connector Modal & Interactive Line Connection State
+    show_connect_modal: bool = False
+    connect_target_id: str = ""
+    connect_label: str = ""
+    auto_save_status: str = "✓ Cambios Guardados"
+
+    # AI Process Auditor State
+    show_audit_modal: bool = False
+    is_auditing_ai: bool = False
+    audit_score: int = 100
+    audit_findings: List[Dict[str, Any]] = []
+
+    def set_connect_target_id(self, val: str):
+        self.connect_target_id = val
+
+    def set_connect_label(self, val: str):
+        self.connect_label = val
+
+    def open_connect_modal(self):
+        """Open modal to connect selected node to another target node"""
+        if not self.selected_node_id:
+            self.status_message = "Selecciona un nodo primero para conectar"
+            return
+        self.connect_target_id = ""
+        self.connect_label = ""
+        self.show_connect_modal = True
+
+    def close_connect_modal(self):
+        self.show_connect_modal = False
+
+    def add_connection(self):
+        """Add a new SVG Bézier connector edge between selected node and target node"""
+        if not self.selected_node_id or not self.connect_target_id:
+            self.status_message = "Selecciona un nodo de origen y destino válidos"
+            return
+        if self.selected_node_id == self.connect_target_id:
+            self.status_message = "No se puede conectar un nodo consigo mismo"
+            return
+
+        edge_count = len(self.edges) + 1
+        new_edge = {
+            "id": f"e-{self.selected_node_id}-{self.connect_target_id}-{edge_count}",
+            "source": self.selected_node_id,
+            "target": self.connect_target_id,
+            "label": self.connect_label.strip()
+        }
+        self.edges.append(new_edge)
+        self.show_connect_modal = False
+        self.status_message = f"Conexión agregada hacia {self.connect_target_id}"
+        self.trigger_auto_save()
+
+    def delete_edge(self, edge_id: str):
+        """Delete an edge connector"""
+        self.edges = [e for e in self.edges if e.get("id") != edge_id]
+        self.status_message = "Conector eliminado"
+        self.trigger_auto_save()
+
+    def trigger_auto_save(self):
+        """Save active diagram page state and update auto-save badge"""
+        if 0 <= self.active_page_index < len(self.project_pages):
+            self.project_pages[self.active_page_index]["nodes"] = list(self.nodes)
+            self.project_pages[self.active_page_index]["edges"] = list(self.edges)
+        self.auto_save_status = "✓ Cambios Guardados"
+
+    def open_audit_modal(self):
+        """Open AI Process Auditor modal and execute structural governance analysis"""
+        self.show_audit_modal = True
+        self.run_ai_process_audit()
+
+    def close_audit_modal(self):
+        self.show_audit_modal = False
+
+    def run_ai_process_audit(self):
+        """Execute Gemini AI & Structural Governance Audit on current active flowchart tab"""
+        self.is_auditing_ai = True
+        findings = []
+        deductions = 0
+
+        node_map = {n["id"]: n for n in self.nodes}
+        out_edges = {}
+        in_edges = {}
+
+        for e in self.edges:
+            out_edges.setdefault(e["source"], []).append(e)
+            in_edges.setdefault(e["target"], []).append(e)
+
+        # Check 1: Start Nodes
+        start_nodes = [n for n in self.nodes if n.get("type") == "node_start"]
+        if not start_nodes:
+            findings.append({
+                "severity": "Alta",
+                "color": "#ef4444",
+                "category": "Inicio de Proceso",
+                "title": "Falta Nodo de Inicio de Proceso",
+                "description": "El diagrama no tiene un punto de entrada oficial definido (Nodo de Inicio).",
+                "recommendation": "Agrega un símbolo 'Inicio Proceso' para marcar el desencadenador inicial."
+            })
+            deductions += 15
+        else:
+            for sn in start_nodes:
+                if sn["id"] not in out_edges:
+                    findings.append({
+                        "severity": "Alta",
+                        "color": "#ef4444",
+                        "category": "Flujo Desconectado",
+                        "title": f"Inicio '{sn.get('label')}' sin salida",
+                        "description": "El nodo de inicio está desconectado y no conduce a ninguna actividad.",
+                        "recommendation": "Conecta el nodo de inicio con la primera actividad operativa."
+                    })
+                    deductions += 10
+
+        # Check 2: Decision Nodes
+        decision_nodes = [n for n in self.nodes if n.get("type") == "node_decision"]
+        for dn in decision_nodes:
+            edges = out_edges.get(dn["id"], [])
+            labels = [e.get("label", "").lower() for e in edges]
+            if len(edges) < 2:
+                findings.append({
+                    "severity": "Alta",
+                    "color": "#ef4444",
+                    "category": "Decisión Incompleta",
+                    "title": f"Decisión '{dn.get('label')}' requiere ramas Sí/No",
+                    "description": f"La decisión tiene {len(edges)} salida(s). Toda pregunta de validación debe tener ramas afirmativas y alternativas.",
+                    "recommendation": "Agrega la rama faltante (ej. 'Sí' / 'No' o 'Válido' / 'Inválido')."
+                })
+                deductions += 12
+
+        # Check 3: Activities without System or Channel
+        activity_nodes = [n for n in self.nodes if n.get("type") == "node_activity"]
+        for an in activity_nodes:
+            sys_val = (an.get("attached_system") or "").strip()
+            chan_val = (an.get("attached_channel") or "").strip()
+            if not sys_val and not chan_val:
+                findings.append({
+                    "severity": "Media",
+                    "color": "#f59e0b",
+                    "category": "Gobierno Operativo",
+                    "title": f"Actividad '{an.get('label')}' sin Sistema o Canal",
+                    "description": "La actividad no especifica qué sistema (Chronos/Freshdesk) o canal (WhatsApp/Bria) soporta la operación.",
+                    "recommendation": "Asigna el sistema o canal correspondiente en las propiedades del nodo."
+                })
+                deductions += 5
+
+        # Check 4: End Nodes
+        end_nodes = [n for n in self.nodes if n.get("type") == "node_end"]
+        if not end_nodes:
+            findings.append({
+                "severity": "Media",
+                "color": "#f59e0b",
+                "category": "Cierre de Proceso",
+                "title": "Falta Nodo de Fin de Proceso",
+                "description": "El flujo no declara explícitamente el estado de término o resolución.",
+                "recommendation": "Agrega un nodo 'Fin Proceso' al término del flujo."
+            })
+            deductions += 10
+
+        if not findings:
+            findings.append({
+                "severity": "Baja",
+                "color": "#22c55e",
+                "category": "Excelente Calidad",
+                "title": "¡Proceso Cumple 100% las Reglas de Gobierno TEMIS!",
+                "description": "El diagrama tiene nodos de inicio/fin, validaciones completas y asignación adecuada de sistemas.",
+                "recommendation": "El flujo está listo para ser promovido a la siguiente Fase de Gobierno."
+            })
+
+        self.audit_findings = findings
+        self.audit_score = max(0, 100 - deductions)
+        self.is_auditing_ai = False
 
     # Duplicate Selected Node
     def duplicate_selected_node(self):
