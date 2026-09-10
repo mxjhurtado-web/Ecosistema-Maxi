@@ -27,7 +27,7 @@ def shape_button(icon_name: str, label: str, node_type: str, color: str = "#4755
         width="100%",
         justify="start",
         padding_x="2",
-        padding_y="1.5",
+        padding_y="1",
         border_radius="md",
         _hover={"background_color": "#f1f5f9"},
     )
@@ -49,10 +49,10 @@ def left_dock() -> rx.Component:
             # BPMN Category
             rx.vstack(
                 rx.text("BPMN / Proceso", size="1", weight="bold", color="#94a3b8", padding_x="2"),
-                shape_button("play-circle", "Inicio Proceso", "node_start", "#2563eb"),
+                shape_button("circle-play", "Inicio Proceso", "node_start", "#2563eb"),
                 shape_button("square-check", "Actividad", "node_activity", "#16a34a"),
                 shape_button("circle-help", "Decisión", "node_decision", "#d97706"),
-                shape_button("stop-circle", "Fin Proceso", "node_end", "#64748b"),
+                shape_button("circle-stop", "Fin Proceso", "node_end", "#64748b"),
                 shape_button("clock", "Demora / Espera", "node_activity", "#ea580c"),
                 shape_button("file-text", "Documento", "node_document", "#0284c7"),
                 shape_button("layers", "Subproceso", "node_activity", "#7c3aed"),
