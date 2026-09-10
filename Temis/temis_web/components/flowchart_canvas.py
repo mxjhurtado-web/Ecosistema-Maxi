@@ -3,11 +3,13 @@
 
 """
 Flowchart Canvas Component for TEMIS Web Flow
-Renders interactive Swimlanes, Nodes (with Official Symbology) and Connecting Edges
+High-performance SVG and CSS canvas for Swimlanes, Nodes, and Bézier Connectors
 """
 
 import reflex as rx
 from temis_web.state import FlowState
+from temis_web.components.edit_modal import edit_node_modal
+from temis_web.components.import_modal import import_modal
 
 
 def render_node(node: rx.Var) -> rx.Component:
@@ -17,77 +19,145 @@ def render_node(node: rx.Var) -> rx.Component:
     label = node["label"]
 
     is_selected = FlowState.selected_node_id == node_id
-    shadow = rx.cond(is_selected, "0 0 0 3px rgba(37, 99, 235, 0.3)", "0 2px 5px rgba(0,0,0,0.08)")
+    shadow = rx.cond(is_selected, "0 0 0 3px rgba(37, 99, 235, 0.4), 0 4px 12px rgba(0,0,0,0.1)", "0 2px 6px rgba(0,0,0,0.06)")
 
-    # 1. Start Node Symbol
+    # 1. Start Node Symbol (Pill)
     start_shape = rx.box(
-        rx.text(label, size="2", weight="bold", color="#1e40af"),
-        background_color="#dbeafe",
-        border="2px solid #2563eb",
+        rx.hstack(
+            rx.icon("play", size=13, color="#2563eb"),
+            rx.text(label, size="2", weight="bold", color="#1e40af", truncate=True),
+            align="center",
+            spacing="1.5",
+        ),
+        background_color="#eff6ff",
+        border="2px solid #3b82f6",
         border_radius="9999px",
-        padding_x="5",
-        padding_y="2",
+        padding_x="4",
+        padding_y="1.5",
+        width="130px",
+        height="42px",
+        display="flex",
+        align_items="center",
+        justify_content="center",
     )
 
-    # 2. End Node Symbol
+    # 2. End Node Symbol (Pill)
     end_shape = rx.box(
-        rx.text(label, size="2", weight="bold", color="#334155"),
-        background_color="#f1f5f9",
-        border="2px solid #475569",
+        rx.hstack(
+            rx.icon("square", size=13, color="#475569"),
+            rx.text(label, size="2", weight="bold", color="#334155", truncate=True),
+            align="center",
+            spacing="1.5",
+        ),
+        background_color="#f8fafc",
+        border="2px solid #64748b",
         border_radius="9999px",
-        padding_x="5",
-        padding_y="2",
+        padding_x="4",
+        padding_y="1.5",
+        width="130px",
+        height="42px",
+        display="flex",
+        align_items="center",
+        justify_content="center",
     )
 
-    # 3. Decision Node Symbol (Rombo)
+    # 3. Decision Node Symbol (Rombo / Card)
     decision_shape = rx.box(
         rx.vstack(
-            rx.icon("circle-help", size=16, color="#d97706"),
-            rx.text(label, size="2", weight="bold", color="#92400e", align="center"),
+            rx.hstack(
+                rx.icon("circle-help", size=14, color="#d97706"),
+                rx.text(label, size="2", weight="bold", color="#92400e", line_height="1.2"),
+                align="center",
+                spacing="1.5",
+            ),
             align="center",
-            spacing="1",
+            justify="center",
+            height="100%",
         ),
-        background_color="#fef3c7",
-        border="2px solid #d97706",
+        background_color="#fffbeb",
+        border="2px solid #f59e0b",
         border_radius="lg",
-        padding="3",
-        width="140px",
+        padding="2.5",
+        width="160px",
+        height="68px",
     )
 
-    # 4. Activity Node Symbol (Recuadro Verde)
+    # 4. Activity Node Symbol (Tarjeta Verde con Badges)
     activity_shape = rx.box(
-        rx.hstack(
-            rx.vstack(
-                rx.text(label, size="2", weight="bold", color="#1e293b"),
-                spacing="1",
-                align="start",
+        rx.vstack(
+            rx.hstack(
+                rx.cond(
+                    node["activity_number"].to(str) != "",
+                    rx.badge(node["activity_number"].to(str), color_scheme="green", variant="solid", size="1"),
+                ),
+                rx.text(label, size="2", weight="bold", color="#1e293b", line_height="1.2"),
+                align="center",
+                spacing="1.5",
             ),
-            spacing="2",
-            align="center",
+            rx.hstack(
+                rx.cond(
+                    node["attached_system"].to(str) != "",
+                    rx.badge(node["attached_system"].to(str), color_scheme="blue", variant="soft", size="1"),
+                ),
+                rx.cond(
+                    node["attached_channel"].to(str) != "",
+                    rx.badge(node["attached_channel"].to(str), color_scheme="green", variant="soft", size="1"),
+                ),
+                spacing="1",
+                align="center",
+            ),
+            spacing="1",
+            align="start",
+            justify="center",
+            height="100%",
         ),
         background_color="#ffffff",
-        border="2px solid #16a34a",
+        border="2px solid #22c55e",
         border_radius="lg",
-        padding="3",
-        width="180px",
+        padding="2.5",
+        width="190px",
+        height="68px",
     )
 
-    # 5. Default / Fallback Symbol
+    # 5. System / Channel Node Symbol
+    system_shape = rx.box(
+        rx.hstack(
+            rx.icon("cpu", size=14, color="#059669"),
+            rx.text(label, size="2", weight="bold", color="#065f46", line_height="1.2"),
+            align="center",
+            spacing="1.5",
+            height="100%",
+        ),
+        background_color="#ecfdf5",
+        border="2px solid #10b981",
+        border_radius="md",
+        padding="2.5",
+        width="175px",
+        height="58px",
+    )
+
+    # 6. Default / Fallback Symbol
     default_shape = rx.box(
         rx.text(label, size="2", weight="medium", color="#1e293b"),
         background_color="#ffffff",
         border="1px solid #cbd5e1",
         border_radius="md",
         padding="2.5",
+        width="160px",
+        height="52px",
     )
 
-    # Dynamic React Pattern Matching for Reactive Vars
+    # Match reactive shape by type
     shape = rx.match(
         node_type,
         ("node_start", start_shape),
         ("node_end", end_shape),
         ("node_decision", decision_shape),
         ("node_activity", activity_shape),
+        ("node_system", system_shape),
+        ("channel_whatsapp", system_shape),
+        ("channel_freshdesk", system_shape),
+        ("channel_bria", system_shape),
         default_shape,
     )
 
@@ -99,332 +169,99 @@ def render_node(node: rx.Var) -> rx.Component:
         box_shadow=shadow,
         cursor="pointer",
         on_click=lambda: FlowState.select_node(node_id),
+        transition="all 0.15s ease",
     )
 
 
-from temis_web.components.edit_modal import edit_node_modal
-from temis_web.components.import_modal import import_modal
-
 def flowchart_canvas() -> rx.Component:
     """Main Canvas component rendering Swimlanes and Flowchart"""
-    return rx.vstack(
+    return rx.box(
         edit_node_modal(),
         import_modal(),
-        # Top Diagram Toolbar
-        rx.hstack(
-            rx.icon("git-branch", size=20, color="#3b82f6"),
-            rx.heading(FlowState.diagram_title, size="4", weight="bold", color="#1e293b"),
-            rx.button(
-                rx.icon("save", size=14),
-                " Guardar Cambios",
-                on_click=FlowState.save_diagram,
-                color_scheme="green",
-                size="2",
-                variant="solid",
-                radius="medium",
-            ),
-            rx.menu.root(
-                rx.menu.trigger(
-                    rx.button(
-                        rx.icon("download", size=14),
-                        " Exportar...",
-                        color_scheme="blue",
-                        size="2",
-                        variant="soft",
-                        radius="medium",
-                    ),
-                ),
-                rx.menu.content(
-                    rx.menu.item(
-                        rx.hstack(
-                            rx.icon("file-json", size=14),
-                            rx.text("Exportar JSON (Lucidchart)"),
-                            align="center",
-                            spacing="2",
-                        ),
-                        on_click=FlowState.export_as_json,
-                    ),
-                    rx.menu.separator(),
-                    rx.menu.item(
-                        rx.hstack(
-                            rx.icon("package", size=14),
-                            rx.text("Exportar Paquete Completo (.temis.json)"),
-                            align="center",
-                            spacing="2",
-                        ),
-                        on_click=FlowState.export_project_package,
-                    ),
-                ),
-            ),
-            # Import Modal Trigger Button
-            rx.button(
-                rx.icon("upload", size=14),
-                " Importar...",
-                on_click=FlowState.open_import_modal,
-                color_scheme="indigo",
-                size="2",
-                variant="soft",
-                radius="medium",
-            ),
-            rx.button(
-                rx.icon("columns-2", size=14),
-                rx.cond(FlowState.show_swimlanes, " Ocultar Swimlanes", " Ver Swimlanes"),
-                on_click=FlowState.toggle_swimlanes,
-                color_scheme="gray",
-                variant="soft",
-                size="2",
-                radius="medium",
-            ),
-            rx.spacer(),
-            rx.cond(
-                FlowState.selected_node_id != "",
-                rx.hstack(
-                    rx.badge("Nodo: ", FlowState.selected_node_id, color_scheme="blue", variant="soft"),
-                    rx.button(
-                        rx.icon("link", size=14),
-                        "Conectar Nodos",
-                        on_click=FlowState.open_connect_modal,
-                        color_scheme="blue",
-                        variant="solid",
-                        size="1",
-                    ),
-                    rx.button(
-                        rx.icon("pencil", size=14),
-                        "Editar Propiedades",
-                        on_click=lambda: FlowState.open_node_edit_modal(FlowState.selected_node_id),
-                        color_scheme="indigo",
-                        variant="soft",
-                        size="1",
-                    ),
-                    rx.button(
-                        rx.icon("copy", size=14),
-                        "Duplicar",
-                        on_click=FlowState.duplicate_selected_node,
-                        color_scheme="blue",
-                        variant="soft",
-                        size="1",
-                    ),
-                    rx.button(
-                        rx.icon("arrow-left", size=14),
-                        on_click=lambda: FlowState.move_selected_node(-40, 0),
-                        color_scheme="gray",
-                        variant="soft",
-                        size="1",
-                    ),
-                    rx.button(
-                        rx.icon("arrow-right", size=14),
-                        on_click=lambda: FlowState.move_selected_node(40, 0),
-                        color_scheme="gray",
-                        variant="soft",
-                        size="1",
-                    ),
-                    rx.button(
-                        rx.icon("arrow-up", size=14),
-                        on_click=lambda: FlowState.move_selected_node(0, -40),
-                        color_scheme="gray",
-                        variant="soft",
-                        size="1",
-                    ),
-                    rx.button(
-                        rx.icon("arrow-down", size=14),
-                        on_click=lambda: FlowState.move_selected_node(0, 40),
-                        color_scheme="gray",
-                        variant="soft",
-                        size="1",
-                    ),
-                    rx.button(
-                        rx.icon("trash-2", size=14),
-                        "Eliminar",
-                        on_click=FlowState.delete_selected_node,
-                        color_scheme="red",
-                        variant="soft",
-                        size="1",
-                    ),
-                    spacing="2",
-                    align="center",
-                ),
-            ),
-            width="100%",
-            align="center",
-            padding="3",
-            background_color="#ffffff",
-            border_bottom="1px solid #e2e8f0",
-        ),
-        # Multi-Tab Diagram Page Navigation Bar (Lucidchart / Enterprise style)
-        rx.hstack(
-            rx.icon("layers", size=16, color="#4f46e5"),
-            rx.text("Pestañas del Proyecto:", size="2", weight="bold", color="#334155"),
-            rx.foreach(
-                FlowState.project_pages,
-                lambda page, idx: rx.hstack(
-                    rx.button(
-                        page["name"],
-                        on_click=lambda: FlowState.select_page_tab(idx),
-                        color_scheme=rx.cond(FlowState.active_page_index == idx, "indigo", "gray"),
-                        variant=rx.cond(FlowState.active_page_index == idx, "solid", "soft"),
-                        size="1",
-                        radius="medium",
-                    ),
-                    rx.cond(
-                        FlowState.project_pages.length() > 1,
-                        rx.button(
-                            rx.icon("x", size=12),
-                            on_click=lambda: FlowState.delete_tab_page(idx),
-                            color_scheme="gray",
-                            variant="ghost",
-                            size="1",
-                        ),
-                    ),
-                    align="center",
-                    spacing="1",
-                ),
-            ),
-            # Add New Tab Button
-            rx.button(
-                rx.icon("plus", size=14),
-                "Nueva Pestaña",
-                on_click=FlowState.add_new_tab_page,
-                color_scheme="indigo",
-                variant="outline",
-                size="1",
-                radius="medium",
-            ),
-            align="center",
-            spacing="2",
-            padding_x="3",
-            padding_y="2",
-            background_color="#f1f5f9",
-            border_bottom="1px solid #cbd5e1",
-            width="100%",
-            overflow_x="auto",
-        ),
-        # Swimlanes Layout & Canvas Area
-        rx.box(
-            # Optional Swimlanes Header Columns
-            rx.cond(
-                FlowState.show_swimlanes,
-                rx.hstack(
-                    rx.box(rx.text("INPUT", size="2", weight="bold", color="#1e293b"), width="25%", background_color="#f8fafc", padding="2", text_align="center", border_right="1px solid #e2e8f0"),
-                    rx.box(rx.text("ACTOR 1 (ej. Usuario)", size="2", weight="bold", color="#16a34a"), width="25%", background_color="#f0fdf4", padding="2", text_align="center", border_right="1px solid #e2e8f0"),
-                    rx.box(rx.text("ACTOR 2 (ej. Sistema)", size="2", weight="bold", color="#2563eb"), width="25%", background_color="#eff6ff", padding="2", text_align="center", border_right="1px solid #e2e8f0"),
-                    rx.box(rx.text("OUTPUT", size="2", weight="bold", color="#475569"), width="25%", background_color="#f8fafc", padding="2", text_align="center"),
-                    width="100%",
-                    spacing="0",
-                    border_bottom="2px solid #cbd5e1",
-                ),
-            ),
-            # Interactive Flowchart Board
-            rx.box(
-                # Render SVG Connections (Edges)
-                rx.el.svg(
-                    # Arrowhead marker definition
-                    rx.el.defs(
-                        rx.el.marker(
-                            rx.el.polygon(points="0 0, 10 3.5, 0 7", fill="#2563eb"),
-                            id="arrow-blue",
-                            viewBox="0 0 10 10",
-                            refX="6",
-                            refY="3.5",
-                            markerWidth="7",
-                            markerHeight="7",
-                            orient="auto-start-reverse",
-                        ),
-                    ),
-                    # Smooth Bézier Connection lines between nodes
-                    rx.foreach(
-                        FlowState.computed_edges,
-                        lambda edge: rx.el.g(
-                            rx.el.path(
-                                d=edge["d"],
-                                stroke="#2563eb",
-                                stroke_width="2.5",
-                                fill="none",
-                                marker_end="url(#arrow-blue)",
-                            ),
-                            rx.cond(
-                                edge["has_label"],
-                                rx.el.text(
-                                    edge["label"],
-                                    x=edge["label_x"].to(str),
-                                    y=edge["label_y"].to(str),
-                                    fill="#16a34a",
-                                    font_size="12px",
-                                    font_weight="bold",
-                                    text_anchor="middle",
-                                ),
-                            ),
-                        ),
-                    ),
-                    width="6000px",
-                    height="6000px",
-                    position="absolute",
-                    top="0",
-                    left="0",
-                    pointer_events="none",
-                    style={"zIndex": 1, "overflow": "visible"},
-                ),
-                # Render Flowchart Nodes
-                rx.foreach(
-                    FlowState.nodes,
-                    render_node,
-                ),
-                width=FlowState.zoom_width,
-                height=FlowState.zoom_height,
-                min_height="calc(100vh - 125px)",
-                min_width="100%",
-                position="relative",
-                background_color="#fafafa",
-                background_image="radial-gradient(#cbd5e1 1px, transparent 1px)",
-                background_size="20px 20px",
-                overflow="auto",
-                style={
-                    "transform": "scale(" + FlowState.zoom_level.to(str) + ")",
-                    "transformOrigin": "0 0",
-                    "transition": "transform 0.1s ease-out",
-                },
-            ),
-            # Floating Zoom Controls (Lucidchart / Figma / Miro Style)
+        # Swimlanes Column Headers (Optional)
+        rx.cond(
+            FlowState.show_swimlanes,
             rx.hstack(
-                rx.button(
-                    rx.icon("zoom-out", size=14),
-                    on_click=FlowState.zoom_out,
-                    size="1",
-                    color_scheme="gray",
-                    variant="soft",
-                ),
-                rx.badge(
-                    FlowState.zoom_percent,
-                    color_scheme="blue",
-                    variant="soft",
-                    cursor="pointer",
-                    on_click=FlowState.reset_zoom,
-                ),
-                rx.button(
-                    rx.icon("zoom-in", size=14),
-                    on_click=FlowState.zoom_in,
-                    size="1",
-                    color_scheme="gray",
-                    variant="soft",
-                ),
-                position="fixed",
-                bottom="30px",
-                right="280px",
-                padding="2",
-                background_color="#ffffff",
-                border="1px solid #cbd5e1",
-                border_radius="xl",
-                box_shadow="0 4px 12px rgba(0,0,0,0.15)",
-                z_index="100",
-                align="center",
-                spacing="2",
+                rx.box(rx.text("INPUT", size="1", weight="bold", color="#475569"), width="25%", background_color="#f8fafc", padding="2", text_align="center", border_right="1px solid #e2e8f0"),
+                rx.box(rx.text("ACTOR 1 (Usuario)", size="1", weight="bold", color="#16a34a"), width="25%", background_color="#f0fdf4", padding="2", text_align="center", border_right="1px solid #e2e8f0"),
+                rx.box(rx.text("ACTOR 2 (Sistema)", size="1", weight="bold", color="#2563eb"), width="25%", background_color="#eff6ff", padding="2", text_align="center", border_right="1px solid #e2e8f0"),
+                rx.box(rx.text("OUTPUT", size="1", weight="bold", color="#475569"), width="25%", background_color="#f8fafc", padding="2", text_align="center"),
+                width="100%",
+                spacing="0",
+                border_bottom="1px solid #cbd5e1",
             ),
-            width="100%",
-            height="100%",
-            flex="1",
+        ),
+        # Flowchart Drawing Area
+        rx.box(
+            # SVG Edge Connections
+            rx.el.svg(
+                rx.el.defs(
+                    rx.el.marker(
+                        rx.el.polygon(points="0 0, 10 3.5, 0 7", fill="#2563eb"),
+                        id="arrow-blue",
+                        viewBox="0 0 10 10",
+                        refX="6",
+                        refY="3.5",
+                        markerWidth="7",
+                        markerHeight="7",
+                        orient="auto-start-reverse",
+                    ),
+                ),
+                # Dynamic Bézier Curves
+                rx.foreach(
+                    FlowState.computed_edges,
+                    lambda edge: rx.el.g(
+                        rx.el.path(
+                            d=edge["d"],
+                            stroke="#2563eb",
+                            stroke_width="2.5",
+                            fill="none",
+                            marker_end="url(#arrow-blue)",
+                        ),
+                        rx.cond(
+                            edge["has_label"],
+                            rx.el.text(
+                                edge["label"],
+                                x=edge["label_x"].to(str),
+                                y=edge["label_y"].to(str),
+                                fill="#16a34a",
+                                font_size="12px",
+                                font_weight="bold",
+                                text_anchor="middle",
+                            ),
+                        ),
+                    ),
+                ),
+                width="6000px",
+                height="6000px",
+                position="absolute",
+                top="0",
+                left="0",
+                pointer_events="none",
+                style={"zIndex": 1, "overflow": "visible"},
+            ),
+            # Render All Nodes
+            rx.foreach(
+                FlowState.nodes,
+                render_node,
+            ),
+            width=FlowState.zoom_width,
+            height=FlowState.zoom_height,
+            min_height="100%",
+            min_width="100%",
             position="relative",
+            background_color="#fafafa",
+            background_image="radial-gradient(#cbd5e1 1px, transparent 1px)",
+            background_size="24px 24px",
+            style={
+                "transform": f"scale({FlowState.zoom_level})",
+                "transformOrigin": "0 0",
+                "transition": "transform 0.15s ease",
+            },
         ),
         width="100%",
         height="100%",
+        position="relative",
+        overflow="auto",
         flex="1",
-        spacing="0",
     )

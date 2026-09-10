@@ -85,18 +85,46 @@ class FlowState(rx.State):
 
     @rx.var
     def computed_edges(self) -> List[Dict[str, Any]]:
-        """Calculate dynamic SVG Bézier curve paths (M x1 y1 C cx1 cy1, cx2 cy2, x2 y2) and midpoint labels"""
+        """Calculate dynamic SVG Bézier curve paths with exact perimeter anchor points (East -> West)"""
         node_map = {n["id"]: n for n in self.nodes}
         res = []
         for e in self.edges:
             src = node_map.get(e["source"])
             dst = node_map.get(e["target"])
             if src and dst:
-                x1 = src.get("x", 0) + 150
-                y1 = src.get("y", 0) + 25
+                st = src.get("type", "")
+                dt = dst.get("type", "")
+
+                # Source Node dimensions
+                if st in ["node_start", "node_end"]:
+                    sw, sh = 130, 42
+                elif st == "node_decision":
+                    sw, sh = 160, 68
+                elif st == "node_activity":
+                    sw, sh = 190, 68
+                elif st.startswith("channel_") or st == "node_system":
+                    sw, sh = 175, 58
+                else:
+                    sw, sh = 160, 52
+
+                # Target Node dimensions
+                if dt in ["node_start", "node_end"]:
+                    dw, dh = 130, 42
+                elif dt == "node_decision":
+                    dw, dh = 160, 68
+                elif dt == "node_activity":
+                    dw, dh = 190, 68
+                elif dt.startswith("channel_") or dt == "node_system":
+                    dw, dh = 175, 58
+                else:
+                    dw, dh = 160, 52
+
+                x1 = src.get("x", 0) + sw
+                y1 = src.get("y", 0) + (sh / 2)
                 x2 = dst.get("x", 0)
-                y2 = dst.get("y", 0) + 25
-                dx = max(40, abs(x2 - x1) / 2)
+                y2 = dst.get("y", 0) + (dh / 2)
+
+                dx = max(45, abs(x2 - x1) / 2)
                 cx1 = x1 + dx
                 cy1 = y1
                 cx2 = x2 - dx
@@ -112,10 +140,13 @@ class FlowState(rx.State):
                 })
         return res
 
-    # Selection & Editor state
+    # Selection & Property Inspector state
     selected_node_id: str = ""
     node_label_edit: str = ""
     node_swimlane_edit: str = ""
+    selected_node_type: str = ""
+    selected_node_system: str = ""
+    selected_node_channel: str = ""
 
     # Canvas Zoom State (Figma / Miro / Lucidchart style)
     zoom_level: float = 1.0
@@ -141,11 +172,66 @@ class FlowState(rx.State):
         if self.zoom_level > 0.3:
             self.zoom_level = round(self.zoom_level - 0.1, 2)
 
-    def reset_zoom(self):
+    def zoom_reset(self):
         self.zoom_level = 1.0
 
     def toggle_swimlanes(self):
         self.show_swimlanes = not self.show_swimlanes
+
+    # Select Node for Editing in Inspector
+    def select_node(self, node_id: str):
+        self.selected_node_id = node_id
+        for n in self.nodes:
+            if n["id"] == node_id:
+                self.node_label_edit = n.get("label", "")
+                self.node_swimlane_edit = n.get("swimlane", "")
+                self.selected_node_type = n.get("type", "node_activity")
+                self.selected_node_system = n.get("attached_system", "")
+                self.selected_node_channel = n.get("attached_channel", "")
+                break
+
+    def unselect_node(self):
+        self.selected_node_id = ""
+
+    def set_selected_node_label(self, val: str):
+        self.node_label_edit = val
+        for n in self.nodes:
+            if n["id"] == self.selected_node_id:
+                n["label"] = val
+                break
+        self.trigger_auto_save()
+
+    def set_selected_node_type(self, val: str):
+        self.selected_node_type = val
+        for n in self.nodes:
+            if n["id"] == self.selected_node_id:
+                n["type"] = val
+                break
+        self.trigger_auto_save()
+
+    def set_selected_node_swimlane(self, val: str):
+        self.node_swimlane_edit = val
+        for n in self.nodes:
+            if n["id"] == self.selected_node_id:
+                n["swimlane"] = val
+                break
+        self.trigger_auto_save()
+
+    def set_selected_node_system(self, val: str):
+        self.selected_node_system = val
+        for n in self.nodes:
+            if n["id"] == self.selected_node_id:
+                n["attached_system"] = val
+                break
+        self.trigger_auto_save()
+
+    def set_selected_node_channel(self, val: str):
+        self.selected_node_channel = val
+        for n in self.nodes:
+            if n["id"] == self.selected_node_id:
+                n["attached_channel"] = val
+                break
+        self.trigger_auto_save()
 
     # AI Text-to-Diagram Generation State
     ai_prompt_text: str = ""
