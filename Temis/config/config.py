@@ -26,7 +26,7 @@ DRIVE_SCOPES = [
 ]
 
 # Gemini API Configuration
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")  # Defaults to Flash family (2.0/2.5 Flash for high speed & precision)
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")  # Using Gemini 2.5 Flash for high-speed & high-reasoning processing
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 
 # Backend API Configuration
