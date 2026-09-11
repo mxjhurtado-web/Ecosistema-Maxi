@@ -3697,6 +3697,20 @@ async def agent_interact(
             from .shared_logic import strip_script_code_prefix
             resp.reply_text = strip_script_code_prefix(resp.reply_text)
             
+            # Record bot response in conversation transcript
+            if contact_id and not contact_id.startswith("$"):
+                try:
+                    redis = await get_redis_client()
+                    transcript_key = f"session:transcript:{contact_id}"
+                    await redis.rpush(transcript_key, json.dumps({
+                        "role": "bot",
+                        "agent": request.agent_name or "Max",
+                        "text": resp.reply_text
+                    }))
+                    await redis.expire(transcript_key, 3600)
+                except Exception as t_err:
+                    logger.debug(f"Redis transcript bot logging error: {t_err}")
+
         await log_fsm_decision(
             contact_id=request.contact_id,
             active_agent=request.agent_name,
@@ -3771,9 +3785,19 @@ async def agent_interact_inner(
 
     logger.info(f"📨 Agent interaction request received for agent: {agent_name}, contact: {contact_id}, user_text: '{user_text}', media_url: {media_url}")
     
-    # Store session text in Redis cache
+    # Store session text and conversation transcript in Redis cache
     session_text_key = f"contact:session_text:{contact_id}"
     await redis.set(session_text_key, user_text, ex=3600)
+    if user_text and contact_id and not contact_id.startswith("$"):
+        try:
+            transcript_key = f"session:transcript:{contact_id}"
+            await redis.rpush(transcript_key, json.dumps({
+                "role": "user",
+                "text": user_text
+            }))
+            await redis.expire(transcript_key, 3600)
+        except Exception as t_err:
+            logger.debug(f"Redis transcript user logging error: {t_err}")
     
     # Pre-load scripts
     scripts = get_compliance_scripts()

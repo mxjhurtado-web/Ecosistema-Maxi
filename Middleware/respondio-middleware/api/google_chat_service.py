@@ -203,7 +203,8 @@ class GoogleChatService:
         template_type: Optional[str] = None,
         status_transaccion: Optional[str] = None,
         status_retencion: Optional[str] = None,
-        alerta_tipo: Optional[str] = None
+        alerta_tipo: Optional[str] = None,
+        transcript_text: Optional[str] = None
     ) -> bool:
         """
         Generates and dispatches a structured Google Chat alert card compliant with the official
@@ -311,6 +312,36 @@ class GoogleChatService:
         motivo_str = motivo_clean
         adjunto_str = media_url if media_url else "[Sin archivos adjuntos]"
 
+        # Build conversation transcript block if available
+        transcript_block = ""
+        if not transcript_text and contact_id and not contact_id.startswith("sim_test_no_redis"):
+            try:
+                from shared.redis_client import get_redis_client
+                redis = await get_redis_client()
+                transcript_key = f"session:transcript:{contact_id}"
+                raw_entries = await redis.lrange(transcript_key, 0, -1)
+                if raw_entries:
+                    lines = []
+                    for entry in raw_entries:
+                        try:
+                            item = json.loads(entry.decode('utf-8') if isinstance(entry, bytes) else entry)
+                            role = item.get("role", "user")
+                            txt = item.get("text", "").strip()
+                            if not txt:
+                                continue
+                            if len(txt) > 200:
+                                txt = txt[:197] + "..."
+                            prefix = "👤 *[Usuario]:*" if role == "user" else f"🤖 *[{item.get('agent', 'Max')}]:*"
+                            lines.append(f"> {prefix} {txt}")
+                        except Exception:
+                            continue
+                    if lines:
+                        transcript_block = "\n📝 *Transcripción de la Conversación:*\n" + "\n".join(lines) + "\n"
+            except Exception as tr_err:
+                logger.debug(f"Could not load transcript from Redis: {tr_err}")
+        elif transcript_text:
+            transcript_block = f"\n📝 *Transcripción de la Conversación:*\n{transcript_text}\n"
+
         # Build card content according to official Template
         if template_type == "plantilla_2":
             # Plantilla 2: No includes Clave de la transacción
@@ -326,6 +357,7 @@ class GoogleChatService:
                 f"• *Motivo de consulta:* {motivo_str}\n"
                 f"• *Archivos adjuntos del caso:* {adjunto_str}\n"
                 f"• *Link de la conversación (en desarrollo):* No disponible\n"
+                f"{transcript_block}"
                 f"─────────────────────────────────────────"
             )
         elif template_type == "plantilla_3":
@@ -346,6 +378,7 @@ class GoogleChatService:
                 f"• *Motivo de consulta:* {motivo_str}\n"
                 f"• *Archivos adjuntos del caso:* {adjunto_str}\n"
                 f"• *Link de la conversación (en desarrollo):* No disponible\n"
+                f"{transcript_block}"
                 f"─────────────────────────────────────────"
             )
         else:
@@ -363,6 +396,7 @@ class GoogleChatService:
                 f"• *Motivo de consulta:* {motivo_str}\n"
                 f"• *Archivos adjuntos del caso:* {adjunto_str}\n"
                 f"• *Link de la conversación (en desarrollo):* No disponible\n"
+                f"{transcript_block}"
                 f"─────────────────────────────────────────"
             )
 
