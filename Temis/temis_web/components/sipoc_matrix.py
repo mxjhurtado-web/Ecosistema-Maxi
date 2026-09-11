@@ -139,7 +139,7 @@ def sipoc_matrix() -> rx.Component:
                         rx.icon("plus", size=15),
                         " Agregar Paso",
                         on_click=FlowState.add_sipoc_row,
-                        color_scheme="emerald",
+                        color_scheme="green",
                         variant="soft",
                         size="2",
                         radius="medium",
@@ -196,7 +196,7 @@ def sipoc_matrix() -> rx.Component:
             rx.box(
                 rx.vstack(
                     rx.hstack(
-                        rx.icon("check-circle-2", size=16, color="#d97706"),
+                        rx.icon("circle-check", size=16, color="#d97706"),
                         rx.text("Requisitos del Cliente & Notas de Calidad (Customer Requirements)", size="2", weight="bold", color="#92400e"),
                         align="center",
                         spacing="2",

@@ -64,7 +64,7 @@ PHASE_LIST = [
         "name": "Fase 7: Cierre del Proyecto",
         "desc": "Entrega formal de activos, lecciones aprendidas y traspaso a operaciones continuas.",
         "deliverables": ["Acta de Cierre Aprobada", "Paquete .temis.json Exportado", "Lecciones Aprendidas"],
-        "icon": "check-circle-2",
+        "icon": "circle-check",
         "color": "#ec4899"
     }
 ]

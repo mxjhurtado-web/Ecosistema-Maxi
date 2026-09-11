@@ -7,7 +7,7 @@ Manages projects, phases, flowchart nodes, swimlanes and AI generation
 """
 
 import reflex as rx
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 import json
 import requests
 
@@ -31,16 +31,20 @@ class FlowState(rx.State):
     # Active View Navigation (4 Core Modules)
     active_view: str = "flow"  # "charter", "flow", "sipoc", "governance"
 
-    def set_active_view(self, view_name: str):
+    def set_active_view(self, view_name: Union[str, List[str]]):
         """Switch active view tab: 'charter', 'flow', 'sipoc', 'governance'"""
-        self.active_view = view_name
+        if isinstance(view_name, list):
+            val = view_name[0] if view_name else "flow"
+        else:
+            val = str(view_name)
+        self.active_view = val
         view_labels = {
             "charter": "Ficha del Proyecto & Narrativa",
             "flow": "Diagrama de Flujo (Lienzo)",
             "sipoc": "Matriz SIPOC Six Sigma",
             "governance": "Gobernanza & 7 Fases"
         }
-        self.status_message = f"Vista activa: {view_labels.get(view_name, view_name)}"
+        self.status_message = f"Vista activa: {view_labels.get(val, val)}"
 
     # Project Charter & Master Metadata State
     project_purpose: str = "Estandarizar y automatizar el ciclo integral de atención de aclaraciones y transacciones de clientes vía canales digitales y sistemas centrales."

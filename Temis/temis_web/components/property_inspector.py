@@ -16,7 +16,7 @@ def property_inspector() -> rx.Component:
     active_inspector = rx.vstack(
         # Inspector Header
         rx.hstack(
-            rx.icon("sliders", size=15, color="#2563eb"),
+            rx.icon("sliders-horizontal", size=15, color="#2563eb"),
             rx.text(f"Nodo: ", FlowState.selected_node_id, size="2", weight="bold", color="#1e293b"),
             rx.spacer(),
             rx.button(
