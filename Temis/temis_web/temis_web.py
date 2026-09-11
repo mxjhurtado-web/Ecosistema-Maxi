@@ -17,27 +17,42 @@ from temis_web.components.bottom_bar import bottom_bar
 from temis_web.components.project_modal import recent_projects_modal
 from temis_web.components.connect_modal import connect_modal
 from temis_web.components.audit_modal import audit_modal
+from temis_web.components.project_charter import project_charter
+from temis_web.components.sipoc_matrix import sipoc_matrix
+from temis_web.components.governance_view import governance_view
 
 
 def index() -> rx.Component:
-    """Main modern SaaS layout of TEMIS Web Flow (Lucidchart / Figma style)"""
+    """Main modern SaaS layout of TEMIS Web Flow with 4 Modular Views"""
     return rx.box(
         recent_projects_modal(),
         connect_modal(),
         audit_modal(),
         rx.vstack(
             header(),
-            rx.hstack(
-                left_dock(),
-                flowchart_canvas(),
-                property_inspector(),
-                width="100%",
-                flex="1",
-                height="calc(100vh - 88px)",
-                overflow="hidden",
-                spacing="0",
+            rx.match(
+                FlowState.active_view,
+                ("charter", project_charter()),
+                ("sipoc", sipoc_matrix()),
+                ("governance", governance_view()),
+                # Default: Interactive Canvas Flowchart View (View 2)
+                rx.vstack(
+                    rx.hstack(
+                        left_dock(),
+                        flowchart_canvas(),
+                        property_inspector(),
+                        width="100%",
+                        flex="1",
+                        height="calc(100vh - 88px)",
+                        overflow="hidden",
+                        spacing="0",
+                    ),
+                    bottom_bar(),
+                    width="100%",
+                    height="calc(100vh - 50px)",
+                    spacing="0",
+                ),
             ),
-            bottom_bar(),
             width="100%",
             height="100vh",
             spacing="0",

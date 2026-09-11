@@ -78,14 +78,25 @@ def header() -> rx.Component:
             align="center",
             spacing="3",
         ),
+        # Center-Left Section: 4 Modular View Switchers
+        rx.segmented_control.root(
+            rx.segmented_control.item("📄 Ficha & Narrativa", value="charter"),
+            rx.segmented_control.item("📊 Diagrama de Flujo", value="flow"),
+            rx.segmented_control.item("📋 Matriz SIPOC", value="sipoc"),
+            rx.segmented_control.item("🏛️ Gobernanza", value="governance"),
+            value=FlowState.active_view,
+            on_change=FlowState.set_active_view,
+            size="1",
+            radius="medium",
+        ),
         rx.spacer(),
-        # Center Section: Gemini AI Prompt Bar
+        # Center-Right Section: Gemini AI Prompt Bar
         rx.hstack(
             rx.input(
                 placeholder="Describe el proceso para generar con IA (ej: Reembolso por WhatsApp)...",
                 value=FlowState.ai_prompt_text,
                 on_change=FlowState.set_ai_prompt_text,
-                width="380px",
+                width="280px",
                 size="1",
                 variant="surface",
                 radius="medium",

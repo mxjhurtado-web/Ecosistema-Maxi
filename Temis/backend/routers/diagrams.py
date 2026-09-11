@@ -266,3 +266,114 @@ def export_diagram_csv(data: ExportRequest):
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+
+class NarrativeRequest(BaseModel):
+    project_name: str = "Proyecto TEMIS"
+    project_purpose: str = ""
+    nodes: List[Dict[str, Any]] = []
+    edges: List[Dict[str, Any]] = []
+    sipoc_rows: Optional[List[Dict[str, Any]]] = None
+
+
+@router.post("/generate-narrative")
+def generate_narrative_endpoint(req: NarrativeRequest):
+    """Generate formal process procedure manual and narrative in continuous prose"""
+    from backend.services.process_narrative import generate_process_narrative
+    try:
+        narrative = generate_process_narrative(
+            project_name=req.project_name,
+            project_purpose=req.project_purpose,
+            nodes=req.nodes,
+            edges=req.edges,
+            sipoc_rows=req.sipoc_rows
+        )
+        return {"narrative": narrative}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al redactar narrativa: {str(e)}")
+
+
+class SipocAiRequest(BaseModel):
+    project_name: str = "Proceso Operativo"
+    project_purpose: str = ""
+    existing_rows: Optional[List[Dict[str, Any]]] = []
+
+
+@router.post("/sipoc/ai-complete")
+def complete_sipoc_with_ai(req: SipocAiRequest):
+    """Suggest complete SIPOC table rows based on project purpose"""
+    api_key = get_gemini_api_key()
+    if api_key:
+        try:
+            from backend.services.gemini_service import GeminiChatService
+            gemini = GeminiChatService(api_key=api_key)
+            prompt = f"""Eres un experto en Lean Six Sigma y BPMN. Genera las filas de una MATRIZ SIPOC estructurada (Suppliers, Inputs, Process, Outputs, Customers, Requirements) para el siguiente proceso:
+NOMBRE: {req.project_name}
+PROPÓSITO: {req.project_purpose}
+
+Devuelve un array JSON con 5 a 8 filas estructuradas con estas llaves exactas:
+[
+  {{
+    "id": "1",
+    "step_num": "1.0",
+    "provider": "Nombre del Proveedor (ej. Cliente, Agente)",
+    "input": "Entrada / Recurso (ej. Folio, Llamada, Documento)",
+    "step": "1.0 [Verbo] Acción a ejecutar",
+    "output": "Salida resultante (ej. Registro creado, Ticket)",
+    "customer": "Cliente receptor (ej. Operador, Chronos)",
+    "requirements": "Requisito / SLA (ej. < 2 min, Datos completos)"
+  }}
+]
+
+Devuelve ÚNICAMENTE el array JSON válido."""
+            res = gemini.get_structured_response(prompt, max_tokens=3000)
+            cleaned = res.strip()
+            if cleaned.startswith("```json"):
+                cleaned = cleaned[7:]
+            if cleaned.startswith("```"):
+                cleaned = cleaned[3:]
+            if cleaned.endswith("```"):
+                cleaned = cleaned[:-3]
+            rows = json.loads(cleaned.strip())
+            return {"rows": rows}
+        except Exception:
+            pass
+
+    # Fallback template
+    rows = [
+        {"id": "1", "step_num": "1.0", "provider": "Usuario Final", "input": "Solicitud vía WhatsApp", "step": "1.0 Recepción y captura de solicitud", "output": "Ticket en Freshdesk", "customer": "Agente Operativo", "requirements": "Folio y teléfono válidos"},
+        {"id": "2", "step_num": "2.0", "provider": "Agente Operativo", "input": "Ticket en Freshdesk", "step": "2.0 Validación de datos y estatus en Chronos", "output": "Estatus confirmado", "customer": "Sistema Chronos", "requirements": "Respuesta < 30 seg"},
+        {"id": "3", "step_num": "3.0", "provider": "Sistema Chronos", "input": "Estatus confirmado", "step": "3.0 Dictamen y resolución del caso", "output": "Resolución / Reembolso", "customer": "Usuario Final", "requirements": "Aprobación conforme a política"},
+        {"id": "4", "step_num": "4.0", "provider": "Agente Operativo", "input": "Resolución emitida", "step": "4.0 Notificación y encuesta de satisfacción", "output": "Cierre de conversación", "customer": "Usuario Final", "requirements": "Confirmación de recibido"}
+    ]
+    return {"rows": rows}
+
+
+class SipocExportRequest(BaseModel):
+    project_name: str = "Proyecto_TEMIS"
+    project_purpose: str = ""
+    customer_requirements: str = ""
+    sipoc_rows: List[Dict[str, Any]] = []
+
+
+@router.post("/sipoc/export-excel")
+def export_sipoc_excel_endpoint(req: SipocExportRequest):
+    """Download styled professional Six Sigma SIPOC Excel workbook"""
+    from backend.services.sipoc_exporter import export_sipoc_to_excel
+    from fastapi.responses import StreamingResponse
+    try:
+        excel_stream = export_sipoc_to_excel(
+            project_name=req.project_name,
+            project_purpose=req.project_purpose,
+            sipoc_rows=req.sipoc_rows,
+            customer_requirements=req.customer_requirements
+        )
+        safe_name = req.project_name.replace(' ', '_')
+        return StreamingResponse(
+            excel_stream,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=Matriz_SIPOC_{safe_name}.xlsx"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar Excel SIPOC: {str(e)}")
+
+

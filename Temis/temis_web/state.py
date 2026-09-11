@@ -27,6 +27,400 @@ class FlowState(rx.State):
     diagram_id: Optional[str] = None
     diagram_title: str = "Flujo de Proceso Operativo"
     swimlanes: List[str] = ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"]
+
+    # Active View Navigation (4 Core Modules)
+    active_view: str = "flow"  # "charter", "flow", "sipoc", "governance"
+
+    def set_active_view(self, view_name: str):
+        """Switch active view tab: 'charter', 'flow', 'sipoc', 'governance'"""
+        self.active_view = view_name
+        view_labels = {
+            "charter": "Ficha del Proyecto & Narrativa",
+            "flow": "Diagrama de Flujo (Lienzo)",
+            "sipoc": "Matriz SIPOC Six Sigma",
+            "governance": "Gobernanza & 7 Fases"
+        }
+        self.status_message = f"Vista activa: {view_labels.get(view_name, view_name)}"
+
+    # Project Charter & Master Metadata State
+    project_purpose: str = "Estandarizar y automatizar el ciclo integral de atención de aclaraciones y transacciones de clientes vía canales digitales y sistemas centrales."
+    project_manager: str = "Ing. Mario Hurtado"
+    project_sponsor: str = "Dirección de Operaciones & Tecnología"
+    start_date: str = "2026-01-16"
+    end_date: str = "2026-12-04"
+    scope_in: str = "Mapeo SIPOC, diagrama BPMN multi-pestaña, manual de procedimientos y auditoría de calidad."
+    scope_out: str = "Desarrollo de integraciones core bancarias propietarias de terceros."
+
+    def set_project_purpose(self, val: str):
+        self.project_purpose = val
+
+    def set_project_manager(self, val: str):
+        self.project_manager = val
+
+    def set_project_sponsor(self, val: str):
+        self.project_sponsor = val
+
+    def set_start_date(self, val: str):
+        self.start_date = val
+
+    def set_end_date(self, val: str):
+        self.end_date = val
+
+    def set_scope_in(self, val: str):
+        self.scope_in = val
+
+    def set_scope_out(self, val: str):
+        self.scope_out = val
+
+    # SIPOC Matrix Data State
+    sipoc_rows: List[Dict[str, Any]] = [
+        {
+            "id": "1",
+            "step_num": "1.0",
+            "provider": "Usuario / Cliente",
+            "input": "Solicitud de aclaración vía WhatsApp",
+            "step": "1.0 Recepción y captura de número de folio",
+            "output": "Folio y datos validados",
+            "customer": "Agente Operativo",
+            "requirements": "Número de folio válido y teléfono registrado"
+        },
+        {
+            "id": "2",
+            "step_num": "2.0",
+            "provider": "Agente Operativo",
+            "input": "Número de folio validado",
+            "step": "2.0 Consulta de estatus de transacción en Chronos",
+            "output": "Estatus de la transacción (MO/Vigente)",
+            "customer": "Sistema Chronos",
+            "requirements": "Tiempo de respuesta del sistema < 30 seg"
+        },
+        {
+            "id": "3",
+            "step_num": "3.0",
+            "provider": "Sistema Chronos",
+            "input": "Estatus de transacción",
+            "step": "3.0 ¿Transacción requiere revisión por Fraudes?",
+            "output": "Dictamen de aprobación o derivación",
+            "customer": "Agente / Área de Fraudes",
+            "requirements": "Reglas de riesgo y montos máximos vigentes"
+        },
+        {
+            "id": "4",
+            "step_num": "4.0",
+            "provider": "Agente Operativo",
+            "input": "Dictamen de aprobación",
+            "step": "4.0 Notificación de resolución y encuesta",
+            "output": "Confirmación y encuesta de satisfacción",
+            "customer": "Usuario / Cliente",
+            "requirements": "Confirmación de entrega y cierre en Freshdesk"
+        }
+    ]
+    customer_requirements: str = "Tiempos de respuesta (SLA) menores a 5 min, trazabilidad de logs en Chronos y encuesta con satisfacción >= 95%."
+    is_completing_sipoc: bool = False
+
+    def set_customer_requirements(self, val: str):
+        self.customer_requirements = val
+
+    def add_sipoc_row(self):
+        """Add a new empty step row to the SIPOC matrix"""
+        count = len(self.sipoc_rows) + 1
+        new_row = {
+            "id": str(count),
+            "step_num": f"{count}.0",
+            "provider": "",
+            "input": "",
+            "step": f"{count}.0 ",
+            "output": "",
+            "customer": "",
+            "requirements": ""
+        }
+        self.sipoc_rows.append(new_row)
+        self.status_message = f"Paso {count}.0 agregado a la Matriz SIPOC"
+
+    def remove_sipoc_row(self, row_id: str):
+        """Remove a step row from SIPOC matrix"""
+        self.sipoc_rows = [r for r in self.sipoc_rows if r.get("id") != row_id]
+        # Re-index step numbers
+        for idx, r in enumerate(self.sipoc_rows):
+            r["id"] = str(idx + 1)
+            r["step_num"] = f"{idx + 1}.0"
+        self.status_message = "Fila eliminada de la Matriz SIPOC"
+
+    def update_sipoc_provider(self, row_id: str, val: str):
+        for r in self.sipoc_rows:
+            if r.get("id") == row_id:
+                r["provider"] = val
+                break
+
+    def update_sipoc_input(self, row_id: str, val: str):
+        for r in self.sipoc_rows:
+            if r.get("id") == row_id:
+                r["input"] = val
+                break
+
+    def update_sipoc_step(self, row_id: str, val: str):
+        for r in self.sipoc_rows:
+            if r.get("id") == row_id:
+                r["step"] = val
+                break
+
+    def update_sipoc_output(self, row_id: str, val: str):
+        for r in self.sipoc_rows:
+            if r.get("id") == row_id:
+                r["output"] = val
+                break
+
+    def update_sipoc_customer(self, row_id: str, val: str):
+        for r in self.sipoc_rows:
+            if r.get("id") == row_id:
+                r["customer"] = val
+                break
+
+    def update_sipoc_reqs(self, row_id: str, val: str):
+        for r in self.sipoc_rows:
+            if r.get("id") == row_id:
+                r["requirements"] = val
+                break
+
+    def sync_sipoc_to_flow(self):
+        """
+        ⚡ Transform SIPOC Table into Flowchart DAG on the Canvas:
+        Generates Start Node, Activities/Decisions with Systems/Channels, End Node and Bézier connections.
+        """
+        if not self.sipoc_rows:
+            self.status_message = "La matriz SIPOC está vacía"
+            return
+
+        new_nodes = []
+        new_edges = []
+        
+        # 1. Start Node
+        first_input = self.sipoc_rows[0].get("input", "Inicio")
+        first_provider = self.sipoc_rows[0].get("provider", "Input") or "Input"
+        new_nodes.append({
+            "id": "node-1",
+            "type": "node_start",
+            "label": f"Inicio: {first_input[:28]}",
+            "swimlane": first_provider,
+            "x": 60,
+            "y": 140,
+            "activity_number": None,
+            "attached_system": "",
+            "attached_channel": "WhatsApp" if "whatsapp" in first_input.lower() else ""
+        })
+
+        # 2. Activity / Decision Nodes from SIPOC Steps
+        prev_node_id = "node-1"
+        for idx, r in enumerate(self.sipoc_rows):
+            node_id = f"node-{idx + 2}"
+            step_text = r.get("step", f"Paso {idx+1}.0")
+            provider = r.get("provider", "Actor 1") or "Actor 1"
+            
+            # Detect Decision node type
+            is_decision = "?" in step_text or "¿" in step_text or "si " in step_text.lower() or "decisión" in step_text.lower() or "evaluar" in step_text.lower()
+            node_type = "node_decision" if is_decision else "node_activity"
+            
+            # Detect Systems and Channels
+            attached_sys = ""
+            lower_text = (step_text + " " + r.get("input", "") + " " + r.get("output", "")).lower()
+            if "chronos" in lower_text:
+                attached_sys = "Chronos"
+            elif "freshdesk" in lower_text:
+                attached_sys = "Freshdesk"
+            elif "sap" in lower_text or "erp" in lower_text:
+                attached_sys = "SAP"
+
+            attached_chan = ""
+            if "whatsapp" in lower_text:
+                attached_chan = "WhatsApp"
+            elif "bria" in lower_text or "llamada" in lower_text or "teléfono" in lower_text:
+                attached_chan = "Bria"
+            elif "correo" in lower_text or "email" in lower_text:
+                attached_chan = "Email"
+
+            x_pos = 60 + (idx + 1) * 260
+            y_pos = 140
+
+            new_nodes.append({
+                "id": node_id,
+                "type": node_type,
+                "label": step_text,
+                "swimlane": provider,
+                "x": x_pos,
+                "y": y_pos,
+                "activity_number": (idx + 1) if not is_decision else None,
+                "attached_system": attached_sys,
+                "attached_channel": attached_chan
+            })
+
+            # Add connecting edge
+            edge_id = f"e{prev_node_id}-{node_id}"
+            new_edges.append({
+                "id": edge_id,
+                "source": prev_node_id,
+                "target": node_id,
+                "label": "Sí" if prev_node_id != "node-1" and any(n.get("type") == "node_decision" for n in new_nodes if n.get("id") == prev_node_id) else ""
+            })
+            prev_node_id = node_id
+
+        # 3. End Node
+        end_node_id = f"node-{len(self.sipoc_rows) + 2}"
+        last_output = self.sipoc_rows[-1].get("output", "Fin")
+        last_customer = self.sipoc_rows[-1].get("customer", "Output") or "Output"
+        end_x = 60 + (len(self.sipoc_rows) + 1) * 260
+        
+        new_nodes.append({
+            "id": end_node_id,
+            "type": "node_end",
+            "label": f"Fin: {last_output[:28]}",
+            "swimlane": last_customer,
+            "x": end_x,
+            "y": 140,
+            "activity_number": None,
+            "attached_system": "",
+            "attached_channel": ""
+        })
+
+        new_edges.append({
+            "id": f"e{prev_node_id}-{end_node_id}",
+            "source": prev_node_id,
+            "target": end_node_id,
+            "label": ""
+        })
+
+        # Update swimlanes list
+        unique_lanes = []
+        for n in new_nodes:
+            lane = n.get("swimlane")
+            if lane and lane not in unique_lanes:
+                unique_lanes.append(lane)
+        if len(unique_lanes) < 2:
+            unique_lanes = ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"]
+
+        self.nodes = new_nodes
+        self.edges = new_edges
+        self.swimlanes = unique_lanes
+
+        # Update current page tab
+        if 0 <= self.active_page_index < len(self.project_pages):
+            self.project_pages[self.active_page_index]["nodes"] = list(self.nodes)
+            self.project_pages[self.active_page_index]["edges"] = list(self.edges)
+            self.project_pages[self.active_page_index]["swimlanes"] = list(self.swimlanes)
+
+        self.status_message = f"⚡ Diagrama de Flujo generado con {len(self.nodes)} símbolos desde la Matriz SIPOC"
+        self.active_view = "flow"
+
+    def complete_sipoc_with_ai(self):
+        """Auto-complete SIPOC rows using Gemini AI / expert template"""
+        self.is_completing_sipoc = True
+        self.status_message = "Completando Matriz SIPOC con IA..."
+        try:
+            from backend.routers.diagrams import complete_sipoc_with_ai, SipocAiRequest
+            res = complete_sipoc_with_ai(SipocAiRequest(
+                project_name=self.project_name,
+                project_purpose=self.project_purpose,
+                existing_rows=self.sipoc_rows
+            ))
+            if res.get("rows"):
+                self.sipoc_rows = res["rows"]
+                self.status_message = f"✨ Matriz SIPOC completada con {len(self.sipoc_rows)} pasos sugeridos"
+        except Exception as e:
+            self.status_message = f"Error al autocompletar SIPOC: {str(e)}"
+        finally:
+            self.is_completing_sipoc = False
+
+    def export_sipoc_excel(self):
+        """Download styled Six Sigma SIPOC Excel workbook (.xlsx)"""
+        try:
+            from backend.services.sipoc_exporter import export_sipoc_to_excel
+            stream = export_sipoc_to_excel(
+                project_name=self.project_name,
+                project_purpose=self.project_purpose,
+                sipoc_rows=self.sipoc_rows,
+                customer_requirements=self.customer_requirements
+            )
+            safe_name = self.project_name.replace(" ", "_")
+            self.status_message = "Excel de Matriz SIPOC descargado exitosamente"
+            return rx.download(
+                data=stream.getvalue(),
+                filename=f"Matriz_SIPOC_{safe_name}.xlsx"
+            )
+        except Exception as e:
+            self.status_message = f"Error al exportar Excel: {str(e)}"
+
+    # Narrative & Policy Manual State
+    narrative_text: str = """# 📘 Manual de Procedimientos & Narrativa Oficial
+# PROYECTO DEMO TEMIS
+
+## 🎯 1. Objetivo y Propósito del Proceso
+Estandarizar y automatizar el ciclo integral de atención de aclaraciones y transacciones de clientes vía canales digitales y sistemas centrales.
+
+## 👥 2. Matriz de Roles y Responsabilidades
+- **Actores y Participantes:** Agente Operativo, Sistema Chronos, Usuario / Cliente
+- **Sistemas y Plataformas:** Chronos, Freshdesk
+- **Canales de Interacción:** WhatsApp
+
+---
+
+## 📝 3. Narrativa Operativa Secuencial (Paso a Paso)
+
+### 1.0 Entrada e Inicio del Proceso
+El proceso inicia formalmente cuando el participante **[Usuario / Cliente]** detona el evento: *"Inicio: Solicitud de aclaración"* por el canal **WhatsApp**. Se reciben los datos iniciales y se habilita el caso para su gestión.
+
+### 2.0 Ejecución de Tarea: 1.0 Recepción y captura de número de folio
+El responsable **[Usuario / Cliente]** ejecuta la actividad operativa de *"Recepción y captura de número de folio"* por el canal **WhatsApp**. Se genera el registro auditable correspondiente en Freshdesk.
+
+### 3.0 Ejecución de Tarea: 2.0 Consulta de estatus de transacción en Chronos
+El responsable **[Agente Operativo]** ejecuta la actividad operativa de *"Consulta de estatus en Chronos"* a través de **Chronos**. Se valida la vigencia de la póliza o transacción.
+
+### 4.0 Punto de Decisión / Validación: 3.0 ¿Transacción requiere revisión por Fraudes?
+El rol **[Sistema Chronos]** realiza la validación crítica *"¿Transacción requiere revisión por Fraudes?"* a través de **Chronos**. Las ramificaciones son:
+  - **Condición 'Sí':** Se turna al área especializada de Fraudes (SC.030).
+  - **Condición 'No':** Se procede con el dictamen de aprobación estándar.
+
+### 5.0 Cierre y Conclusión del Proceso
+Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso concluye satisfactoriamente con la entrega del producto/resultado hacia el participante **[Usuario / Cliente]**.
+
+---
+
+## ⚖️ 4. Políticas y Reglas de Negocio Clave
+1. **Trazabilidad Absoluta:** Toda interacción por canal digital o sistema debe quedar registrada con marca de tiempo y folio.
+2. **Control de Calidad:** Las compuertas de decisión deben validar que la totalidad de requisitos previos se cumplan antes de pasar a la siguiente fase.
+3. **Escalamiento:** En caso de excepción no contemplada en las reglas estándar, el caso se turna al líder del proceso para dictamen.
+"""
+    is_generating_narrative: bool = False
+
+    def set_narrative_text(self, val: str):
+        self.narrative_text = val
+
+    def generate_narrative_ai(self):
+        """⚡ Generate procedure manual narrative in continuous prose from current Flow and SIPOC data"""
+        self.is_generating_narrative = True
+        self.status_message = "Gemini AI redactando la Narrativa Oficial del proceso..."
+        try:
+            from backend.services.process_narrative import generate_process_narrative
+            self.narrative_text = generate_process_narrative(
+                project_name=self.project_name,
+                project_purpose=self.project_purpose,
+                nodes=self.nodes,
+                edges=self.edges,
+                sipoc_rows=self.sipoc_rows
+            )
+            self.status_message = "✨ Narrativa Oficial redactada y sincronizada con éxito"
+        except Exception as e:
+            self.status_message = f"Error al generar narrativa: {str(e)}"
+        finally:
+            self.is_generating_narrative = False
+
+    def export_narrative_markdown(self):
+        """Download narrative as Markdown/Text document"""
+        safe_name = self.project_name.replace(" ", "_")
+        self.status_message = "Manual de Procedimientos exportado (.md)"
+        return rx.download(
+            data=self.narrative_text,
+            filename=f"Manual_Procedimiento_{safe_name}.md"
+        )
+
     
     # List of Nodes on Canvas
     nodes: List[Dict[str, Any]] = [
