@@ -20,3 +20,16 @@
 * **Permissions/Scope:** This new Service Account will exclusively have access to:
   1. The FAQ Knowledge Base Google Sheet: `1wrtj7SZ6wB9h1yd_9h613DYNPGjI69_Zj1gLigiUHtE`.
   2. A new, custom MCP server (to be configured in the future).
+
+## Future Architecture Plan: TEMIS (Process Suite & Governance)
+* **1. Respaldo en Unidad Compartida Google Drive (Google Workspace Shared Drive):**
+  * Uso de Service Account (`maxibot-sa@maxibot-472423.iam.gserviceaccount.com` o SA dedicada) con permisos de Administrador de Contenido / Colaborador.
+  * Respaldo automático de versiones de proyectos `.temis.json` y paquetes exportados con `supportsAllDrives=True`.
+* **2. Suite de Proyectos Integral (4 Vistas Modulares):**
+  * **Ficha del Proyecto (Project Charter):** Datos maestros, propósito/objetivo ("para qué es"), responsables (PM, Sponsor), fechas de inicio/fin y alcance.
+  * **Diagrama de Flujo (Lienzo Multi-Pestaña):** Editor visual tipo Lucidchart con curvas Bézier y simbología oficial.
+  * **Matriz SIPOC Tabular:** Proveedores, Entradas, Procesos (1.0..N), Salidas, Clientes y Requisitos con **sugerencias bidireccionales hacia el flujo** y completado con Gemini AI (`Plantilla Matriz Sipoc.xlsx`).
+  * **Gobernanza & Metodología de 7 Fases:** Seguimiento de ciclo de vida corporativo, entregables, daily logs y Auditor IA de calidad de procesos (0-100).
+* **3. Backlog Scrum Técnico Oficial:**
+  * Archivo `Backlog_Scrum_area_tecnica_TEMIS.xlsx` (Periodo: 16 Ene 2026 al 04 Dic 2026, destacando el hito clave de migración Desktop Windows ➔ Web SaaS Cloud).
+
