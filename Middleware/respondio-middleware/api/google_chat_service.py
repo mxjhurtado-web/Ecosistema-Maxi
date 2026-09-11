@@ -194,71 +194,69 @@ class GoogleChatService:
         perfil_nlu: Optional[str] = None,
         codigo_envio: Optional[str] = None,
         numero_agencia: Optional[str] = None,
+        telefono_contacto: Optional[str] = None,
         media_url: Optional[str] = None,
         space_id: Optional[str] = None,
-        custom_summary: Optional[str] = None
+        custom_summary: Optional[str] = None,
+        is_out_of_hours: bool = False,
+        turn_tag: Optional[str] = None
     ) -> bool:
         """
-        Generates and dispatches a structured 8-field Google Chat alert card.
+        Generates and dispatches a structured Google Chat alert card compliant with REJ.03 and REJ.02.
         """
         from datetime import datetime
         from zoneinfo import ZoneInfo
 
-        timestamp_ct = datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d %H:%M:%S CT")
+        timestamp_ct = datetime.now(ZoneInfo("America/Chicago")).strftime("%d/%m/%Y %H:%M:%S CT")
+        dept_upper = dept_key.upper()
         
-        dept_configs = {
-            "FRAUDES": {
-                "header": "🚨 [ALERTA CRÍTICA - PREVENCIÓN DE FRAUDES / ESTAFA]",
-                "default_space": "spaces/AAQAQM9pDpg"
-            },
-            "BSA": {
-                "header": "🛡️ [ALERTA CRÍTICA - ACTIVIDAD SOSPECHOSA / BSA MONITORING]",
-                "default_space": "spaces/AAQA3WL2JIk"
-            },
-            "OVERSIGHT": {
-                "header": "📢 [NOTIFICACIÓN DE AGENCIA - OVERSIGHT / SOPORTE INTERNO]",
-                "default_space": "spaces/AAQAJiVCDAU"
-            },
-            "CAPACITACION": {
-                "header": "🎓 [SOLICITUD DE CAPACITACIÓN - BSA / CFPB]",
-                "default_space": "spaces/AAQAMKgsazw"
-            },
-            "CUMPLIMIENTO": {
-                "header": "⚖️ [NOTIFICACIÓN DE CUMPLIMIENTO / KYC / BLOQUEO]",
-                "default_space": "spaces/AAQAbvCUAko"
-            },
-            "COBRANZA": {
-                "header": "💰 [GESTIÓN DE COBRANZA - BALANCE DE AGENCIA]",
-                "default_space": "spaces/AAQAcEu8NTc"
-            },
-            "CHEQUES": {
-                "header": "🎟️ [SOPORTE DE CHEQUES - REVISIÓN Y CANCELACIÓN]",
-                "default_space": "spaces/AAQAGZ_m434"
-            },
-            "SOPORTE_TECNICO": {
-                "header": "💻 [SOPORTE TÉCNICO - HERMES / EQUIPOS]",
-                "default_space": "spaces/AAQAQhx5RTM"
-            },
-            "VENTAS": {
-                "header": "📈 [SOLICITUD DE VENTAS / ALTA DE AGENCIA]",
-                "default_space": "spaces/AAQAUghCztE"
-            }
-        }
-        
-        cfg = dept_configs.get(dept_key.upper(), {
-            "header": f"🔔 [NOTIFICACIÓN DE SEGURIDAD - {dept_key.upper()}]",
-            "default_space": "spaces/AAQA3WL2JIk"
-        })
+        # REJ.03 (Fraudes / BSA) and REJ.02 (Interdepartmental) headers
+        if dept_upper in ["FRAUDES", "FRAUDE"]:
+            header = "⚠️ [ALERTA CRÍTICA - POSIBLE FRAUDE O ESTAFA - ATENCIÓN SERVICIO AL CLIENTE]" if is_out_of_hours else "⚠️ [ALERTA CRÍTICA - POSIBLE FRAUDE O ESTAFA]"
+            default_space = "spaces/AAQAQM9pDpg"
+        elif dept_upper in ["BSA", "BSA_MONITORING"]:
+            header = "⚠️ [ALERTA CRÍTICA - POSIBLE ACTIVIDAD SOSPECHOSA - ATENCIÓN SERVICIO AL CLIENTE]" if is_out_of_hours else "⚠️ [ALERTA CRÍTICA - POSIBLE ACTIVIDAD SOSPECHOSA]"
+            default_space = "spaces/AAQA3WL2JIk"
+        elif dept_upper in ["OVERSIGHT", "AGENT_OVERSIGHT"]:
+            header = "↪️ [DERIVACIÓN AGENT OVERSIGHT]"
+            default_space = "spaces/AAQAJiVCDAU"
+        elif dept_upper in ["VENTAS", "VENTAS_INTERNAS"]:
+            header = "↪️ [DERIVACIÓN VENTAS INTERNAS]"
+            default_space = "spaces/AAQAUghCztE"
+        elif dept_upper in ["COBRANZA"]:
+            header = "↪️ [DERIVACIÓN COBRANZA]"
+            default_space = "spaces/AAQAcEu8NTc"
+        elif dept_upper in ["CAPACITACION", "CAPACITACIÓN"]:
+            header = "↪️ [DERIVACIÓN CAPACITACIÓN]"
+            default_space = "spaces/AAQAMKgsazw"
+        elif dept_upper in ["CHEQUES"]:
+            header = "↪️ [DERIVACIÓN CHEQUES]"
+            default_space = "spaces/AAQAGZ_m434"
+        elif dept_upper in ["SOPORTE_TECNICO", "TECNICO", "SOPORTE TÉCNICO", "SOPORTE TECNICO"]:
+            header = "↪️ [DERIVACIÓN SOPORTE TÉCNICO]"
+            default_space = "spaces/AAQAQhx5RTM"
+        elif dept_upper in ["CUMPLIMIENTO"]:
+            header = "🚧 [DERIVACIÓN TRANSACCIÓN RETENIDA CUMPLIMIENTO]"
+            default_space = "spaces/AAQAbvCUAko"
+        else:
+            header = f"🔔 [NOTIFICACIÓN DE SEGURIDAD - {dept_upper}]"
+            default_space = "spaces/AAQA3WL2JIk"
         
         if not perfil_nlu:
-            if any(k in user_text.lower() for k in ["agencia", "sucursal", "ctr", "irs", "hermes", "balance", "agente"]):
-                perfil_nlu = "AGENTE AUTORIZADO"
+            user_lower = user_text.lower()
+            if any(k in user_lower for k in ["agencia", "sucursal", "ctr", "irs", "hermes", "balance", "agente"]):
+                perfil_nlu = "Agente"
+            elif any(k in user_lower for k in ["beneficiario", "recibo el dinero", "cobrar"]):
+                perfil_nlu = "Beneficiario"
+            elif any(k in user_lower for k in ["remitente", "hice el envío", "hice el envio", "mandé", "mande"]):
+                perfil_nlu = "Remitente"
             else:
-                perfil_nlu = "REMITENTE / CLIENTE"
+                perfil_nlu = "Cliente"
 
-        clave_str = codigo_envio or "[No especificada]"
-        agencia_str = f"#{numero_agencia}" if numero_agencia else "[No especificada]"
-        nombre_str = nombre_usuario or "[No proporcionado]"
+        clave_str = codigo_envio or "No proporcionada"
+        agencia_str = numero_agencia if numero_agencia else "No proporcionado"
+        nombre_str = nombre_usuario or "No proporcionado"
+        contacto_str = telefono_contacto or contact_id
         
         import re
         motivo_raw = custom_summary or user_text or ""
@@ -269,32 +267,35 @@ class GoogleChatService:
         adjunto_str = media_url if media_url else "[Sin archivos adjuntos]"
 
         formatted_card = (
-            f"*{cfg['header']}*\n"
+            f"*{header}*\n"
             f"─────────────────────────────────────────\n"
-            f"📅 *Timestamp:* `{timestamp_ct}`\n"
-            f"🆔 *ID de Conversación:* `{contact_id}`\n"
-            f"👥 *Perfil Identificado (NLU):* *{perfil_nlu}*\n"
-            f"👤 *Nombre Completo:* {nombre_str}\n"
-            f"🏬 *Número de Agencia:* {agencia_str}\n"
-            f"🔑 *Clave(s) de Confirmación:* `{clave_str}`\n"
-            f"─────────────────────────────────────────\n"
-            f"📋 *Motivo de Consulta:* \n{motivo_str}\n\n"
-            f"📎 *Archivos Adjuntos del Caso:* {adjunto_str}"
+            f"• *Horario de consulta:* {timestamp_ct}\n"
+            f"• *ID de conversación:* `{contact_id}`\n"
+            f"• *Perfil del usuario:* {perfil_nlu}\n"
+            f"• *Nombre del usuario:* {nombre_str}\n"
+            f"• *Contacto:* {contacto_str}\n"
+            f"• *Clave de la transacción:* `{clave_str}`\n"
+            f"• *Número de agencia:* {agencia_str}\n"
+            f"• *Motivo de consulta:* {motivo_str}\n"
+            f"• *Archivos adjuntos del caso:* {adjunto_str}\n"
+            f"• *Link de la conversación (en desarrollo):* No disponible\n"
+            f"─────────────────────────────────────────"
         )
 
-        target_space = space_id or cfg["default_space"]
+        target_space = space_id or default_space
         
-        # Debounce / Deduplication: Avoid sending multiple near-simultaneous alert cards for the same contact
+        # Debounce / Deduplication: Avoid duplicate cards within the same turn
+        turn_key_suffix = f":{turn_tag}" if turn_tag else ""
         if contact_id and not contact_id.startswith("sim_test"):
             try:
                 from shared.redis_client import get_redis_client
                 redis = await get_redis_client()
-                dedup_key = f"gchat:dedup:{contact_id}:{target_space}"
+                dedup_key = f"gchat:dedup:{contact_id}:{target_space}{turn_key_suffix}"
                 already_sent = await redis.get(dedup_key)
                 if already_sent:
-                    logger.info(f"⏭️ [DEDUP] Suppressing duplicate Google Chat alert card for contact {contact_id} in {target_space} (debounced 45s)")
+                    logger.info(f"⏭️ [DEDUP] Suppressing duplicate Google Chat alert card for contact {contact_id} in {target_space}{turn_key_suffix} (debounced 30s)")
                     return True
-                await redis.set(dedup_key, "1", ex=45)
+                await redis.set(dedup_key, "1", ex=30)
             except Exception as dedup_err:
                 logger.warning(f"Redis dedup check error: {dedup_err}")
 
@@ -306,7 +307,7 @@ class GoogleChatService:
             from .email_service import email_service
             import asyncio
             asyncio.create_task(email_service.send_gmail_notification(
-                subject=cfg['header'],
+                subject=header,
                 body_text=formatted_card
             ))
         except Exception as mail_err:

@@ -3605,13 +3605,19 @@ async def agent_interact(
                     cuA1_trans = await translate_script_if_needed(cuA1_text, request.user_text, contact_id=contact_id)
                     cuA1_clean = strip_script_code_prefix(cuA1_trans)
                     
-                    # Deduplication & compliance check: do NOT prepend CU.A1 if resp.reply_text is empty or contains specialized compliance scripts (SC.030, SC.037, etc.) or if requested by specialized agents
+                    # Deduplication & compliance check: do NOT prepend CU.A1 if request.agent_name is Max, or if resp.reply_text is empty or already contains welcome text or contains specialized compliance scripts (SC.030, SC.037, etc.)
+                    already_has_welcome = (
+                        request.agent_name == "Max" or 
+                        "Gracias por comunicarse a Maxitransfers" in resp.reply_text or
+                        "Soy Max" in resp.reply_text or
+                        resp.reply_text.startswith(cuA1_clean[:25])
+                    )
                     is_specialized_script = any(sc in resp.reply_text for sc in [
                         "Lamento lo sucedido", "alta prioridad", "Su reporte ya fue canalizado", "compártame la siguiente información",
                         "Verificando la información", "por favor compártame", "número telefónico", "Tracking Number"
                     ]) or request.agent_name in ["DerivacionBSA", "DerivacionFraudes", "VerificadorEstatusRecargas", "VerificadorPagoBill"]
 
-                    if cuA1_clean and resp.reply_text and not is_specialized_script and not resp.reply_text.startswith(cuA1_clean[:30]):
+                    if cuA1_clean and resp.reply_text and not is_specialized_script and not already_has_welcome:
                         resp.reply_text = f"{cuA1_clean}\n\n{resp.reply_text}"
                         logger.info(f"✨ Mandatory Turn 1 Welcome Script (CU.A1) prepended for contact {contact_id}")
             except Exception as w_err:
@@ -3707,7 +3713,7 @@ async def agent_interact_inner(
     user_text_lower = user_text.lower()
     
     fraud_keywords = [
-        "estafa", "fraude", "engaño", "phishing", "robo", "robado", "extorsión", "extorsion", "sospechosa", "sospechoso", 
+        "estafa", "fraude", "engaño", "engano", "phishing", "robo", "robado", "extorsión", "extorsion", 
         "víctima", "victima", "scam", "estafado", "estafada", "me estafaron", "me engañaron", "fraude del beneficiario", 
         "estafa del beneficiario", "beneficiario me estafó", "beneficiario me engañó", "víctima de fraude", 
         "víctima de estafa", "fui víctima", "me defraudaron", "me hicieron fraude", "fraude contra el remitente", 
@@ -3723,7 +3729,7 @@ async def agent_interact_inner(
         "me estan hablando por telefono", "me están llamando", "me estan llamando", "hablando por teléfono", 
         "hablando por telefono", "llamando por teléfono", "llamando por telefono", "llamada por teléfono", 
         "llamada por telefono", "pidiendo la clave", "pidiendo mi nip", "pidiendo nip", "pidiendo contraseña", 
-        "pidiendo contrasena", "clave para depositarme", "clave para depositar", "llamada sospechosa", 
+        "pidiendo contrasena", "clave para depositarme", "clave para depositar", 
         "llamaron por teléfono", "llamaron por telefono", "me dijeron que me iban a depositar", 
         "pidiendo mi clave para depositarme", "pidiendo clave para depositarme", "hablando por teléfono pidiendo",
         "hablando por telefono pidiendo", "pidieron clave", "pidieron mi clave", "clave por teléfono", 
@@ -3732,40 +3738,47 @@ async def agent_interact_inner(
         "pidiendome mi clave", "pidiendome la clave", "me hablaron por teléfono", "me hablaron por telefono",
         "llamda", "llamda telefónica", "llamda telefonica", "recibi una llamda", "recibí una llamda", "recibi una llamada",
         "recibí una llamada", "reportar una llamada", "reportar llamda", "pidiendome dar informacion", "pidiéndome dar información",
-        "pidiendome informacion", "pidiéndome información", "dar informacion acerca de un envio", "dar información acerca de un envío"
+        "pidiendome informacion", "pidiéndome información", "dar informacion acerca de un envio", "dar información acerca de un envío",
+        "compra falsa", "compre por internet y no llego", "compre por internet y no me llego", "pague por un trabajo que no hicieron"
     ]
     fraud_collecting_key = f"session:fraud_collecting:{contact_id}"
     is_fraud_collecting = await redis.get(fraud_collecting_key)
     bsa_keywords = [
-        "bsa", "fraccionar", "fraccionamiento", "estructuración", "ctr", "deny list", "lista negra", 
-        "lista restrictiva", "notificacion", "notificación", "usando mi perfil", "alguien usando mi perfil", 
-        "notificacion a mi celular", "notificación a mi celular", "no reconozco", "no reconozco el envío", 
-        "envío no reconocido", "envío desconocido", "no hice el envío", "yo no hice ese envío", "no autoricé", 
-        "no autoricé el envío", "no autoricé la transacción", "transacción no autorizada", "envío no autorizado", 
-        "transferencia no autorizada", "recibí un mensaje de un envío que no hice", "alguien usó mi cuenta", 
-        "alguien está usando mi perfil", "uso indebido del perfil", "uso no autorizado", "actividad no reconocida", 
-        "más de $10,000", "más de 10 mil dólares", "superior a $10,000", "superior a 10 mil dólares", 
-        "supera los $10,000", "supera los 10 mil dólares", "envíos por más de $10,000", "envíos superiores a $10,000", 
-        "más de 10 mil en un día", "se negó a proporcionar información", "se negó a proporcionar identificación", 
-        "no quiere proporcionar identificación", "se negó a proporcionar ssn", "no quiere proporcionar ssn", 
-        "se negó a proporcionar número de seguridad social", "no quiere proporcionar número de seguridad social", 
-        "se negó a presentar comprobante de ingresos", "no quiere presentar comprobante de ingresos", 
-        "se negó a proporcionar documentación", "no quiere proporcionar documentación", "información para ctr", 
-        "documentación para ctr", "actividad sospechosa", "actividad inusual", "comportamiento sospechoso", 
-        "comportamiento inusual", "operación sospechosa", "operaciones sospechosas", "operación inusual", 
-        "operaciones inusuales", "envío sospechoso", "envíos sospechosos", "envío inusual", "envíos inusuales", 
-        "patrón sospechoso", "patrón inusual", "comportamiento extraño", "comportamiento irregular", 
-        "actividad irregular", "actividad fuera de lo normal", "comportamiento fuera de lo normal", 
-        "operaciones fuera de lo normal", "movimientos sospechosos", "transacciones sospechosas", 
-        "transacción inusual", "transacciones inusuales", "múltiples envíos", "muchos envíos", "frecuencia inusual", 
-        "patrón de envíos", "comportamiento atípico", "actividad atípica", "cantidades fuertes", "comprobante de ingresos", 
-        "varios envíos", "varios envios", "mil o mas", "mil o más", "montos altos", "montos elevados", "sospechoso"
+        "bsa", "bsa monitoring", "cumplimiento bsa", "antilavado", "prevención de lavado", "lavado de dinero",
+        "fraccionar", "fraccionamiento", "estructuración", "estructuracion", "evasión", "evasion",
+        "ctr", "reporte ctr", "requisitos ctr", "formulario ctr",
+        "deny list por actividad sospechosa", "lista negra por actividad sospechosa", "lista restrictiva por actividad sospechosa",
+        "deny list", "lista negra", "lista restrictiva", 
+        "notificacion por sms", "notificación por sms", "mensaje de texto", "sms de un envío", "sms de un envio",
+        "usando mi perfil", "alguien usando mi perfil", "uso indebido de perfil", "uso indebido del perfil", 
+        "robo de identidad", "suplantación de perfil", "suplantacion de perfil", "alguien usó mi cuenta", "alguien está usando mi perfil",
+        "no reconozco", "no reconozco el envío", "no reconozco el envio", "envío no reconocido", "envio no reconocido", 
+        "envío desconocido", "envio desconocido", "no hice el envío", "no hice el envio", "yo no hice ese envío", "yo no hice ese envio", 
+        "no autoricé", "no autorice", "no autoricé el envío", "no autorice el envio", "transacción no autorizada", "transaccion no autorizada", 
+        "envío no autorizado", "envio no autorizado", "transferencia no autorizada", "recibí un mensaje de un envío que no hice", 
+        "uso no autorizado", "actividad no reconocida",
+        "más de $10,000", "mas de $10,000", "más de 10 mil", "mas de 10 mil", "superior a $10,000", "superior a 10 mil", 
+        "supera los $10,000", "supera los 10 mil", "envíos por más de $10,000", "envios por mas de $10,000", "envíos superiores a $10,000", 
+        "más de 10 mil dólares", "mas de 10 mil dolares", "más de 10 mil en un día", "mas de 10 mil en un dia", 
+        "10 mil dolares", "10 mil dólares", "$10000", "$10,000", "10000 dolares", "10000 dólares",
+        "se negó a proporcionar", "se nego a proporcionar", "se negó a presentar", "se nego a presentar", 
+        "no quiere proporcionar", "no quiere presentar", "no quiere dar", "se negó a dar", "se nego a dar",
+        "identificación para ctr", "identificacion para ctr", "identificación oficial", "identificacion oficial", 
+        "ssn", "número de seguridad social", "numero de seguridad social", "social security", "comprobante de ingresos", "justificante de ingresos",
+        "actividad sospechosa", "actividad inusual", "actividad atípica", "actividad atipica", "actividad irregular", "actividad fuera de lo normal",
+        "comportamiento sospechoso", "comportamiento inusual", "comportamiento atípico", "comportamiento atipico", "comportamiento extraño", "comportamiento irregular", "comportamiento fuera de lo normal",
+        "operación sospechosa", "operacion sospechosa", "operaciones sospechosas", "operación inusual", "operacion inusual", "operaciones inusuales", "operaciones fuera de lo normal",
+        "movimientos sospechosos", "transacción sospechosa", "transaccion sospechosa", "transacciones sospechosas", "transacción inusual", "transaccion inusual", "transacciones inusuales",
+        "envío sospechoso", "envio sospechoso", "envíos sospechosos", "envios sospechosos", "envío inusual", "envio inusual", "envíos inusuales", "envios inusuales",
+        "patrón sospechoso", "patron sospechoso", "patrón inusual", "patron inusual", "patrón de envíos", "patron de envios", "frecuencia inusual",
+        "múltiples envíos", "multiples envios", "muchos envíos", "muchos envios", "varios envíos", "varios envios", 
+        "cantidades fuertes", "montos altos", "montos elevados", "sospechoso", "sospechosa", "llamada sospechosa"
     ]
-    is_bsa_report = any(match_keyword_safe(k, user_text_lower) for k in bsa_keywords)
+    is_bsa_report = any(match_keyword_safe(k, user_text_lower) for k in bsa_keywords) or (agent_name == "DerivacionBSA")
+    is_fraud_report = (any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or (agent_name == "DerivacionFraudes")) and not is_bsa_report
     is_security_dept = (
-        agent_name in ["DerivacionBSA", "DerivacionFraudes"] or 
         is_bsa_report or 
-        any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or 
+        is_fraud_report or 
         bool(is_fraud_collecting)
     )
     max_char_limit = 1000 if is_security_dept else 500
@@ -3829,14 +3842,15 @@ async def agent_interact_inner(
             translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
             logger.info(f"🔀 Proceso N2 (RNE.48): Interdepartmental handoff for {dept_enum} (open={dept_open}) -> {sc_code}")
             
-            # Fire Google Chat Notification
+            # Fire Google Chat Notification compliant with REJ.02
             try:
                 from .google_chat_service import google_chat_service
                 await google_chat_service.send_unified_notification(
                     dept_key=dept_enum,
                     contact_id=contact_id,
                     user_text=user_text,
-                    media_url=media_url
+                    media_url=media_url,
+                    is_out_of_hours=not dept_open
                 )
             except Exception as g_err:
                 logger.error(f"Failed to send interdepartmental GChat alert: {g_err}")
@@ -3856,8 +3870,8 @@ async def agent_interact_inner(
     
 
 
-    if (any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or is_bsa_report or is_fraud_collecting):
-        logger.info(f"🚨 Fraud/BSA flow active for contact {contact_id} (collecting={bool(is_fraud_collecting)})")
+    if (is_bsa_report or is_fraud_report or is_fraud_collecting):
+        logger.info(f"🚨 Fraud/BSA flow active for contact {contact_id} (bsa={is_bsa_report}, collecting={bool(is_fraud_collecting)})")
         
         if not is_fraud_collecting:
             # Turn 1: Deliver SC.030 + Request 3 Security Fields + Send Google Chat Alert Immediately!
@@ -3865,30 +3879,23 @@ async def agent_interact_inner(
             await redis.set(f"session:fraud_turn1_text:{contact_id}", user_text_lower, ex=3600)
             await redis.set(f"session:is_bsa:{contact_id}", "1" if is_bsa_report else "0", ex=3600)
             
-            # Fire Google Chat Alert immediately on Turn 1 so it is NEVER missed!
+            # RNE.50 / RNE.51: Select SC.030.1 (In Hours) vs SC.030.2 (Out of Hours)
+            from zoneinfo import ZoneInfo
+            ct_now = datetime.now(ZoneInfo("America/Chicago"))
+            target_dept = "BSA MONITORING" if is_bsa_report else "PREVENCION DE FRAUDES"
+            in_hours = check_department_hours(target_dept, ct_now)
+            cs_in_hours = check_department_hours("SERVICIO AL CLIENTE", ct_now)
+
+            if in_hours:
+                sc_turn1_code = "SC.030.1"  # RNE.50 (En horario laboral de Fraudes/BSA)
+            elif cs_in_hours:
+                sc_turn1_code = "SC.030.2"  # RNE.51 (Fuera de horario Fraudes/BSA, pero Servicio al Cliente en horario)
+            else:
+                sc_turn1_code = "SC.027.1"  # RNE.47.1 (Fuera de horario Fraudes/BSA y Servicio al Cliente también fuera de horario)
+
+            # Fire Google Chat Alert immediately on Turn 1 compliant with REJ.03!
             try:
                 from .google_chat_service import google_chat_service
-                cached_url = await redis.get(f"contact:last_image:{contact_id}")
-                media_attach = ""
-                if cached_url:
-                    try:
-                        url_str = cached_url.decode('utf-8')
-                        if url_str and "http" in url_str:
-                            emoji_attach = "📄" if ".pdf" in url_str.lower() else "📷"
-                            media_attach = f"\n\n{emoji_attach} *Adjunto:* {url_str}"
-                    except Exception:
-                        pass
-
-                
-                alert_header = "🚨 *ALERTA CRÍTICA - BSA MONITORING / CUMPLIMIENTO*" if is_bsa_report else "🚨 *ALERTA CRÍTICA DE FRAUDE/ESTAFA*"
-                alert_intent = "Reporte de Actividad Sospechosa / BSA" if is_bsa_report else "Reporte de Fraude / Estafa"
-
-                alert_msg = (
-                    f"{alert_header}\n\n"
-                    f"👤 *Usuario:* Contacto #{contact_id}\n"
-                    f"🎯 *Intención:* {alert_intent}\n"
-                    f"📝 *Detalle:* {user_text}{media_attach}"
-                )
                 target_gchat_space = (
                     os.getenv("GOOGLE_CHATS_BSA_SPACE") or getattr(settings, "GOOGLE_CHATS_BSA_SPACE", None) or "spaces/AAQA3WL2JIk"
                 ) if is_bsa_report else (
@@ -3898,7 +3905,30 @@ async def agent_interact_inner(
                 dept_tag = "BSA" if is_bsa_report else "FRAUDES"
                 parsed_name = parse_name_from_text(user_text)
                 parsed_agency = parse_agency_from_text(user_text)
-                parsed_code = sc_turn1_code if 'sc_turn1_code' in locals() else (extraer_codigo_router(user_text) or "")
+                parsed_code = extraer_codigo_router(user_text) or ""
+                
+                # Motivo according to RNE.50 classification
+                if is_bsa_report:
+                    if any(k in user_text_lower for k in ["notificacion", "notificación", "sms", "no reconozco", "no hice", "no autorice", "no autoricé", "perfil"]):
+                        motivo_auto = "Reporte de posible uso indebido de perfil o robo de identidad."
+                    elif any(k in user_text_lower for k in ["10,000", "10 mil", "ctr", "ingresos", "ssn", "estructuracion", "estructuración", "se nego", "se negó"]):
+                        motivo_auto = "Reporte de evasión de requisitos CTR por estructuración o montos elevados."
+                    elif any(k in user_text_lower for k in ["deny list", "lista negra", "lista restrictiva"]):
+                        motivo_auto = "Solicitud de agente para inclusión de remitente en Deny List por actividad sospechosa."
+                    else:
+                        motivo_auto = "Reporte de comportamiento transaccional inusual o actividad sospechosa."
+                else:
+                    if any(k in user_text_lower for k in ["cancelar"]):
+                        motivo_auto = "Cancelación de un envío por posible fraude o estafa."
+                    elif any(k in user_text_lower for k in ["agencia", "sucursal"]):
+                        motivo_auto = "Reporte de fraude o estafa hacia la agencia."
+                    elif any(k in user_text_lower for k in ["deny list", "lista negra"]):
+                        motivo_auto = "Solicitud para inclusión de beneficiario en Deny List por fraude."
+                    else:
+                        motivo_auto = "Reporte por prevención de fraude o estafa."
+                
+                motivo_full = f"{motivo_auto} Detalle: {user_text}"
+
                 await google_chat_service.send_unified_notification(
                     dept_key=dept_tag,
                     contact_id=contact_id,
@@ -3908,25 +3938,14 @@ async def agent_interact_inner(
                     numero_agencia=parsed_agency or None,
                     media_url=media_url,
                     space_id=target_gchat_space,
-                    custom_summary=alert_msg
+                    custom_summary=motivo_full,
+                    is_out_of_hours=not in_hours,
+                    turn_tag="turn1"
                 )
-                logger.info(f"✅ Google Chat Alert sent successfully to {target_gchat_space} for contact {contact_id} on Turn 1")
+                logger.info(f"✅ Google Chat Alert sent successfully to {target_gchat_space} for contact {contact_id} on Turn 1 (dept={dept_tag})")
             except Exception as gchat_err:
                 logger.error(f"⚠️ Failed to send Google Chat Fraud Alert on Turn 1: {gchat_err}")
 
-            # RNE.50 / RNE.51: Select SC.030.1 (In Hours) vs SC.030.2 (Out of Hours)
-            from zoneinfo import ZoneInfo
-            ct_now = datetime.now(ZoneInfo("America/Chicago"))
-            target_dept = "BSA MONITORING" if is_bsa_report else "PREVENCION DE FRAUDES"
-            in_hours = check_department_hours(target_dept, ct_now)
-
-            cs_in_hours = check_department_hours("SERVICIO AL CLIENTE", ct_now)
-            if in_hours:
-                sc_turn1_code = "SC.030.1"  # RNE.50 (En horario laboral de Fraudes/BSA)
-            elif cs_in_hours:
-                sc_turn1_code = "SC.030.2"  # RNE.51 (Fuera de horario Fraudes/BSA, pero Servicio al Cliente en horario)
-            else:
-                sc_turn1_code = "SC.027.1"  # RNE.47.1 (Fuera de horario Fraudes/BSA y Servicio al Cliente también fuera de horario)
             default_sc_turn1 = (
                 "Lamento lo sucedido, su solicitud debe ser atendida con alta prioridad.\n\n"
                 "Por favor compártame la siguiente información:\n"
@@ -3966,7 +3985,7 @@ async def agent_interact_inner(
             from zoneinfo import ZoneInfo
             ct_now = datetime.now(ZoneInfo("America/Chicago"))
             target_dept = "BSA MONITORING" if is_bsa_report else "PREVENCION DE FRAUDES"
-            in_hours = check_department_hours(target_dept, ct_now)
+            in_dept_hours = check_department_hours(target_dept, ct_now)
 
             default_sc_turn1 = (
                 "Lamento lo sucedido, su solicitud debe ser atendida con alta prioridad.\n\n"
@@ -3986,7 +4005,7 @@ async def agent_interact_inner(
             if user_text_lower == cached_turn1_str:
                 logger.info(f"⏳ Fraud handoff in progress for contact {contact_id}. Waiting for new customer input...")
                 cs_in_hours = check_department_hours("SERVICIO AL CLIENTE", ct_now)
-                if in_hours:
+                if in_dept_hours:
                     sc_turn1_code = "SC.030.1"  # RNE.50 (En horario laboral de Fraudes/BSA)
                 elif cs_in_hours:
                     sc_turn1_code = "SC.030.2"  # RNE.51 (Fuera de horario Fraudes/BSA, pero Servicio al Cliente en horario)
@@ -4000,32 +4019,26 @@ async def agent_interact_inner(
                     derivacion="NA"
                 )
 
-            # Customer typed a NEW message -> Clear Redis state -> Send Google Chat Update -> Close/Transfer
+            # Customer typed a NEW message or timeout trigger -> Clear Redis state -> Send Google Chat Update -> Close/Transfer
             await redis.delete(fraud_collecting_key)
             await redis.delete(f"session:fraud_turn1_text:{contact_id}")
             await redis.delete(f"session:is_bsa:{contact_id}")
 
+            cached_url = await redis.get(f"contact:last_image:{contact_id}")
+            cached_url_str = cached_url.decode('utf-8').strip() if cached_url else ""
+            active_media_url = media_url or (cached_url_str if cached_url_str.startswith("http") else None)
+
+            # RNE.60 (Datos aportados) vs RNE.61 (Sin datos o Timeout de 3 min)
+            is_timeout = any(t in user_text_lower for t in ["[timeout_3min]", "[inactividad_3_min]", "[timeout]", "inactividad_3min"])
+            is_explicit_refusal = any(r in user_text_lower for r in ["no tengo", "no sé", "no se", "no recuerdo", "nada", "ninguno", "ninguna"])
+            
+            has_details = (not is_timeout and not is_explicit_refusal) and (
+                len(user_text.strip()) > 1 or 
+                bool(active_media_url)
+            )
+
             try:
                 from .google_chat_service import google_chat_service
-                cached_url = await redis.get(f"contact:last_image:{contact_id}")
-                media_attach_t2 = ""
-                if cached_url:
-                    try:
-                        url_str = cached_url.decode('utf-8')
-                        if url_str and "http" in url_str:
-                            emoji_attach = "📄" if ".pdf" in url_str.lower() else "📷"
-                            media_attach_t2 = f"\n\n{emoji_attach} *Adjunto:* {url_str}"
-                    except Exception:
-                        pass
-
-                alert_header_t2 = "📝 *DETALLES COMPLETOS DE BSA RECIBIDOS (TURNO 2)*" if is_bsa_report else "📝 *DETALLES COMPLETOS DE FRAUDE RECIBIDOS (TURNO 2)*"
-                alert_msg = (
-                    f"{alert_header_t2}\n\n"
-                    f"👤 *Usuario:* Contacto #{contact_id}\n"
-                    f"⚖️ *Categoría:* {'BSA Monitoring / Cumplimiento' if is_bsa_report else 'Prevención de Fraudes'}\n"
-                    f"📝 *Reporte Inicial (Turno 1):* {cached_turn1_str}\n"
-                    f"📋 *Datos Proporcionados por el Cliente (Turno 2):* {user_text}{media_attach_t2}"
-                )
                 target_gchat_space_t2 = (
                     os.getenv("GOOGLE_CHATS_BSA_SPACE") or getattr(settings, "GOOGLE_CHATS_BSA_SPACE", None) or "spaces/AAQA3WL2JIk"
                 ) if is_bsa_report else (
@@ -4035,6 +4048,11 @@ async def agent_interact_inner(
                 parsed_name = parse_name_from_text(user_text)
                 parsed_agency = parse_agency_from_text(user_text)
                 parsed_code = extraer_codigo_router(user_text) or ""
+                
+                motivo_t2 = f"Detalles Turno 2 ({'Información recibida' if has_details else 'Sin datos / Timeout'}): {user_text}"
+                if cached_turn1_str:
+                    motivo_t2 = f"Reporte Inicial: {cached_turn1_str} | {motivo_t2}"
+
                 await google_chat_service.send_unified_notification(
                     dept_key=dept_tag,
                     contact_id=contact_id,
@@ -4042,22 +4060,16 @@ async def agent_interact_inner(
                     nombre_usuario=parsed_name or None,
                     codigo_envio=parsed_code or None,
                     numero_agencia=parsed_agency or None,
-                    media_url=media_url,
+                    media_url=active_media_url,
                     space_id=target_gchat_space_t2,
-                    custom_summary=alert_msg
+                    custom_summary=motivo_t2,
+                    is_out_of_hours=not in_dept_hours,
+                    turn_tag="turn2"
                 )
-                logger.info(f"✅ Google Chat BSA/Fraud Details update sent to {target_gchat_space_t2} for contact {contact_id}")
+                logger.info(f"✅ Google Chat BSA/Fraud Details update sent to {target_gchat_space_t2} for contact {contact_id} on Turn 2")
             except Exception as gchat_err:
-                logger.error(f"⚠️ Failed to send Google Chat Fraud Details update: {gchat_err}")
+                logger.error(f"⚠️ Failed to send Google Chat Fraud Details update on Turn 2: {gchat_err}")
 
-            # RNE.50 / RNE.51 / RNE.60 / RNE.61: Evaluate Department Operating Hours
-            from zoneinfo import ZoneInfo
-            ct_now = datetime.now(ZoneInfo("America/Chicago"))
-            in_dept_hours = check_department_hours(target_dept, ct_now)
-            
-            # Check if user provided details or if empty text
-            has_details = len(user_text.strip()) > 3 and not any(k in user_text.lower() for k in ["no", "nada", "no tengo", "ninguno"])
-            
             if has_details:
                 sc_code = "SC.037"
                 default_sc = "Gracias por la información proporcionada. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.\n\nGracias por comunicarse con Maxitransfers, le atendió Max."

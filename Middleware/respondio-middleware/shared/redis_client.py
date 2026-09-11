@@ -42,6 +42,27 @@ class MockRedis:
     async def setex(self, key, time, value):
         return await self.set(key, value)
         
+    async def rpush(self, key, *values):
+        if key not in self.store or not isinstance(self.store[key], list):
+            self.store[key] = []
+        for val in values:
+            self.store[key].append(val)
+        return len(self.store[key])
+        
+    async def lrange(self, key, start, stop):
+        items = self.store.get(key, [])
+        if not isinstance(items, list):
+            return []
+        if stop == -1:
+            return items[start:]
+        return items[start:stop+1]
+        
+    async def zadd(self, key, mapping):
+        return len(mapping)
+        
+    async def expire(self, key, time):
+        return True
+        
     async def ping(self):
         return True
         
