@@ -84,6 +84,14 @@ class Settings(BaseSettings):
     GOOGLE_CHATS_FRAUDES_SPACE: str = "spaces/AAQAQM9pDpg"
     GOOGLE_CHATS_BSA_SPACE: str = "spaces/AAQA3WL2JIk"
     GOOGLE_CHATS_CHEQUES_SPACE: str = "spaces/AAQAGZ_m434"
+    GOOGLE_CHATS_COBRANZA_SPACE: str = "spaces/AAQAcEu8NTc"
+    GOOGLE_CHATS_SOPORTE_SPACE: str = "spaces/AAQAQhx5RTM"
+    GOOGLE_CHATS_VENTAS_SPACE: str = "spaces/AAQAUghCztE"
+    GOOGLE_CHATS_OVERSIGHT_SPACE: str = "spaces/AAQAJiVCDAU"
+    GOOGLE_CHATS_CAPACITACION_SPACE: str = "spaces/AAQAMKgsazw"
+    GOOGLE_CHATS_CUMPLIMIENTO_SPACE: str = "spaces/AAQAbvCUAko"
+    GOOGLE_CHATS_CS_HIGH_PRIORITY_SPACE: Optional[str] = None
+    GOOGLE_CHATS_SERVICIO_CLIENTE_SPACE: Optional[str] = None
     MAXIBOT_SA_BASE64: Optional[str] = None
     MAXIBOT_TELEMETRY_SHEET_ID: str = "1KVUM2T3pajHo1Vl-t1zQoWjP8Bx3RSNE1QgsWB738mI"
     DEVOPS_MCP_URL: str = "https://mcp.mylabs.mx/tools/operations/mcp/"

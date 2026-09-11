@@ -199,49 +199,95 @@ class GoogleChatService:
         space_id: Optional[str] = None,
         custom_summary: Optional[str] = None,
         is_out_of_hours: bool = False,
-        turn_tag: Optional[str] = None
+        turn_tag: Optional[str] = None,
+        template_type: Optional[str] = None,
+        status_transaccion: Optional[str] = None,
+        status_retencion: Optional[str] = None,
+        alerta_tipo: Optional[str] = None
     ) -> bool:
         """
-        Generates and dispatches a structured Google Chat alert card compliant with REJ.03 and REJ.02.
+        Generates and dispatches a structured Google Chat alert card compliant with the official
+        specification (Plantilla 1, Plantilla 2, Plantilla 3, and Servicio al Cliente).
         """
         from datetime import datetime
         from zoneinfo import ZoneInfo
+        import re
+        from .config import settings
 
         timestamp_ct = datetime.now(ZoneInfo("America/Chicago")).strftime("%d/%m/%Y %H:%M:%S CT")
-        dept_upper = dept_key.upper()
+        dept_upper = dept_key.upper().strip()
         
-        # REJ.03 (Fraudes / BSA) and REJ.02 (Interdepartmental) headers
-        if dept_upper in ["FRAUDES", "FRAUDE"]:
-            header = "⚠️ [ALERTA CRÍTICA - POSIBLE FRAUDE O ESTAFA - ATENCIÓN SERVICIO AL CLIENTE]" if is_out_of_hours else "⚠️ [ALERTA CRÍTICA - POSIBLE FRAUDE O ESTAFA]"
-            default_space = "spaces/AAQAQM9pDpg"
-        elif dept_upper in ["BSA", "BSA_MONITORING"]:
-            header = "⚠️ [ALERTA CRÍTICA - POSIBLE ACTIVIDAD SOSPECHOSA - ATENCIÓN SERVICIO AL CLIENTE]" if is_out_of_hours else "⚠️ [ALERTA CRÍTICA - POSIBLE ACTIVIDAD SOSPECHOSA]"
-            default_space = "spaces/AAQA3WL2JIk"
-        elif dept_upper in ["OVERSIGHT", "AGENT_OVERSIGHT"]:
-            header = "↪️ [DERIVACIÓN AGENT OVERSIGHT]"
-            default_space = "spaces/AAQAJiVCDAU"
-        elif dept_upper in ["VENTAS", "VENTAS_INTERNAS"]:
-            header = "↪️ [DERIVACIÓN VENTAS INTERNAS]"
-            default_space = "spaces/AAQAUghCztE"
-        elif dept_upper in ["COBRANZA"]:
-            header = "↪️ [DERIVACIÓN COBRANZA]"
-            default_space = "spaces/AAQAcEu8NTc"
-        elif dept_upper in ["CAPACITACION", "CAPACITACIÓN"]:
-            header = "↪️ [DERIVACIÓN CAPACITACIÓN]"
-            default_space = "spaces/AAQAMKgsazw"
-        elif dept_upper in ["CHEQUES"]:
-            header = "↪️ [DERIVACIÓN CHEQUES]"
-            default_space = "spaces/AAQAGZ_m434"
-        elif dept_upper in ["SOPORTE_TECNICO", "TECNICO", "SOPORTE TÉCNICO", "SOPORTE TECNICO"]:
-            header = "↪️ [DERIVACIÓN SOPORTE TÉCNICO]"
-            default_space = "spaces/AAQAQhx5RTM"
-        elif dept_upper in ["CUMPLIMIENTO"]:
-            header = "🚧 [DERIVACIÓN TRANSACCIÓN RETENIDA CUMPLIMIENTO]"
-            default_space = "spaces/AAQAbvCUAko"
-        else:
-            header = f"🔔 [NOTIFICACIÓN DE SEGURIDAD - {dept_upper}]"
-            default_space = "spaces/AAQA3WL2JIk"
+        # Auto-detect template type if not explicitly set
+        if not template_type:
+            if dept_upper in ["FRAUDES", "FRAUDE", "BSA", "BSA_MONITORING"]:
+                template_type = "plantilla_1"
+            elif dept_upper in ["OVERSIGHT", "AGENT_OVERSIGHT", "VENTAS", "VENTAS_INTERNAS", "COBRANZA", "CAPACITACION", "CAPACITACIÓN", "CHEQUES", "SOPORTE_TECNICO", "TECNICO", "SOPORTE TÉCNICO", "SOPORTE TECNICO"]:
+                template_type = "plantilla_2"
+            elif dept_upper in ["CUMPLIMIENTO", "FRAUDE_ESPECIAL", "REVISION_RIESGO", "RETENIDO"]:
+                template_type = "plantilla_3"
+            elif dept_upper in ["SERVICIO_CLIENTE", "SERVICIO_AL_CLIENTE", "CS", "SOPORTE_HUMANO"]:
+                template_type = "asignacion_cs"
+            else:
+                template_type = "plantilla_1"
+
+        # Determine header and default space by template and department
+        simultaneous_cs_dispatch = False
         
+        if template_type == "plantilla_1":
+            if dept_upper in ["FRAUDES", "FRAUDE"]:
+                header = "⚠️ [ALERTA CRÍTICA - POSIBLE FRAUDE O ESTAFA - ATENCIÓN SERVICIO AL CLIENTE]" if is_out_of_hours else "🚨 [ALERTA CRÍTICA - POSIBLE FRAUDE O ESTAFA]"
+                default_space = settings.GOOGLE_CHATS_FRAUDES_SPACE
+                if is_out_of_hours:
+                    simultaneous_cs_dispatch = True
+            else:  # BSA / BSA_MONITORING
+                header = "⚠️ [ALERTA CRÍTICA - POSIBLE ACTIVIDAD SOSPECHOSA - ATENCIÓN SERVICIO AL CLIENTE]" if is_out_of_hours else "🚨 [ALERTA CRÍTICA - POSIBLE ACTIVIDAD SOSPECHOSA]"
+                default_space = settings.GOOGLE_CHATS_BSA_SPACE
+                if is_out_of_hours:
+                    simultaneous_cs_dispatch = True
+
+        elif template_type == "plantilla_2":
+            if dept_upper in ["OVERSIGHT", "AGENT_OVERSIGHT"]:
+                header = "↪️ [DERIVACIÓN AGENT OVERSIGHT]"
+                default_space = settings.GOOGLE_CHATS_OVERSIGHT_SPACE
+            elif dept_upper in ["VENTAS", "VENTAS_INTERNAS"]:
+                header = "↪️ [DERIVACIÓN VENTAS INTERNAS]"
+                default_space = settings.GOOGLE_CHATS_VENTAS_SPACE
+            elif dept_upper in ["COBRANZA"]:
+                header = "↪️ [DERIVACIÓN COBRANZA]"
+                default_space = settings.GOOGLE_CHATS_COBRANZA_SPACE
+            elif dept_upper in ["CAPACITACION", "CAPACITACIÓN"]:
+                header = "↪️ [DERIVACIÓN CAPACITACIÓN]"
+                default_space = settings.GOOGLE_CHATS_CAPACITACION_SPACE
+            elif dept_upper in ["CHEQUES"]:
+                header = "↪️ [DERIVACIÓN CHEQUES]"
+                default_space = settings.GOOGLE_CHATS_CHEQUES_SPACE
+            elif dept_upper in ["SOPORTE_TECNICO", "TECNICO", "SOPORTE TÉCNICO", "SOPORTE TECNICO"]:
+                header = "↪️ [DERIVACIÓN SOPORTE TÉCNICO]"
+                default_space = settings.GOOGLE_CHATS_SOPORTE_SPACE
+            else:
+                header = f"↪️ [DERIVACIÓN {dept_upper}]"
+                default_space = settings.GOOGLE_CHATS_DEFAULT_SPACE or settings.GOOGLE_CHATS_BSA_SPACE
+
+        elif template_type == "plantilla_3":
+            if dept_upper in ["FRAUDE_ESPECIAL", "REVISION_RIESGO", "VALIDATE_HOLD"]:
+                header = "🔏 [TRANSACCIÓN EN REVISIÓN POR PREVENCIÓN DE FRAUDE]"
+                default_space = settings.GOOGLE_CHATS_FRAUDES_SPACE
+            else:
+                header = "🚧 [DERIVACIÓN TRANSACCIÓN RETENIDA CUMPLIMIENTO]"
+                default_space = settings.GOOGLE_CHATS_CUMPLIMIENTO_SPACE
+
+        else:  # asignacion_cs
+            if alerta_tipo == "input_no_procesable":
+                header = "🚨 [ALERTA POR INPUT NO PROCESABLE]"
+            elif alerta_tipo == "intencion_no_identificada":
+                header = "⚠️ [ALERTA POR INTENCIÓN NO IDENTIFICADA]"
+            elif alerta_tipo == "seguridad_incorrecta":
+                header = "⚠️ [ALERTA POR DATOS DE VALIDACIÓN DE SEGURIDAD INCORRECTOS]"
+            else:
+                header = "👤 [ASIGNACIÓN A SERVICIO AL CLIENTE]"
+            default_space = settings.GOOGLE_CHATS_SERVICIO_CLIENTE_SPACE or settings.GOOGLE_CHATS_CS_HIGH_PRIORITY_SPACE or settings.GOOGLE_CHATS_DEFAULT_SPACE or "spaces/AAQA3WL2JIk"
+
+        # Perfil detection
         if not perfil_nlu:
             user_lower = user_text.lower()
             if any(k in user_lower for k in ["agencia", "sucursal", "ctr", "irs", "hermes", "balance", "agente"]):
@@ -258,7 +304,6 @@ class GoogleChatService:
         nombre_str = nombre_usuario or "No proporcionado"
         contacto_str = telefono_contacto or contact_id
         
-        import re
         motivo_raw = custom_summary or user_text or ""
         motivo_clean = re.sub(r'(?i)(?:\.?mensaje_notificacion|\$agent\.mensaje_notificacion|\$resumen_solicitud|\$resumen|\$intencion|null)', '', motivo_raw).strip()
         if not motivo_clean or len(motivo_clean) < 3:
@@ -266,21 +311,60 @@ class GoogleChatService:
         motivo_str = motivo_clean
         adjunto_str = media_url if media_url else "[Sin archivos adjuntos]"
 
-        formatted_card = (
-            f"*{header}*\n"
-            f"─────────────────────────────────────────\n"
-            f"• *Horario de consulta:* {timestamp_ct}\n"
-            f"• *ID de conversación:* `{contact_id}`\n"
-            f"• *Perfil del usuario:* {perfil_nlu}\n"
-            f"• *Nombre del usuario:* {nombre_str}\n"
-            f"• *Contacto:* {contacto_str}\n"
-            f"• *Clave de la transacción:* `{clave_str}`\n"
-            f"• *Número de agencia:* {agencia_str}\n"
-            f"• *Motivo de consulta:* {motivo_str}\n"
-            f"• *Archivos adjuntos del caso:* {adjunto_str}\n"
-            f"• *Link de la conversación (en desarrollo):* No disponible\n"
-            f"─────────────────────────────────────────"
-        )
+        # Build card content according to official Template
+        if template_type == "plantilla_2":
+            # Plantilla 2: No includes Clave de la transacción
+            formatted_card = (
+                f"*{header}*\n"
+                f"─────────────────────────────────────────\n"
+                f"• *Horario de consulta:* {timestamp_ct}\n"
+                f"• *ID de conversación:* `{contact_id}`\n"
+                f"• *Perfil del usuario:* {perfil_nlu}\n"
+                f"• *Nombre del usuario:* {nombre_str}\n"
+                f"• *Contacto:* {contacto_str}\n"
+                f"• *Número de agencia:* {agencia_str}\n"
+                f"• *Motivo de consulta:* {motivo_str}\n"
+                f"• *Archivos adjuntos del caso:* {adjunto_str}\n"
+                f"• *Link de la conversación (en desarrollo):* No disponible\n"
+                f"─────────────────────────────────────────"
+            )
+        elif template_type == "plantilla_3":
+            # Plantilla 3: Transacciones Retenidas (includes Status de transacción and Status de retención)
+            status_tx_str = status_transaccion or "Verify Hold"
+            status_ret_str = status_retencion or "Retenido por revisión"
+            formatted_card = (
+                f"*{header}*\n"
+                f"─────────────────────────────────────────\n"
+                f"• *Horario de consulta:* {timestamp_ct}\n"
+                f"• *ID de conversación:* `{contact_id}`\n"
+                f"• *Perfil del usuario:* {perfil_nlu}\n"
+                f"• *Nombre del usuario:* {nombre_str}\n"
+                f"• *Contacto:* {contacto_str}\n"
+                f"• *Clave de la transacción:* `{clave_str}`\n"
+                f"• *Status de transacción:* {status_tx_str}\n"
+                f"• *Status de la retención:* {status_ret_str}\n"
+                f"• *Motivo de consulta:* {motivo_str}\n"
+                f"• *Archivos adjuntos del caso:* {adjunto_str}\n"
+                f"• *Link de la conversación (en desarrollo):* No disponible\n"
+                f"─────────────────────────────────────────"
+            )
+        else:
+            # Plantilla 1 (Prioridad Alta) and Asignación CS: Standard 10 fields
+            formatted_card = (
+                f"*{header}*\n"
+                f"─────────────────────────────────────────\n"
+                f"• *Horario de consulta:* {timestamp_ct}\n"
+                f"• *ID de conversación:* `{contact_id}`\n"
+                f"• *Perfil del usuario:* {perfil_nlu}\n"
+                f"• *Nombre del usuario:* {nombre_str}\n"
+                f"• *Contacto:* {contacto_str}\n"
+                f"• *Clave de la transacción:* `{clave_str}`\n"
+                f"• *Número de agencia:* {agencia_str}\n"
+                f"• *Motivo de consulta:* {motivo_str}\n"
+                f"• *Archivos adjuntos del caso:* {adjunto_str}\n"
+                f"• *Link de la conversación (en desarrollo):* No disponible\n"
+                f"─────────────────────────────────────────"
+            )
 
         target_space = space_id or default_space
         
@@ -299,9 +383,23 @@ class GoogleChatService:
             except Exception as dedup_err:
                 logger.warning(f"Redis dedup check error: {dedup_err}")
 
-        # Fire Google Chat Notification
+        # Fire Primary Google Chat Notification
         chat_success = await self.send_message(formatted_card, space_id=target_space)
         
+        # Dual Dispatch: If out of hours for Fraudes/BSA, dispatch simultaneously to CS High Priority Space
+        if simultaneous_cs_dispatch:
+            cs_space = (
+                settings.GOOGLE_CHATS_CS_HIGH_PRIORITY_SPACE or 
+                settings.GOOGLE_CHATS_SERVICIO_CLIENTE_SPACE or 
+                settings.GOOGLE_CHATS_DEFAULT_SPACE
+            )
+            if cs_space and cs_space != target_space:
+                try:
+                    logger.info(f"🚨 [DUAL DISPATCH] Firing simultaneous alert to CS High Priority Space: {cs_space}")
+                    await self.send_message(formatted_card, space_id=cs_space)
+                except Exception as dual_err:
+                    logger.warning(f"⚠️ Dual dispatch to CS space warning: {dual_err}")
+
         # Dual Dispatch: Fire Email Notification via Gmail API asynchronously
         try:
             from .email_service import email_service
@@ -318,4 +416,5 @@ class GoogleChatService:
 
 # Singleton instance
 google_chat_service = GoogleChatService()
+
 

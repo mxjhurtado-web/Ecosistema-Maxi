@@ -1491,6 +1491,21 @@ async def check_transaction_status_inner(
                     await redis.set(attempts_key, "0", ex=3600)
                 except Exception as e:
                     logger.error(f"Error resetting attempts in Redis: {e}")
+            try:
+                from .google_chat_service import google_chat_service
+                await google_chat_service.send_unified_notification(
+                    dept_key="SERVICIO_CLIENTE",
+                    contact_id=contact_id,
+                    user_text=user_text,
+                    nombre_usuario=contact_name or parse_name_from_text(user_text) or None,
+                    perfil_nlu=perfil,
+                    template_type="asignacion_cs",
+                    alerta_tipo="input_no_procesable",
+                    custom_summary="Fallo en captura de clave de envío tras 2 intentos."
+                )
+            except Exception as g_err:
+                logger.warning(f"Could not send CS alert for input failure: {g_err}")
+
             return StatusCheckResponse(
                 status="success",
                 reply_text="No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con uno de nuestros asesores. Por favor espere un momento...",
@@ -1597,6 +1612,22 @@ async def check_transaction_status_inner(
                     await redis.set(attempts_key, "0", ex=3600)
                 except Exception as e:
                     logger.error(f"Error resetting attempts in Redis: {e}")
+            try:
+                from .google_chat_service import google_chat_service
+                await google_chat_service.send_unified_notification(
+                    dept_key="SERVICIO_CLIENTE",
+                    contact_id=contact_id,
+                    user_text=user_text,
+                    nombre_usuario=contact_name or parse_name_from_text(user_text) or None,
+                    perfil_nlu=perfil,
+                    codigo_envio=codigo_envio,
+                    template_type="asignacion_cs",
+                    alerta_tipo="input_no_procesable",
+                    custom_summary=f"Clave de envío '{codigo_envio}' no localizada tras 2 intentos."
+                )
+            except Exception as g_err:
+                logger.warning(f"Could not send CS alert for not found code: {g_err}")
+
             sc12 = scripts_dict.get("SC.012", "No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
             sc12 = await translate_script_if_needed(sc12, user_text)
             return StatusCheckResponse(
@@ -1712,6 +1743,22 @@ async def check_transaction_status_inner(
                             await redis.set(name_attempts_key, "0", ex=3600)
                         except Exception as e:
                             logger.error(f"Error resetting name attempts: {e}")
+                    try:
+                        from .google_chat_service import google_chat_service
+                        await google_chat_service.send_unified_notification(
+                            dept_key="SERVICIO_CLIENTE",
+                            contact_id=contact_id,
+                            user_text=user_text,
+                            nombre_usuario=contact_name or parse_name_from_text(user_text) or None,
+                            perfil_nlu=perfil,
+                            codigo_envio=codigo_envio,
+                            template_type="asignacion_cs",
+                            alerta_tipo="seguridad_incorrecta",
+                            custom_summary="Fallo reiterado de validación de identidad por discrepancia de nombres (2 intentos)."
+                        )
+                    except Exception as g_err:
+                        logger.warning(f"Could not send CS alert for identity mismatch: {g_err}")
+
                     return StatusCheckResponse(
                         status="success",
                         reply_text="No fue posible validar su identidad con la información proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
@@ -1945,6 +1992,28 @@ async def check_transaction_status_inner(
         else:
             # Default is NA / none
             derivacion = "NA"
+
+        # Dispatch Plantilla 3 alert to Google Chat if transaction is retained by Cumplimiento or Fraudes
+        if "CUMPLIMIENTO" in deriv_raw.upper() or "FRAUDE" in deriv_raw.upper():
+            try:
+                from .google_chat_service import google_chat_service
+                dept_tag = "FRAUDE_ESPECIAL" if "FRAUDE" in deriv_raw.upper() else "CUMPLIMIENTO"
+                ret_status_val = record.get("Transferencia_StatusRetencion") if isinstance(record, dict) else status_clean
+                await google_chat_service.send_unified_notification(
+                    dept_key=dept_tag,
+                    contact_id=contact_id,
+                    user_text=user_text,
+                    nombre_usuario=contact_name or parse_name_from_text(user_text) or None,
+                    perfil_nlu=perfil,
+                    codigo_envio=codigo_envio,
+                    template_type="plantilla_3",
+                    status_transaccion=status_clean,
+                    status_retencion=ret_status_val or status_clean,
+                    custom_summary=f"Transacción con estatus de retención ({status_clean}) canalizada a {dept_tag}."
+                )
+                logger.info(f"✅ Google Chat Plantilla 3 alert sent for retained code {codigo_envio} (dept={dept_tag})")
+            except Exception as gchat_err:
+                logger.warning(f"Could not send Plantilla 3 alert: {gchat_err}")
     else:
         # Fallback to standard hardcoded logic if no sheet rule is found
         logger.warning(f"No status rule found for status={status_clean}, perfil={perfil}, pagador={record.get('Transferencia_Pagador')}")
@@ -4068,7 +4137,8 @@ async def agent_interact_inner(
                     space_id=target_gchat_space_t2,
                     custom_summary=motivo_t2,
                     is_out_of_hours=not in_dept_hours,
-                    turn_tag="turn2"
+                    turn_tag="turn2",
+                    template_type="plantilla_1"
                 )
                 logger.info(f"✅ Google Chat BSA/Fraud Details update sent to {target_gchat_space_t2} for contact {contact_id} on Turn 2")
             except Exception as gchat_err:
