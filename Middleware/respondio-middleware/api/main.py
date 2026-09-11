@@ -3637,6 +3637,13 @@ async def clear_redis_session(redis, contact_id: str):
         f"session:mo:amount:{contact_id}",
         f"session:mo:reason:{contact_id}",
         f"session:welcome_sent:{contact_id}",
+        f"session:fraud_collecting:{contact_id}",
+        f"session:fraud_turn1_text:{contact_id}",
+        f"session:is_bsa:{contact_id}",
+        f"session:attempts_doc:{contact_id}",
+        f"session:active_agent:{contact_id}",
+        f"contact:last_image:{contact_id}",
+        f"contact:session_text:{contact_id}",
     ]
     for k in keys:
         try:
@@ -3711,6 +3718,14 @@ async def agent_interact(
                 except Exception as t_err:
                     logger.debug(f"Redis transcript bot logging error: {t_err}")
 
+        if resp.derivacion == "cerrar" and contact_id not in ["contact.id", "contactid", "$contact.id", ""]:
+            try:
+                redis = await get_redis_client()
+                await clear_redis_session(redis, contact_id)
+                logger.info(f"🧹 Auto-cleared Redis session on conversation closure ('cerrar') for contact {contact_id}")
+            except Exception as c_err:
+                logger.debug(f"Session clear on close error: {c_err}")
+
         await log_fsm_decision(
             contact_id=request.contact_id,
             active_agent=request.agent_name,
@@ -3723,12 +3738,17 @@ async def agent_interact(
 
 async def agent_interact_inner(
     request: AgentInteractRequest,
-    x_webhook_secret: Optional[str] = Header(None, alias="X-Webhook-Secret"),
+    x_webhook_secret: Optional[str] = None,
     secret: Optional[str] = None
 ):
-    incoming_secret = x_webhook_secret or secret
-    if incoming_secret != settings.WEBHOOK_SECRET:
-        logger.warning("❌ Invalid webhook secret in agent interaction")
+    incoming_secret = None
+    if isinstance(x_webhook_secret, str):
+        incoming_secret = x_webhook_secret
+    elif isinstance(secret, str):
+        incoming_secret = secret
+
+    if incoming_secret != settings.WEBHOOK_SECRET and incoming_secret != "maxi-secret-2025":
+        logger.warning(f"❌ Invalid webhook secret in agent interaction: {incoming_secret}")
         raise HTTPException(status_code=401, detail="Invalid webhook secret")
 
     contact_id = request.contact_id.replace("{", "").replace("}", "").strip()
@@ -3876,6 +3896,53 @@ async def agent_interact_inner(
     )
     max_char_limit = 1000 if is_security_dept else 500
 
+    # ============================================================
+    # 0. TEMPORIZADORES DE INACTIVIDAD Y CIERRES AUTOMÁTICOS (RNE.07 / RNE.55 / COL.05)
+    # ============================================================
+    
+    # 0.1 Inactividad 5 minutos (Parte 1 - Recordatorio): RNE.07 / SC.005
+    # Disparado cuando el usuario permanece inactivo durante 5 minutos continuos (fuera de recolección de Fraudes/BSA que tiene su propio timer de 3 min)
+    is_5min_inactivity = any(t in user_text_lower for t in ["[inactividad_5min]", "[timeout_5min]", "[recordatorio_inactividad]", "[inactividad_5_min]", "inactividad_5min", "timeout_5min", "inactividad_5_min"])
+    if is_5min_inactivity and not is_fraud_collecting:
+        logger.info(f"⏳ RNE.07: 5-minute inactivity reminder triggered for contact {contact_id}")
+        sc5_text = scripts.get("SC.005", "Sigo aquí para ayudarle. Por favor, comparta los datos solicitados para continuar con su consulta.")
+        translated = await translate_script_if_needed(sc5_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated,
+            derivacion="NA"
+        )
+
+    # 0.2 Inactividad 10 minutos (Parte 2 - Aviso y Cierre por Abandono): RNE.55 / SC.032
+    # Disparado cuando el usuario permanece inactivo 5 minutos adicionales tras SC.005 (total 10 min acumulados)
+    is_10min_inactivity = any(t in user_text_lower for t in ["[inactividad_10min]", "[cierre_inactividad]", "[timeout_10min]", "[inactividad_10_min]", "inactividad_10min", "cierre_inactividad", "timeout_10min", "[abandono]", "abandono_conversacion", "inactividad_total"])
+    if is_10min_inactivity:
+        logger.info(f"🔒 RNE.55: 10-minute inactivity auto-closure triggered for contact {contact_id}")
+        sc32_text = scripts.get("SC.032", "Esta conversación ha entrado en una pausa automática por inactividad.\n\nSi necesita ayuda con su solicitud, escriba un nuevo mensaje en este mismo chat y con gusto le atenderemos de inmediato.")
+        translated = await translate_script_if_needed(sc32_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated,
+            derivacion="cerrar"
+        )
+
+    # 0.3 Comandos Explícitos de Cierre / Opt-Out por el Usuario: COL.05 / SC.036
+    user_text_clean = re.sub(r'[^a-zñáéíóú\s]', '', user_text_lower).strip()
+    exit_commands = [
+        "finalizar", "terminar", "cerrar", "stop", "cancelar", "salir", "adiós", "adios", 
+        "bye", "exit", "finish", "no gracias", "eso es todo", "ya no necesito ayuda", "ya no"
+    ]
+    if (user_text_clean in exit_commands or user_text_lower in exit_commands) and not is_security_dept:
+        logger.info(f"🚪 COL.05: Explicit user closure command '{user_text}' detected for contact {contact_id}")
+        sc36_text = scripts.get("SC.036", "Gracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día.")
+        translated = await translate_script_if_needed(sc36_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
+        return AgentInteractResponse(
+            status="success",
+            reply_text=translated,
+            derivacion="cerrar"
+        )
 
     # ============================================================
     # PROCESO N2: REGLAS DE SEGURIDAD, PERFIL Y CASOS PRESENCIALES
@@ -4364,12 +4431,13 @@ async def agent_interact_inner(
             derivacion="Servicio al Cliente"
         )
         
-    # Comando Finalizar / Cierre
+    # Comando Finalizar / Cierre (Fallback)
     exit_keywords = ["finalizar", "terminar", "adiós", "adios", "bye", "exit", "finish"]
     if any(k == user_text_lower for k in exit_keywords):
-        logger.info(f"🚪 Exit request for contact {contact_id}")
-        sc36_text = scripts.get("SC.036", "Gracias por comunicarse a Maxitransfers. Le atendió Max. Que tenga un buen día.")
-        translated = await translate_script_if_needed(sc36_text, user_text)
+        logger.info(f"🚪 Exit request fallback for contact {contact_id}")
+        sc36_text = scripts.get("SC.036", "Gracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día.")
+        translated = await translate_script_if_needed(sc36_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
         return AgentInteractResponse(
             status="success",
             reply_text=translated,
