@@ -4030,10 +4030,14 @@ async def agent_interact_inner(
 
             # RNE.60 (Datos aportados) vs RNE.61 (Sin datos o Timeout de 3 min)
             is_timeout = any(t in user_text_lower for t in ["[timeout_3min]", "[inactividad_3_min]", "[timeout]", "inactividad_3min"])
-            is_explicit_refusal = any(r in user_text_lower for r in ["no tengo", "no sé", "no se", "no recuerdo", "nada", "ninguno", "ninguna"])
             
-            has_details = (not is_timeout and not is_explicit_refusal) and (
-                len(user_text.strip()) > 1 or 
+            # An explicit refusal is when the user ONLY sends a negative short answer (e.g. "no tengo", "no sé", "nada") without details or name
+            parsed_name = parse_name_from_text(user_text)
+            is_short_refusal = (len(user_text.strip()) <= 25) and any(r in user_text_lower for r in ["no tengo", "no sé", "no se", "no recuerdo", "nada", "ninguno", "ninguna", "no cuento con"])
+            
+            has_details = (not is_timeout and not is_short_refusal) and (
+                len(user_text.strip()) > 3 or 
+                bool(parsed_name) or
                 bool(active_media_url)
             )
 
