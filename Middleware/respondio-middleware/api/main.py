@@ -3852,7 +3852,11 @@ async def agent_interact_inner(
         "llamda", "llamda telefónica", "llamda telefonica", "recibi una llamda", "recibí una llamda", "recibi una llamada",
         "recibí una llamada", "reportar una llamada", "reportar llamda", "pidiendome dar informacion", "pidiéndome dar información",
         "pidiendome informacion", "pidiéndome información", "dar informacion acerca de un envio", "dar información acerca de un envío",
-        "compra falsa", "compre por internet y no llego", "compre por internet y no me llego", "pague por un trabajo que no hicieron"
+        "compra falsa", "compre por internet y no llego", "compre por internet y no me llego", "pague por un trabajo que no hicieron",
+        "validate hold", "filtro validate hold", "activación de agencia por fraude", "activacion de agencia por fraude",
+        "reactivación de agencia por fraude", "reactivacion de agencia por fraude", "lista de excepción", "lista de excepcion",
+        "boletín de fraude", "boletin de fraude", "llamadas para confirmar envíos", "llamadas para confirmar envios",
+        "llamadas de confirmación", "llamadas de confirmacion", "confirmar envíos con posible patrón de fraude", "confirmar envios con posible patron de fraude"
     ]
     fraud_collecting_key = f"session:fraud_collecting:{contact_id}"
     is_fraud_collecting = await redis.get(fraud_collecting_key)
@@ -3885,7 +3889,10 @@ async def agent_interact_inner(
         "envío sospechoso", "envio sospechoso", "envíos sospechosos", "envios sospechosos", "envío inusual", "envio inusual", "envíos inusuales", "envios inusuales",
         "patrón sospechoso", "patron sospechoso", "patrón inusual", "patron inusual", "patrón de envíos", "patron de envios", "frecuencia inusual",
         "múltiples envíos", "multiples envios", "muchos envíos", "muchos envios", "varios envíos", "varios envios", 
-        "cantidades fuertes", "montos altos", "montos elevados", "sospechoso", "sospechosa", "llamada sospechosa"
+        "cantidades fuertes", "montos altos", "montos elevados", "sospechoso", "sospechosa", "llamada sospechosa",
+        "subpoena", "subpoenas", "orden judicial", "citatorio legal", "requerimiento legal",
+        "reportes regulatorios requeridos", "reporte regulatorio", "reportes regulatorios",
+        "monitoreo y análisis de transacciones de subpoenas", "monitoreo y analisis de transacciones de subpoenas"
     ]
     is_bsa_report = any(match_keyword_safe(k, user_text_lower) for k in bsa_keywords) or (agent_name == "DerivacionBSA")
     is_fraud_report = (any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or (agent_name == "DerivacionFraudes")) and not is_bsa_report
