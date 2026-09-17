@@ -2141,8 +2141,7 @@ async def check_transaction_status_inner(
                 derivacion = "Servicio al Cliente"
             else:
                 derivacion = "Fuera de Horario SC"
-                sc27 = scripts.get("SC.027", "En este momento nuestros asesores no se encuentran disponibles...")
-                reply_text = f"{reply_text}\n\n{sc27}"
+                reply_text = scripts.get("SC.027", "En este momento nuestros asesores no se encuentran disponibles...")
 
     # Concatenate SC.033 for self-service final states (derivacion == "NA")
     if derivacion == "NA":
@@ -3660,7 +3659,6 @@ async def agent_interact(
 ):
     resp = await agent_interact_inner(request, x_webhook_secret, secret)
     
-    # GARANTÍA ABSOLUTA DEL SCRIPT DE BIENVENIDA OBLIGATORIO EN EL PRIMER TURNO (CU.A1 / RNE.01) Y DEDUPLICACIÓN
     if resp and resp.reply_text:
         contact_id = request.contact_id.replace("{", "").replace("}", "").strip()
         
@@ -3668,55 +3666,19 @@ async def agent_interact(
         from .shared_logic import strip_script_code_prefix
         resp.reply_text = strip_script_code_prefix(resp.reply_text)
         
-        if contact_id not in ["contact.id", "contactid", "$contact.id", ""]:
+        # Record bot response in conversation transcript
+        if contact_id and not contact_id.startswith("$"):
             try:
                 redis = await get_redis_client()
-                welcome_key = f"session:welcome_sent:{contact_id}"
-                welcome_sent = await redis.get(welcome_key)
-                
-                if not welcome_sent:
-                    await redis.set(welcome_key, "1", ex=3600)
-                    scripts = get_compliance_scripts()
-                    cuA1_text = scripts.get("CU.A1", "Gracias por comunicarse a Maxitransfers.\n\nSoy Max, su asistente virtual. Para comenzar a ayudarle, ¿puede indicarme su nombre completo, por favor?\n\nAl continuar en este chat, acepta el tratamiento de sus datos bajo nuestra Política de Privacidad en www.maxitransfers.com/privacidad.\n\n• Por su seguridad, la sesión se cerrará automáticamente si pasa 10 minutos sin actividad.\n• Puede terminar esta conversación en cualquier momento enviando la palabra \"Finalizar\".\n• Si desea hablar con un asesor envíe el mensaje \"Hablar con un asesor\".").strip()
-                    cuA1_trans = await translate_script_if_needed(cuA1_text, request.user_text, contact_id=contact_id)
-                    cuA1_clean = strip_script_code_prefix(cuA1_trans)
-                    
-                    # Deduplication & compliance check: do NOT prepend CU.A1 if request.agent_name is Max, or if resp.reply_text is empty or already contains welcome text or contains specialized compliance scripts (SC.030, SC.037, etc.)
-                    already_has_welcome = (
-                        request.agent_name == "Max" or 
-                        "Gracias por comunicarse a Maxitransfers" in resp.reply_text or
-                        "Soy Max" in resp.reply_text or
-                        resp.reply_text.startswith(cuA1_clean[:25])
-                    )
-                    is_specialized_script = any(sc in resp.reply_text for sc in [
-                        "Lamento lo sucedido", "alta prioridad", "Su reporte ya fue canalizado", "compártame la siguiente información",
-                        "Verificando la información", "por favor compártame", "número telefónico", "Tracking Number"
-                    ]) or request.agent_name in ["DerivacionBSA", "DerivacionFraudes", "VerificadorEstatusRecargas", "VerificadorPagoBill"]
-
-                    if cuA1_clean and resp.reply_text and not is_specialized_script and not already_has_welcome:
-                        resp.reply_text = f"{cuA1_clean}\n\n{resp.reply_text}"
-                        logger.info(f"✨ Mandatory Turn 1 Welcome Script (CU.A1) prepended for contact {contact_id}")
-            except Exception as w_err:
-                logger.error(f"⚠️ Error enforcing mandatory welcome script CU.A1: {w_err}")
-
-    if resp:
-        if resp.reply_text:
-            from .shared_logic import strip_script_code_prefix
-            resp.reply_text = strip_script_code_prefix(resp.reply_text)
-            
-            # Record bot response in conversation transcript
-            if contact_id and not contact_id.startswith("$"):
-                try:
-                    redis = await get_redis_client()
-                    transcript_key = f"session:transcript:{contact_id}"
-                    await redis.rpush(transcript_key, json.dumps({
-                        "role": "bot",
-                        "agent": request.agent_name or "Max",
-                        "text": resp.reply_text
-                    }))
-                    await redis.expire(transcript_key, 3600)
-                except Exception as t_err:
-                    logger.debug(f"Redis transcript bot logging error: {t_err}")
+                transcript_key = f"session:transcript:{contact_id}"
+                await redis.rpush(transcript_key, json.dumps({
+                    "role": "bot",
+                    "agent": request.agent_name or "Max",
+                    "text": resp.reply_text
+                }))
+                await redis.expire(transcript_key, 3600)
+            except Exception as t_err:
+                logger.debug(f"Redis transcript bot logging error: {t_err}")
 
         if resp.derivacion == "cerrar" and contact_id not in ["contact.id", "contactid", "$contact.id", ""]:
             try:
@@ -3894,8 +3856,10 @@ async def agent_interact_inner(
         "reportes regulatorios requeridos", "reporte regulatorio", "reportes regulatorios",
         "monitoreo y análisis de transacciones de subpoenas", "monitoreo y analisis de transacciones de subpoenas"
     ]
-    is_bsa_report = any(match_keyword_safe(k, user_text_lower) for k in bsa_keywords) or (agent_name == "DerivacionBSA")
-    is_fraud_report = (any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or (agent_name == "DerivacionFraudes")) and not is_bsa_report
+    is_training_inquiry = any(k in user_text_lower for k in ["capacitacion", "capacitación", "diploma", "entrenamiento", "curso pos", "curso antilavado", "manual de uso"])
+    is_oversight_inquiry = any(k in user_text_lower for k in ["auditoría", "auditoria", "carta de agente", "carta del irs"])
+    is_bsa_report = ((any(match_keyword_safe(k, user_text_lower) for k in bsa_keywords) or (agent_name == "DerivacionBSA")) and not is_training_inquiry and not is_oversight_inquiry)
+    is_fraud_report = ((any(match_keyword_safe(k, user_text_lower) for k in fraud_keywords) or (agent_name == "DerivacionFraudes")) and not is_bsa_report and not is_training_inquiry and not is_oversight_inquiry)
     is_security_dept = (
         is_bsa_report or 
         is_fraud_report or 
@@ -3969,12 +3933,20 @@ async def agent_interact_inner(
         "modificar datos", "cambiar nombre", "corregir nombre", "modificar envío", "modificar envio",
         "cambio de nombre", "error en el nombre", "modificar beneficiario"
     ]
+    # 1. Solicitudes Presenciales (Cancelación de envío / Modificación de datos - RNE.52 / RNE.53)
+    in_person_keywords = [
+        "cancelar envío", "cancelar envio", "cancelar mi envío", "cancelar mi envio", 
+        "modificar datos", "cambiar nombre", "corregir nombre", "modificar envío", "modificar envio",
+        "cambio de nombre", "error en el nombre", "modificar beneficiario"
+    ]
     if any(k in user_text_lower for k in in_person_keywords) and not is_security_dept:
-        logger.info(f"🏛️ Proceso N2: In-person agency request detected for contact {contact_id} (perfil={perfil_str})")
+        logger.info(f"🏛️ Proceso N2 (RNE.52/53): In-person agency request detected for contact {contact_id} (perfil={perfil_str})")
         sc_code = "SC.031.1" if is_beneficiario else "SC.031"
-        sc_text = scripts.get(sc_code, "Por motivos de seguridad, esta solicitud debe ser atendida de forma presencial.")
+        default_text = "Por razones de seguridad transaccional, las modificaciones de nombre únicamente pueden ser solicitadas por el remitente acudiendo a la agencia física donde realizó la transacción." if is_beneficiario else "Por razones de seguridad transaccional, no es posible realizar modificaciones o cancelaciones a través de este canal de mensajería. Por favor acuda a la agencia física donde realizó el envío."
+        sc_text = scripts.get(sc_code, default_text)
         translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
+        await clear_redis_session(redis, contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="cerrar")
 
     # 2. Casos Fuera de Alcance (SC.026 para Remitente/Agente / SC.026.1 para Beneficiario)
     out_of_scope_keywords = [
@@ -3985,44 +3957,8 @@ async def agent_interact_inner(
         sc_code = "SC.026.1" if is_beneficiario else "SC.026"
         sc_text = scripts.get(sc_code, "Por motivos de seguridad, esta solicitud requiere atención a través de nuestros canales directos.")
         translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
-
-    # 3. Derivaciones Interdepartamentales (RNE.48 - SC.011 en horario / SC.028 fuera de horario)
-    interdept_map = {
-        "cobranza": "COBRANZA",
-        "cheques": "CHEQUES",
-        "capacitacion": "CAPACITACION",
-        "capacitación": "CAPACITACION",
-        "oversight": "OVERSIGHT",
-        "soporte tecnico": "TECNICO",
-        "soporte técnico": "TECNICO",
-        "ventas": "VENTAS",
-        "cumplimiento": "CUMPLIMIENTO"
-    }
-    for dept_kw, dept_enum in interdept_map.items():
-        if dept_kw in user_text_lower and not is_security_dept:
-            from zoneinfo import ZoneInfo
-            ct_now = datetime.now(ZoneInfo("America/Chicago"))
-            dept_open = check_department_hours(dept_enum, ct_now)
-            sc_code = "SC.011" if dept_open else "SC.028"
-            sc_text = scripts.get(sc_code, "Entiendo su solicitud. Este caso requiere atención de un área especializada.")
-            translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
-            logger.info(f"🔀 Proceso N2 (RNE.48): Interdepartmental handoff for {dept_enum} (open={dept_open}) -> {sc_code}")
-            
-            # Fire Google Chat Notification compliant with REJ.02
-            try:
-                from .google_chat_service import google_chat_service
-                await google_chat_service.send_unified_notification(
-                    dept_key=dept_enum,
-                    contact_id=contact_id,
-                    user_text=user_text,
-                    media_url=media_url,
-                    is_out_of_hours=not dept_open
-                )
-            except Exception as g_err:
-                logger.error(f"Failed to send interdepartmental GChat alert: {g_err}")
-
-            return AgentInteractResponse(status="success", reply_text=translated, derivacion=dept_enum)
+        await clear_redis_session(redis, contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="cerrar")
 
     # AIS.05: CONTROL DE LONGITUD DE ENTRADA / TOKEN DEFENSE (500 GENERAL / 1,000 BSA Y FRAUDES)
     if len(user_text) > max_char_limit:
@@ -4273,14 +4209,23 @@ async def agent_interact_inner(
     # ENRUTADOR INTELIGENTE DE DEPARTAMENTOS (AGENTE COMUNICADOR / NOTIFICACIONES HTTP)
     # ------------------------------------------------------------
     from .google_chat_service import google_chat_service
+    from zoneinfo import ZoneInfo
+    ct_now = datetime.now(ZoneInfo("America/Chicago"))
 
-    # Script homologado oficial de canalización departamental (SC.011)
+    # Scripts homologados oficiales de canalización departamental
     sc11_default = "Gracias por su información. He canalizado su solicitud con nuestro departamento correspondiente. Un asesor le dará seguimiento a la brevedad."
+    sc28_default = "En este momento nos encontramos fuera de nuestro horario de atención. Su reporte ha sido registrado y un asesor le dará seguimiento en cuanto iniciemos actividades en nuestro horario de atención.\n\nGracias por comunicarse con Maxitransfers, le atendió Max."
 
-    # 1. Agent Oversight (IRS / Carta del IRS / Auditoría / Supervisión de Agente)
-    oversight_keywords = ["irs", "oversight", "auditoría", "auditoria", "visita de inspección", "inspección", "inspeccion", "supervisión", "supervision", "carta del irs"]
+    # 1. Agent Oversight (IRS / Carta de agente autorizado / Auditoría IRS / Supervisión)
+    oversight_keywords = [
+        "auditoría", "auditoria", "irs", "carta de agente", "carta de agente autorizado", 
+        "carta de representacion", "carta de representación", "auditoría del irs", "auditoria del irs", 
+        "inspección del irs", "inspeccion del irs", "oversight", "visita de inspección", 
+        "visita de inspeccion", "supervisión de agente", "supervision de agente", "carta del irs"
+    ]
     if any(match_keyword_safe(k, user_text_lower) for k in oversight_keywords):
         logger.info(f"🛡️ Agent Oversight request detected for contact {contact_id}: '{user_text[:50]}'")
+        in_dept_hours = check_department_hours("OVERSIGHT", ct_now)
         try:
             await google_chat_service.send_unified_notification(
                 dept_key="OVERSIGHT",
@@ -4289,20 +4234,31 @@ async def agent_interact_inner(
                 nombre_usuario=parse_name_from_text(user_text) or None,
                 numero_agencia=parse_agency_from_text(user_text) or None,
                 media_url=media_url,
-                space_id="spaces/AAQAJiVCDAU",
-                custom_summary=f"Requerimiento de Auditoría IRS / Agent Oversight: {user_text}"
+                space_id=os.getenv("GOOGLE_CHATS_OVERSIGHT_SPACE") or getattr(settings, "GOOGLE_CHATS_OVERSIGHT_SPACE", None) or "spaces/AAQAJiVCDAU",
+                custom_summary=f"Requerimiento de Auditoría IRS / Agent Oversight: {user_text}",
+                is_out_of_hours=not in_dept_hours,
+                template_type="plantilla_2"
             )
-            logger.info("✅ Google Chat Agent Oversight alert sent to spaces/AAQAJiVCDAU")
+            logger.info("✅ Google Chat Agent Oversight alert sent")
         except Exception as err:
             logger.error(f"Failed to send Agent Oversight alert: {err}")
-        sc11_text = scripts.get("SC.011", sc11_default)
-        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+            
+        sc_code = "SC.011" if in_dept_hours else "SC.028"
+        sc_text = scripts.get(sc_code, sc11_default if in_dept_hours else sc28_default)
+        translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="cerrar")
 
-    # 2. Capacitación (Manuales / POS / Entrenamientos)
-    capacitacion_keywords = ["capacitación", "capacitacion", "manual de uso", "entrenamiento", "curso pos", "capacitar"]
+    # 2. Capacitación (BSA/CFPB / Manuales POS / Diplomas / Entrenamientos)
+    capacitacion_keywords = [
+        "capacitación", "capacitacion", "curso antilavado", "diploma antilavado", "entrenamiento", 
+        "cfpb", "capacitación anual", "capacitacion anual", "entrenamiento anual", "capacitacion bsa", 
+        "capacitación bsa", "capacitacion cfpb", "capacitación cfpb", "diploma no llegó", "diploma no llego", 
+        "diploma de capacitacion", "diploma de capacitación", "manual de uso", "curso pos", "capacitar"
+    ]
     if any(match_keyword_safe(k, user_text_lower) for k in capacitacion_keywords):
         logger.info(f"🎓 Capacitación request detected for contact {contact_id}: '{user_text[:50]}'")
+        in_dept_hours = check_department_hours("CAPACITACION", ct_now)
         try:
             await google_chat_service.send_unified_notification(
                 dept_key="CAPACITACION",
@@ -4311,19 +4267,29 @@ async def agent_interact_inner(
                 nombre_usuario=parse_name_from_text(user_text) or None,
                 numero_agencia=parse_agency_from_text(user_text) or None,
                 media_url=media_url,
-                space_id="spaces/AAQAMKgsazw",
-                custom_summary=f"Consulta de Capacitación Anual / POS: {user_text}"
+                space_id=os.getenv("GOOGLE_CHATS_CAPACITACION_SPACE") or getattr(settings, "GOOGLE_CHATS_CAPACITACION_SPACE", None) or "spaces/AAQAMKgsazw",
+                custom_summary=f"Consulta de Capacitación Anual / POS: {user_text}",
+                is_out_of_hours=not in_dept_hours,
+                template_type="plantilla_2"
             )
         except Exception as err:
             logger.error(f"Failed to send Capacitacion alert: {err}")
-        sc11_text = scripts.get("SC.011", sc11_default)
-        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+            
+        sc_code = "SC.011" if in_dept_hours else "SC.028"
+        sc_text = scripts.get(sc_code, sc11_default if in_dept_hours else sc28_default)
+        translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="cerrar")
 
-    # 3. Cumplimiento (Forma P-4 / AML / KYC)
-    cumplimiento_keywords = ["forma p-4", "forma p4", "p-4", "p4", "cumplimiento", "aml", "kyc", "regulatorio"]
+    # 3. Cumplimiento (Forma P-4 / AML / KYC / Envíos retenidos regulatorio)
+    cumplimiento_keywords = [
+        "forma p-4", "forma p4", "p-4", "p4", "cumplimiento", "aml", "kyc", "regulatorio",
+        "gateway info required", "verify hold (o)", "verify hold (d)", "verify hold (k)", 
+        "verify hold o", "verify hold d", "verify hold k"
+    ]
     if any(match_keyword_safe(k, user_text_lower) for k in cumplimiento_keywords):
         logger.info(f"⚖️ Cumplimiento request detected for contact {contact_id}: '{user_text[:50]}'")
+        in_dept_hours = check_department_hours("CUMPLIMIENTO", ct_now)
         try:
             await google_chat_service.send_unified_notification(
                 dept_key="BSA",
@@ -4332,19 +4298,31 @@ async def agent_interact_inner(
                 nombre_usuario=parse_name_from_text(user_text) or None,
                 numero_agencia=parse_agency_from_text(user_text) or None,
                 media_url=media_url,
-                space_id="spaces/AAQAbvCUAko",
-                custom_summary=f"Requerimiento de Cumplimiento AML / KYC / Forma P-4: {user_text}"
+                space_id=os.getenv("GOOGLE_CHATS_BSA_SPACE") or getattr(settings, "GOOGLE_CHATS_BSA_SPACE", None) or "spaces/AAQAbvCUAko",
+                custom_summary=f"Requerimiento de Cumplimiento AML / KYC / Forma P-4: {user_text}",
+                is_out_of_hours=not in_dept_hours,
+                template_type="plantilla_2"
             )
         except Exception as err:
             logger.error(f"Failed to send Cumplimiento alert: {err}")
-        sc11_text = scripts.get("SC.011", sc11_default)
-        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+            
+        sc_code = "SC.011" if in_dept_hours else "SC.028"
+        sc_text = scripts.get(sc_code, sc11_default if in_dept_hours else sc28_default)
+        translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="cerrar")
 
-    # 4. Cobranza (Comisiones / Saldos / Adeudos)
-    cobranza_keywords = ["cobranza", "cobranzas", "comisión", "comision", "comisiones", "saldo pendiente", "adeudo", "estado de cuenta", "depósito retenido", "deposito retenido", "factura de agencia"]
+    # 4. Cobranza (Balance / Agencia Suspendida / Reactivación / Comisiones / Adeudos)
+    cobranza_keywords = [
+        "balance", "agencia suspendida", "reactivar agencia", "reactivación de agencia", 
+        "reactivacion de agencia", "agencia balance", "consulta de balance", "balance de agencia", 
+        "ficha de depósito", "ficha de deposito", "comprobante de pago al balance", "pago de balance", 
+        "cobranza", "cobranzas", "comisión", "comision", "comisiones", "saldo pendiente", "adeudo", 
+        "estado de cuenta", "depósito retenido", "deposito retenido", "factura de agencia"
+    ]
     if any(match_keyword_safe(k, user_text_lower) for k in cobranza_keywords):
         logger.info(f"💰 Cobranza request detected for contact {contact_id}: '{user_text[:50]}'")
+        in_dept_hours = check_department_hours("COBRANZA", ct_now)
         try:
             await google_chat_service.send_unified_notification(
                 dept_key="COBRANZA",
@@ -4353,19 +4331,29 @@ async def agent_interact_inner(
                 nombre_usuario=parse_name_from_text(user_text) or None,
                 numero_agencia=parse_agency_from_text(user_text) or None,
                 media_url=media_url,
-                space_id="spaces/AAQAcEu8NTc",
-                custom_summary=f"Consulta de Cobranza / Comisiones / Balance: {user_text}"
+                space_id=os.getenv("GOOGLE_CHATS_COBRANZA_SPACE") or getattr(settings, "GOOGLE_CHATS_COBRANZA_SPACE", None) or "spaces/AAQAcEu8NTc",
+                custom_summary=f"Consulta de Cobranza / Comisiones / Balance: {user_text}",
+                is_out_of_hours=not in_dept_hours,
+                template_type="plantilla_2"
             )
         except Exception as err:
             logger.error(f"Failed to send Cobranza alert: {err}")
-        sc11_text = scripts.get("SC.011", sc11_default)
-        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+            
+        sc_code = "SC.011" if in_dept_hours else "SC.028"
+        sc_text = scripts.get(sc_code, sc11_default if in_dept_hours else sc28_default)
+        translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="cerrar")
 
-    # 5. Cheques (Depósitos / Nómina)
-    cheques_keywords = ["cheque", "cheques", "nómina", "depósito de cheque", "paycheck"]
+    # 5. Cheques (Estatus de cheque / Cancelación / Rechazo / Nómina)
+    cheques_keywords = [
+        "cheque", "cheques", "cancelar cheque", "cancelación de cheque", "cancelacion de cheque", 
+        "rechazo de cheque", "cheque rechazado", "estatus de cheque", "estatus del cheque", 
+        "payroll check", "nómina", "nomina", "depósito de cheque", "deposito de cheque", "paycheck"
+    ]
     if any(match_keyword_safe(k, user_text_lower) for k in cheques_keywords):
         logger.info(f"🎫 Cheques request detected for contact {contact_id}: '{user_text[:50]}'")
+        in_dept_hours = check_department_hours("CHEQUES", ct_now)
         try:
             await google_chat_service.send_unified_notification(
                 dept_key="CHEQUES",
@@ -4374,41 +4362,32 @@ async def agent_interact_inner(
                 nombre_usuario=parse_name_from_text(user_text) or None,
                 numero_agencia=parse_agency_from_text(user_text) or None,
                 media_url=media_url,
-                space_id="spaces/AAQAGZ_m434",
-                custom_summary=f"Consulta / Revisión de Cheques: {user_text}"
+                space_id=os.getenv("GOOGLE_CHATS_CHEQUES_SPACE") or getattr(settings, "GOOGLE_CHATS_CHEQUES_SPACE", None) or "spaces/AAQAGZ_m434",
+                custom_summary=f"Consulta / Revisión de Cheques: {user_text}",
+                is_out_of_hours=not in_dept_hours,
+                template_type="plantilla_2"
             )
         except Exception as err:
             logger.error(f"Failed to send Cheques alert: {err}")
-        sc11_text = scripts.get("SC.011", sc11_default)
-        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+            
+        sc_code = "SC.011" if in_dept_hours else "SC.028"
+        sc_text = scripts.get(sc_code, sc11_default if in_dept_hours else sc28_default)
+        translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="cerrar")
 
-    # 6. Soporte Técnico / Hardware de Agencia (Scanner, Impresora, POS, Lector)
-    tech_support_keywords = ["scanner", "escaner", "escáner", "impresora", "pos", "terminal", "lector", "falla técnica", "falla tecnica", "soporte técnico", "soporte tecnico"]
-    if any(match_keyword_safe(k, user_text_lower) for k in tech_support_keywords):
-        logger.info(f"🛠️ Tech support hardware request detected for contact {contact_id}: '{user_text[:50]}'")
-        try:
-            soporte_space = os.getenv("GOOGLE_CHATS_SOPORTE_SPACE") or "spaces/AAQAQhx5RTM"
-            await google_chat_service.send_unified_notification(
-                dept_key="SOPORTE_TECNICO",
-                contact_id=contact_id,
-                user_text=user_text,
-                nombre_usuario=parse_name_from_text(user_text) or None,
-                numero_agencia=parse_agency_from_text(user_text) or None,
-                media_url=media_url,
-                space_id=soporte_space,
-                custom_summary=f"Falla Hardware / Soporte Técnico Hermes: {user_text}"
-            )
-        except Exception as gchat_err:
-            logger.error(f"⚠️ Failed to send Google Chat Tech Support alert: {gchat_err}")
-        sc11_text = scripts.get("SC.011", sc11_default)
-        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
-
-    # 7. Ventas Internas (Nuevas agencias / Registros)
-    ventas_keywords = ["alta de agencia", "nueva agencia", "ventas internas", "registro de agencia", "abrir agencia"]
+    # 6. Ventas Internas (Tipo de cambio / Nuevo usuario / Nuevas agencias / Alta)
+    ventas_keywords = [
+        "agencia cercana", "agencia más cercana", "agencia mas cercana", "tipo de cambio", 
+        "mejorar tipo de cambio", "negociar tipo de cambio", "nuevo usuario hermes", 
+        "nuevo usuario para hermes", "nuevo usuario", "crear usuario hermes", "crear usuario",
+        "informes para ser agente", "requisitos para ser agente", "ser agente autorizado", 
+        "alta de agencia", "abrir agencia", "ventas internas", "registro de agencia", 
+        "cotización tipo de cambio", "cotizacion tipo de cambio"
+    ]
     if any(match_keyword_safe(k, user_text_lower) for k in ventas_keywords):
         logger.info(f"💼 Ventas Internas request detected for contact {contact_id}: '{user_text[:50]}'")
+        in_dept_hours = check_department_hours("VENTAS", ct_now)
         try:
             await google_chat_service.send_unified_notification(
                 dept_key="VENTAS",
@@ -4417,14 +4396,86 @@ async def agent_interact_inner(
                 nombre_usuario=parse_name_from_text(user_text) or None,
                 numero_agencia=parse_agency_from_text(user_text) or None,
                 media_url=media_url,
-                space_id="spaces/AAQAUghCztE",
-                custom_summary=f"Solicitud de Alta de Agencia / Ventas Internas: {user_text}"
+                space_id=os.getenv("GOOGLE_CHATS_VENTAS_SPACE") or getattr(settings, "GOOGLE_CHATS_VENTAS_SPACE", None) or "spaces/AAQAUghCztE",
+                custom_summary=f"Solicitud de Alta de Agencia / Ventas Internas: {user_text}",
+                is_out_of_hours=not in_dept_hours,
+                template_type="plantilla_2"
             )
         except Exception as err:
             logger.error(f"Failed to send Ventas alert: {err}")
-        sc11_text = scripts.get("SC.011", sc11_default)
-        translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
-        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+            
+        sc_code = "SC.011" if in_dept_hours else "SC.028"
+        sc_text = scripts.get(sc_code, sc11_default if in_dept_hours else sc28_default)
+        translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="cerrar")
+
+    # 7. Soporte Técnico / Hardware de Agencia (Hermes / Contraseña / Scanner / Impresora / PC)
+    tech_support_keywords = [
+        "contraseña hermes", "contrasena hermes", "contraseña", "contrasena", 
+        "problemas para acceder a hermes", "acceso a hermes", "no puedo entrar a hermes",
+        "entrar al sistema", "sistema problema", "falla en hermes", "error en hermes",
+        "desbloqueo de hermes", "desbloquear hermes", "no abre el sistema", "no abre hermes",
+        "scanner", "escaner", "escáner", "impresora", "cámara", "camara", 
+        "computador no enciende", "computadora no enciende", "equipo no enciende", 
+        "pos", "terminal", "lector", "falla técnica", "falla tecnica", "soporte técnico", "soporte tecnico"
+    ]
+    if any(match_keyword_safe(k, user_text_lower) for k in tech_support_keywords):
+        logger.info(f"🛠️ Tech support hardware request detected for contact {contact_id}: '{user_text[:50]}'")
+        in_dept_hours = check_department_hours("TECNICO", ct_now)
+        try:
+            soporte_space = os.getenv("GOOGLE_CHATS_SOPORTE_SPACE") or getattr(settings, "GOOGLE_CHATS_SOPORTE_SPACE", None) or "spaces/AAQAQhx5RTM"
+            await google_chat_service.send_unified_notification(
+                dept_key="SOPORTE_TECNICO",
+                contact_id=contact_id,
+                user_text=user_text,
+                nombre_usuario=parse_name_from_text(user_text) or None,
+                numero_agencia=parse_agency_from_text(user_text) or None,
+                media_url=media_url,
+                space_id=soporte_space,
+                custom_summary=f"Falla Hardware / Soporte Técnico Hermes: {user_text}",
+                is_out_of_hours=not in_dept_hours,
+                template_type="plantilla_2"
+            )
+        except Exception as gchat_err:
+            logger.error(f"⚠️ Failed to send Google Chat Tech Support alert: {gchat_err}")
+            
+        sc_code = "SC.011" if in_dept_hours else "SC.028"
+        sc_text = scripts.get(sc_code, sc11_default if in_dept_hours else sc28_default)
+        translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="cerrar")
+
+    # 8. Ventas Telefónicas (Envío telefónico / Stand by / Verify Hold S)
+    ventas_tel_keywords = [
+        "hacer un envío por teléfono", "hacer un envio por telefono", "envío telefónico", 
+        "envio telefonico", "hacer un envío", "hacer un envio", "modificar datos en stand by", 
+        "stand by", "verify hold signature", "verify hold (s)", "verify hold s"
+    ]
+    if any(match_keyword_safe(k, user_text_lower) for k in ventas_tel_keywords):
+        logger.info(f"📞 Ventas Telefónicas request detected for contact {contact_id}: '{user_text[:50]}'")
+        in_dept_hours = check_department_hours("VENTAS", ct_now)
+        try:
+            await google_chat_service.send_unified_notification(
+                dept_key="VENTAS",
+                contact_id=contact_id,
+                user_text=user_text,
+                nombre_usuario=parse_name_from_text(user_text) or None,
+                numero_agencia=parse_agency_from_text(user_text) or None,
+                media_url=media_url,
+                space_id=os.getenv("GOOGLE_CHATS_VENTAS_SPACE") or getattr(settings, "GOOGLE_CHATS_VENTAS_SPACE", None) or "spaces/AAQAUghCztE",
+                custom_summary=f"Solicitud de Ventas Telefónicas: {user_text}",
+                is_out_of_hours=not in_dept_hours,
+                template_type="plantilla_2"
+            )
+        except Exception as err:
+            logger.error(f"Failed to send Ventas Telefonicas alert: {err}")
+            
+        sc_code = "SC.011" if in_dept_hours else "SC.028"
+        sc_text = scripts.get(sc_code, sc11_default if in_dept_hours else sc28_default)
+        translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="cerrar")
 
     # Asesor humano explícito (usando palabras completas para evitar que 'agente' coincida con 'agent')
     human_keywords = ["asesor", "humano", "persona", "hablar con alguien", "representative", "human agent"]
@@ -4492,12 +4543,8 @@ async def agent_interact_inner(
             return AgentInteractResponse(status="success", reply_text=translated, derivacion="NA")
         else:
             await redis.set(f"session:mo:reason:{contact_id}", user_text, ex=3600)
-            # Fetch transfer script
-            sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
             sc24_text = scripts.get("SC.024", "Para proceder con la solicitud de cancelación de su Money Order, compártame los datos del instrumento.")
-            sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-            combined_text = f"{sc24_text}\n\n{sc13_text}"
-            translated = await translate_script_if_needed(combined_text, user_text, contact_id=contact_id)
+            translated = await translate_script_if_needed(sc24_text, user_text, contact_id=contact_id)
             # Clear money order session keys
             await redis.delete(f"session:mo:code:{contact_id}")
             await redis.delete(f"session:mo:amount:{contact_id}")
@@ -4509,14 +4556,25 @@ async def agent_interact_inner(
     # ------------------------------------------------------------
     if agent_name in ["CancelacionEnvio", "ModificacionDatos"]:
         logger.info(f"🚫 Channel exclusion applied for {agent_name}")
-        sc31_text = scripts.get("SC.031", "Por razones de seguridad transaccional, no es posible realizar modificaciones o cancelaciones a través de este canal de mensajería. Por favor acuda a la agencia física donde realizó el envío.")
-        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-        combined_text = f"{sc31_text}\n\n{sc13_text}"
-        translated = await translate_script_if_needed(combined_text, user_text, contact_id=contact_id)
+        perfil = await redis.get(perfil_key)
+        perfil_str = perfil.decode('utf-8').upper() if perfil else ""
+        if not perfil_str:
+            perfil_str = detect_profile_from_text(user_text) or ""
+            
+        if "BENEFICIARIO" in perfil_str:
+            sc_code = "SC.031.1"
+            default_text = "Por razones de seguridad transaccional, las modificaciones de nombre únicamente pueden ser solicitadas por el remitente acudiendo a la agencia física donde realizó la transacción."
+        else:
+            sc_code = "SC.031"
+            default_text = "Por razones de seguridad transaccional, no es posible realizar modificaciones o cancelaciones a través de este canal de mensajería. Por favor acuda a la agencia física donde realizó el envío."
+            
+        sc_text = scripts.get(sc_code, default_text)
+        translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
         return AgentInteractResponse(
             status="success",
             reply_text=translated,
-            derivacion="Exclusion"
+            derivacion="cerrar"
         )
 
     # ------------------------------------------------------------
@@ -4537,9 +4595,7 @@ async def agent_interact_inner(
     if agent_name in ["CoordinacionPago", "AgenteComunicador"]:
         if agent_name == "CoordinacionPago":
             sc22_text = scripts.get("SC.022", "Para asistirlo con el detalle de las tarifas y comisiones de su envío:")
-            sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-            combined_text = f"{sc22_text}\n\n{sc13_text}"
-            translated = await translate_script_if_needed(combined_text, user_text, contact_id=contact_id)
+            translated = await translate_script_if_needed(sc22_text, user_text, contact_id=contact_id)
             return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
         sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
