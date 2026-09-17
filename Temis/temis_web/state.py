@@ -767,8 +767,164 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         }
     ]
     active_page_index: int = 0
+    # Saved Projects / Flujos Guardados Catalog State
     show_recent_modal: bool = False
-    recent_projects: List[Dict[str, Any]] = []
+    search_saved_query: str = ""
+    saved_projects: List[Dict[str, Any]] = [
+        {
+            "id": "proj-1",
+            "name": "Proyecto Demo TEMIS (Aclaraciones WhatsApp)",
+            "purpose": "Estandarizar y automatizar el ciclo integral de atención de aclaraciones y transacciones de clientes vía canales digitales y sistemas centrales.",
+            "manager": "Ing. Mario Hurtado",
+            "sponsor": "Dirección de Operaciones & Tecnología",
+            "start_date": "2026-01-16",
+            "end_date": "2026-12-04",
+            "scope_in": "Mapeo SIPOC, diagrama BPMN multi-pestaña, manual de procedimientos y auditoría de calidad.",
+            "scope_out": "Desarrollo de integraciones core bancarias propietarias de terceros.",
+            "current_phase": 4,
+            "phase_name": "Fase 4: Ejecución Iterativa",
+            "updated_at": "2026-09-17 14:00",
+            "nodes_count": 4,
+            "steps_count": 4,
+            "sipoc_rows": [
+                {
+                    "id": "1",
+                    "step_num": "1.0",
+                    "provider": "Usuario / Cliente",
+                    "input": "Solicitud de aclaración vía WhatsApp",
+                    "step": "1.0 Recepción y captura de número de folio",
+                    "output": "Folio y datos validados",
+                    "customer": "Agente Operativo",
+                    "requirements": "Número de folio válido y teléfono registrado"
+                },
+                {
+                    "id": "2",
+                    "step_num": "2.0",
+                    "provider": "Agente Operativo",
+                    "input": "Número de folio validado",
+                    "step": "2.0 Consulta de estatus de transacción en Chronos",
+                    "output": "Estatus de la transacción (MO/Vigente)",
+                    "customer": "Sistema Chronos",
+                    "requirements": "Tiempo de respuesta del sistema < 30 seg"
+                },
+                {
+                    "id": "3",
+                    "step_num": "3.0",
+                    "provider": "Sistema Chronos",
+                    "input": "Estatus de transacción",
+                    "step": "3.0 ¿Transacción requiere revisión por Fraudes?",
+                    "output": "Dictamen de aprobación o derivación",
+                    "customer": "Agente / Área de Fraudes",
+                    "requirements": "Reglas de riesgo y montos máximos vigentes"
+                },
+                {
+                    "id": "4",
+                    "step_num": "4.0",
+                    "provider": "Agente Operativo",
+                    "input": "Dictamen de aprobación",
+                    "step": "4.0 Notificación de resolución y encuesta",
+                    "output": "Confirmación y encuesta de satisfacción",
+                    "customer": "Usuario / Cliente",
+                    "requirements": "Confirmación de entrega y cierre en Freshdesk"
+                }
+            ],
+            "customer_requirements": "Tiempos de respuesta (SLA) menores a 5 min, trazabilidad de logs en Chronos y encuesta con satisfacción >= 95%.",
+            "nodes": [
+                {"id": "node-1", "type": "node_start", "label": "Inicio Proceso", "swimlane": "Input", "x": 40, "y": 120, "activity_number": None, "attached_system": "", "attached_channel": ""},
+                {"id": "node-2", "type": "node_activity", "label": "Enviar solicitud de soporte", "swimlane": "Actor 1 (ej. Usuario)", "x": 280, "y": 120, "activity_number": 1, "attached_system": "Freshdesk", "attached_channel": "WhatsApp"},
+                {"id": "node-3", "type": "node_decision", "label": "¿Datos completos?", "swimlane": "Actor 2 (ej. Sistema)", "x": 540, "y": 120, "activity_number": None, "attached_system": "Chronos", "attached_channel": ""},
+                {"id": "node-4", "type": "node_end", "label": "Fin", "swimlane": "Output", "x": 800, "y": 120, "activity_number": None, "attached_system": "", "attached_channel": ""}
+            ],
+            "edges": [
+                {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
+                {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""},
+                {"id": "e3-4", "source": "node-3", "target": "node-4", "label": "Sí"}
+            ],
+            "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"],
+            "project_pages": [
+                {
+                    "page_id": "1",
+                    "name": "Página 1: Flujo Principal",
+                    "nodes": [
+                        {"id": "node-1", "type": "node_start", "label": "Inicio Proceso", "swimlane": "Input", "x": 40, "y": 120, "activity_number": None, "attached_system": "", "attached_channel": ""},
+                        {"id": "node-2", "type": "node_activity", "label": "Enviar solicitud de soporte", "swimlane": "Actor 1 (ej. Usuario)", "x": 280, "y": 120, "activity_number": 1, "attached_system": "Freshdesk", "attached_channel": "WhatsApp"},
+                        {"id": "node-3", "type": "node_decision", "label": "¿Datos completos?", "swimlane": "Actor 2 (ej. Sistema)", "x": 540, "y": 120, "activity_number": None, "attached_system": "Chronos", "attached_channel": ""},
+                        {"id": "node-4", "type": "node_end", "label": "Fin", "swimlane": "Output", "x": 800, "y": 120, "activity_number": None, "attached_system": "", "attached_channel": ""}
+                    ],
+                    "edges": [
+                        {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
+                        {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""},
+                        {"id": "e3-4", "source": "node-3", "target": "node-4", "label": "Sí"}
+                    ],
+                    "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"]
+                }
+            ],
+            "narrative_text": "# 📘 Manual de Procedimientos - Aclaraciones WhatsApp\n\nEl proceso inicia cuando el cliente envía su folio vía WhatsApp..."
+        },
+        {
+            "id": "proj-2",
+            "name": "Consulta y Validación de Pólizas Chronos",
+            "purpose": "Validar en tiempo real el estatus y cobertura de pólizas financieras en el core Chronos.",
+            "manager": "Área de Operaciones",
+            "sponsor": "Subdirección de Finanzas",
+            "start_date": "2026-02-01",
+            "end_date": "2026-11-15",
+            "scope_in": "Validación de saldo, consulta API Chronos y notificación.",
+            "scope_out": "Modificaciones de póliza fuera de sistema.",
+            "current_phase": 3,
+            "phase_name": "Fase 3: Planificación Híbrida",
+            "updated_at": "2026-09-15 11:30",
+            "nodes_count": 3,
+            "steps_count": 3,
+            "sipoc_rows": [
+                {"id": "1", "step_num": "1.0", "provider": "Agente", "input": "Número de Póliza", "step": "1.0 Consulta en Chronos", "output": "Datos de Póliza", "customer": "Chronos", "requirements": "Folio numérico"},
+                {"id": "2", "step_num": "2.0", "provider": "Chronos", "input": "Datos de Póliza", "step": "2.0 ¿Póliza Vigente?", "output": "Dictamen", "customer": "Agente", "requirements": "Respuesta < 2s"},
+                {"id": "3", "step_num": "3.0", "provider": "Agente", "input": "Dictamen", "step": "3.0 Emisión de Constancia", "output": "Constancia PDF", "customer": "Cliente", "requirements": "Firma digital"}
+            ],
+            "customer_requirements": "Validación en < 2 segundos con trazabilidad en log central.",
+            "nodes": [
+                {"id": "node-1", "type": "node_start", "label": "Inicio: Folio Póliza", "swimlane": "Input", "x": 60, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": ""},
+                {"id": "node-2", "type": "node_activity", "label": "Consulta en Chronos", "swimlane": "Agente", "x": 300, "y": 140, "activity_number": 1, "attached_system": "Chronos", "attached_channel": ""},
+                {"id": "node-3", "type": "node_end", "label": "Fin: Emisión", "swimlane": "Output", "x": 560, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": ""}
+            ],
+            "edges": [
+                {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
+                {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""}
+            ],
+            "swimlanes": ["Input", "Agente", "Output"],
+            "project_pages": [
+                {
+                    "page_id": "1",
+                    "name": "Página 1: Flujo Principal",
+                    "nodes": [
+                        {"id": "node-1", "type": "node_start", "label": "Inicio: Folio Póliza", "swimlane": "Input", "x": 60, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": ""},
+                        {"id": "node-2", "type": "node_activity", "label": "Consulta en Chronos", "swimlane": "Agente", "x": 300, "y": 140, "activity_number": 1, "attached_system": "Chronos", "attached_channel": ""},
+                        {"id": "node-3", "type": "node_end", "label": "Fin: Emisión", "swimlane": "Output", "x": 560, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": ""}
+                    ],
+                    "edges": [
+                        {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
+                        {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""}
+                    ],
+                    "swimlanes": ["Input", "Agente", "Output"]
+                }
+            ],
+            "narrative_text": "# 📘 Manual de Validación de Pólizas en Chronos\n\nProcedimiento para verificar la vigencia de pólizas..."
+        }
+    ]
+
+    def set_search_saved_query(self, val: str):
+        self.search_saved_query = val
+
+    @rx.var
+    def filtered_saved_projects(self) -> List[Dict[str, Any]]:
+        """Return saved projects filtered by search query"""
+        q = (self.search_saved_query or "").strip().lower()
+        if not q:
+            return self.saved_projects
+        return [
+            p for p in self.saved_projects 
+            if q in p.get("name", "").lower() or q in p.get("purpose", "").lower() or q in p.get("manager", "").lower()
+        ]
 
     def set_project_name(self, name: str):
         """Set project title"""
@@ -776,7 +932,14 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     def create_new_project(self):
         """Reset canvas and initialize a new empty project"""
-        self.project_name = "Nuevo Proyecto TEMIS"
+        count = len(self.saved_projects) + 1
+        self.project_id = f"proj-{count}"
+        self.project_name = f"Nuevo Proceso TEMIS #{count}"
+        self.project_purpose = "Definir el propósito y objetivos operativos del nuevo proceso."
+        self.project_manager = "Responsable del Proceso"
+        self.project_sponsor = "Patrocinador / Área Líder"
+        self.current_phase = 1
+        self.phase_name = "Fase 1: Diagnóstico Estratégico"
         self.diagram_title = "Flujo de Proceso Operativo"
         self.nodes = [
             {
@@ -798,12 +961,25 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
                 "name": "Página 1: Flujo Principal",
                 "nodes": list(self.nodes),
                 "edges": [],
-                "swimlanes": list(self.swimlanes)
+                "swimlanes": ["Input", "Actor 1", "Output"]
             }
         ]
         self.active_page_index = 0
         self.selected_node_id = ""
-        self.status_message = "Nuevo proyecto creado"
+        self.sipoc_rows = [
+            {
+                "id": "1",
+                "step_num": "1.0",
+                "provider": "Usuario / Cliente",
+                "input": "Solicitud inicial",
+                "step": "1.0 Recepción y validación",
+                "output": "Registro creado",
+                "customer": "Operador",
+            }
+        ]
+        self.narrative_text = f"# 📘 Manual de Procedimientos\n# {self.project_name}\n\n## 🎯 1. Objetivo\n{self.project_purpose}\n"
+        self.show_recent_modal = False
+        self.status_message = f"✓ Nuevo proceso '{self.project_name}' inicializado"
 
     def select_page_tab(self, index: int):
         """Save current tab state and switch active page"""
@@ -866,31 +1042,131 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             self.edges = list(page.get("edges", []))
             self.status_message = f"Pestaña '{deleted.get('name')}' eliminada"
 
+    def save_current_project(self):
+        """Save current project state into the Saved Flows catalog"""
+        import datetime
+        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        
+        # Ensure current active page is updated
+        if 0 <= self.active_page_index < len(self.project_pages):
+            self.project_pages[self.active_page_index]["nodes"] = list(self.nodes)
+            self.project_pages[self.active_page_index]["edges"] = list(self.edges)
+            self.project_pages[self.active_page_index]["swimlanes"] = list(self.swimlanes)
+
+        current_dict = {
+            "id": self.project_id or f"proj-{len(self.saved_projects) + 1}",
+            "name": self.project_name,
+            "purpose": self.project_purpose,
+            "manager": self.project_manager,
+            "sponsor": self.project_sponsor,
+            "start_date": self.start_date,
+            "end_date": self.end_date,
+            "scope_in": self.scope_in,
+            "scope_out": self.scope_out,
+            "current_phase": self.current_phase,
+            "phase_name": self.phase_name,
+            "updated_at": now_str,
+            "nodes_count": len(self.nodes),
+            "steps_count": len(self.sipoc_rows),
+            "sipoc_rows": list(self.sipoc_rows),
+            "customer_requirements": self.customer_requirements,
+            "nodes": list(self.nodes),
+            "edges": list(self.edges),
+            "swimlanes": list(self.swimlanes),
+            "project_pages": list(self.project_pages),
+            "narrative_text": self.narrative_text
+        }
+
+        # Check if already exists in saved_projects
+        found = False
+        new_list = []
+        for p in self.saved_projects:
+            if p.get("id") == current_dict["id"] or p.get("name") == current_dict["name"]:
+                new_list.append(current_dict)
+                found = True
+            else:
+                new_list.append(p)
+
+        if not found:
+            new_list.insert(0, current_dict)
+
+        self.saved_projects = new_list
+        self.auto_save_status = "✓ Cambios Guardados"
+        self.status_message = f"✓ Proceso '{self.project_name}' guardado exitosamente en el Catálogo de Flujos"
+
+    def save_diagram(self):
+        """Alias for save_current_project called from menu"""
+        self.save_current_project()
+
+    def load_saved_project(self, proj_id: str):
+        """Load a selected project from saved projects into active workspace"""
+        selected = next((p for p in self.saved_projects if p.get("id") == proj_id), None)
+        if not selected:
+            self.status_message = "No se encontró el flujo seleccionado"
+            return
+
+        self.project_id = selected.get("id", "proj-1")
+        self.project_name = selected.get("name", "Proyecto TEMIS")
+        self.project_purpose = selected.get("purpose", "")
+        self.project_manager = selected.get("manager", "")
+        self.project_sponsor = selected.get("sponsor", "")
+        self.start_date = selected.get("start_date", "2026-01-16")
+        self.end_date = selected.get("end_date", "2026-12-04")
+        self.scope_in = selected.get("scope_in", "")
+        self.scope_out = selected.get("scope_out", "")
+        self.current_phase = selected.get("current_phase", 1)
+        self.phase_name = selected.get("phase_name", "Fase 1: Diagnóstico Estratégico")
+
+        if selected.get("sipoc_rows"):
+            self.sipoc_rows = list(selected["sipoc_rows"])
+        if selected.get("customer_requirements"):
+            self.customer_requirements = selected["customer_requirements"]
+
+        if selected.get("project_pages"):
+            self.project_pages = list(selected["project_pages"])
+            self.active_page_index = 0
+            page0 = self.project_pages[0]
+            self.nodes = list(page0.get("nodes", []))
+            self.edges = list(page0.get("edges", []))
+            if page0.get("swimlanes"):
+                self.swimlanes = list(page0["swimlanes"])
+        else:
+            self.nodes = list(selected.get("nodes", []))
+            self.edges = list(selected.get("edges", []))
+            if selected.get("swimlanes"):
+                self.swimlanes = list(selected["swimlanes"])
+
+        if selected.get("narrative_text"):
+            self.narrative_text = selected["narrative_text"]
+
+        self.show_recent_modal = False
+        self.status_message = f"✓ Flujo '{self.project_name}' cargado con éxito en todas las vistas"
+
+    def delete_saved_project(self, proj_id: str):
+        """Delete a project from saved projects catalog"""
+        self.saved_projects = [p for p in self.saved_projects if p.get("id") != proj_id]
+        self.status_message = "Flujo eliminado del catálogo"
+
+    def export_single_saved_package(self, proj_id: str):
+        """Download a specific saved project package as .temis.json"""
+        selected = next((p for p in self.saved_projects if p.get("id") == proj_id), None)
+        if not selected:
+            return
+        json_str = json.dumps(selected, indent=2, ensure_ascii=False)
+        safe_name = selected.get("name", "Flujo").replace(" ", "_")
+        return rx.download(
+            data=json_str,
+            filename=f"Paquete_{safe_name}.temis.json"
+        )
+
     def open_recent_modal(self):
-        """Open recent projects modal and fetch from backend database"""
+        """Open recent projects modal and refresh catalog"""
         self.show_recent_modal = True
-        self.fetch_recent_projects()
+        self.search_saved_query = ""
 
     def close_recent_modal(self):
         """Close recent projects modal"""
         self.show_recent_modal = False
-
-    def fetch_recent_projects(self):
-        """Fetch list of saved projects from backend database"""
-        import os
-        api_base = os.getenv("API_BASE_URL", "https://temis-backend.onrender.com")
-        if not api_base.startswith("http"):
-            api_base = f"https://{api_base}"
-        url = f"{api_base.rstrip('/')}/api/projects"
-
-        try:
-            res = requests.get(url, timeout=10)
-            if res.status_code == 200:
-                self.recent_projects = res.json()
-            else:
-                self.recent_projects = []
-        except Exception:
-            self.recent_projects = []
 
     # Connector Modal & Interactive Line Connection State
     show_connect_modal: bool = False

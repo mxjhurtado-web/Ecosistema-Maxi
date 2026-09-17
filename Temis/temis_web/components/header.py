@@ -35,11 +35,11 @@ def header() -> rx.Component:
                 ),
                 rx.menu.content(
                     rx.menu.item(
-                        rx.hstack(rx.icon("file-plus", size=14), rx.text("Nuevo Proyecto"), align="center", spacing="2"),
+                        rx.hstack(rx.icon("file-plus", size=14), rx.text("Nuevo Proceso"), align="center", spacing="2"),
                         on_click=FlowState.create_new_project,
                     ),
                     rx.menu.item(
-                        rx.hstack(rx.icon("folder", size=14), rx.text("Abrir Reciente..."), align="center", spacing="2"),
+                        rx.hstack(rx.icon("folder-git-2", size=14), rx.text("Flujos Guardados..."), align="center", spacing="2"),
                         on_click=FlowState.open_recent_modal,
                     ),
                     rx.menu.item(
@@ -52,12 +52,16 @@ def header() -> rx.Component:
                         on_click=FlowState.open_import_modal,
                     ),
                     rx.menu.item(
-                        rx.hstack(rx.icon("download", size=14), rx.text("Exportar JSON..."), align="center", spacing="2"),
-                        on_click=FlowState.export_as_json,
-                    ),
-                    rx.menu.item(
                         rx.hstack(rx.icon("package", size=14), rx.text("Exportar Paquete (.temis.json)"), align="center", spacing="2"),
                         on_click=FlowState.export_project_package,
+                    ),
+                    rx.menu.item(
+                        rx.hstack(rx.icon("file-spreadsheet", size=14), rx.text("Exportar Excel SIPOC (.xlsx)"), align="center", spacing="2"),
+                        on_click=FlowState.export_sipoc_excel,
+                    ),
+                    rx.menu.item(
+                        rx.hstack(rx.icon("file-text", size=14), rx.text("Exportar Manual (.md)"), align="center", spacing="2"),
+                        on_click=FlowState.export_narrative_markdown,
                     ),
                 ),
             ),
