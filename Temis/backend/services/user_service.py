@@ -49,7 +49,7 @@ DEFAULT_PASSWORD = os.getenv("DEFAULT_ADMIN_PASSWORD", "Temis123456*")
 SEED_USERS: List[Dict[str, Any]] = [
     {
         "email": DEFAULT_SUPER_ADMIN_EMAIL,
-        "name": "Ing. Mario Hurtado",
+        "name": "Ing. José Antonio Hurtado",
         "password": DEFAULT_PASSWORD,
         "role": "super_admin",
         "role_label": "👑 Super Admin",

@@ -481,7 +481,7 @@ def project_hub() -> rx.Component:
                 rx.hstack(
                     rx.hstack(
                         rx.avatar(
-                            fallback=FlowState.user_name.to(lambda n: n[:2].upper() if n else "US"),
+                            fallback=FlowState.user_initials,
                             size="2",
                             radius="full",
                             color_scheme="indigo",

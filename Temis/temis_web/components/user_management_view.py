@@ -38,7 +38,7 @@ def user_row(u: dict) -> rx.Component:
         rx.table.cell(
             rx.hstack(
                 rx.avatar(
-                    fallback=u["name"].to(lambda n: n[:2].upper() if n else "US"),
+                    fallback="US",
                     size="2",
                     radius="full",
                     color_scheme="indigo",
@@ -286,7 +286,7 @@ def user_management_view() -> rx.Component:
                 # User Profile & Logout
                 rx.hstack(
                     rx.avatar(
-                        fallback=FlowState.user_name.to(lambda n: n[:2].upper() if n else "US"),
+                        fallback=FlowState.user_initials,
                         size="2",
                         radius="full",
                         color_scheme="indigo",

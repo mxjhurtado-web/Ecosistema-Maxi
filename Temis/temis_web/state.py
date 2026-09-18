@@ -31,7 +31,7 @@ class FlowState(rx.State):
     users_list: List[Dict[str, Any]] = [
         {
             "email": "mxjhurtado@maxillc.com",
-            "name": "Ing. Mario Hurtado",
+            "name": "Ing. José Antonio Hurtado",
             "password": "Temis123456*",
             "role": "super_admin",
             "role_label": "👑 Super Admin",
@@ -83,6 +83,10 @@ class FlowState(rx.State):
     user_search_query: str = ""
     user_filter_role: str = "all"
     user_filter_status: str = "all"
+
+    @rx.var
+    def user_initials(self) -> str:
+        return "JH"
 
     @rx.var
     def users_total_count(self) -> int:
@@ -256,7 +260,7 @@ class FlowState(rx.State):
     
     # User Profile & RBAC Role Simulation
     user_role: str = "super_admin"  # "super_admin", "project_manager", "collaborator"
-    user_name: str = "Ing. Mario Hurtado"
+    user_name: str = "Ing. José Antonio Hurtado"
     user_email: str = "mxjhurtado@maxillc.com"
 
     def set_user_role(self, role: str):
@@ -287,7 +291,7 @@ class FlowState(rx.State):
     new_proj_name: str = ""
     new_proj_code: str = ""
     new_proj_purpose: str = ""
-    new_proj_manager: str = "Ing. Mario Hurtado"
+    new_proj_manager: str = "Ing. José Antonio Hurtado"
     new_proj_sponsor: str = "Dirección de Operaciones & Tecnología"
     new_proj_start_date: str = "2026-01-16"
     new_proj_end_date: str = "2026-12-04"
@@ -651,7 +655,7 @@ class FlowState(rx.State):
 
     # Project Charter & Master Metadata State
     project_purpose: str = "Estandarizar y automatizar el ciclo integral de atención de aclaraciones y transacciones de clientes vía canales digitales y sistemas centrales."
-    project_manager: str = "Ing. Mario Hurtado"
+    project_manager: str = "Ing. José Antonio Hurtado"
     project_sponsor: str = "Dirección de Operaciones & Tecnología"
     start_date: str = "2026-01-16"
     end_date: str = "2026-12-04"
@@ -1379,8 +1383,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "code": "PRJ-TEMIS",
             "name": "Suite de Procesos & Gobernanza TEMIS",
             "purpose": "Plataforma SaaS Cloud de ingeniería de procesos con editor BPMN, matriz SIPOC, auditoría Six Sigma y gobernanza de 7 fases.",
-            "manager": "Ing. Mario Hurtado",
-            "manager_initials": "MH",
+            "manager": "Ing. José Antonio Hurtado",
+            "manager_initials": "JH",
             "sponsor": "Dirección General & Tecnología",
             "start_date": "2026-01-16",
             "end_date": "2026-12-04",
@@ -1484,8 +1488,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "code": "PRJ-X",
             "name": "Proyecto X Procesos",
             "purpose": "Proyecto piloto para verificación y despliegue del framework de 7 fases y sincronización en Google Drive.",
-            "manager": "Mario Hurtado",
-            "manager_initials": "MH",
+            "manager": "Ing. José Antonio Hurtado",
+            "manager_initials": "JH",
             "sponsor": "Área de Procesos & Calidad",
             "start_date": "2026-09-18",
             "end_date": "2026-12-18",
@@ -1551,8 +1555,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "code": "PRJ-WHA",
             "name": "Atención y Aclaraciones WhatsApp",
             "purpose": "Estandarizar y automatizar el ciclo integral de atención de aclaraciones y transacciones de clientes vía canales digitales y sistemas centrales.",
-            "manager": "Ing. Mario Hurtado",
-            "manager_initials": "MH",
+            "manager": "Ing. José Antonio Hurtado",
+            "manager_initials": "JH",
             "sponsor": "Dirección de Operaciones & CX",
             "start_date": "2026-01-16",
             "end_date": "2026-12-04",
@@ -1704,7 +1708,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
         # 1. Role Filter
         if self.user_role == "project_manager":
-            projs = [p for p in projs if "Mario" in p.get("manager", "") or "Hurtado" in p.get("manager", "")]
+            projs = [p for p in projs if "José" in p.get("manager", "") or "Antonio" in p.get("manager", "") or "Hurtado" in p.get("manager", "")]
         elif self.user_role == "collaborator":
             projs = [p for p in projs if p.get("id") in ["proj-temis", "proj-x", "proj-wha"]]
 
