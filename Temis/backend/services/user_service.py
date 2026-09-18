@@ -43,8 +43,8 @@ ROLE_MAP = {
     }
 }
 
-DEFAULT_SUPER_ADMIN_EMAIL = "mxjhurtado@maxillc.com"
-DEFAULT_PASSWORD = "Temis123456*"
+DEFAULT_SUPER_ADMIN_EMAIL = os.getenv("DEFAULT_ADMIN_EMAIL", "mxjhurtado@maxillc.com")
+DEFAULT_PASSWORD = os.getenv("DEFAULT_ADMIN_PASSWORD", "Temis123456*")
 
 SEED_USERS: List[Dict[str, Any]] = [
     {

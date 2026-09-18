@@ -30,6 +30,10 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.8
+      - key: DEFAULT_ADMIN_EMAIL
+        value: mxjhurtado@maxillc.com
+      - key: DEFAULT_ADMIN_PASSWORD
+        value: Temis123456*
       - key: API_BASE_URL
         fromService:
           type: web
