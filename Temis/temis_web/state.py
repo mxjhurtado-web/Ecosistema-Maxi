@@ -155,8 +155,11 @@ class FlowState(rx.State):
         self.hub_active_subview = "portfolio"
         self.status_message = "Sesión cerrada correctamente."
 
-    def set_hub_active_subview(self, val: str):
-        self.hub_active_subview = str(val)
+    def set_hub_active_subview(self, val: Union[str, List[str]]):
+        if isinstance(val, list):
+            self.hub_active_subview = val[0] if val else "portfolio"
+        else:
+            self.hub_active_subview = str(val)
 
     def set_show_new_user_modal(self, val: bool):
         self.show_new_user_modal = val
@@ -559,8 +562,11 @@ class FlowState(rx.State):
     def set_plan_activities_description(self, val: str):
         self.plan_activities_description = val
 
-    def set_plan_active_subtab(self, val: str):
-        self.plan_active_subtab = str(val)
+    def set_plan_active_subtab(self, val: Union[str, List[str]]):
+        if isinstance(val, list):
+            self.plan_active_subtab = val[0] if val else "backlog"
+        else:
+            self.plan_active_subtab = str(val)
 
     def set_plan_search_query(self, val: str):
         self.plan_search_query = val

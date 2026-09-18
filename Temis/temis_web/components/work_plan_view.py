@@ -51,7 +51,7 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
         ),
         rx.table.cell(
             rx.badge(item["module"], color_scheme="indigo", variant="soft", size="1"),
-            align="start",
+            align="left",
         ),
         rx.table.cell(
             rx.vstack(
@@ -60,7 +60,11 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
                     item["deliverable"] != "",
                     rx.hstack(
                         rx.icon("package", size=12, color="#059669"),
-                        rx.text("Entregable: " + item["deliverable"], size="1", color="#059669"),
+                        rx.hstack(
+                            rx.text("Entregable:", size="1", color="#059669"),
+                            rx.text(item["deliverable"], size="1", color="#059669"),
+                            spacing="1",
+                        ),
                         align="center",
                         spacing="1",
                     ),
@@ -69,7 +73,7 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
                 spacing="1",
                 align="start",
             ),
-            align="start",
+            align="left",
         ),
         rx.table.cell(
             rx.badge(
@@ -86,17 +90,21 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
             align="center",
         ),
         rx.table.cell(
-            rx.badge(item["story_points"].to_string() + " SP", color_scheme="blue", variant="surface", size="1"),
+            rx.badge(item["story_points"].to_string(), " SP", color_scheme="blue", variant="surface", size="1"),
             align="center",
         ),
         rx.table.cell(
-            rx.badge(item["hours_estimated"].to_string() + " hrs", color_scheme="gray", variant="soft", size="1"),
+            rx.badge(item["hours_estimated"].to_string(), " hrs", color_scheme="gray", variant="soft", size="1"),
             align="center",
         ),
         rx.table.cell(
             rx.vstack(
                 rx.text(item["start_date"], size="1", color="#475569"),
-                rx.text("al " + item["end_date"], size="1", color="#94a3b8"),
+                rx.hstack(
+                    rx.text("al", size="1", color="#94a3b8"),
+                    rx.text(item["end_date"], size="1", color="#94a3b8"),
+                    spacing="1",
+                ),
                 spacing="0",
                 align="center",
             ),
@@ -104,7 +112,7 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
         ),
         rx.table.cell(
             rx.badge(item["role"], color_scheme="purple", variant="soft", size="1"),
-            align="start",
+            align="left",
         ),
         rx.table.cell(
             rx.cond(
@@ -165,15 +173,15 @@ def render_sprint_card(sprint: rx.Var[dict]) -> rx.Component:
                 align="start",
             ),
             rx.hstack(
-                rx.badge("Módulo: " + sprint["modules"], color_scheme="indigo", variant="soft", size="1"),
-                rx.badge("Hito: " + sprint["milestone"], color_scheme="green", variant="soft", size="1"),
+                rx.badge("Módulo: ", sprint["modules"], color_scheme="indigo", variant="soft", size="1"),
+                rx.badge("Hito: ", sprint["milestone"], color_scheme="green", variant="soft", size="1"),
                 wrap="wrap",
                 spacing="1",
             ),
             rx.divider(color_scheme="gray", opacity=0.3),
             rx.hstack(
-                rx.badge(sprint["story_points"].to_string() + " Story Points", color_scheme="blue", variant="surface", size="1"),
-                rx.badge(sprint["hours_estimated"].to_string() + " Horas Estimadas", color_scheme="gray", variant="soft", size="1"),
+                rx.badge(sprint["story_points"].to_string(), " Story Points", color_scheme="blue", variant="surface", size="1"),
+                rx.badge(sprint["hours_estimated"].to_string(), " Horas Estimadas", color_scheme="gray", variant="soft", size="1"),
                 width="100%",
                 align="center",
             ),
@@ -349,7 +357,7 @@ def work_plan_view() -> rx.Component:
                             "Horas Planificadas",
                             FlowState.plan_total_planned_hours.to_string() + " hrs",
                             "(" + FlowState.plan_total_sp.to_string() + " SP)",
-                            "check-circle-2",
+                            "circle-check",
                             "#8b5cf6",
                         ),
                         width="100%",

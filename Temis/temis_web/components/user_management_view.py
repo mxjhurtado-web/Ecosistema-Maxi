@@ -71,7 +71,11 @@ def user_row(u: dict) -> rx.Component:
         rx.table.cell(
             rx.vstack(
                 rx.text(u["last_login"], size="1", weight="medium", color="#334155"),
-                rx.text("Registrado: " + u["created_at"], size="1", color="#94a3b8"),
+                rx.hstack(
+                    rx.text("Registrado:", size="1", color="#94a3b8"),
+                    rx.text(u["created_at"], size="1", color="#94a3b8"),
+                    spacing="1"
+                ),
                 spacing="0",
                 align_items="start"
             )

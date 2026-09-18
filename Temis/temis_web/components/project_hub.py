@@ -116,7 +116,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
             rx.hstack(
                 rx.hstack(
                     rx.icon("layers", size=14, color="#8b5cf6"),
-                    rx.text("Fase " + proj["current_phase"].to_string() + ": " + proj["phase_name"], size="1", weight="medium", color="#6b21a8"),
+                    rx.text("Fase ", proj["current_phase"].to_string(), ": ", proj["phase_name"], size="1", weight="medium", color="#6b21a8"),
                     align="center",
                     spacing="1",
                     padding_x="2",
@@ -126,7 +126,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                 ),
                 rx.hstack(
                     rx.icon("flame", size=14, color="#ea580c"),
-                    rx.text(proj["current_sprint"] + " • " + proj["current_sprint_name"], size="1", weight="medium", color="#9a3412"),
+                    rx.text(proj["current_sprint"], " • ", proj["current_sprint_name"], size="1", weight="medium", color="#9a3412"),
                     align="center",
                     spacing="1",
                     padding_x="2",
@@ -145,11 +145,9 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                 rx.hstack(
                     rx.text("Avance del Backlog Scrum:", size="1", color="#64748b", weight="medium"),
                     rx.spacer(),
-                    rx.text(
-                        proj["progress_percentage"].to_string() + "% (" + proj["completed_sp"].to_string() + "/" + proj["total_sp"].to_string() + " SP)",
-                        size="1",
-                        weight="bold",
-                        color="#0f172a",
+                    rx.hstack(
+                        rx.text(proj["progress_percentage"].to_string(), "% (", proj["completed_sp"].to_string(), "/", proj["total_sp"].to_string(), " SP)", size="1", weight="bold", color="#0f172a"),
+                        spacing="0",
                     ),
                     width="100%",
                     align="center",
@@ -179,7 +177,11 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                     ),
                     rx.vstack(
                         rx.text(proj["manager"], size="1", weight="medium", color="#1e293b"),
-                        rx.text("Sponsor: " + proj["sponsor"], size="1", color="#94a3b8"),
+                        rx.hstack(
+                            rx.text("Sponsor:", size="1", color="#94a3b8"),
+                            rx.text(proj["sponsor"], size="1", color="#94a3b8"),
+                            spacing="1",
+                        ),
                         spacing="0",
                         align="start",
                     ),
@@ -541,7 +543,7 @@ def project_hub() -> rx.Component:
                             "Story Points Entregados",
                             FlowState.total_completed_sp_count.to_string() + " / " + FlowState.total_sp_count.to_string() + " SP",
                             FlowState.global_progress_pct.to_string() + "% de avance global",
-                            "check-circle-2",
+                            "circle-check",
                             "#16a34a",
                             badge_text="Scrum",
                         ),
