@@ -1,52 +1,57 @@
-# Roadmap Estratégico del Proyecto TEMIS 2026
-**TEMIS Process Suite & Governance | Planificación Estratégica & Cronograma Oficial**
+# Roadmap Estratégico y Técnico del Proyecto TEMIS 2026
 
-| Campo | Detalle |
-| :--- | :--- |
-| **Proyecto:** | TEMIS (Process Suite & Governance) |
-| **Periodo:** | 16 de Enero de 2026 – 18 de Diciembre de 2026 |
-| **Versión:** | 1.0 Oficial (Web Cloud SaaS) |
-| **Estado:** | Aprobado / Línea Base |
+**TEMIS PROCESS SUITE | PLANIFICACIÓN ESTRATÉGICA & BACKLOG SCRUM**
+- **Iniciativa:** Proyecto TEMIS (BPMN Suite & Governance) | **Código:** TEMIS-GOV-2026-V1
+- **Sponsor:** Dirección de Operaciones & Tecnología | **Project Lead:** Ing. Mario Hurtado
+- **Periodo Oficial:** 16 Enero 2026 – 04 Diciembre 2026 | **Estatus:** Línea Base Oficial Aprobada
 
 ---
 
-## 🎯 1. Visión y Objetivos del Roadmap 2026
+## 1. Resumen Ejecutivo y Visión Estratégica
+El Proyecto TEMIS nace como una respuesta estratégica y corporativa ante la necesidad de **soberanía tecnológica, control de costos operativos y estandarización metodológica** en la gestión de procesos de negocio (BPMN).
 
-El **Proyecto TEMIS** tiene como propósito consolidar una plataforma corporativa soberana e inteligente para el modelado BPMN, estandarización Six Sigma (SIPOC) y gobierno de procesos operativos. Este Roadmap establece el cronograma maestro estructurado a lo largo del ciclo 2026, abarcando desde la concepción inicial hasta la migración Web Cloud y el despliegue operativo final.
+La organización identificó una fuga presupuestal recurrente debido a las costosas licencias por usuario de **Lucidchart (Lucid Software Inc.)**, sumado a la desconexión operativa entre diagramas estáticos y la redacción manual de manuales de procedimientos en Word. TEMIS consolida una Suite Integral Web SaaS Cloud que fusiona la Matriz SIPOC Six Sigma, diagramación vectorial con curvas Bézier perimetrales, redacción automatizada de políticas con IA (Gemini 2.5 Flash) y gobierno corporativo en 7 fases.
 
----
-
-## 📌 2. Matriz de Hitos Clave del Proyecto TEMIS
-
-```
-2026
-┌─────────────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────┐
-│  ENE - FEB  │     MAR     │  ABR - JUN  │  JUL - SEP  │  OCT - NOV  │     DIC     │
-├─────────────┼─────────────┼─────────────┼─────────────┼─────────────┼─────────────┤
-│ Planning &  │   Backlog   │  Prototipo  │  SIPOC, IA  │  Auditoría  │   Cierre    │
-│   Charter   │    Scrum    │ & Migración │  & Catálogo │  & SA Drive │   Oficial   │
-│   (F1/F2)   │    (F3)     │  Web (F4)   │  en Archivo │   (F5/F6)   │    (F7)     │
-└─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┘
-```
-
-| Fecha / Hito | Fase Metodológica | Entregable / Alcance Clave | Estado |
-| :--- | :--- | :--- | :--- |
-| **16 Ene 2026: Planning Kickoff** | Fase 1: Diagnóstico Estratégico | Diagnóstico del dolor operativo en Lucidchart/Word y definición de arquitectura inicial. | `✓ Completado` |
-| **15 Feb 2026: Project Charter** | Fase 2: Inicio del Proyecto | Acta Constitutiva, asignación de roles (PM, Sponsor) y delimitación de alcance. | `✓ Completado` |
-| **31 Mar 2026: Backlog Scrum** | Fase 3: Planificación Híbrida | Backlog Scrum Técnico de 10 Sprints y arquitectura de experiencia. | `✓ Completado` |
-| **01 Jun 2026: Migración Web SaaS** | Fase 4: Ejecución Iterativa | **Hito Clave:** Reestructuración mayor de App Windows Desktop a Web Cloud (Reflex + FastAPI + PostgreSQL en Render). | `✓ Completado` |
-| **15 Sep 2026: Suite 4 Vistas & IA** | Fase 4: Ejecución Iterativa | Matriz SIPOC interactiva, generador de flujos Bézier, narrativa Gemini 2.5 Flash y Catálogo de Flujos en Menú Archivo. | `✓ Completado` |
-| **01 Nov 2026: Monitoreo & SA Drive** | Fase 5/6: Monitoreo y Mejora | Auditor IA de calidad (0-100) y conexión con Service Account de Google Workspace Shared Drive (`supportsAllDrives=True`). | `En curso` |
-| **18 Dic 2026: Cierre Oficial** | Fase 7: Cierre del Proyecto | Entrega formal de TEMIS v1.0, informe de lecciones aprendidas y traspaso operativo. | `Programado` |
+El Roadmap comprende 10 Sprints de desarrollo ágil y 47 commits base de ingeniería entre el 16 de Enero de 2026 y el 04 de Diciembre de 2026.
 
 ---
 
-## 🏛️ 3. Desglose del Cronograma por las 7 Fases Corporativas
+## 2. Dashboard Ejecutivo de Sprints & Capacidad Técnica (2026)
 
-- **• Fase 1: Diagnóstico Estratégico (Enero):** Análisis del dolor en herramientas manuales desconectadas. Mapeo del proceso AS-IS de documentación de diagramas y definición de requerimientos de estandarización.
-- **• Fase 2: Inicio del Proyecto (Febrero):** Publicación del Project Charter formal de TEMIS, aprobación de sponsor ejecutivo y establecimiento de la matriz RACI.
-- **• Fase 3: Planificación Híbrida (Marzo):** Elaboración del Backlog Scrum Técnico 2026 con 47 commits base, especificación de simbología oficial BPMN y cálculo de esfuerzo.
-- **• Fase 4: Ejecución Iterativa (Abril - Septiembre):** Desarrollo iterativo de la plataforma. Destaca la decisión estratégica de migrar de cliente Desktop Windows a arquitectura Web SaaS Full-Stack (Render Cloud), integración del motor SIPOC y Copiloto Gemini 2.5 Flash.
-- **• Fase 5: Monitoreo y Control (Octubre):** Implementación del Auditor de Calidad IA (0-100) para cumplimiento de estándares Six Sigma, pruebas de carga y verificación continua.
-- **• Fase 6: Mejora Continua (Noviembre):** Optimización de rendimiento en nube, refinamiento del catálogo de flujos guardados y automatización de respaldos en Google Workspace Shared Drive con Service Account.
-- **• Fase 7: Cierre del Proyecto (Diciembre):** Evaluación de valor entregado, acta de cierre formal, paquete de exportación de proyectos y lecciones aprendidas.
+| Sprint | Periodo | Objetivo Estratégico | Módulos Clave | Hito Principal | Estado | Story Points |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Sprint 01** | 16 Ene - 28 Feb 2026 | Arquitectura Base & Persistencia Windows Desktop | Core / DB / Sync | Base de datos compartida SQLite + Sync Google Drive | Completed | 34 |
+| **Sprint 02** | 01 Mar - 30 Abr 2026 | Gobernanza de Proyectos & Metodología 7 Fases | Gobernanza / Actas | Modelado de Fases 1 a 7, Daily Logs, Roles y Entregables | Completed | 42 |
+| **Sprint 03** | 01 May - 30 Jun 2026 | Motor de Diagramación Inicial Desktop & Pruebas | Canvas Desktop | Lienzo de dibujo de procesos y exportación inicial | Completed | 38 |
+| **Sprint 04** | 01 Jul - 26 Ago 2026 | Desacoplamiento Arquitectónico & Preparación API | FastAPI / Backend | Diseño de API REST FastAPI y modelos Pydantic | Completed | 30 |
+| **Sprint 05** | 27 Ago - 31 Ago 2026 | 🔥 **HITO CLAVE: Reestructuración Desktop ➔ Web SaaS Cloud** | Reflex / Render / Parser | Migración a Reflex Full-Stack, PostgreSQL 18, Parser Nativo Lucidchart | Completed | 65 |
+| **Sprint 06** | 01 Sep - 15 Sep 2026 | Reingeniería UI/UX Pro & Auditoría IA de Procesos | UI/UX / Gemini AI | Header 50px, Dock izquierdo, Inspector derecho, Auditor Gemini AI | Completed | 45 |
+| **Sprint 07** | 16 Sep - 30 Sep 2026 | Persistencia Híbrida & Exportador Gráfico Alta Resolución | Export PNG/PDF / DB | Exportador vectorial PNG/PDF 300 DPI y Auto-Guardado PostgreSQL | In Progress | 28 |
+| **Sprint 08** | 01 Oct - 31 Oct 2026 | Mapeador Automático de Swimlanes & Multi-Usuario | Swimlanes / Colab | Auto-layout de carriles por rol/sistema y sincronización web | Planned | 35 |
+| **Sprint 09** | 01 Nov - 20 Nov 2026 | Respaldo en Unidad Compartida Google Drive & Seguridad | Drive SA / Seguridad | Backup automático en Drive con Service Account y seguridad RBAC | Planned | 25 |
+| **Sprint 10** | 21 Nov - 04 Dic 2026 | QA Integral, Pruebas de Carga & Entrega Final | QA / Producción / Docs | Pruebas de estrés (+2,000 nodos), manuales y Cierre de Proyecto | Planned | 20 |
+
+---
+
+## 3. Distribución de Esfuerzo por Módulo Arquitectónico
+
+| Módulo Técnico | Total Items | Completados | En Progreso | Planificados | Horas Estimadas | % Avance |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Reflex Web SaaS Cloud (Render Deployment)** | 4 | 4 | 0 | 0 | 85 h | 100% |
+| **Parser Lucidchart Determinista (8 Pestañas)** | 3 | 3 | 0 | 0 | 70 h | 100% |
+| **UI/UX Reingeniería Pro (Header 50px, Dock, Inspector)** | 3 | 3 | 0 | 0 | 65 h | 100% |
+| **Conexión Interactiva & Curvas SVG Bézier** | 2 | 2 | 0 | 0 | 45 h | 100% |
+| **Auditor de Calidad IA (Gemini 2.5 Flash)** | 2 | 2 | 0 | 0 | 40 h | 100% |
+| **Gobernanza 7 Fases & Matriz SIPOC Six Sigma** | 2 | 2 | 0 | 0 | 50 h | 100% |
+| **FastAPI Backend & PostgreSQL DB Persistence** | 2 | 1 | 1 | 0 | 45 h | 75% |
+| **Exportación Gráfica (PNG/PDF) & Drive Backup SA** | 2 | 0 | 1 | 1 | 55 h | 30% |
+
+---
+
+## 4. Trazabilidad de Commits y Entregables Clave
+1. **Commit `4c0e337` (16 Ene 2026):** Implementación de base de datos compartida SQLite y sincronización inicial con Google Drive.
+2. **Commit `fe136da` (27 Ago 2026 - 🔥 HITO FUNDACIONAL):** Migración de cliente de escritorio Windows a Web SaaS Full-Stack con Reflex, FastAPI, PostgreSQL y Render.
+3. **Commit `9f31c2f` (27 Ago 2026):** Parser nativo determinista para CSV/JSON de Lucidchart sin depender de IA.
+4. **Commit `70a72ca` (27 Ago 2026):** Cálculo matemático de trazado SVG Bézier `M x1 y1 C cx1 cy1, cx2 cy2, x2 y2` con ruteo perimetral Este-Oeste.
+5. **Commit `9805816` (10 Sep 2026):** Reingeniería UI/UX Pro (Header 50px, Dock lateral izquierdo de simbología BPMN/Sistemas/Canales, Inspector derecho contextual).
+6. **Commit `592127e` (10 Sep 2026):** Conexión interactiva de casillas, auto-guardado reactivo y motor de auditoría de gobernanza con Gemini IA (0-100).
