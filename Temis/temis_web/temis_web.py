@@ -18,13 +18,14 @@ from temis_web.components.project_modal import recent_projects_modal
 from temis_web.components.connect_modal import connect_modal
 from temis_web.components.audit_modal import audit_modal
 from temis_web.components.project_charter import project_charter
+from temis_web.components.work_plan_view import work_plan_view
 from temis_web.components.sipoc_matrix import sipoc_matrix
 from temis_web.components.governance_view import governance_view
 from temis_web.components.project_hub import project_hub
 
 
 def workspace_view() -> rx.Component:
-    """Level 2 Workspace with 4 modular modeling views"""
+    """Level 2 Workspace with 5 modular modeling views"""
     return rx.box(
         recent_projects_modal(),
         connect_modal(),
@@ -34,6 +35,7 @@ def workspace_view() -> rx.Component:
             rx.match(
                 FlowState.active_view,
                 ("charter", project_charter()),
+                ("plan", work_plan_view()),
                 ("sipoc", sipoc_matrix()),
                 ("governance", governance_view()),
                 # Default: Interactive Canvas Flowchart View (View 2)

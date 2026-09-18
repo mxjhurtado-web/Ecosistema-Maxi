@@ -92,9 +92,10 @@ def header() -> rx.Component:
             align="center",
             spacing="3",
         ),
-        # Center-Left Section: 4 Modular View Switchers
+        # Center-Left Section: 5 Modular View Switchers
         rx.segmented_control.root(
-            rx.segmented_control.item("📄 Ficha & Narrativa", value="charter"),
+            rx.segmented_control.item("📄 Ficha & Charter", value="charter"),
+            rx.segmented_control.item("📅 Plan de Trabajo", value="plan"),
             rx.segmented_control.item("📊 Diagrama de Flujo", value="flow"),
             rx.segmented_control.item("📋 Matriz SIPOC", value="sipoc"),
             rx.segmented_control.item("🏛️ Gobernanza", value="governance"),

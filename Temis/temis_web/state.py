@@ -77,10 +77,10 @@ class FlowState(rx.State):
     swimlanes: List[str] = ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"]
 
     # Active View Navigation (4 Core Modules)
-    active_view: str = "flow"  # "charter", "flow", "sipoc", "governance"
+    active_view: str = "flow"  # "charter", "plan", "flow", "sipoc", "governance"
 
     def set_active_view(self, view_name: Union[str, List[str]]):
-        """Switch active view tab: 'charter', 'flow', 'sipoc', 'governance'"""
+        """Switch active view tab: 'charter', 'plan', 'flow', 'sipoc', 'governance'"""
         if isinstance(view_name, list):
             val = view_name[0] if view_name else "flow"
         else:
@@ -88,11 +88,329 @@ class FlowState(rx.State):
         self.active_view = val
         view_labels = {
             "charter": "Ficha del Proyecto & Narrativa",
+            "plan": "Plan de Trabajo & Sprints IA",
             "flow": "Diagrama de Flujo (Lienzo)",
             "sipoc": "Matriz SIPOC Six Sigma",
             "governance": "Gobernanza & 7 Fases"
         }
         self.status_message = f"Vista activa: {view_labels.get(val, val)}"
+
+    # Work Plan & Capacity Planner State
+    plan_start_date: str = "2026-01-16"
+    plan_end_date: str = "2026-12-04"
+    plan_daily_hours: int = 8
+    plan_work_days_mode: str = "mon_fri"  # "mon_fri", "mon_sat", "full_week"
+    plan_activities_description: str = "Automatizar el ciclo integral de atención de aclaraciones y transacciones de clientes vía canales digitales y sistemas centrales (Chronos, Freshdesk, WhatsApp)."
+    is_generating_plan_ai: bool = False
+    is_syncing_plan_sheet: bool = False
+    plan_active_subtab: str = "backlog"  # "backlog", "sprints"
+    plan_search_query: str = ""
+    plan_filter_sprint: str = "all"
+
+    plan_sprints: List[Dict[str, Any]] = [
+        {
+            "sprint_id": "Sprint 01",
+            "period": "2026-01-16 al 2026-01-30",
+            "objective": "Diagnóstico AS-IS y levantamiento de requerimientos con áreas líderes",
+            "modules": "Diagnóstico & Arquitectura",
+            "milestone": "Charter y Matriz AS-IS Aprobados",
+            "status": "In Progress",
+            "story_points": 25,
+            "hours_estimated": 80
+        },
+        {
+            "sprint_id": "Sprint 02",
+            "period": "2026-02-02 al 2026-02-16",
+            "objective": "Mapeo SIPOC Six Sigma y definición de roles, sistemas y canales",
+            "modules": "Diseño BPMN & SIPOC",
+            "milestone": "SIPOC y Simbología BPMN Homologada",
+            "status": "Planned",
+            "story_points": 30,
+            "hours_estimated": 90
+        },
+        {
+            "sprint_id": "Sprint 03",
+            "period": "2026-02-17 al 2026-03-03",
+            "objective": "Construcción del lienzo interactivo y docking de herramientas BPMN",
+            "modules": "UI/UX & Espacio de Trabajo",
+            "milestone": "Editor Visual Bézier Operativo",
+            "status": "Planned",
+            "story_points": 35,
+            "hours_estimated": 100
+        },
+        {
+            "sprint_id": "Sprint 04",
+            "period": "2026-03-04 al 2026-03-18",
+            "objective": "Desacoplamiento backend REST e integración con Google Workspace Shared Drive",
+            "modules": "Core & Integraciones",
+            "milestone": "Service Account y Sync de Carpetas",
+            "status": "Planned",
+            "story_points": 40,
+            "hours_estimated": 110
+        },
+        {
+            "sprint_id": "Sprint 05",
+            "period": "2026-03-19 al 2026-04-02",
+            "objective": "Motor de Auditoría Six Sigma con Gemini 2.5 Flash y reglas de calidad 0-100",
+            "modules": "Gobernanza & Auditoría IA",
+            "milestone": "Auditor IA y Daily Logs Activos",
+            "status": "Planned",
+            "story_points": 35,
+            "hours_estimated": 95
+        }
+    ]
+
+    plan_backlog_items: List[Dict[str, Any]] = [
+        {
+            "item_id": "1",
+            "module": "Diagnóstico & Arquitectura",
+            "user_story": "Como PM, quiero formalizar el Project Charter para definir alcance y responsables.",
+            "sprint": "Sprint 01",
+            "story_points": 5,
+            "hours_estimated": 20,
+            "start_date": "2026-01-16",
+            "end_date": "2026-01-20",
+            "role": "Project Manager",
+            "priority": "Alta",
+            "deliverable": "Acta Constitutiva (.docx)",
+            "status": "Completado"
+        },
+        {
+            "item_id": "2",
+            "module": "Diagnóstico & Arquitectura",
+            "user_story": "Como Analista, quiero mapear el flujo AS-IS para detectar cuellos de botella.",
+            "sprint": "Sprint 01",
+            "story_points": 8,
+            "hours_estimated": 30,
+            "start_date": "2026-01-21",
+            "end_date": "2026-01-26",
+            "role": "Analista de Procesos",
+            "priority": "Alta",
+            "deliverable": "Informe Diagnóstico General",
+            "status": "Completado"
+        },
+        {
+            "item_id": "3",
+            "module": "Diseño BPMN & SIPOC",
+            "user_story": "Como Operador, quiero capturar la matriz SIPOC con entradas, salidas y clientes.",
+            "sprint": "Sprint 02",
+            "story_points": 8,
+            "hours_estimated": 35,
+            "start_date": "2026-02-02",
+            "end_date": "2026-02-08",
+            "role": "Analista Six Sigma",
+            "priority": "Alta",
+            "deliverable": "Matriz SIPOC Tabular",
+            "status": "En Progreso"
+        },
+        {
+            "item_id": "4",
+            "module": "Diseño BPMN & SIPOC",
+            "user_story": "Como Auditor, quiero validar los requisitos del cliente y SLA de respuesta.",
+            "sprint": "Sprint 02",
+            "story_points": 5,
+            "hours_estimated": 20,
+            "start_date": "2026-02-09",
+            "end_date": "2026-02-16",
+            "role": "QA Lead",
+            "priority": "Media",
+            "deliverable": "Matriz de Calidad y SLA",
+            "status": "Planificado"
+        },
+        {
+            "item_id": "5",
+            "module": "UI/UX & Espacio de Trabajo",
+            "user_story": "Como Usuario, quiero un lienzo vectorial responsivo con zoom 30%-300% y Bézier.",
+            "sprint": "Sprint 03",
+            "story_points": 13,
+            "hours_estimated": 50,
+            "start_date": "2026-02-17",
+            "end_date": "2026-02-28",
+            "role": "Frontend Dev (Reflex)",
+            "priority": "Alta",
+            "deliverable": "Lienzo SVG Interactivo",
+            "status": "Planificado"
+        },
+        {
+            "item_id": "6",
+            "module": "Core & Integraciones",
+            "user_story": "Como Sistema, quiero sincronizar con Google Drive para respaldar versiones y hojas.",
+            "sprint": "Sprint 04",
+            "story_points": 8,
+            "hours_estimated": 35,
+            "start_date": "2026-03-04",
+            "end_date": "2026-03-12",
+            "role": "Backend Dev (FastAPI)",
+            "priority": "Alta",
+            "deliverable": "Drive Service & Sheets API",
+            "status": "Planificado"
+        },
+        {
+            "item_id": "7",
+            "module": "Gobernanza & Auditoría IA",
+            "user_story": "Como Líder de Calidad, quiero que Gemini audite la consistencia del flujo de 0 a 100.",
+            "sprint": "Sprint 05",
+            "story_points": 8,
+            "hours_estimated": 30,
+            "start_date": "2026-03-19",
+            "end_date": "2026-03-27",
+            "role": "AI Engineer",
+            "priority": "Alta",
+            "deliverable": "Auditor IA con Gemini 2.5 Flash",
+            "status": "Planificado"
+        }
+    ]
+
+    @rx.var
+    def plan_working_days_count(self) -> int:
+        from backend.services.work_plan_generator import calculate_working_days
+        return calculate_working_days(self.plan_start_date, self.plan_end_date, self.plan_work_days_mode)
+
+    @rx.var
+    def plan_total_capacity_hours(self) -> int:
+        return self.plan_working_days_count * self.plan_daily_hours
+
+    @rx.var
+    def plan_suggested_sprints_count(self) -> int:
+        days = self.plan_working_days_count
+        return max(2, min(12, days // 10))
+
+    @rx.var
+    def plan_total_sp(self) -> int:
+        return sum(int(item.get("story_points", 0)) for item in self.plan_backlog_items)
+
+    @rx.var
+    def plan_total_planned_hours(self) -> int:
+        return sum(int(item.get("hours_estimated", 0)) for item in self.plan_backlog_items)
+
+    @rx.var
+    def plan_filtered_backlog(self) -> List[Dict[str, Any]]:
+        items = list(self.plan_backlog_items)
+        if self.plan_filter_sprint != "all":
+            items = [i for i in items if i.get("sprint") == self.plan_filter_sprint]
+        q = (self.plan_search_query or "").strip().lower()
+        if q:
+            items = [
+                i for i in items
+                if q in i.get("user_story", "").lower()
+                or q in i.get("module", "").lower()
+                or q in i.get("role", "").lower()
+                or q in i.get("deliverable", "").lower()
+            ]
+        return items
+
+    @rx.var
+    def plan_sprint_options(self) -> List[str]:
+        seen = set()
+        opts = []
+        for s in self.plan_sprints:
+            sid = s.get("sprint_id")
+            if sid and sid not in seen:
+                seen.add(sid)
+                opts.append(sid)
+        return opts
+
+    def set_plan_start_date(self, val: str):
+        self.plan_start_date = val
+
+    def set_plan_end_date(self, val: str):
+        self.plan_end_date = val
+
+    def set_plan_daily_hours(self, val: str):
+        try:
+            self.plan_daily_hours = int(val)
+        except Exception:
+            self.plan_daily_hours = 8
+
+    def set_plan_work_days_mode(self, val: str):
+        self.plan_work_days_mode = str(val)
+
+    def set_plan_activities_description(self, val: str):
+        self.plan_activities_description = val
+
+    def set_plan_active_subtab(self, val: str):
+        self.plan_active_subtab = str(val)
+
+    def set_plan_search_query(self, val: str):
+        self.plan_search_query = val
+
+    def set_plan_filter_sprint(self, val: str):
+        self.plan_filter_sprint = str(val)
+
+    def generate_work_plan_ai(self):
+        """Invoke Gemini 2.5 Flash to generate Sprints & Backlog plan based on capacity"""
+        self.is_generating_plan_ai = True
+        self.status_message = "Gemini AI generando desglose de Sprints y Backlog Scrum..."
+
+        try:
+            from backend.services.work_plan_generator import generate_work_plan_with_gemini
+            result = generate_work_plan_with_gemini(
+                project_name=self.project_name,
+                project_purpose=self.project_purpose,
+                activities_description=self.plan_activities_description,
+                start_date_str=self.plan_start_date,
+                end_date_str=self.plan_end_date,
+                daily_hours=self.plan_daily_hours,
+                work_days_mode=self.plan_work_days_mode
+            )
+            if result.get("sprints"):
+                self.plan_sprints = result["sprints"]
+            if result.get("backlog_items"):
+                self.plan_backlog_items = result["backlog_items"]
+            self.status_message = f"✓ Plan de Trabajo generado con IA: {len(self.plan_sprints)} Sprints y {len(self.plan_backlog_items)} tareas"
+        except Exception as e:
+            self.status_message = f"Error al generar plan con IA: {str(e)}"
+        finally:
+            self.is_generating_plan_ai = False
+
+    def sync_work_plan_to_google_sheet(self):
+        """Sync generated Sprints & Backlog directly into the project's Google Sheet"""
+        if not self.sheet_id:
+            self.status_message = "El proyecto no tiene un Google Sheet asociado para sincronizar"
+            return
+
+        self.is_syncing_plan_sheet = True
+        self.status_message = "Sincronizando plan con Google Sheets..."
+        try:
+            from backend.services.work_plan_generator import sync_plan_to_google_sheet
+            ok, msg = sync_plan_to_google_sheet(
+                sheet_id=self.sheet_id,
+                sprints=self.plan_sprints,
+                backlog_items=self.plan_backlog_items
+            )
+            if ok:
+                self.status_message = "✓ ¡Plan de Trabajo sincronizado con éxito en Google Sheets!"
+            else:
+                self.status_message = f"Error al sincronizar con Google Sheets: {msg}"
+        except Exception as e:
+            self.status_message = f"Error en sincronización: {str(e)}"
+        finally:
+            self.is_syncing_plan_sheet = False
+
+    def add_backlog_item(self):
+        """Add a new task row to the Backlog"""
+        count = len(self.plan_backlog_items) + 1
+        new_item = {
+            "item_id": str(count),
+            "module": "General",
+            "user_story": f"Nueva tarea técnica / historia de usuario #{count}",
+            "sprint": self.plan_sprints[0]["sprint_id"] if self.plan_sprints else "Sprint 01",
+            "story_points": 3,
+            "hours_estimated": 10,
+            "start_date": self.plan_start_date,
+            "end_date": self.plan_end_date,
+            "role": "Desarrollador",
+            "priority": "Media",
+            "deliverable": "Entregable",
+            "status": "Planificado"
+        }
+        self.plan_backlog_items.append(new_item)
+        self.status_message = f"Tarea #{count} agregada al Backlog"
+
+    def delete_backlog_item(self, item_id: str):
+        """Remove a task row from the Backlog"""
+        self.plan_backlog_items = [i for i in self.plan_backlog_items if i.get("item_id") != str(item_id)]
+        self.status_message = "Tarea eliminada del Backlog"
 
     # Project Charter & Master Metadata State
     project_purpose: str = "Estandarizar y automatizar el ciclo integral de atención de aclaraciones y transacciones de clientes vía canales digitales y sistemas centrales."
