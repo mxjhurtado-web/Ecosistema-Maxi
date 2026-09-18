@@ -13,10 +13,20 @@ from temis_web.state import FlowState
 def header() -> rx.Component:
     """Consolidated single-row top navigation bar"""
     return rx.hstack(
-        # Left Section: Logo, File Menu & Editable Title
+        # Left Section: Back to Hub Button, Logo, File Menu & Editable Title
         rx.hstack(
+            rx.button(
+                rx.icon("chevron-left", size=15),
+                " Mis Proyectos",
+                on_click=FlowState.return_to_hub,
+                color_scheme="gray",
+                variant="soft",
+                size="1",
+                radius="medium",
+            ),
+            rx.divider(orientation="vertical", size="2"),
             rx.hstack(
-                rx.icon("network", size=22, color="#3b82f6"),
+                rx.icon("network", size=20, color="#3b82f6"),
                 rx.text("TEMIS", size="3", weight="bold", color="#0f172a"),
                 align="center",
                 spacing="2",

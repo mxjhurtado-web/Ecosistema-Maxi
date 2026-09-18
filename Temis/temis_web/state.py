@@ -17,11 +17,59 @@ from backend.models.phase import PHASE_NAMES
 class FlowState(rx.State):
     """Main state for TEMIS Web Flow Application"""
 
-    # Project & Framework State
-    project_id: str = "demo-project-1"
-    project_name: str = "Proyecto Demo TEMIS"
-    current_phase: int = 1
-    phase_name: str = PHASE_NAMES[1]
+    # Navigation Mode: "hub" (Level 1 Monday.com Portfolio) or "workspace" (Level 2 Modeling Suite)
+    active_mode: str = "hub"
+    
+    # User Profile & RBAC Role Simulation
+    user_role: str = "super_admin"  # "super_admin", "project_manager", "collaborator"
+    user_name: str = "Ing. Mario Hurtado"
+    user_email: str = "mxjhurtado@maxillc.com"
+
+    def set_user_role(self, role: str):
+        self.user_role = role
+        role_labels = {
+            "super_admin": "👑 Super Admin (Portafolio Total)",
+            "project_manager": "👔 Dueño de Proyecto (Asignados)",
+            "collaborator": "👥 Colaborador (Invitado)"
+        }
+        self.status_message = f"Rol cambiado a: {role_labels.get(role, role)}"
+
+    # Hub Search & Filter State
+    search_hub_query: str = ""
+    filter_hub_phase: str = "all"
+    filter_hub_status: str = "all"
+
+    def set_search_hub_query(self, val: str):
+        self.search_hub_query = val
+
+    def set_filter_hub_phase(self, val: str):
+        self.filter_hub_phase = str(val)
+
+    def set_filter_hub_status(self, val: str):
+        self.filter_hub_status = str(val)
+
+    # Modal Create New Project State & Drive Pipeline
+    show_new_project_modal: bool = False
+    new_proj_name: str = ""
+    new_proj_code: str = ""
+    new_proj_purpose: str = ""
+    new_proj_manager: str = "Ing. Mario Hurtado"
+    new_proj_sponsor: str = "Dirección de Operaciones & Tecnología"
+    new_proj_start_date: str = "2026-01-16"
+    new_proj_end_date: str = "2026-12-04"
+    is_creating_project_drive: bool = False
+    creation_progress_status: str = ""
+
+    # Project & Framework State (Workspace Level 2)
+    project_id: str = "proj-temis"
+    project_code: str = "PRJ-TEMIS"
+    project_name: str = "Suite de Procesos & Gobernanza TEMIS"
+    drive_folder_id: str = "1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI"
+    drive_folder_url: str = "https://drive.google.com/drive/folders/1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI"
+    sheet_id: str = "1GxiIwR2rUMkZKHu00JYzlQrs6EsyXO5VqUL6qpl_MBs"
+    sheet_url: str = "https://docs.google.com/spreadsheets/d/1GxiIwR2rUMkZKHu00JYzlQrs6EsyXO5VqUL6qpl_MBs/edit"
+    current_phase: int = 4
+    phase_name: str = PHASE_NAMES[4]
 
     # Flowchart Diagram Data (Official Symbology)
     diagram_id: Optional[str] = None
@@ -772,11 +820,185 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
     search_saved_query: str = ""
     saved_projects: List[Dict[str, Any]] = [
         {
-            "id": "proj-1",
-            "name": "Proyecto Demo TEMIS (Aclaraciones WhatsApp)",
+            "id": "proj-temis",
+            "code": "PRJ-TEMIS",
+            "name": "Suite de Procesos & Gobernanza TEMIS",
+            "purpose": "Plataforma SaaS Cloud de ingeniería de procesos con editor BPMN, matriz SIPOC, auditoría Six Sigma y gobernanza de 7 fases.",
+            "manager": "Ing. Mario Hurtado",
+            "manager_initials": "MH",
+            "sponsor": "Dirección General & Tecnología",
+            "start_date": "2026-01-16",
+            "end_date": "2026-12-04",
+            "scope_in": "Migración Desktop ➔ Web SaaS, Canvas Bézier SVG, Google Drive sync, AI Gemini 2.5 y auditoría continua.",
+            "scope_out": "Integraciones legacy propietarias no web.",
+            "current_phase": 4,
+            "phase_name": "Fase 4: Ejecución Iterativa",
+            "updated_at": "2026-09-18 12:00",
+            "drive_folder_id": "1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI",
+            "drive_folder_url": "https://drive.google.com/drive/folders/1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI",
+            "sheet_id": "1GxiIwR2rUMkZKHu00JYzlQrs6EsyXO5VqUL6qpl_MBs",
+            "sheet_url": "https://docs.google.com/spreadsheets/d/1GxiIwR2rUMkZKHu00JYzlQrs6EsyXO5VqUL6qpl_MBs/edit",
+            "current_sprint": "Sprint 07",
+            "current_sprint_name": "Persistencia Híbrida & Exportador Gráfico",
+            "progress_percentage": 68.5,
+            "completed_sp": 218,
+            "total_sp": 318,
+            "completed_tasks": 32,
+            "total_tasks": 47,
+            "health_status": "green",
+            "audit_score": 98,
+            "nodes_count": 8,
+            "steps_count": 4,
+            "sipoc_rows": [
+                {
+                    "id": "1",
+                    "step_num": "1.0",
+                    "provider": "Usuario / Analista",
+                    "input": "Requerimiento de proceso / Diagrama",
+                    "step": "1.0 Captura SIPOC y modelado en Canvas Bézier",
+                    "output": "Diagrama de flujo BPMN estructurado",
+                    "customer": "Auditor IA / Sponsor",
+                    "requirements": "Simbología oficial y swimlanes completas"
+                },
+                {
+                    "id": "2",
+                    "step_num": "2.0",
+                    "provider": "Motor TEMIS",
+                    "input": "Estructura del proceso",
+                    "step": "2.0 Auditoría Six Sigma con Gemini 2.5 Flash",
+                    "output": "Score de calidad (0-100) y hallazgos",
+                    "customer": "Project Manager",
+                    "requirements": "Validación de nodos de inicio, fin y decisiones"
+                },
+                {
+                    "id": "3",
+                    "step_num": "3.0",
+                    "provider": "Service Account TEMIS",
+                    "input": "Proyecto aprobado",
+                    "step": "3.0 Replicación y respaldo en Google Workspace Shared Drive",
+                    "output": "Carpetas de 7 fases + Google Sheet Plan de Trabajo",
+                    "customer": "Organización",
+                    "requirements": "Sync automático a 12:00 AM y reporte semanal"
+                }
+            ],
+            "customer_requirements": "Cero costo recurrente de licencias Lucidchart, disponibilidad SaaS 99.9% y sincronización nativa en Google Drive.",
+            "nodes": [
+                {"id": "node-1", "type": "node_start", "label": "Inicio: Requerimiento", "swimlane": "Input", "x": 40, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": "Web"},
+                {"id": "node-2", "type": "node_activity", "label": "Mapeo SIPOC & Diagrama", "swimlane": "Actor 1 (ej. Usuario)", "x": 260, "y": 140, "activity_number": 1, "attached_system": "TEMIS Web", "attached_channel": ""},
+                {"id": "node-3", "type": "node_decision", "label": "¿Score Auditoría >= 90?", "swimlane": "Actor 2 (ej. Sistema)", "x": 520, "y": 140, "activity_number": None, "attached_system": "Gemini AI", "attached_channel": ""},
+                {"id": "node-4", "type": "node_activity", "label": "Promover a Siguiente Fase", "swimlane": "Actor 2 (ej. Sistema)", "x": 780, "y": 60, "activity_number": 2, "attached_system": "TEMIS Core", "attached_channel": ""},
+                {"id": "node-5", "type": "node_activity", "label": "Ajustar Reglas y Conexiones", "swimlane": "Actor 1 (ej. Usuario)", "x": 780, "y": 220, "activity_number": 3, "attached_system": "TEMIS Web", "attached_channel": ""},
+                {"id": "node-6", "type": "node_end", "label": "Fin: Publicación Oficial", "swimlane": "Output", "x": 1040, "y": 60, "activity_number": None, "attached_system": "Drive", "attached_channel": ""}
+            ],
+            "edges": [
+                {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
+                {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""},
+                {"id": "e3-4", "source": "node-3", "target": "node-4", "label": "Sí"},
+                {"id": "e3-5", "source": "node-3", "target": "node-5", "label": "No"},
+                {"id": "e5-2", "source": "node-5", "target": "node-2", "label": "Iterar"},
+                {"id": "e4-6", "source": "node-4", "target": "node-6", "label": ""}
+            ],
+            "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"],
+            "project_pages": [
+                {
+                    "page_id": "1",
+                    "name": "Página 1: Arquitectura Core",
+                    "nodes": [
+                        {"id": "node-1", "type": "node_start", "label": "Inicio: Requerimiento", "swimlane": "Input", "x": 40, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": "Web"},
+                        {"id": "node-2", "type": "node_activity", "label": "Mapeo SIPOC & Diagrama", "swimlane": "Actor 1 (ej. Usuario)", "x": 260, "y": 140, "activity_number": 1, "attached_system": "TEMIS Web", "attached_channel": ""},
+                        {"id": "node-3", "type": "node_decision", "label": "¿Score Auditoría >= 90?", "swimlane": "Actor 2 (ej. Sistema)", "x": 520, "y": 140, "activity_number": None, "attached_system": "Gemini AI", "attached_channel": ""},
+                        {"id": "node-4", "type": "node_activity", "label": "Promover a Siguiente Fase", "swimlane": "Actor 2 (ej. Sistema)", "x": 780, "y": 60, "activity_number": 2, "attached_system": "TEMIS Core", "attached_channel": ""},
+                        {"id": "node-5", "type": "node_activity", "label": "Ajustar Reglas y Conexiones", "swimlane": "Actor 1 (ej. Usuario)", "x": 780, "y": 220, "activity_number": 3, "attached_system": "TEMIS Web", "attached_channel": ""},
+                        {"id": "node-6", "type": "node_end", "label": "Fin: Publicación Oficial", "swimlane": "Output", "x": 1040, "y": 60, "activity_number": None, "attached_system": "Drive", "attached_channel": ""}
+                    ],
+                    "edges": [
+                        {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
+                        {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""},
+                        {"id": "e3-4", "source": "node-3", "target": "node-4", "label": "Sí"},
+                        {"id": "e3-5", "source": "node-3", "target": "node-5", "label": "No"},
+                        {"id": "e5-2", "source": "node-5", "target": "node-2", "label": "Iterar"},
+                        {"id": "e4-6", "source": "node-4", "target": "node-6", "label": ""}
+                    ],
+                    "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"]
+                }
+            ],
+            "narrative_text": "# 📘 Manual de Arquitectura TEMIS Web Flow\n\nTEMIS es la suite integral para el diseño, gobernanza y auditoría automatizada de procesos de negocio..."
+        },
+        {
+            "id": "proj-x",
+            "code": "PRJ-X",
+            "name": "Proyecto X Procesos",
+            "purpose": "Proyecto piloto para verificación y despliegue del framework de 7 fases y sincronización en Google Drive.",
+            "manager": "Mario Hurtado",
+            "manager_initials": "MH",
+            "sponsor": "Área de Procesos & Calidad",
+            "start_date": "2026-09-18",
+            "end_date": "2026-12-18",
+            "scope_in": "Inicialización de carpetas, replicación de Google Sheet y distribución de actas.",
+            "scope_out": "Módulos fuera de prueba.",
+            "current_phase": 1,
+            "phase_name": "Fase 1: Diagnóstico Estratégico",
+            "updated_at": "2026-09-18 12:02",
+            "drive_folder_id": "1V6cfM92nAoCq_MBbu_9hxowbMIofuD8X",
+            "drive_folder_url": "https://drive.google.com/drive/folders/1V6cfM92nAoCq_MBbu_9hxowbMIofuD8X",
+            "sheet_id": "1_haZDSiCPaED3tWS48XJyVfuo5uTKBvmBSC9nqUMR4Y",
+            "sheet_url": "https://docs.google.com/spreadsheets/d/1_haZDSiCPaED3tWS48XJyVfuo5uTKBvmBSC9nqUMR4Y/edit",
+            "current_sprint": "Sprint 01",
+            "current_sprint_name": "Diagnóstico y Mapeo AS-IS",
+            "progress_percentage": 0.0,
+            "completed_sp": 0,
+            "total_sp": 30,
+            "completed_tasks": 0,
+            "total_tasks": 6,
+            "health_status": "green",
+            "audit_score": 100,
+            "nodes_count": 2,
+            "steps_count": 2,
+            "sipoc_rows": [
+                {
+                    "id": "1",
+                    "step_num": "1.0",
+                    "provider": "Líder de Proceso",
+                    "input": "Entrevistas operativas",
+                    "step": "1.0 Diagnóstico AS-IS y levantamiento de cuellos de botella",
+                    "output": "Informe Diagnóstico inicial",
+                    "customer": "Comité de Gobierno",
+                    "requirements": "Identificación clara de fricciones operativas"
+                }
+            ],
+            "customer_requirements": "Estructuración de acuerdo a las 7 fases corporativas.",
+            "nodes": [
+                {"id": "node-1", "type": "node_start", "label": "Inicio: Diagnóstico", "swimlane": "Input", "x": 60, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": ""},
+                {"id": "node-2", "type": "node_activity", "label": "Levantamiento de Información AS-IS", "swimlane": "Actor 1 (ej. Usuario)", "x": 300, "y": 140, "activity_number": 1, "attached_system": "Docs", "attached_channel": ""}
+            ],
+            "edges": [
+                {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""}
+            ],
+            "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Output"],
+            "project_pages": [
+                {
+                    "page_id": "1",
+                    "name": "Página 1: Flujo AS-IS",
+                    "nodes": [
+                        {"id": "node-1", "type": "node_start", "label": "Inicio: Diagnóstico", "swimlane": "Input", "x": 60, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": ""},
+                        {"id": "node-2", "type": "node_activity", "label": "Levantamiento de Información AS-IS", "swimlane": "Actor 1 (ej. Usuario)", "x": 300, "y": 140, "activity_number": 1, "attached_system": "Docs", "attached_channel": ""}
+                    ],
+                    "edges": [
+                        {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""}
+                    ],
+                    "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Output"]
+                }
+            ],
+            "narrative_text": "# 📘 Proyecto X Procesos\n\nFase de diagnóstico estratégico y alineación con la metodología TEMIS."
+        },
+        {
+            "id": "proj-wha",
+            "code": "PRJ-WHA",
+            "name": "Atención y Aclaraciones WhatsApp",
             "purpose": "Estandarizar y automatizar el ciclo integral de atención de aclaraciones y transacciones de clientes vía canales digitales y sistemas centrales.",
             "manager": "Ing. Mario Hurtado",
-            "sponsor": "Dirección de Operaciones & Tecnología",
+            "manager_initials": "MH",
+            "sponsor": "Dirección de Operaciones & CX",
             "start_date": "2026-01-16",
             "end_date": "2026-12-04",
             "scope_in": "Mapeo SIPOC, diagrama BPMN multi-pestaña, manual de procedimientos y auditoría de calidad.",
@@ -784,6 +1006,19 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "current_phase": 4,
             "phase_name": "Fase 4: Ejecución Iterativa",
             "updated_at": "2026-09-17 14:00",
+            "drive_folder_id": "",
+            "drive_folder_url": "",
+            "sheet_id": "",
+            "sheet_url": "",
+            "current_sprint": "Sprint 04",
+            "current_sprint_name": "Reglas de Enrutamiento Freshdesk & WhatsApp",
+            "progress_percentage": 82.0,
+            "completed_sp": 120,
+            "total_sp": 146,
+            "completed_tasks": 18,
+            "total_tasks": 22,
+            "health_status": "green",
+            "audit_score": 95,
             "nodes_count": 4,
             "steps_count": 4,
             "sipoc_rows": [
@@ -806,26 +1041,6 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
                     "output": "Estatus de la transacción (MO/Vigente)",
                     "customer": "Sistema Chronos",
                     "requirements": "Tiempo de respuesta del sistema < 30 seg"
-                },
-                {
-                    "id": "3",
-                    "step_num": "3.0",
-                    "provider": "Sistema Chronos",
-                    "input": "Estatus de transacción",
-                    "step": "3.0 ¿Transacción requiere revisión por Fraudes?",
-                    "output": "Dictamen de aprobación o derivación",
-                    "customer": "Agente / Área de Fraudes",
-                    "requirements": "Reglas de riesgo y montos máximos vigentes"
-                },
-                {
-                    "id": "4",
-                    "step_num": "4.0",
-                    "provider": "Agente Operativo",
-                    "input": "Dictamen de aprobación",
-                    "step": "4.0 Notificación de resolución y encuesta",
-                    "output": "Confirmación y encuesta de satisfacción",
-                    "customer": "Usuario / Cliente",
-                    "requirements": "Confirmación de entrega y cierre en Freshdesk"
                 }
             ],
             "customer_requirements": "Tiempos de respuesta (SLA) menores a 5 min, trazabilidad de logs en Chronos y encuesta con satisfacción >= 95%.",
@@ -862,11 +1077,13 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "narrative_text": "# 📘 Manual de Procedimientos - Aclaraciones WhatsApp\n\nEl proceso inicia cuando el cliente envía su folio vía WhatsApp..."
         },
         {
-            "id": "proj-2",
+            "id": "proj-chronos",
+            "code": "PRJ-CHRONOS",
             "name": "Consulta y Validación de Pólizas Chronos",
             "purpose": "Validar en tiempo real el estatus y cobertura de pólizas financieras en el core Chronos.",
-            "manager": "Área de Operaciones",
-            "sponsor": "Subdirección de Finanzas",
+            "manager": "Equipo Operaciones",
+            "manager_initials": "EO",
+            "sponsor": "Subdirección de Finanzas & Riesgos",
             "start_date": "2026-02-01",
             "end_date": "2026-11-15",
             "scope_in": "Validación de saldo, consulta API Chronos y notificación.",
@@ -874,12 +1091,24 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "current_phase": 3,
             "phase_name": "Fase 3: Planificación Híbrida",
             "updated_at": "2026-09-15 11:30",
+            "drive_folder_id": "",
+            "drive_folder_url": "",
+            "sheet_id": "",
+            "sheet_url": "",
+            "current_sprint": "Sprint 02",
+            "current_sprint_name": "Especificación de API & SLA",
+            "progress_percentage": 45.0,
+            "completed_sp": 45,
+            "total_sp": 100,
+            "completed_tasks": 5,
+            "total_tasks": 11,
+            "health_status": "yellow",
+            "audit_score": 92,
             "nodes_count": 3,
             "steps_count": 3,
             "sipoc_rows": [
                 {"id": "1", "step_num": "1.0", "provider": "Agente", "input": "Número de Póliza", "step": "1.0 Consulta en Chronos", "output": "Datos de Póliza", "customer": "Chronos", "requirements": "Folio numérico"},
-                {"id": "2", "step_num": "2.0", "provider": "Chronos", "input": "Datos de Póliza", "step": "2.0 ¿Póliza Vigente?", "output": "Dictamen", "customer": "Agente", "requirements": "Respuesta < 2s"},
-                {"id": "3", "step_num": "3.0", "provider": "Agente", "input": "Dictamen", "step": "3.0 Emisión de Constancia", "output": "Constancia PDF", "customer": "Cliente", "requirements": "Firma digital"}
+                {"id": "2", "step_num": "2.0", "provider": "Chronos", "input": "Datos de Póliza", "step": "2.0 ¿Póliza Vigente?", "output": "Dictamen", "customer": "Agente", "requirements": "Respuesta < 2s"}
             ],
             "customer_requirements": "Validación en < 2 segundos con trazabilidad en log central.",
             "nodes": [
@@ -912,6 +1141,77 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         }
     ]
 
+    # Hub Computed Properties & KPIs
+    @rx.var
+    def filtered_hub_projects(self) -> List[Dict[str, Any]]:
+        """Filter projects based on User Role, Search Query, Phase and Health Status"""
+        projs = list(self.saved_projects)
+
+        # 1. Role Filter
+        if self.user_role == "project_manager":
+            projs = [p for p in projs if "Mario" in p.get("manager", "") or "Hurtado" in p.get("manager", "")]
+        elif self.user_role == "collaborator":
+            projs = [p for p in projs if p.get("id") in ["proj-temis", "proj-x", "proj-wha"]]
+
+        # 2. Phase Filter
+        if self.filter_hub_phase != "all":
+            try:
+                phase_num = int(self.filter_hub_phase)
+                projs = [p for p in projs if p.get("current_phase") == phase_num]
+            except Exception:
+                pass
+
+        # 3. Status Filter
+        if self.filter_hub_status != "all":
+            projs = [p for p in projs if p.get("health_status") == self.filter_hub_status]
+
+        # 4. Search Filter
+        q = (self.search_hub_query or "").strip().lower()
+        if q:
+            projs = [
+                p for p in projs
+                if q in p.get("name", "").lower()
+                or q in p.get("code", "").lower()
+                or q in p.get("purpose", "").lower()
+                or q in p.get("manager", "").lower()
+                or q in p.get("sponsor", "").lower()
+                or q in p.get("current_sprint", "").lower()
+            ]
+
+        return projs
+
+    @rx.var
+    def total_hub_projects_count(self) -> int:
+        return len(self.saved_projects)
+
+    @rx.var
+    def total_completed_sp_count(self) -> int:
+        return sum(int(p.get("completed_sp", 0)) for p in self.saved_projects)
+
+    @rx.var
+    def total_sp_count(self) -> int:
+        val = sum(int(p.get("total_sp", 0)) for p in self.saved_projects)
+        return max(1, val)
+
+    @rx.var
+    def global_progress_pct(self) -> float:
+        total = self.total_sp_count
+        completed = self.total_completed_sp_count
+        if total <= 0:
+            return 0.0
+        return round((completed / total) * 100, 1)
+
+    @rx.var
+    def average_audit_score(self) -> int:
+        if not self.saved_projects:
+            return 100
+        scores = [int(p.get("audit_score", 100)) for p in self.saved_projects]
+        return int(sum(scores) / len(scores))
+
+    @rx.var
+    def active_sprints_count(self) -> int:
+        return len(self.saved_projects)
+
     def set_search_saved_query(self, val: str):
         self.search_saved_query = val
 
@@ -926,6 +1226,190 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             if q in p.get("name", "").lower() or q in p.get("purpose", "").lower() or q in p.get("manager", "").lower()
         ]
 
+    # Hub & Workspace Navigation Handlers
+    def open_project_workspace(self, proj_id: str):
+        """Open project in Level 2 Workspace and load full state"""
+        self.load_saved_project(proj_id)
+        self.active_mode = "workspace"
+        self.status_message = f"Espacio de trabajo abierto: {self.project_name}"
+
+    def return_to_hub(self):
+        """Save changes and return to Level 1 Hub"""
+        self.save_current_project()
+        self.active_mode = "hub"
+        self.status_message = "Regresaste al Hub de Portafolio"
+
+    # New Project Modal Handlers
+    def set_new_proj_name(self, val: str):
+        self.new_proj_name = val
+
+    def set_new_proj_code(self, val: str):
+        self.new_proj_code = val
+
+    def set_new_proj_purpose(self, val: str):
+        self.new_proj_purpose = val
+
+    def set_new_proj_manager(self, val: str):
+        self.new_proj_manager = val
+
+    def set_new_proj_sponsor(self, val: str):
+        self.new_proj_sponsor = val
+
+    def set_new_proj_start_date(self, val: str):
+        self.new_proj_start_date = val
+
+    def set_new_proj_end_date(self, val: str):
+        self.new_proj_end_date = val
+
+    def open_new_project_modal(self):
+        self.new_proj_name = ""
+        self.new_proj_code = f"PRJ-00{len(self.saved_projects) + 1}"
+        self.new_proj_purpose = ""
+        self.creation_progress_status = ""
+        self.is_creating_project_drive = False
+        self.show_new_project_modal = True
+
+    def close_new_project_modal(self):
+        self.show_new_project_modal = False
+        self.is_creating_project_drive = False
+
+    def set_show_new_project_modal(self, val: bool):
+        self.show_new_project_modal = val
+
+    def create_project_with_drive(self):
+        """Create new project in Drive via SA, replicate sheet and open workspace"""
+        if not self.new_proj_name.strip():
+            self.status_message = "Ingresa un nombre para el proyecto"
+            return
+        if not self.new_proj_code.strip():
+            self.new_proj_code = f"PRJ-00{len(self.saved_projects) + 1}"
+
+        self.is_creating_project_drive = True
+        self.creation_progress_status = "Inicializando carpetas en Google Drive..."
+
+        drive_folder_id = ""
+        drive_folder_url = ""
+        sheet_id = ""
+        sheet_url = ""
+
+        try:
+            from backend.services.drive_service import DriveService
+            ds = DriveService()
+
+            clean_name = self.new_proj_name.strip().replace(" ", "_")
+            clean_code = self.new_proj_code.strip()
+
+            # 1. Create project folder + 11 subfolders
+            ok_folder, folder_res = ds.create_project_folder(clean_name, clean_code)
+            if ok_folder:
+                drive_folder_id = folder_res
+                drive_folder_url = f"https://drive.google.com/drive/folders/{drive_folder_id}"
+                self.creation_progress_status = "Replicando Plantilla Oficial de Google Sheets..."
+
+                # 2. Replicate master Google Sheet
+                ok_sheet, sheet_res = ds.replicate_master_sheet_template(drive_folder_id, clean_name)
+                if ok_sheet:
+                    sheet_id = sheet_res
+                    sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit"
+        except Exception as e:
+            print(f"Drive creation notice: {e}")
+
+        # Build project dictionary
+        import datetime
+        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        new_id = f"proj-{len(self.saved_projects) + 1}"
+
+        manager_name = self.new_proj_manager.strip() or self.user_name
+        initials = "".join([part[0].upper() for part in manager_name.split() if part])[:2] or "US"
+
+        new_proj_dict = {
+            "id": new_id,
+            "code": self.new_proj_code.strip(),
+            "name": self.new_proj_name.strip(),
+            "purpose": self.new_proj_purpose.strip() or "Definir el alcance y objetivos operativos.",
+            "manager": manager_name,
+            "manager_initials": initials,
+            "sponsor": self.new_proj_sponsor.strip() or "Dirección General",
+            "start_date": self.new_proj_start_date or "2026-01-16",
+            "end_date": self.new_proj_end_date or "2026-12-04",
+            "scope_in": "Mapeo SIPOC, diagrama BPMN multi-pestaña, gobernanza y bitácoras.",
+            "scope_out": "Desarrollos fuera de alcance.",
+            "current_phase": 1,
+            "phase_name": "Fase 1: Diagnóstico Estratégico",
+            "updated_at": now_str,
+            "drive_folder_id": drive_folder_id,
+            "drive_folder_url": drive_folder_url,
+            "sheet_id": sheet_id,
+            "sheet_url": sheet_url,
+            "current_sprint": "Sprint 01",
+            "current_sprint_name": "Diagnóstico y Mapeo AS-IS",
+            "progress_percentage": 0.0,
+            "completed_sp": 0,
+            "total_sp": 30,
+            "completed_tasks": 0,
+            "total_tasks": 5,
+            "health_status": "green",
+            "audit_score": 100,
+            "nodes_count": 1,
+            "steps_count": 1,
+            "sipoc_rows": [
+                {
+                    "id": "1",
+                    "step_num": "1.0",
+                    "provider": "Usuario / Cliente",
+                    "input": "Solicitud inicial",
+                    "step": "1.0 Recepción y validación de requerimiento",
+                    "output": "Registro creado",
+                    "customer": "Operador",
+                    "requirements": "Datos completos y folio válido"
+                }
+            ],
+            "customer_requirements": "Atención rápida y trazabilidad de folios.",
+            "nodes": [
+                {
+                    "id": "node-1",
+                    "type": "node_start",
+                    "label": "Inicio Proceso",
+                    "swimlane": "Input",
+                    "x": 80,
+                    "y": 120,
+                    "activity_number": None,
+                    "attached_system": "",
+                    "attached_channel": ""
+                }
+            ],
+            "edges": [],
+            "swimlanes": ["Input", "Actor 1 (ej. Operador)", "Output"],
+            "project_pages": [
+                {
+                    "page_id": "1",
+                    "name": "Página 1: Flujo Principal",
+                    "nodes": [
+                        {
+                            "id": "node-1",
+                            "type": "node_start",
+                            "label": "Inicio Proceso",
+                            "swimlane": "Input",
+                            "x": 80,
+                            "y": 120,
+                            "activity_number": None,
+                            "attached_system": "",
+                            "attached_channel": ""
+                        }
+                    ],
+                    "edges": [],
+                    "swimlanes": ["Input", "Actor 1 (ej. Operador)", "Output"]
+                }
+            ],
+            "narrative_text": f"# 📘 Manual de Procedimientos\n# {self.new_proj_name.strip()}\n\n## 🎯 1. Objetivo\n{self.new_proj_purpose.strip()}\n"
+        }
+
+        self.saved_projects.insert(0, new_proj_dict)
+        self.is_creating_project_drive = False
+        self.show_new_project_modal = False
+        self.open_project_workspace(new_id)
+        self.status_message = f"✓ ¡Proyecto '{self.new_proj_name.strip()}' creado y desplegado con éxito!"
+
     def set_project_name(self, name: str):
         """Set project title"""
         self.project_name = name
@@ -934,6 +1418,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         """Reset canvas and initialize a new empty project"""
         count = len(self.saved_projects) + 1
         self.project_id = f"proj-{count}"
+        self.project_code = f"PRJ-00{count}"
         self.project_name = f"Nuevo Proceso TEMIS #{count}"
         self.project_purpose = "Definir el propósito y objetivos operativos del nuevo proceso."
         self.project_manager = "Responsable del Proceso"
@@ -1046,18 +1531,23 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         """Save current project state into the Saved Flows catalog"""
         import datetime
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        
+
         # Ensure current active page is updated
         if 0 <= self.active_page_index < len(self.project_pages):
             self.project_pages[self.active_page_index]["nodes"] = list(self.nodes)
             self.project_pages[self.active_page_index]["edges"] = list(self.edges)
             self.project_pages[self.active_page_index]["swimlanes"] = list(self.swimlanes)
 
+        # Retain existing metadata if available
+        existing = next((p for p in self.saved_projects if p.get("id") == self.project_id), {})
+
         current_dict = {
             "id": self.project_id or f"proj-{len(self.saved_projects) + 1}",
+            "code": getattr(self, "project_code", existing.get("code", "PRJ")),
             "name": self.project_name,
             "purpose": self.project_purpose,
             "manager": self.project_manager,
+            "manager_initials": existing.get("manager_initials", "MH"),
             "sponsor": self.project_sponsor,
             "start_date": self.start_date,
             "end_date": self.end_date,
@@ -1066,6 +1556,19 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "current_phase": self.current_phase,
             "phase_name": self.phase_name,
             "updated_at": now_str,
+            "drive_folder_id": self.drive_folder_id or existing.get("drive_folder_id", ""),
+            "drive_folder_url": self.drive_folder_url or existing.get("drive_folder_url", ""),
+            "sheet_id": self.sheet_id or existing.get("sheet_id", ""),
+            "sheet_url": self.sheet_url or existing.get("sheet_url", ""),
+            "current_sprint": existing.get("current_sprint", "Sprint 01"),
+            "current_sprint_name": existing.get("current_sprint_name", "Operaciones"),
+            "progress_percentage": existing.get("progress_percentage", 50.0),
+            "completed_sp": existing.get("completed_sp", 10),
+            "total_sp": existing.get("total_sp", 20),
+            "completed_tasks": existing.get("completed_tasks", 5),
+            "total_tasks": existing.get("total_tasks", 10),
+            "health_status": existing.get("health_status", "green"),
+            "audit_score": existing.get("audit_score", 95),
             "nodes_count": len(self.nodes),
             "steps_count": len(self.sipoc_rows),
             "sipoc_rows": list(self.sipoc_rows),
@@ -1106,6 +1609,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             return
 
         self.project_id = selected.get("id", "proj-1")
+        self.project_code = selected.get("code", "PRJ")
         self.project_name = selected.get("name", "Proyecto TEMIS")
         self.project_purpose = selected.get("purpose", "")
         self.project_manager = selected.get("manager", "")
@@ -1116,6 +1620,11 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.scope_out = selected.get("scope_out", "")
         self.current_phase = selected.get("current_phase", 1)
         self.phase_name = selected.get("phase_name", "Fase 1: Diagnóstico Estratégico")
+
+        self.drive_folder_id = selected.get("drive_folder_id", "")
+        self.drive_folder_url = selected.get("drive_folder_url", "")
+        self.sheet_id = selected.get("sheet_id", "")
+        self.sheet_url = selected.get("sheet_url", "")
 
         if selected.get("sipoc_rows"):
             self.sipoc_rows = list(selected["sipoc_rows"])

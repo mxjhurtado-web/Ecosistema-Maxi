@@ -20,10 +20,11 @@ from temis_web.components.audit_modal import audit_modal
 from temis_web.components.project_charter import project_charter
 from temis_web.components.sipoc_matrix import sipoc_matrix
 from temis_web.components.governance_view import governance_view
+from temis_web.components.project_hub import project_hub
 
 
-def index() -> rx.Component:
-    """Main modern SaaS layout of TEMIS Web Flow with 4 Modular Views"""
+def workspace_view() -> rx.Component:
+    """Level 2 Workspace with 4 modular modeling views"""
     return rx.box(
         recent_projects_modal(),
         connect_modal(),
@@ -62,8 +63,17 @@ def index() -> rx.Component:
     )
 
 
+def index() -> rx.Component:
+    """Main modern SaaS layout of TEMIS: Level 1 (Hub Monday.com) or Level 2 (Espacio de Trabajo)"""
+    return rx.cond(
+        FlowState.active_mode == "hub",
+        project_hub(),
+        workspace_view(),
+    )
+
+
 app = rx.App(
     stylesheets=["style.css"],
 )
 
-app.add_page(index, title="TEMIS Web Flow - Herramienta de Flujos y Gobierno")
+app.add_page(index, title="TEMIS Web Flow - Work OS & Gobernanza de Procesos")
