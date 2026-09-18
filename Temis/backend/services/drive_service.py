@@ -40,7 +40,10 @@ class DriveService:
             with open(temp_creds_file, 'w') as f:
                 f.write(creds_json)
 
-            SCOPES = ['https://www.googleapis.com/auth/drive.file']
+            SCOPES = [
+                'https://www.googleapis.com/auth/drive',
+                'https://www.googleapis.com/auth/spreadsheets'
+            ]
             credentials = service_account.Credentials.from_service_account_file(
                 temp_creds_file,
                 scopes=SCOPES
@@ -327,4 +330,57 @@ class DriveService:
         except Exception as e:
             print(f"Error saving conversation to Drive: {e}")
             return False, str(e)
+
+    def trash_file_or_folder(self, file_id: str) -> Tuple[bool, str]:
+        """
+        Move a file or folder to trash.
+        """
+        try:
+            self.service.files().update(
+                fileId=file_id,
+                body={'trashed': True},
+                supportsAllDrives=True
+            ).execute()
+            return True, file_id
+        except Exception as e:
+            return False, str(e)
+
+    def replicate_master_sheet_template(self, project_folder_id: str, project_name: str) -> Tuple[bool, str]:
+        """
+        Replicate the master Google Sheet template into the new project folder.
+        """
+        try:
+            # 1. Find 00_Plantillas_Maestras folder
+            ok_tpl, templates_folder_id = self.ensure_folder_exists(DRIVE_FOLDER_ID, "00_Plantillas_Maestras")
+            if not ok_tpl:
+                return False, f"Error finding templates folder: {templates_folder_id}"
+
+            # 2. Find Plantilla Maestra - Plan de Trabajo
+            query = f"name='Plantilla Maestra - Plan de Trabajo' and '{templates_folder_id}' in parents and trashed=false"
+            res = self.service.files().list(
+                q=query,
+                fields="files(id, name)",
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True
+            ).execute()
+            files = res.get('files', [])
+            if not files:
+                return False, "Master template 'Plantilla Maestra - Plan de Trabajo' not found in 00_Plantillas_Maestras"
+
+            master_template_id = files[0]['id']
+            sheet_title = f"Planeación - {project_name.replace('_', ' ')}"
+
+            copy_body = {
+                "name": sheet_title,
+                "parents": [project_folder_id]
+            }
+            replicated = self.service.files().copy(
+                fileId=master_template_id,
+                body=copy_body,
+                supportsAllDrives=True
+            ).execute()
+
+            return True, replicated.get("id")
+        except Exception as e:
+            return False, f"Error replicating master sheet template: {str(e)}"
 
