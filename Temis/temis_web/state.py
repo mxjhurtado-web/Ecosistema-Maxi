@@ -17,6 +17,237 @@ from backend.models.phase import PHASE_NAMES
 class FlowState(rx.State):
     """Main state for TEMIS Web Flow Application"""
 
+    # Authentication & Session State
+    is_authenticated: bool = False
+    login_email: str = "mxjhurtado@maxillc.com"
+    login_password: str = ""
+    login_error_message: str = ""
+    is_logging_in: bool = False
+
+    # Level 1 Hub Subview: "portfolio" or "users"
+    hub_active_subview: str = "portfolio"
+
+    # User Management & RBAC Directory State
+    users_list: List[Dict[str, Any]] = [
+        {
+            "email": "mxjhurtado@maxillc.com",
+            "name": "Ing. Mario Hurtado",
+            "password": "Temis123456*",
+            "role": "super_admin",
+            "role_label": "👑 Super Admin",
+            "department": "Dirección General & Tecnología",
+            "status": "active",
+            "created_at": "2026-01-16",
+            "last_login": "2026-09-18 13:00"
+        },
+        {
+            "email": "ana.martinez@maxillc.com",
+            "name": "Lic. Ana Martínez",
+            "password": "Temis123456*",
+            "role": "project_manager",
+            "role_label": "👔 Dueño de Proyecto (PM)",
+            "department": "Operaciones & Procesos",
+            "status": "active",
+            "created_at": "2026-02-01",
+            "last_login": "2026-09-17 10:30"
+        },
+        {
+            "email": "carlos.lopez@maxillc.com",
+            "name": "Ing. Carlos López",
+            "password": "Temis123456*",
+            "role": "analyst",
+            "role_label": "📊 Analista de Procesos",
+            "department": "Ingeniería de Software",
+            "status": "active",
+            "created_at": "2026-02-15",
+            "last_login": "2026-09-18 09:15"
+        },
+        {
+            "email": "laura.torres@maxillc.com",
+            "name": "Mtra. Laura Torres",
+            "password": "Temis123456*",
+            "role": "qa_auditor",
+            "role_label": "🛡️ Auditor QA / Six Sigma",
+            "department": "Calidad & Gobernanza",
+            "status": "active",
+            "created_at": "2026-03-01",
+            "last_login": "2026-09-16 16:45"
+        }
+    ]
+    show_new_user_modal: bool = False
+    new_user_name: str = ""
+    new_user_email: str = ""
+    new_user_role: str = "collaborator"
+    new_user_department: str = ""
+    new_user_password: str = "Temis123456*"
+    user_search_query: str = ""
+    user_filter_role: str = "all"
+    user_filter_status: str = "all"
+
+    @rx.var
+    def users_total_count(self) -> int:
+        return len(self.users_list)
+
+    @rx.var
+    def users_super_admin_count(self) -> int:
+        return sum(1 for u in self.users_list if u.get("role") == "super_admin")
+
+    @rx.var
+    def users_pm_count(self) -> int:
+        return sum(1 for u in self.users_list if u.get("role") == "project_manager")
+
+    @rx.var
+    def users_analyst_qa_count(self) -> int:
+        return sum(1 for u in self.users_list if u.get("role") in ["analyst", "qa_auditor", "collaborator"])
+
+    @rx.var
+    def filtered_users_list(self) -> List[Dict[str, Any]]:
+        items = list(self.users_list)
+        if self.user_filter_role != "all":
+            items = [u for u in items if u.get("role") == self.user_filter_role]
+        if self.user_filter_status != "all":
+            items = [u for u in items if u.get("status") == self.user_filter_status]
+        q = (self.user_search_query or "").strip().lower()
+        if q:
+            items = [
+                u for u in items
+                if q in u.get("name", "").lower()
+                or q in u.get("email", "").lower()
+                or q in u.get("department", "").lower()
+                or q in u.get("role_label", "").lower()
+            ]
+        return items
+
+    def set_login_email(self, val: str):
+        self.login_email = val
+
+    def set_login_password(self, val: str):
+        self.login_password = val
+
+    def handle_login(self):
+        self.is_logging_in = True
+        self.login_error_message = ""
+        try:
+            from backend.services.user_service import authenticate_user, load_users
+            res = authenticate_user(self.login_email, self.login_password)
+            if res and "error" not in res:
+                self.is_authenticated = True
+                self.user_name = res.get("name", "Usuario TEMIS")
+                self.user_email = res.get("email", self.login_email)
+                self.user_role = res.get("role", "collaborator")
+                self.users_list = load_users()
+                self.login_password = ""
+                self.login_error_message = ""
+                self.status_message = f"Bienvenido a TEMIS, {self.user_name}"
+            elif res and "error" in res:
+                self.login_error_message = res["error"]
+            else:
+                self.login_error_message = "Credenciales incorrectas."
+        except Exception as e:
+            self.login_error_message = f"Error al autenticar: {str(e)}"
+        finally:
+            self.is_logging_in = False
+
+    def logout(self):
+        self.is_authenticated = False
+        self.login_password = ""
+        self.active_mode = "hub"
+        self.hub_active_subview = "portfolio"
+        self.status_message = "Sesión cerrada correctamente."
+
+    def set_hub_active_subview(self, val: str):
+        self.hub_active_subview = str(val)
+
+    def set_show_new_user_modal(self, val: bool):
+        self.show_new_user_modal = val
+
+    def open_new_user_modal(self):
+        self.new_user_name = ""
+        self.new_user_email = ""
+        self.new_user_role = "collaborator"
+        self.new_user_department = ""
+        self.new_user_password = "Temis123456*"
+        self.show_new_user_modal = True
+
+    def set_new_user_name(self, val: str):
+        self.new_user_name = val
+
+    def set_new_user_email(self, val: str):
+        self.new_user_email = val
+
+    def set_new_user_role(self, val: str):
+        self.new_user_role = str(val)
+
+    def set_new_user_department(self, val: str):
+        self.new_user_department = val
+
+    def set_new_user_password(self, val: str):
+        self.new_user_password = val
+
+    def set_user_search_query(self, val: str):
+        self.user_search_query = val
+
+    def set_user_filter_role(self, val: str):
+        self.user_filter_role = str(val)
+
+    def set_user_filter_status(self, val: str):
+        self.user_filter_status = str(val)
+
+    def submit_new_user(self):
+        try:
+            from backend.services.user_service import create_user, load_users
+            ok, msg, new_u = create_user(
+                email=self.new_user_email,
+                name=self.new_user_name,
+                role=self.new_user_role,
+                department=self.new_user_department,
+                password=self.new_user_password or "Temis123456*"
+            )
+            if ok:
+                self.users_list = load_users()
+                self.show_new_user_modal = False
+                self.status_message = f"✓ {msg}"
+            else:
+                self.status_message = f"Error: {msg}"
+        except Exception as e:
+            self.status_message = f"Error al registrar usuario: {str(e)}"
+
+    def update_user_role_action(self, email: str, new_role: str):
+        try:
+            from backend.services.user_service import update_user_role, load_users
+            ok, msg = update_user_role(email, new_role)
+            if ok:
+                self.users_list = load_users()
+                self.status_message = f"✓ {msg}"
+            else:
+                self.status_message = f"Error: {msg}"
+        except Exception as e:
+            self.status_message = f"Error al actualizar rol: {str(e)}"
+
+    def toggle_user_status_action(self, email: str):
+        try:
+            from backend.services.user_service import toggle_user_status, load_users
+            ok, msg = toggle_user_status(email)
+            if ok:
+                self.users_list = load_users()
+                self.status_message = f"✓ {msg}"
+            else:
+                self.status_message = f"Error: {msg}"
+        except Exception as e:
+            self.status_message = f"Error: {str(e)}"
+
+    def delete_user_action(self, email: str):
+        try:
+            from backend.services.user_service import delete_user, load_users
+            ok, msg = delete_user(email)
+            if ok:
+                self.users_list = load_users()
+                self.status_message = f"✓ {msg}"
+            else:
+                self.status_message = f"Error: {msg}"
+        except Exception as e:
+            self.status_message = f"Error: {str(e)}"
+
     # Navigation Mode: "hub" (Level 1 Monday.com Portfolio) or "workspace" (Level 2 Modeling Suite)
     active_mode: str = "hub"
     

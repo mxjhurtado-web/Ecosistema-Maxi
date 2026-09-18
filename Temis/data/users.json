@@ -1,0 +1,46 @@
+[
+  {
+    "email": "mxjhurtado@maxillc.com",
+    "name": "Ing. Mario Hurtado",
+    "password": "Temis123456*",
+    "role": "super_admin",
+    "role_label": "👑 Super Admin",
+    "department": "Dirección General & Tecnología",
+    "status": "active",
+    "created_at": "2026-01-16",
+    "last_login": "2026-09-18 13:13"
+  },
+  {
+    "email": "ana.martinez@maxillc.com",
+    "name": "Lic. Ana Martínez",
+    "password": "Temis123456*",
+    "role": "project_manager",
+    "role_label": "👔 Dueño de Proyecto (PM)",
+    "department": "Operaciones & Procesos",
+    "status": "active",
+    "created_at": "2026-02-01",
+    "last_login": "2026-09-17 10:30"
+  },
+  {
+    "email": "carlos.lopez@maxillc.com",
+    "name": "Ing. Carlos López",
+    "password": "Temis123456*",
+    "role": "analyst",
+    "role_label": "📊 Analista de Procesos",
+    "department": "Ingeniería de Software",
+    "status": "active",
+    "created_at": "2026-02-15",
+    "last_login": "2026-09-18 09:15"
+  },
+  {
+    "email": "laura.torres@maxillc.com",
+    "name": "Mtra. Laura Torres",
+    "password": "Temis123456*",
+    "role": "qa_auditor",
+    "role_label": "🛡️ Auditor QA / Six Sigma",
+    "department": "Calidad & Gobernanza",
+    "status": "active",
+    "created_at": "2026-03-01",
+    "last_login": "2026-09-16 16:45"
+  }
+]

@@ -465,27 +465,21 @@ def project_hub() -> rx.Component:
                     spacing="3",
                 ),
                 rx.spacer(),
-                # Role Switcher for Interactive Role Previews
-                rx.hstack(
-                    rx.text("Vista de Rol:", size="1", color="#64748b", weight="medium"),
-                    rx.segmented_control.root(
-                        rx.segmented_control.item("👑 Super Admin", value="super_admin"),
-                        rx.segmented_control.item("👔 Dueño Proyecto", value="project_manager"),
-                        rx.segmented_control.item("👥 Colaborador", value="collaborator"),
-                        value=FlowState.user_role,
-                        on_change=FlowState.set_user_role,
-                        size="1",
-                        radius="medium",
-                    ),
-                    align="center",
-                    spacing="2",
+                # Subview Switcher: Portfolio vs Users Control
+                rx.segmented_control.root(
+                    rx.segmented_control.item("📂 Portafolio de Proyectos", value="portfolio"),
+                    rx.segmented_control.item("👥 Control de Usuarios", value="users"),
+                    value=FlowState.hub_active_subview,
+                    on_change=FlowState.set_hub_active_subview,
+                    size="2",
+                    radius="medium",
                 ),
                 rx.spacer(),
-                # User Profile & New Project Button
+                # User Profile & Action Buttons
                 rx.hstack(
                     rx.hstack(
                         rx.avatar(
-                            fallback="MH",
+                            fallback=FlowState.user_name.to(lambda n: n[:2].upper() if n else "US"),
                             size="2",
                             radius="full",
                             color_scheme="indigo",
@@ -507,8 +501,19 @@ def project_hub() -> rx.Component:
                         size="2",
                         radius="medium",
                     ),
+                    rx.divider(orientation="vertical", size="2"),
+                    rx.button(
+                        rx.icon("log-out", size=14),
+                        " Salir",
+                        on_click=FlowState.logout,
+                        color_scheme="ruby",
+                        variant="soft",
+                        size="2",
+                        radius="medium",
+                        title="Cerrar Sesión",
+                    ),
                     align="center",
-                    spacing="3",
+                    spacing="2",
                 ),
                 width="100%",
                 height="60px",

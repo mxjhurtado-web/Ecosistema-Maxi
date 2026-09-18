@@ -22,6 +22,8 @@ from temis_web.components.work_plan_view import work_plan_view
 from temis_web.components.sipoc_matrix import sipoc_matrix
 from temis_web.components.governance_view import governance_view
 from temis_web.components.project_hub import project_hub
+from temis_web.components.login_view import login_view
+from temis_web.components.user_management_view import user_management_view
 
 
 def workspace_view() -> rx.Component:
@@ -65,12 +67,25 @@ def workspace_view() -> rx.Component:
     )
 
 
-def index() -> rx.Component:
-    """Main modern SaaS layout of TEMIS: Level 1 (Hub Monday.com) or Level 2 (Espacio de Trabajo)"""
+def hub_view() -> rx.Component:
+    """Level 1 Hub: Portfolio or User Management based on hub_active_subview"""
     return rx.cond(
-        FlowState.active_mode == "hub",
+        FlowState.hub_active_subview == "users",
+        user_management_view(),
         project_hub(),
-        workspace_view(),
+    )
+
+
+def index() -> rx.Component:
+    """Main modern SaaS layout of TEMIS: Login, Hub (Portfolio/Users) or Workspace"""
+    return rx.cond(
+        ~FlowState.is_authenticated,
+        login_view(),
+        rx.cond(
+            FlowState.active_mode == "hub",
+            hub_view(),
+            workspace_view(),
+        ),
     )
 
 
