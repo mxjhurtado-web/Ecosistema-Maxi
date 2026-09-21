@@ -216,6 +216,7 @@ class GoogleChatService:
         from .config import settings
 
         timestamp_ct = datetime.now(ZoneInfo("America/Chicago")).strftime("%d/%m/%Y %H:%M:%S CT")
+        horario_str = f"{'Fuera del horario laboral' if is_out_of_hours else 'Dentro del horario laboral'} ({timestamp_ct})"
         dept_upper = dept_key.upper().strip()
         
         # Auto-detect template type if not explicitly set
@@ -292,11 +293,11 @@ class GoogleChatService:
         if not perfil_nlu:
             user_lower = user_text.lower()
             if any(k in user_lower for k in ["agencia", "sucursal", "ctr", "irs", "hermes", "balance", "agente"]):
-                perfil_nlu = "Agente"
+                perfil_nlu = "Agente Autorizado"
             elif any(k in user_lower for k in ["beneficiario", "recibo el dinero", "cobrar"]):
                 perfil_nlu = "Beneficiario"
             elif any(k in user_lower for k in ["remitente", "hice el envío", "hice el envio", "mandé", "mande"]):
-                perfil_nlu = "Remitente"
+                perfil_nlu = "Remitente / Cliente"
             else:
                 perfil_nlu = "Cliente"
 
@@ -348,7 +349,7 @@ class GoogleChatService:
             formatted_card = (
                 f"*{header}*\n"
                 f"─────────────────────────────────────────\n"
-                f"• *Horario de consulta:* {timestamp_ct}\n"
+                f"• *Horario de consulta:* {horario_str}\n"
                 f"• *ID de conversación:* `{contact_id}`\n"
                 f"• *Perfil del usuario:* {perfil_nlu}\n"
                 f"• *Nombre del usuario:* {nombre_str}\n"
@@ -367,7 +368,7 @@ class GoogleChatService:
             formatted_card = (
                 f"*{header}*\n"
                 f"─────────────────────────────────────────\n"
-                f"• *Horario de consulta:* {timestamp_ct}\n"
+                f"• *Horario de consulta:* {horario_str}\n"
                 f"• *ID de conversación:* `{contact_id}`\n"
                 f"• *Perfil del usuario:* {perfil_nlu}\n"
                 f"• *Nombre del usuario:* {nombre_str}\n"
@@ -386,7 +387,7 @@ class GoogleChatService:
             formatted_card = (
                 f"*{header}*\n"
                 f"─────────────────────────────────────────\n"
-                f"• *Horario de consulta:* {timestamp_ct}\n"
+                f"• *Horario de consulta:* {horario_str}\n"
                 f"• *ID de conversación:* `{contact_id}`\n"
                 f"• *Perfil del usuario:* {perfil_nlu}\n"
                 f"• *Nombre del usuario:* {nombre_str}\n"
