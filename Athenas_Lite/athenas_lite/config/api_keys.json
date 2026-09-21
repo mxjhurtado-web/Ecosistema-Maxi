@@ -2,7 +2,7 @@
   "mxjhurtado@maxillc.com": {
     "keys": [
       {
-        "key": "AIzaSyDmW4Xh0J6v65oYKXMD1u2iiyvUeJrOnuo",
+        "key": "YOUR_GEMINI_API_KEY_HERE",
         "status": "active"
       }
     ],
@@ -11,7 +11,7 @@
   "mxmramirez@maxillc.com": {
     "keys": [
       {
-        "key": "AIzaSyAiZ8VndMTQ4pv_UlYOcMKXyOoznzkwbTY",
+        "key": "YOUR_GEMINI_API_KEY_HERE",
         "status": "active"
       }
     ],

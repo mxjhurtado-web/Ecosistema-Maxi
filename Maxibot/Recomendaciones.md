@@ -142,13 +142,13 @@ class ChatPresenter:
 **Situación Actual:**
 ```python
 # keycloak_config.py línea 26
-CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET", "mOLonfMkGYnhq3M4CSnzY4p7fFakNciu")
+CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET", "")
 
 # MaxiBot_V4.6.1_mcp.py línea 71
-SA_JSON_B64 = os.environ.get("ATHENAS_SA_JSON_B64", "<valor-largo-hardcoded>")
+SA_JSON_B64 = os.environ.get("ATHENAS_SA_JSON_B64", "")
 
 # MaxiBot_V4.6.1_mcp.py línea 90
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "AIzaSyDmW4Xh0J6v65oYKXMD1u2iiyvUeJrOnuo"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 ```
 
 **Problemas:**
@@ -162,9 +162,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "AIzaSyDmW4Xh0J6v65oYKXMD1u2iiyv
 
 ```bash
 # .env (agregar a .gitignore)
-KEYCLOAK_CLIENT_SECRET=mOLonfMkGYnhq3M4CSnzY4p7fFakNciu
-ATHENAS_SA_JSON_B64=ewogICJ0eXBlIjogInNl...
-GEMINI_API_KEY=AIzaSyDmW4Xh0J6v65oYKXMD1u2iiyvUeJrOnuo
+KEYCLOAK_CLIENT_SECRET=tu_keycloak_secret_aqui
+ATHENAS_SA_JSON_B64=tu_service_account_base64_aqui
+GEMINI_API_KEY=tu_gemini_api_key_aqui
 ```
 
 2. **Usar python-dotenv para cargar:**
