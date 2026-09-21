@@ -4234,10 +4234,10 @@ async def agent_interact_inner(
 
             if has_details:
                 sc_code = "SC.037"
-                default_sc = "Gracias por la información proporcionada. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.\n\nGracias por comunicarse con Maxitransfers, le atendió Max."
+                default_sc = "Gracias por la información proporcionada. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial."
             else:
                 sc_code = "SC.037.1"
-                default_sc = "Debido a que su solicitud es de alta prioridad. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.\n\nGracias por comunicarse con Maxitransfers, le atendió Max."
+                default_sc = "Debido a que su solicitud es de alta prioridad. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial."
             
             sc_text = scripts.get(sc_code, default_sc)
             sc_translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
@@ -4268,7 +4268,7 @@ async def agent_interact_inner(
 
     # Scripts homologados oficiales de canalización departamental
     sc11_default = "Gracias por su información. He canalizado su solicitud con nuestro departamento correspondiente. Un asesor le dará seguimiento a la brevedad."
-    sc28_default = "En este momento nos encontramos fuera de nuestro horario de atención. Su reporte ha sido registrado y un asesor le dará seguimiento en cuanto iniciemos actividades en nuestro horario de atención.\n\nGracias por comunicarse con Maxitransfers, le atendió Max."
+    sc28_default = "En este momento nos encontramos fuera de nuestro horario de atención. Su reporte ha sido registrado y un asesor le dará seguimiento en cuanto iniciemos actividades en nuestro horario de atención."
 
     # 1. Agent Oversight (IRS / Carta de agente autorizado / Auditoría IRS / Supervisión)
     oversight_keywords = [

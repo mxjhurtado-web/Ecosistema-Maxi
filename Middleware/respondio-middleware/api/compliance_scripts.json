@@ -105,7 +105,7 @@
     "profile": ""
   },
   "SC.012": {
-    "text": "Entiendo su solicitud. Este caso requiere atención de un área especializada.\n\nCanalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible,\nGracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día.",
+    "text": "Entiendo su solicitud. Este caso requiere atención de un área especializada.\n\nCanalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible.",
     "category": "",
     "derivacion": "Verify Hold (KYC) con nota en Status History: Compliance Daily Monitoring (KYC Related Transactions (Folio 22160 $ 790.00)",
     "caso": "Derivación a Prevención de Fraudes (Cliente/Agente)",
@@ -427,14 +427,14 @@
     "profile": "No aplica"
   },
   "SC.037": {
-    "text": "Gracias por la información proporcionada. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.\n\nGracias por comunicarse con Maxitransfers, le atendió Max.",
+    "text": "Gracias por la información proporcionada. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.",
     "category": "Cierre Turno 2 Fraude / BSA con datos",
     "derivacion": "cerrar",
     "caso": "Reporte canalizado con éxito",
     "profile": "No aplica"
   },
   "SC.037.1": {
-    "text": "Debido a que su solicitud es de alta prioridad. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.\n\nGracias por comunicarse con Maxitransfers, le atendió Max.",
+    "text": "Debido a que su solicitud es de alta prioridad. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.",
     "category": "Cierre Turno 2 Fraude / BSA sin datos",
     "derivacion": "cerrar",
     "caso": "Reporte canalizado sin datos adicionales",
