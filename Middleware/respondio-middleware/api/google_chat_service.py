@@ -403,17 +403,19 @@ class GoogleChatService:
         target_space = space_id or default_space
         
         # Debounce / Deduplication: Avoid duplicate cards within the same turn and department
-        turn_key_suffix = f":{turn_tag}" if turn_tag else ""
-        if contact_id and not contact_id.startswith("sim_test"):
+        turn_norm = "turn2" if turn_tag == "turn2" else "turn1"
+        clean_contact = re.sub(r'[{}$]', '', contact_id).strip()
+        
+        if clean_contact and not clean_contact.startswith("sim_test"):
             try:
                 from shared.redis_client import get_redis_client
                 redis = await get_redis_client()
-                dedup_key = f"gchat:dedup:{contact_id}:{dept_upper}:{target_space}{turn_key_suffix}"
+                dedup_key = f"gchat:dedup:{clean_contact}:{dept_upper}:{turn_norm}"
                 already_sent = await redis.get(dedup_key)
                 if already_sent:
-                    logger.info(f"⏭️ [DEDUP] Suppressing duplicate Google Chat alert card for contact {contact_id} in {target_space}{turn_key_suffix} (debounced 30s)")
+                    logger.info(f"⏭️ [DEDUP] Suppressing duplicate Google Chat alert card for contact '{clean_contact}' in dept '{dept_upper}' turn '{turn_norm}' (debounced 60s)")
                     return True
-                await redis.set(dedup_key, "1", ex=30)
+                await redis.set(dedup_key, "1", ex=60)
             except Exception as dedup_err:
                 logger.warning(f"Redis dedup check error: {dedup_err}")
 

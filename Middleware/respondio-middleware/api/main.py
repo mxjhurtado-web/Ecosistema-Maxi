@@ -3786,6 +3786,20 @@ async def agent_interact_inner(
 
     # Handle global commands or keywords (e.g. human transfer or ending)
     user_text_lower = user_text.lower()
+
+    # Check if there is an active session target agent cached from previous Turn
+    cached_target_agent = await redis.get(f"session:target_agent:{contact_id}")
+    if cached_target_agent and agent_name == "Max":
+        target_agent_str = cached_target_agent.decode('utf-8').strip()
+        # If the user message is short (name or brief response, <= 35 chars) and doesn't contain explicit exit commands
+        if len(user_text.strip()) <= 35 and not any(k in user_text_lower for k in ["finalizar", "humano", "asesor", "cancelar"]):
+            logger.info(f"🧠 Recovered stored target agent '{target_agent_str}' for contact {contact_id} (short reply/name: '{user_text}')")
+            await redis.delete(f"session:target_agent:{contact_id}")
+            return AgentInteractResponse(
+                status="success",
+                reply_text="",
+                derivacion=target_agent_str
+            )
     
     fraud_keywords = [
         "estafa", "fraude", "engaño", "engano", "phishing", "robo", "robado", "extorsión", "extorsion", 
@@ -3818,7 +3832,11 @@ async def agent_interact_inner(
         "validate hold", "filtro validate hold", "activación de agencia por fraude", "activacion de agencia por fraude",
         "reactivación de agencia por fraude", "reactivacion de agencia por fraude", "lista de excepción", "lista de excepcion",
         "boletín de fraude", "boletin de fraude", "llamadas para confirmar envíos", "llamadas para confirmar envios",
-        "llamadas de confirmación", "llamadas de confirmacion", "confirmar envíos con posible patrón de fraude", "confirmar envios con posible patron de fraude"
+        "llamadas de confirmación", "llamadas de confirmacion", "confirmar envíos con posible patrón de fraude", "confirmar envios con posible patron de fraude",
+        "sms de envío no autorizado", "sms de envio no autorizado", "sms no autorizado", "mensaje de envío no autorizado",
+        "mensaje de envio no autorizado", "me llegó un sms", "me llego un sms", "recibí un sms", "recibi un sms",
+        "sms de un retiro", "sms de una transacción", "sms de una transaccion", "sms indicando", "sms diciendo",
+        "mensaje indicando la existencia", "sms indicando la existencia"
     ]
     fraud_collecting_key = f"session:fraud_collecting:{contact_id}"
     is_fraud_collecting = await redis.get(fraud_collecting_key)
@@ -3854,7 +3872,14 @@ async def agent_interact_inner(
         "cantidades fuertes", "montos altos", "montos elevados", "sospechoso", "sospechosa", "llamada sospechosa",
         "subpoena", "subpoenas", "orden judicial", "citatorio legal", "requerimiento legal",
         "reportes regulatorios requeridos", "reporte regulatorio", "reportes regulatorios",
-        "monitoreo y análisis de transacciones de subpoenas", "monitoreo y analisis de transacciones de subpoenas"
+        "monitoreo y análisis de transacciones de subpoenas", "monitoreo y analisis de transacciones de subpoenas",
+        "superado el límite", "superado el limite", "superó el límite", "superó el limite", "supero el limite", "supero el límite",
+        "ha superado el límite", "ha superado el limite", "ha superado", "superar el límite", "superar el limite",
+        "límite de envíos", "limite de envios", "límite permitido", "limite permitido", "límite de monto", "limite de monto",
+        "monto permitido", "monto superado", "superado el monto", "superó el monto", "supero el monto", "monto excedido",
+        "límite excedido", "limite excedido", "reportar a una persona", "reportar cliente", "reportar a un cliente",
+        "agente desea reportar", "agencia reporta", "agencia desea reportar", "deseo reportar", "quiero reportar a una persona",
+        "quiero reportar", "reportar a un usuario", "reportar a una clienta", "reportar persona"
     ]
     is_training_inquiry = any(k in user_text_lower for k in ["capacitacion", "capacitación", "diploma", "entrenamiento", "curso pos", "curso antilavado", "manual de uso"])
     is_oversight_inquiry = any(k in user_text_lower for k in ["auditoría", "auditoria", "carta de agente", "carta del irs"])
@@ -3977,7 +4002,24 @@ async def agent_interact_inner(
         logger.info(f"🚨 Fraud/BSA flow active for contact {contact_id} (bsa={is_bsa_report}, collecting={bool(is_fraud_collecting)})")
         
         if not is_fraud_collecting:
-            # Turn 1: Deliver SC.030 + Request 3 Security Fields + Send Google Chat Alert Immediately!
+            target_deriv = "DerivacionBSA" if is_bsa_report else "DerivacionFraudes"
+            target_intent = "actividad_sospechosa" if is_bsa_report else "fraude_estafa"
+            await redis.set(f"session:intent:{contact_id}", target_intent, ex=3600)
+            await redis.set(f"session:target_agent:{contact_id}", target_deriv, ex=3600)
+
+            # If agent_name is "Max", do NOT fire Google Chat alert card here!
+            # Max only greets/routes. The Specialist Agent will fire the alert in Turn 1!
+            if agent_name == "Max":
+                logger.info(f"⚖️ Delivering exact CU.A1 from Max and derivating to {target_deriv} for contact {contact_id}")
+                cuA1_text = scripts.get("CU.A1", "Gracias por comunicarse a Maxitransfers.\n\nSoy Max, su asistente virtual. Para comenzar a ayudarle, ¿puede indicarme su nombre completo, por favor?\n\nAl continuar en este chat, acepta el tratamiento de sus datos bajo nuestra Política de Privacidad en www.maxitransfers.com/privacidad.\n\n• Por su seguridad, la sesión se cerrará automáticamente si pasa 10 minutos sin actividad.\n• Puede terminar esta conversación en cualquier momento enviando la palabra \"Finalizar\".\n• Si desea hablar con un asesor envíe el mensaje \"Hablar con un asesor\".").strip()
+                cuA1_trans = await translate_script_if_needed(cuA1_text, user_text, contact_id=contact_id)
+                return AgentInteractResponse(
+                    status="success",
+                    reply_text=cuA1_trans,
+                    derivacion=target_deriv
+                )
+
+            # Turn 1: Specialist Agent delivers SC.030.1 + Requests 4 Security Fields + Sends Single Google Chat Alert!
             await redis.set(fraud_collecting_key, "1", ex=3600)
             await redis.set(f"session:fraud_turn1_text:{contact_id}", user_text_lower, ex=3600)
             await redis.set(f"session:is_bsa:{contact_id}", "1" if is_bsa_report else "0", ex=3600)
@@ -4014,8 +4056,8 @@ async def agent_interact_inner(
                 if is_bsa_report:
                     if any(k in user_text_lower for k in ["notificacion", "notificación", "sms", "no reconozco", "no hice", "no autorice", "no autoricé", "perfil"]):
                         motivo_auto = "Reporte de posible uso indebido de perfil o robo de identidad."
-                    elif any(k in user_text_lower for k in ["10,000", "10 mil", "ctr", "ingresos", "ssn", "estructuracion", "estructuración", "se nego", "se negó"]):
-                        motivo_auto = "Reporte de evasión de requisitos CTR por estructuración o montos elevados."
+                    elif any(k in user_text_lower for k in ["10,000", "10 mil", "ctr", "ingresos", "ssn", "estructuracion", "estructuración", "se nego", "se negó", "límite", "limite"]):
+                        motivo_auto = "Reporte de evasión de requisitos CTR o límite de envíos excedido."
                     elif any(k in user_text_lower for k in ["deny list", "lista negra", "lista restrictiva"]):
                         motivo_auto = "Solicitud de agente para inclusión de remitente en Deny List por actividad sospechosa."
                     else:
@@ -4043,7 +4085,8 @@ async def agent_interact_inner(
                     space_id=target_gchat_space,
                     custom_summary=motivo_full,
                     is_out_of_hours=not in_hours,
-                    turn_tag="turn1"
+                    turn_tag="turn1",
+                    template_type="plantilla_1"
                 )
                 logger.info(f"✅ Google Chat Alert sent successfully to {target_gchat_space} for contact {contact_id} on Turn 1 (dept={dept_tag})")
             except Exception as gchat_err:
@@ -4061,23 +4104,12 @@ async def agent_interact_inner(
             sc_turn1_text = scripts.get(sc_turn1_code, default_sc_turn1)
             sc_turn1_trans = await translate_script_if_needed(sc_turn1_text, user_text, contact_id=contact_id)
 
-            target_deriv = "DerivacionBSA" if is_bsa_report else "DerivacionFraudes"
-            if agent_name == "Max":
-                logger.info(f"⚖️ Delivering exact CU.A1 from Max and derivating to {target_deriv} for contact {contact_id}")
-                cuA1_text = scripts.get("CU.A1", "Gracias por comunicarse a Maxitransfers.\n\nSoy Max, su asistente virtual. Para comenzar a ayudarle, ¿puede indicarme su nombre completo, por favor?\n\nAl continuar en este chat, acepta el tratamiento de sus datos bajo nuestra Política de Privacidad en www.maxitransfers.com/privacidad.\n\n• Por su seguridad, la sesión se cerrará automáticamente si pasa 10 minutos sin actividad.\n• Puede terminar esta conversación en cualquier momento enviando la palabra \"Finalizar\".\n• Si desea hablar con un asesor envíe el mensaje \"Hablar con un asesor\".").strip()
-                cuA1_trans = await translate_script_if_needed(cuA1_text, user_text, contact_id=contact_id)
-                return AgentInteractResponse(
-                    status="success",
-                    reply_text=cuA1_trans,
-                    derivacion=target_deriv
-                )
-            else:
-                logger.info(f"🚨 Delivering exact Turn 1 script {sc_turn1_code} from {agent_name} for contact {contact_id}")
-                return AgentInteractResponse(
-                    status="success",
-                    reply_text=sc_turn1_trans,
-                    derivacion="NA"
-                )
+            logger.info(f"🚨 Delivering exact Turn 1 script {sc_turn1_code} from {agent_name} for contact {contact_id}")
+            return AgentInteractResponse(
+                status="success",
+                reply_text=sc_turn1_trans,
+                derivacion="NA"
+            )
         else:
             # Retrieve cached BSA status from Turn 1
             cached_is_bsa = await redis.get(f"session:is_bsa:{contact_id}")
