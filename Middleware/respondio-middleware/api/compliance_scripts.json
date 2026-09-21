@@ -1,352 +1,443 @@
 {
-  "CU.A1": {
-    "text": "Gracias por comunicarse a Maxitransfers. \n\nSoy Max, su asistente virtual. Para comenzar a ayudarle, ¿puede indicarme su nombre, por favor?\n\nAl continuar en este chat, acepta el tratamiento de sus datos bajo nuestra Política de Privacidad: (link-próximamente).\n\n• Por su seguridad, la sesión se cerrará automáticamente si pasa 10 minutos sin actividad.\n• Puede terminar esta conversación en cualquier momento enviando la palabra \"Finalizar\".\n• Si desea hablar con un asesor envíe el mensaje \"Hablar con un asesor\".",
-    "category": "Inicio atención",
-    "derivacion": "",
-    "caso": "Saludo inicial/Divulgación obligatoria de privacidad",
-    "profile": "No aplica"
-  },
   "SC.001": {
-    "text": "No fue posible procesar la información que acaba de enviar. ¿Podría compartirla por escrito o con una imagen clara, por favor?",
-    "category": "Input no procesable",
-    "derivacion": "",
-    "caso": "Input no procesable",
-    "profile": "No aplica"
+    "text": "“Gracias por comunicarse a Maxitransfers, soy Max tu asistente virtual, ¿Me indica su nombre, por favor?”.",
+    "category": "1. INICIO DE ATENCIÓN",
+    "derivacion": "No aplica",
+    "caso": "Presentación Agente IA Max",
+    "profile": ""
+  },
+  "CU.A1": {
+    "text": "“Gracias por la información proporcionada. \n\nPara continuar, le informamos que sus datos serán tratados bajo nuestras políticas de privacidad y seguridad.\n\nAl seguir usando este chat, usted acepta el tratamiento de su información conforme a nuestra Política de Privacidad: (link-próximamente). \n\nPor su seguridad, si la conversación no tiene actividad durante 10 minutos, la sesión se cerrará automáticamente. Puede detener esta conversación en cualquier momento enviando la palabra Finalizar”.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Divulgación obligatoria de privacidad",
+    "profile": ""
   },
   "SC.002": {
-    "text": "No fue posible procesar su solicitud con la información proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
-    "category": "Input no procesable",
-    "derivacion": "",
-    "caso": "Input no procesable tras 3 intentos fallidos",
-    "profile": "No aplica"
+    "text": "“No fue posible procesar la información que acaba de enviar. ¿Podría compartirla por escrito o con una imagen clara, por favor?",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Input no procesable",
+    "profile": ""
   },
   "SC.003": {
-    "text": "Para ayudarle mejor, indíqueme cuál de estas opciones describe su caso:\n1. Hice un envío, un pago de servicio o una recarga telefónica\n2. Me enviaron dinero\n3. Soy agente autorizado",
-    "category": "Identificación tipo de usuario",
-    "derivacion": "",
-    "caso": "Perfil Amplio (input recibido:Texto libre, audio o imagen del recibo de la transacción Térmico-Agencia/Windows-Call Center)",
-    "profile": "No aplica"
+    "text": "No fue posible procesar su solicitud con la información proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Input no procesable tras 3 intentos fallidos",
+    "profile": ""
   },
   "SC.004": {
-    "text": "Para ayudarle mejor, indíqueme cuál de estas opciones describe su caso:\n1. Hice un envío, un pago de servicio o una recarga telefónica\n2. Soy agente autorizado",
-    "category": "Identificación tipo de usuario",
-    "derivacion": "",
-    "caso": "Perfil Restrictivo Documental (Input recibido: Service History Request Form, Unclaimed Hold Format, Factura pago de Bill, Estado de cuenta del beneficiario, identificación oficial, Carta Unclaimed Property Department, Money Order con leyenda VOID)",
-    "profile": "No aplica"
+    "text": "“Para ayudarle correctamente, seleccione el perfil que corresponde a su caso: \n1. Hice un envío/ Pago de Bill/ Recarga telefónica\n2. Recibo dinero\n3. Soy agente autorizado”",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Identificación del tipo de usuario - Perfil Amplio (input recibido:Texto libre, audio o imagen del recibo de la transacción Térmico-Agencia/Windows-Call Center)",
+    "profile": ""
   },
   "SC.005": {
-    "text": "Sigo aquí para ayudarle. Por favor, comparta los datos solicitados para continuar con su consulta.",
-    "category": "Temporizador de control de sesión",
-    "derivacion": "",
-    "caso": "(Parte 1)- Mensaje recordatorio de Inactividad de 5 minutos",
-    "profile": "No aplica"
+    "text": "“Para ayudarle correctamente, seleccione el perfil que corresponde a su caso: \n1. Hice un envío/ Pago de Bill/ Recarga telefónica\n3. Soy agente autorizado”",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Identificación del tipo de usuario - Perfil Restrictivo Documental (Input recibido: Service History Request Form, Unclaimed Hold Format, Factura pago de Bill, Estado de cuenta del beneficiario, identificación oficial, Carta Unclaimed Property Department, Money Order con leyenda VOID)",
+    "profile": ""
   },
   "SC.006": {
-    "text": "Para poder ayudarle mejor, ¿Podría brindarme más información sobre lo que necesita?",
-    "category": "Intención inicial",
-    "derivacion": "",
-    "caso": "Detección de intención inicial",
-    "profile": "No aplica"
-  },
-  "SC.006.1": {
-    "text": "Con gusto. Por favor, indíqueme su siguiente consulta para brindarle el apoyo que necesita.",
-    "category": "Detección de intención",
-    "derivacion": "",
-    "caso": "Detección de intención (Apoyo adicional)",
-    "profile": "No aplica"
+    "text": "“Sr./Srita.____, sigo aquí para ayudarle. Por favor, comparta los datos solicitados para continuar con su consulta”",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Temporizador de control de sesión (Parte 1)- Mensaje recordatorio de Inactividad de 5 minutos",
+    "profile": ""
   },
   "SC.007": {
-    "text": "Para proceder con su consulta, realizaremos la validación de los datos de su operación.",
-    "category": "Consulta de estatus",
-    "derivacion": "",
-    "caso": "Notificación consulta de estatus de la transacción",
-    "profile": "No aplica"
+    "text": "“Gracias, Sr./Srita._____. ¿En qué le puedo ayudar?",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Detección de intención inicial",
+    "profile": ""
+  },
+  "SC.007.1": {
+    "text": "Con gusto. Por favor, indíqueme su siguiente consulta para brindarle el apoyo que necesita.",
+    "category": "2. INTERPRETACIÓN INTELIGENTE",
+    "derivacion": "No aplica",
+    "caso": "Detección de intención (Apoyo adicional)",
+    "profile": ""
   },
   "SC.008": {
-    "text": "Para continuar, ¿Podría compartirme la siguiente información, por favor? \n• Nombre completo de la persona que realizó el envío\n• Nombre completo de la persona que recibe el envío\n• Clave del envío del envío\n\nTambién puede enviar una foto del recibo para ayudarle más rápido. Muchas gracias.",
-    "category": "Solicitud de información base y validación de identidad por seguridad",
-    "derivacion": "",
-    "caso": "Datos para validación de seguridad o imagen del recibo de la transacción de un envío de dinero",
-    "profile": "No aplica"
-  },
-  "SC.008.1": {
-    "text": "Para continuar, ¿Podría compartirme la siguiente información, por favor? \r\n• Nombre completo de la persona que realizó el pago de Bill\r\n• Nombre de la compañía a la que se realizó el pago\r\n• Clave del pago de Bill\r\n\r\nTambién puede enviar una foto del recibo para ayudarle más rápido. Muchas gracias.",
-    "category": "Solicitud de información base y validación de identidad por seguridad",
-    "derivacion": "",
-    "caso": "Datos para validación de seguridad o imagen del recibo de la transacción de pago de bill",
-    "profile": "No aplica"
-  },
-  "SC.008.2": {
-    "text": "Para continuar, ¿Podría compartirme la siguiente información, por favor? \r\n• Número telefónico de la persona que hizo la recarga\r\n• Número telefónico al que se hizo la recarga\r\n• Clave de la recarga telefónica\r\n\r\nTambién puede enviar una foto del recibo para ayudarle más rápido. Muchas gracias.",
-    "category": "Solicitud de información base y validación de identidad por seguridad",
-    "derivacion": "",
-    "caso": "Datos para validación de seguridad o imagen del recibo de una recarga telefónica",
-    "profile": "No aplica"
+    "text": "Para proceder con su consulta vamos a hacer la validación de estatus de su operación",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Notificación consulta de estatus de la transacción",
+    "profile": ""
   },
   "SC.009": {
-    "text": "Con gusto le ayudo. Le comparto una imagen de referencia señalando la información que le solicitamos.",
-    "category": "Solicitud de información base y validación de identidad por seguridad",
-    "derivacion": "",
-    "caso": "Soporte para que usuario identifique los datos para validación de seguridad de la transacción",
-    "profile": "No aplica"
+    "text": "“¿Me comparte la clave de confirmación de su operación, por favor? También puede enviar una foto del recibo para ayudarle más rápido”.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Solicitud de información base: Clave de confirmación o imagen del recibo de la transacción",
+    "profile": ""
+  },
+  "SC.010": {
+    "text": "“Entiendo que tiene dificultad para localizar la clave de su operación. Le comparto una imagen de referencia para que pueda identificar este dato”.  Agente de IA enviaría la imagen de los 2 tipos de recibo: térmico y windows para la transacción que aplique (envío de dinero, pago de bill o recarga).",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Solicitud de información base: Soporte para que usuario identifique la clave de la transacción",
+    "profile": ""
   },
   "SC.011": {
-    "text": "Entiendo su solicitud. Este caso requiere atención de un área especializada.\n\nCanalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible.\nGracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día.",
-    "category": "Derivación",
-    "derivacion": "Cumplimiento",
-    "caso": "Envío de dinero retenido por Cumplimiento",
-    "profile": "Remitente o Agente"
+    "text": "“Para continuar de forma segura, necesito validar algunos datos. ¿Me comparte el nombre completo de quien envió el dinero y el nombre completo de quien lo recibe, por favor?”.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Validación de identidad por seguridad - Envío de dinero",
+    "profile": ""
   },
-  "SC.019": {
-    "text": "Entendemos su consulta. Sin embargo, por motivos de seguridad, únicamente podemos compartir información de la operación con la persona que realizó el envío. \n\nLe sugerimos pedirle que nos contacte directamente por este medio para poder ayudarle de forma adecuada.\nGracias por su comprensión.",
-    "category": "Consulta de status en Chronos",
-    "derivacion": "NA",
-    "caso": "Envío de dinero",
-    "profile": "Beneficiario"
+  "SC.011.1": {
+    "text": "“Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de la persona que realizó el pago y el nombre de la compañía, por favor?”.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Validación de identidad por seguridad - Pago de bill",
+    "profile": ""
   },
-  "SC.030": {
-    "text": "Su solicitud es de alta prioridad para nosotros. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.",
-    "category": "Derivación",
-    "derivacion": "Prevención de Fraudes",
-    "caso": "Envío de dinero en revisión por el Departamento de Prevención de Fraudes",
-    "profile": "Remitente o Agente"
+  "SC.011.2": {
+    "text": "“Para continuar, necesito validar algunos datos. ¿Me comparte el número telefónico de la persona quien hizo la recarga y el número al que se realizó, por favor?”.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Validación de identidad por seguridad - Recarga telefónica",
+    "profile": ""
   },
   "SC.012": {
-    "text": "No fue posible procesar su solicitud con los datos proporcionados. Lo transferiré con uno de nuestros asesores. Por favor espere un momento.",
-    "category": "Asignación",
-    "derivacion": "Servicio al Cliente",
-    "caso": "2 intentos fallidos de búsqueda transaccional",
-    "profile": "No aplica"
-  },
-  "SC.013": {
-    "text": "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.",
-    "category": "Consulta de status en Chronos",
-    "derivacion": "Servicio al Cliente",
-    "caso": "Recarga telefónica",
-    "profile": "Remitente o Agente"
-  },
-  "SC.014": {
-    "text": "Verificando la información, el envío aparece en el sistema como pagado.",
-    "category": "Solicitud de status",
-    "derivacion": "NA",
-    "caso": "Envío de dinero",
-    "profile": "Remite, Agente o Beneficiario"
-  },
-  "SC.015": {
-    "text": "Verificando la información, el envío está disponible para cobro.",
-    "category": "Solicitud de status",
-    "derivacion": "NA",
-    "caso": "Envío de dinero en cash/envío doméstico",
-    "profile": "Remitente, Agente o Beneficiario"
-  },
-  "SC.015.1": {
-    "text": "Verificando la información, el envío está en ruta para entrega en el domicilio indicado.",
-    "category": "Solicitud de status",
-    "derivacion": "NA",
-    "caso": "Envío de dinero en cash home delivery",
-    "profile": "Remitente, Agente o Beneficiario"
-  },
-  "SC.015.2": {
-    "text": "Verificando la información, el envío se encuentra en proceso de abono en la cuenta destino.",
-    "category": "Solicitud de status",
-    "derivacion": "NA",
-    "caso": "Envío de dinero a cuenta bancaria",
-    "profile": "Remitente, Agente o Beneficiario"
-  },
-  "SC.016": {
-    "text": "Verificando la información, el envío está disponible para cobro.",
-    "category": "Solicitud de status",
-    "derivacion": "NA",
-    "caso": "Envío de dinero (Caso excepcional: Envío en cash a Banco de Guayaquil)",
-    "profile": "Remitente, Agente o Beneficiario"
-  },
-  "SC.017": {
-    "text": "Verificando la información, lamentablemente el envío no pudo ser procesado exitosamente. \n¿Le gustaría que lo comunique con un asesor?",
-    "category": "Solicitud de status",
-    "derivacion": "NA",
-    "caso": "Envío de dinero",
-    "profile": "Remitente, Agente"
-  },
-  "SC.018": {
-    "text": "Verificando la información, lamentablemente el envío no pudo ser procesado exitosamente. \n¿Le gustaría que lo comunique con un asesor?",
-    "category": "Solicitud de status",
-    "derivacion": "NA",
-    "caso": "Envío de dinero",
-    "profile": "Remitente, Agente"
-  },
-  "SC.019.1": {
-    "text": "Su operación está siendo procesada, lo transferiré con un asesor para recibir asistencia. Por favor, espere un momento.",
-    "category": "Solicitud de status  / \nConsulta de status en Chronos",
-    "derivacion": "Servicio al Cliente",
-    "caso": "Envío de dinero",
-    "profile": "Remitente o Agente"
+    "text": "Entiendo su solicitud. Este caso requiere atención de un área especializada.\n\nCanalizaré su solicitud para que un asesor pueda dar seguimiento y comunicarse con usted lo antes posible,\nGracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día.",
+    "category": "",
+    "derivacion": "Verify Hold (KYC) con nota en Status History: Compliance Daily Monitoring (KYC Related Transactions (Folio 22160 $ 790.00)",
+    "caso": "Derivación a Prevención de Fraudes (Cliente/Agente)",
+    "profile": ""
   },
   "SC.020": {
-    "text": "El plazo para cobrar el envío ha expirado, lo transferiré con un asesor. Por favor, espere un momento.",
-    "category": "Solicitud de status  / \nConsulta de status en Chronos",
-    "derivacion": "Servicio al Cliente",
-    "caso": "Envío de dinero",
-    "profile": "Remitente o Agente"
+    "text": "“Por seguridad, solo podemos compartir los detalles del envío con la persona que lo realizó. \nPor favor, contáctela y pídale que se comunique con nosotros para darle la asistencia necesaria. Muchas gracias”.",
+    "category": "",
+    "derivacion": "Status Transitorio: \nCancel Stand by\nCancel in process\nCancel Accepted\nStand by (Excepto envíos en cash a Banco de Guayaquil)\nPending Gateway Response\nTransfer Accepted\nVerify Hold (S)\nVerify Hold (DP)\nUpdate in Progress\nOrigin/Pending Payment\nReturned\nUnclaimed Hold (únicamente para beneficiario. El script para el cliente/agente se encuentra en el script SC.021)",
+    "caso": "Consulta de estatus de un envío (Beneficiario)",
+    "profile": ""
+  },
+  "SC.012.1": {
+    "text": "No fue posible procesar su solicitud con la clave proporcionada. Lo transferiré con un asesor, para que reciba la asistencia necesaria.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Asignación con asesor de Servicio al Cliente por 2 intentos fallidos de búsqueda transaccional",
+    "profile": ""
+  },
+  "SC.013": {
+    "text": "Para continuar con su solicitud de cancelación de Money Order, lo transferiré con un asesor. Permanezca en línea, por favor.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Asignación a Servicio al Cliente por cancelación de Money Order",
+    "profile": ""
+  },
+  "SC.014": {
+    "text": "Para continuar con su solicitud de historial de envíos, lo transferiré con un asesor. Permanezca en línea, por favor.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Asignación a Servicio al Cliente por seguimiento a solicitud de récord de envíos",
+    "profile": ""
+  },
+  "SC.015": {
+    "text": "Para continuar con su solicitud de reenvío o reembolso, lo transferiré con un asesor. Permanezca en línea, por favor.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Asignación a Servicio al Cliente por seguimiento a solicitud de envío en Unclaimed Hold",
+    "profile": ""
+  },
+  "SC.037": {
+    "text": "Para continuar con su solicitud de cancelación de pago de Bill, lo transferiré con un asesor. Permanezca en línea, por favor.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Asignación a Servicio al Cliente por cancelación de pago de Bill",
+    "profile": ""
+  },
+  "SC.038": {
+    "text": "Para continuar con su solicitud de cancelación de recarga telefónica, lo transferiré con un asesor. Permanezca en línea, por favor.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Asignación a Servicio al Cliente por cancelación de recarga telefónica",
+    "profile": ""
+  },
+  "SC.039": {
+    "text": "Para continuar con su solicitud de récord de envíos, lo transferiré con un asesor. Permanezca en línea, por favor.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Asignación a Servicio al Cliente por solicitud de récord de envíos (Sin ticket)",
+    "profile": ""
+  },
+  "SC.016": {
+    "text": "“Verificando el estatus de la operación, el envío aparece como pagado”.",
+    "category": "",
+    "derivacion": "Status No transitorio: Paid",
+    "caso": "Consulta de estatus de un envío cash/envío doméstico (Cliente y Agente)",
+    "profile": ""
+  },
+  "SC.016.1": {
+    "text": "“Verificando el estatus de la operación, el envío ya fue entregado en el domicilio del beneficiario”.",
+    "category": "",
+    "derivacion": "",
+    "caso": "Consulta de estatus de envío cash home delivery (Cliente y Agente)",
+    "profile": ""
+  },
+  "SC.016.2": {
+    "text": "“Verificando el estatus de la operación, el envío fue abonado a la cuenta del beneficiario”.",
+    "category": "",
+    "derivacion": "",
+    "caso": "Consulta de estatus de envío a cuenta (Cliente y Agente)",
+    "profile": ""
+  },
+  "SC.016.3": {
+    "text": "“Verificando el estatus de la operación, el envío que le realizaron aparece como pagado”.",
+    "category": "",
+    "derivacion": "",
+    "caso": "Consulta de estatus de un envío cash/envío doméstico (Beneficiario)",
+    "profile": ""
+  },
+  "SC.016.4": {
+    "text": "“Verificando el estatus de la operación, los fondos del envío fueron entregados en su domicilio”.",
+    "category": "",
+    "derivacion": "",
+    "caso": "Consulta de estatus de envío en cash home delivery (Beneficiario)",
+    "profile": ""
+  },
+  "SC.016.5": {
+    "text": "“Verificando el estatus de la operación, los fondos del envío fueron abonados a su cuenta”.",
+    "category": "",
+    "derivacion": "",
+    "caso": "Consulta de estatus de envío a cuenta (Beneficiario)",
+    "profile": ""
+  },
+  "SC.017": {
+    "text": "“Verificando el estatus de la operación, el envío está disponible para cobro”.",
+    "category": "",
+    "derivacion": "Status No transitorio:  Payment Ready y Stand by (exclusivo envíos en cash a Banco de Guayaquil)",
+    "caso": "Consulta de estatus de un envío cash/envío doméstico (Cliente y Agente)",
+    "profile": ""
+  },
+  "SC.017.1": {
+    "text": "“Verificando el estatus de la operación, el envío está en ruta para entrega en el domicilio del beneficiario”.",
+    "category": "",
+    "derivacion": "",
+    "caso": "Consulta de estatus de envío en cash home delivery (Cliente y Agente)",
+    "profile": ""
+  },
+  "SC.017.2": {
+    "text": "“Verificando el estatus de la operación, el envío se encuentra en proceso de abono en la cuenta del beneficiario”.",
+    "category": "",
+    "derivacion": "",
+    "caso": "Consulta de estatus de envío a cuenta (Cliente y Agente)",
+    "profile": ""
+  },
+  "SC.017.3": {
+    "text": "“Verificando el estatus de la operación, el envío que le realizaron está disponible para cobro”.",
+    "category": "",
+    "derivacion": "",
+    "caso": "Consulta de estatus de un envío cash/envío doméstico (Beneficiario)",
+    "profile": ""
+  },
+  "SC.017.4": {
+    "text": "“Verificando el estatus de la operación, el envío está en ruta para entrega en su domicilio”.",
+    "category": "",
+    "derivacion": "",
+    "caso": "Consulta de estatus de envío en cash/home delivery (Beneficiario)",
+    "profile": ""
+  },
+  "SC.017.5": {
+    "text": "“Verificando el estatus de la operación, el envío está en proceso de abono a su cuenta”.",
+    "category": "",
+    "derivacion": "",
+    "caso": "Consulta de estatus de envío a cuenta (Beneficiario)",
+    "profile": ""
+  },
+  "SC.018": {
+    "text": "“Verificando el estatus de la operación, lamentablemente el envío no pudo ser procesado exitosamente”.",
+    "category": "",
+    "derivacion": "Status No transitorio: Rejected",
+    "caso": "Consulta de estatus de un envío (Cliente y Agente)",
+    "profile": ""
+  },
+  "SC.019": {
+    "text": "“Verificando el estatus de la operación, lamentablemente el envío no pudo ser procesado exitosamente”.",
+    "category": "",
+    "derivacion": "Status No transitorio: Cancelled",
+    "caso": "Consulta de estatus de un envío (Cliente y Agente)",
+    "profile": ""
+  },
+  "SC.019.1": {
+    "text": "“Verificando el estatus de la operación, lamentablemente el envío que le realizaron no pudo ser procesado exitosamente”.",
+    "category": "",
+    "derivacion": "",
+    "caso": "Consulta de estatus de un envío (Beneficiario)",
+    "profile": ""
+  },
+  "SC.020.1": {
+    "text": "“El envío se encuentra en proceso, lo transferiré con un asesor para recibir asistencia personalizada. Por favor, espere mientras lo comunico”.",
+    "category": "",
+    "derivacion": "",
+    "caso": "Consulta de estatus de un envío (Cliente y agente)",
+    "profile": ""
   },
   "SC.021": {
-    "text": "Verificando la información, el pago se realizó exitosamente.",
-    "category": "Solicitud de status",
-    "derivacion": "NA",
-    "caso": "Pago de bill",
-    "profile": "Remitente o Agente"
+    "text": "“El plazo para cobrar el envío ya pasó, lo transferiré con un asesor para recibir asistencia personalizada. Por favor, espere mientras lo comunico”.",
+    "category": "",
+    "derivacion": "Status Transitorio: Unclaimed Hold - Cliente/ Agente",
+    "caso": "Consulta de estatus de un envío (Cliente/Agente)",
+    "profile": ""
   },
   "SC.022": {
-    "text": "Verificando la información, lamentablemente el pago no se procesó exitosamente. \n¿Le gustaría que lo comunique con un asesor?",
-    "category": "Solicitud de status",
-    "derivacion": "NA",
-    "caso": "Pago de bill",
-    "profile": "Remitente o Agente"
+    "text": "“Verificando el estatus de la operación, el pago se realizó exitosamente”.",
+    "category": "",
+    "derivacion": "Status No Transitorio: Paid - Pago de Bill",
+    "caso": "Verificación de estatus pago de bill",
+    "profile": ""
   },
   "SC.023": {
-    "text": "Su pago no ha sido procesado existosamente, lo transferiré con un asesor. Por favor, espere un momento.",
-    "category": "Solicitud de status  / \nConsulta de status en Chronos",
-    "derivacion": "Servicio al Cliente",
-    "caso": "Pago de bill",
-    "profile": "Remitente o Agente"
+    "text": "Verificando el estatus de la operación, lamentablemente el pago no se procesó exitosamente.",
+    "category": "",
+    "derivacion": "Status No Transitorio: Cancelled - Pago de Bill",
+    "caso": "Verificación de estatus pago de bill",
+    "profile": ""
   },
   "SC.024": {
-    "text": "Verificando la información, la recarga se realizó exitosamente.",
-    "category": "Solicitud de status",
-    "derivacion": "NA",
-    "caso": "Recarga telefónica",
-    "profile": "Remitente o Agente"
+    "text": "Su pago no ha sido procesado, lo transferiré con un asesor para recibir asistencia personalizada. Por favor, espere mientras lo comunico”.",
+    "category": "",
+    "derivacion": "Status Transitorio: Origin/Pending Payment- Pago de Bill",
+    "caso": "Verificación de estatus pago de bill (Cliente/Agente)",
+    "profile": ""
   },
   "SC.025": {
-    "text": "Verificando la información, la recarga no se procesó exitosamente.\n¿Le gustaría que lo comunique con un asesor?",
-    "category": "Solicitud de status",
-    "derivacion": "NA",
-    "caso": "Recarga telefónica",
-    "profile": "Remitente o Agente"
+    "text": "Verificando el estatus de la operación, la recarga se realizó exitosamente.",
+    "category": "",
+    "derivacion": "Status No Transitorio: Paid- Recargas Telefónicas",
+    "caso": "Verificación de estatus recarga",
+    "profile": ""
   },
   "SC.026": {
-    "text": "Por motivos de seguridad, esta solicitud requiere atención a través de nuestros canales directos. Comuníquese a:\n- Teléfono: 1-866-216-2852\n- Correo electrónico: customerservice@maxillc.com\n\nAgradecemos su comprensión.",
-    "category": "Casos fuera de alcance",
-    "derivacion": "NA",
-    "caso": "Investigación de pago",
-    "profile": "Remitente o Agente"
-  },
-  "SC.026.1": {
-    "text": "Entendemos su consulta. Sin embargo, por motivos de seguridad, únicamente podemos compartir información de la operación con la persona que realizó el envío. \n\nLe sugerimos pedirle que nos contacte a través de nuestros canales directos: \n- Teléfono: 1-866-216-2852\n- Correo electrónico: customerservice@maxillc.com\n\nGracias por su comprensión.",
-    "category": "Casos fuera de alcance",
-    "derivacion": "NA",
-    "caso": "Investigación de pago",
-    "profile": "Beneficiario"
+    "text": "Verificando el estatus de la operación, lamentablemente la recarga no se procesó exitosamente.",
+    "category": "",
+    "derivacion": "Status No transitorio: Cancelled - Recargas Telfónicas",
+    "caso": "Verificación de estatus recarga",
+    "profile": ""
   },
   "SC.027": {
-    "text": "En este momento nuestros asesores no se encuentran disponibles.\n\nNuestro horario de atención es:\n• Lunes a Viernes: 09:00 a.m. a 09:00 p.m.\n• Sábados y Domingos: 09:00 a.m. a 07:00 p.m.\n(Hora Centro de Estados Unidos) \n\nSu solicitud ya ha quedado registrada y un asesor le atenderá por este mismo chat en cuanto iniciemos nuestra jornada de atención. Muchas gracias por su paciencia.",
-    "category": "Hand-off",
-    "derivacion": "",
-    "caso": "Control operativo de contingencia horaria: Hand-off fuera de horario - Servicio al Cliente",
-    "profile": "No aplica"
+    "text": "“Por seguridad, su solicitud debe atenderse fuera de este canal. \n\nPor favor, comuníquese al teléfono 1-866-216-2852 o envíe un correo a customerservice@maxillc.com para que podamos ayudarle de inmediato. Muchas gracias”.",
+    "category": "",
+    "derivacion": "Status No Transitorio: Paid/Envío en cash - investigación de Pago",
+    "caso": "Casos fuera de alcance/Investigación de pago (Cliente/Agente)",
+    "profile": ""
   },
   "SC.027.1": {
-    "text": "Lamento lo sucedido. Por el momento nuestros asesores no se encuentran disponibles.\n\nPor favor compártame la siguiente información:\n1. Su nombre completo.\n2. Los detalles de lo ocurrido con la situación que reporta.\n\nSi conoce la siguiente información:\n3. Clave(s) de envío(s) de dinero.\n4. Número de agencia desde donde se comunica.\n\nSu solicitud ya ha quedado registrada y un asesor le atenderá inmediatamente por este mismo chat en cuanto iniciemos nuestra jornada de atención. Muchas gracias por su paciencia.",
-    "category": "Hand-off",
-    "derivacion": "",
-    "caso": "Control operativo de contingencia horaria: Hand-off fuera de horario - Servicio al Cliente (Casos de posible fraude, estafa o actividad sospechosa-Prioridad alta)",
-    "profile": "No aplica"
+    "text": "“Por seguridad, este reporte debe atenderse fuera de este canal y solo se puede tratar con la persona que hizo el envío. \n\nPor favor, contáctela y pídale que se comunique al teléfono 1-866-216-2852 o envíe un correo a customerservice@maxillc.com para que podamos ayudarle de inmediato. Gracias por su comprensión”.",
+    "category": "",
+    "derivacion": "Status No Transitorio: Paid/Envío en cash- Investigación de Pago",
+    "caso": "Casos fuera de alcance/Investigación de pago (Beneficiario)",
+    "profile": ""
   },
   "SC.028": {
-    "text": "Entendido su solicitud. Su caso requiere atención de un área especializada que por el momento se encuentra fuera de su horario de servicio.\n\nYa hemos transferido su reporte al departamento correspondiente y un asesor se comunicará con usted a través de otro canal directo en cuanto inicie su jornada laboral.\n\nAgradecemos su paciencia y comprensión.",
-    "category": "Hand-off",
-    "derivacion": "",
+    "text": "En este momento nuestros asesores no se encuentran disponibles.\n\nNuestro horario de atención es:\n• Lunes a viernes: 09:00 a.m. a 09:00 p.m.\n• Sábados y domingos: 09:00 a.m. a 07:00 p.m.\n(Hora Centro de Estados Unidos)\n\nUn asesor dará seguimiento a su solicitud en cuanto retomemos el servicio.”",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Control operativo de contingencia horaria: Hand-off fuera de horario - Servicio al Cliente",
+    "profile": ""
+  },
+  "SC.028.1": {
+    "text": "Entiendo su solicitud. Su caso requiere atención de un área especializada y por el momento no se encuentra disponible. \n\nSe notificó sobre su caso y se comunicarán con usted en cuanto reinicien operaciones. Gracias por su paciencia.",
+    "category": "",
+    "derivacion": "No aplica",
     "caso": "Control operativo de contingencia horaria: Hand-off  fuera de horario otros departamentos",
-    "profile": "No aplica"
+    "profile": ""
   },
   "SC.029": {
-    "text": "No he podido localizar la información con los datos que me ha proporcionado.\n\nPor favor, confirmelos y escríbalos nuevamente para realizar una nueva consulta.",
-    "category": "Control de errores de búsqueda",
-    "derivacion": "",
-    "caso": "Datos de validación de seguridad no localizados en Chronos",
-    "profile": "No aplica"
+    "text": "“No encontré resultados con los datos proporcionados. ¿Podría verificarlos y compartirlos nuevamente, por favor?”",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Control de errores de búsqueda: Clave de confirmación no localizada en Chronos",
+    "profile": ""
+  },
+  "SC.030": {
+    "text": "Entiendo la situación. Su solicitud es de alta prioridad para nosotros, lo comunicaré inmediatamente con un asesor para darle atención urgente.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Hand-off Prevención de Fraudes o BSA Monitoring",
+    "profile": ""
+  },
+  "SC.036": {
+    "text": "Por seguridad, su solicitud debe ser atendida fuera de este canal. \n\nPor favor, acuda a la agencia donde realizó el envío para recibir la atención a su solicitud. Muchas gracias.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Exclusión del canal: Modificación de datos de un envío de dinero/Cancelación de envío de dinero (Cliente)",
+    "profile": ""
+  },
+  "SC.036.1": {
+    "text": "Por seguridad, su solicitud debe ser atendida fuera de este canal. \n\nPor favor, solicite a la persona que le realizó el envío que acuda a la agencia donde realizó la operación para recibir la atención a su solicitud. Gracias por su comprensión.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Exclusión del canal: Modificación de datos de un envío de dinero/Cancelación de envío de dinero (Beneficiario)",
+    "profile": ""
+  },
+  "SC.031": {
+    "text": "“Cerraré esta conversación por falta de respuesta. Si aún necesita ayuda, por favor escriba nuevamente en este chat. Muchas gracias”",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Temporizador de control de sesión (Parte 2): Cierre de caso por inactividad o falta de respuesta",
+    "profile": ""
+  },
+  "SC.032": {
+    "text": "“Sr./Srita._________ ¿Hay algo más en lo que pueda ayudarle?”.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Ofrecer ayuda adicional al usuario- Paso de calidad obligatorio de pre-cierre",
+    "profile": ""
+  },
+  "SC.033": {
+    "text": "“Para mejorar nuestro servicio, ¿Cómo calificaría la atención recibida por nuestro agente?\n\nResponda con un número del 1 al 5, donde 5 es la mejor calificación.”",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Encuesta Customer Satisfaction Score - CSAT",
+    "profile": ""
+  },
+  "SC.034": {
+    "text": "Gracias por su respuesta. ¿Podría indicarnos qué ocurrió para ayudarnos a mejorar?",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Captura obligatoria de feedback de Usuario- CSAT Baja",
+    "profile": ""
+  },
+  "SC.035": {
+    "text": "“Gracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día.",
+    "category": "",
+    "derivacion": "No aplica",
+    "caso": "Cierre formal de atención exitosa o derivación a otro departamento",
+    "profile": ""
   },
   "SC.030.1": {
     "text": "Lamento lo sucedido, su solicitud debe ser atendida con alta prioridad.\n\nPor favor compártame la siguiente información:\n1. Su nombre completo.\n2. Los detalles de lo ocurrido con la situación que reporta.\n\nSi conoce la siguiente información:\n3. Clave(s) de envío(s) de dinero.\n4. Número de agencia desde donde se comunica.",
-    "category": "Hand-off",
-    "derivacion": "",
-    "caso": "Hand-off Prevención de Fraudes o BSA Monitoring",
+    "category": "Hand-off Fraude / BSA En Horario",
+    "derivacion": "DerivacionFraudes / DerivacionBSA",
+    "caso": "Solicitud de 4 datos de seguridad",
     "profile": "No aplica"
   },
   "SC.030.2": {
-    "text": "Lamento lo sucedido,  canalizaré su solicitud con un asesor.\n\nPor favor compártame la siguiente información:\n1. Su nombre completo.\n2. Los detalles de lo ocurrido con la situación que reporta.\n\nSi conoce la siguiente información:\n3. Clave(s) de envío(s) de dinero.\n4. Número de agencia desde donde se comunica.",
-    "category": "Hand-off",
-    "derivacion": "",
-    "caso": "Desborde crítico de seguridad de Alta Prioridad: Hand-off fuera de horario Fraude / BSA Monitoring - por posible fraude, estafa o actividad sospechosa",
-    "profile": "No aplica"
-  },
-  "SC.031": {
-    "text": "Por motivos de seguridad, esta solicitud debe ser atendida de forma presencial.\n\nPor favor, acuda a la agencia de Maxitransfers donde realizó su envío para que le brinden la asistencia necesaria.\n\nAgradecemos su comprensión.",
-    "category": "Exclusión del canal",
-    "derivacion": "",
-    "caso": "Modificación de datos de un envío de dinero/Cancelación de envío de dinero (Remitente)",
-    "profile": "Remitente"
-  },
-  "SC.031.1": {
-    "text": "Por motivos de seguridad esta solicitud debe ser atendida de forma presencial.\n\nPor favor, solicite a la persona que realizó el envío que acuda a la agencia de Maxitransfers donde hizo la operación para que le brinden la asistencia necesaria.\n\nAgradecemos su comprensión.",
-    "category": "Exclusión del canal",
-    "derivacion": "",
-    "caso": "Modificación de datos de un envío de dinero/Cancelación de envío de dinero (Beneficiario)",
-    "profile": "Beneficiario"
-  },
-  "SC.032": {
-    "text": "Esta conversación ha entrado en una pausa automática por inactividad. \n\nSi necesita ayuda con su solicitud, escriba un nuevo mensaje en este mismo chat y con gusto le atenderemos de inmediato.",
-    "category": "Temporizador de control de sesión",
-    "derivacion": "",
-    "caso": "(Parte 2): Cierre de caso por inactividad o falta de respuesta",
-    "profile": "No aplica"
-  },
-  "SC.033": {
-    "text": "¿Hay algo más en lo que le pueda ayudar?",
-    "category": "Ayuda adicional",
-    "derivacion": "",
-    "caso": "Ofrecer ayuda adicional al usuario- Paso de calidad obligatorio de pre-cierre",
-    "profile": "No aplica"
-  },
-  "SC.034": {
-    "text": "Para ayudarnos a mejorar nuestro servicio, ¿cómo calificaría la atención recibida por parte de nuestro agente Max?\n\nPor favor, seleccione un número del 1 al 5 según su experiencia:\n\n5. Excelente\n4. Buena\n3. Regular\n2. Mala\n1. Muy mala\n\nAgradecemos su opinión.",
-    "category": "CSAT",
-    "derivacion": "",
-    "caso": "Encuesta Customer Satisfaction Score",
-    "profile": "No aplica"
-  },
-  "SC.035": {
-    "text": "Su opinión es muy valiosa. Para mantener los más altos estándares en nuestra atención, ¿Podría compartirnos los detalles de su experiencia?",
-    "category": "CSAT Baja",
-    "derivacion": "",
-    "caso": "Captura obligatoria de feedback de Usuario",
-    "profile": "No aplica"
-  },
-  "SC.036": {
-    "text": "Gracias por comunicarse a Maxitransfers. Le atendió Max. Qué tenga un buen día.",
-    "category": "Cierre",
-    "derivacion": "",
-    "caso": "Cierre formal de atención exitosa o derivación a otro departamento",
+    "text": "Lamento lo sucedido, canalizaré su solicitud con un asesor.\n\nPor favor compártame la siguiente información:\n1. Su nombre completo.\n2. Los detalles de lo ocurrido con la situación que reporta.\n\nSi conoce la siguiente información:\n3. Clave(s) de envío(s) de dinero.\n4. Número de agencia desde donde se comunica.",
+    "category": "Hand-off Fraude / BSA Fuera de Horario Guardia",
+    "derivacion": "Servicio al Cliente",
+    "caso": "Solicitud de datos en contingencia",
     "profile": "No aplica"
   },
   "SC.037": {
     "text": "Gracias por la información proporcionada. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.\n\nGracias por comunicarse con Maxitransfers, le atendió Max.",
-    "category": "Recepción de información",
-    "derivacion": "",
-    "caso": "Cierre de conversación cuando el usuario comparte información por posible fraude, estaba o actividad sospechosa.",
+    "category": "Cierre Turno 2 Fraude / BSA con datos",
+    "derivacion": "cerrar",
+    "caso": "Reporte canalizado con éxito",
     "profile": "No aplica"
   },
   "SC.037.1": {
     "text": "Debido a que su solicitud es de alta prioridad. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial.\n\nGracias por comunicarse con Maxitransfers, le atendió Max.",
-    "category": "Recepción de información",
-    "derivacion": "",
-    "caso": "Cierre de conversación cuando el usuario no comparte información por posible fraude, estaba o actividad sospechosa.",
-    "profile": "No aplica"
-  },
-  "SC.039": {
-    "text": "Para poder brindarle una mejor atención, le pedimos que envié su consulta en un mensaje más breve. Muchas gracias.",
-    "category": "Límite de caracteres en mensajes",
-    "derivacion": "",
-    "caso": "Límite de caracteres en los mensajes del usuario",
+    "category": "Cierre Turno 2 Fraude / BSA sin datos",
+    "derivacion": "cerrar",
+    "caso": "Reporte canalizado sin datos adicionales",
     "profile": "No aplica"
   }
 }

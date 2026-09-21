@@ -25,7 +25,9 @@ class MockRedis:
             return val.encode('utf-8')
         return val
         
-    async def set(self, key, value, ex=None):
+    async def set(self, key, value, ex=None, nx=False):
+        if nx and key in self.store:
+            return None
         if isinstance(value, str):
             self.store[key] = value.encode('utf-8')
         elif isinstance(value, bytes):

@@ -3780,12 +3780,34 @@ async def agent_interact_inner(
             await redis.expire(transcript_key, 3600)
         except Exception as t_err:
             logger.debug(f"Redis transcript user logging error: {t_err}")
+
+    # 0.0 Cerrojo de Idempotencia Concurrente (Evita duplicación de burbujas en WhatsApp ante webhooks concurrentes de Respond.io)
+    import hashlib
+    clean_msg_hash = hashlib.md5(user_text.strip().encode('utf-8')).hexdigest()
+    idempotency_key = f"idempotency:interact:{agent_name}:{contact_id}:{clean_msg_hash}"
+    try:
+        is_locked = await redis.set(idempotency_key, "1", nx=True, ex=3)
+        if not is_locked:
+            logger.info(f"⏭️ [IDEMPOTENCY] Concurrent duplicate request detected for contact {contact_id}, agent {agent_name}. Suppressing duplicate reply bubble.")
+            return AgentInteractResponse(
+                status="success",
+                reply_text="",
+                derivacion="NA"
+            )
+    except Exception as idem_err:
+        logger.debug(f"Idempotency lock check skipped: {idem_err}")
     
     # Pre-load scripts
     scripts = get_compliance_scripts()
 
     # Handle global commands or keywords (e.g. human transfer or ending)
     user_text_lower = user_text.lower()
+
+    # If Max is handling the conversation, always clean stale fraud collecting flags from previous sessions
+    if agent_name == "Max":
+        await redis.delete(f"session:fraud_collecting:{contact_id}")
+        await redis.delete(f"session:fraud_turn1_text:{contact_id}")
+        await redis.delete(f"session:is_bsa:{contact_id}")
 
     # Check if there is an active session target agent cached from previous Turn
     cached_target_agent = await redis.get(f"session:target_agent:{contact_id}")
