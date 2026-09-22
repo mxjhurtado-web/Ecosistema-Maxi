@@ -541,9 +541,10 @@ Detecta el idioma del cliente y pasa `idioma: "es"` o `idioma: "en"` en todas la
 1. Cuando el cliente responda con datos, clave, nombre, aclaraciones o confirme que no los tiene:
    - PROHIBIDO enviar `SC.026` o rebotar la conversación a `@Max`.
    - Llama a `interactuar_con_orbit` enviando la respuesta del cliente.
-   - Muestra de forma 100% LITERAL el script entregado por Orbit (`SC.037` con datos o `SC.037.1` sin datos).
-2. 🔒 En horario laboral de Fraudes: **EJECUTA DE INMEDIATO LA ACCIÓN NATIVA DE RESPOND.IO 'CERRAR CONVERSACIÓN' (CLOSE CONVERSATION)**. El departamento de Fraudes contactará al cliente vía llamada telefónica directa.
-3. Fuera de horario laboral: Si el cliente requiere atención adicional inmediata, transfiere a @Asesores Servicio al Cliente ({{@team.43621}}).
+   - **PASO 1 (MANDATORIO):** Envía de inmediato al cliente el mensaje con el texto EXACTO recibido en `reply_text` (`SC.037` con datos o `SC.037.1` sin datos).
+   - **PASO 2:** 
+     - Si `derivacion` es `"cerrar"`: Ejecuta la acción nativa de Respond.io **'Cerrar Conversación' (Close Conversation)**. El departamento contactará al usuario por canal oficial.
+     - Si `derivacion` es `"Servicio al Cliente"`: Transfiere a @Asesores Servicio al Cliente ({{@team.43621}}).
 ```
 
 ---
@@ -584,9 +585,10 @@ Detecta el idioma del usuario y pasa `idioma: "es"` o `idioma: "en"` en las llam
 1. Al recibir respuesta del usuario:
    - PROHIBIDO enviar `SC.026` o rebotar a `@Max`.
    - Llama a `interactuar_con_orbit` enviando la respuesta del usuario.
-   - Muestra 100% LITERAL el script entregado por Orbit (`SC.037` con datos o `SC.037.1` sin datos).
-2. 🔒 En horario laboral: **EJECUTA DE INMEDIATO LA ACCIÓN NATIVA DE RESPOND.IO 'CERRAR CONVERSACIÓN' (CLOSE CONVERSATION)**.
-3. Fuera de horario: Transfiere a @Asesores Servicio al Cliente ({{@team.43621}}).
+   - **PASO 1 (MANDATORIO):** Envía de inmediato al usuario el mensaje con el texto EXACTO recibido en `reply_text` (`SC.037` con datos o `SC.037.1` sin datos).
+   - **PASO 2:** 
+     - Si `derivacion` es `"cerrar"`: Ejecuta la acción nativa de Respond.io **'Cerrar Conversación' (Close Conversation)**.
+     - Si `derivacion` es `"Servicio al Cliente"`: Transfiere a @Asesores Servicio al Cliente ({{@team.43621}}).
 ```
 
 ---

@@ -3639,6 +3639,9 @@ async def clear_redis_session(redis, contact_id: str):
         f"session:fraud_collecting:{contact_id}",
         f"session:fraud_turn1_text:{contact_id}",
         f"session:is_bsa:{contact_id}",
+        f"session:fraud_completed:{contact_id}",
+        f"session:fraud_completed_dept:{contact_id}",
+        f"session:fraud_completed_space:{contact_id}",
         f"session:attempts_doc:{contact_id}",
         f"session:active_agent:{contact_id}",
         f"contact:last_image:{contact_id}",
@@ -4020,6 +4023,61 @@ async def agent_interact_inner(
     
 
 
+    # Check if this contact has a completed fraud/BSA case in cooldown (10 min)
+    cached_fraud_completed = await redis.get(f"session:fraud_completed:{contact_id}")
+    is_fraud_completed = bool(cached_fraud_completed)
+    
+    if is_fraud_completed and (agent_name in ["DerivacionBSA", "DerivacionFraudes"] or is_bsa_report or is_fraud_report):
+        # If user starts with a clean greeting or explicit reset, allow fresh start
+        if user_text_lower in ["hola", "buenos dias", "buenos días", "buenas tardes", "buenas noches", "hello", "hi", "buen dia", "buen día"]:
+            logger.info(f"🧹 Clearing post-closure fraud state for contact {contact_id} due to fresh greeting: '{user_text}'")
+            await clear_redis_session(redis, contact_id)
+        else:
+            logger.info(f"🔒 Contact {contact_id} sent follow-up message during post-closure cooldown: '{user_text[:60]}'")
+            stored_dept = (await redis.get(f"session:fraud_completed_dept:{contact_id}") or b"").decode('utf-8') or ("BSA MONITORING" if is_bsa_report or agent_name == "DerivacionBSA" else "PREVENCION DE FRAUDES")
+            stored_space = (await redis.get(f"session:fraud_completed_space:{contact_id}") or b"").decode('utf-8') or None
+            
+            from zoneinfo import ZoneInfo
+            ct_now = datetime.now(ZoneInfo("America/Chicago"))
+            in_dept_hours = check_department_hours(stored_dept, ct_now)
+            dept_tag = "BSA" if "BSA" in stored_dept.upper() else "FRAUDES"
+            
+            parsed_name = parse_name_from_text(user_text)
+            parsed_agency = parse_agency_from_text(user_text)
+            parsed_code = extraer_codigo_router(user_text) or ""
+            
+            try:
+                from .google_chat_service import google_chat_service
+                await google_chat_service.send_unified_notification(
+                    dept_key=dept_tag,
+                    contact_id=contact_id,
+                    user_text=user_text,
+                    nombre_usuario=parsed_name or None,
+                    codigo_envio=parsed_code or None,
+                    numero_agencia=parsed_agency or None,
+                    media_url=media_url,
+                    space_id=stored_space,
+                    custom_summary=f"Información Complementaria tras Cierre Turno 2: {user_text}",
+                    is_out_of_hours=not in_dept_hours,
+                    turn_tag="turn2",
+                    template_type="plantilla_1"
+                )
+                logger.info(f"✅ Google Chat addendum sent for contact {contact_id} in {stored_dept}")
+            except Exception as g_err:
+                logger.warning(f"Could not send Google Chat addendum: {g_err}")
+                
+            sc_code = "SC.037"
+            default_sc = "Gracias por la información proporcionada. Su reporte ya fue canalizado con el área especializada y un asesor se pondrá en contacto con usted a través de otro canal oficial."
+            sc_text = scripts.get(sc_code, default_sc)
+            sc_translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+            
+            target_deriv = "cerrar" if in_dept_hours else "Servicio al Cliente"
+            return AgentInteractResponse(
+                status="success",
+                reply_text=sc_translated,
+                derivacion=target_deriv
+            )
+
     if (is_bsa_report or is_fraud_report or is_fraud_collecting):
         logger.info(f"🚨 Fraud/BSA flow active for contact {contact_id} (bsa={is_bsa_report}, collecting={bool(is_fraud_collecting)})")
         
@@ -4176,7 +4234,7 @@ async def agent_interact_inner(
                     derivacion="NA"
                 )
 
-            # Customer typed a NEW message or timeout trigger -> Clear Redis state -> Send Google Chat Update -> Close/Transfer
+            # Customer typed a NEW message or timeout trigger -> Clear Redis collecting state -> Send Google Chat Update -> Close/Transfer
             await redis.delete(fraud_collecting_key)
             await redis.delete(f"session:fraud_turn1_text:{contact_id}")
             await redis.delete(f"session:is_bsa:{contact_id}")
@@ -4242,6 +4300,12 @@ async def agent_interact_inner(
             sc_text = scripts.get(sc_code, default_sc)
             sc_translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
             
+            # Store completed case in cooldown (10 minutes) to absorb subsequent follow-up messages without restarting Turn 1
+            await redis.set(f"session:fraud_completed:{contact_id}", "1", ex=600)
+            await redis.set(f"session:fraud_completed_dept:{contact_id}", target_dept, ex=600)
+            if target_gchat_space_t2:
+                await redis.set(f"session:fraud_completed_space:{contact_id}", target_gchat_space_t2, ex=600)
+
             if in_dept_hours:
                 # RNE.50 / RNE.60 / RNE.61: Close conversation immediately when department is open
                 logger.info(f"🔒 RNE.50/60/61: {target_dept} open. Delivering {sc_code} and closing conversation for contact {contact_id}")
