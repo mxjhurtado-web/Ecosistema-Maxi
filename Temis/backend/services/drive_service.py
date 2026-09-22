@@ -220,13 +220,61 @@ class DriveService:
         except Exception as e:
             return False, str(e)
 
-    def list_files(self, folder_id: str) -> Tuple[bool, list]:
+    def create_folder(self, folder_name: str, parent_folder_id: Optional[str] = None) -> str:
+        """Create a folder in Drive"""
+        parent_id = parent_folder_id or DRIVE_FOLDER_ID
+        folder_metadata = {
+            'name': folder_name,
+            'mimeType': 'application/vnd.google-apps.folder',
+            'parents': [parent_id]
+        }
+        folder = self.service.files().create(
+            body=folder_metadata,
+            fields='id',
+            supportsAllDrives=True
+        ).execute()
+        return folder.get('id')
+
+    def download_file(self, file_id: str) -> Optional[bytes]:
+        """Download file content from Drive"""
+        try:
+            from googleapiclient.http import MediaIoBaseDownload
+            import io
+            request = self.service.files().get_media(fileId=file_id, supportsAllDrives=True)
+            fh = io.BytesIO()
+            downloader = MediaIoBaseDownload(fh, request)
+            done = False
+            while not done:
+                status, done = downloader.next_chunk()
+            fh.seek(0)
+            return fh.read()
+        except Exception as e:
+            print(f"Error downloading file {file_id}: {e}")
+            return None
+
+    def update_file(self, file_id: str, content: bytes, mime_type: str = 'application/octet-stream') -> Tuple[bool, str]:
+        """Update file content in Drive"""
+        try:
+            import io
+            from googleapiclient.http import MediaIoBaseUpload
+            media = MediaIoBaseUpload(io.BytesIO(content), mimetype=mime_type, resumable=True)
+            self.service.files().update(
+                fileId=file_id,
+                media_body=media,
+                supportsAllDrives=True
+            ).execute()
+            return True, file_id
+        except Exception as e:
+            return False, str(e)
+
+    def list_files(self, folder_id: Optional[str] = None) -> list:
         """
         List files in folder
-        Returns (success, files_list or error_message)
+        Returns files_list
         """
         try:
-            query = f"'{folder_id}' in parents and trashed=false"
+            parent_id = folder_id or DRIVE_FOLDER_ID
+            query = f"'{parent_id}' in parents and trashed=false"
             results = self.service.files().list(
                 q=query,
                 fields="files(id, name, mimeType, createdTime)",
@@ -234,11 +282,10 @@ class DriveService:
                 includeItemsFromAllDrives=True
             ).execute()
 
-            files = results.get('files', [])
-            return True, files
-
+            return results.get('files', [])
         except Exception as e:
-            return False, f"Error listing files: {str(e)}"
+            print(f"Error listing files: {str(e)}")
+            return []
     
     def save_conversation_to_drive(self, project_folder_id: str, date_str: str, messages: list) -> Tuple[bool, str]:
         """

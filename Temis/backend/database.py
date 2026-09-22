@@ -14,14 +14,17 @@ from sqlalchemy.orm import sessionmaker
 # SQLite database file path
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "temis.db")
 
-# SQLite connection string
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
+# Connection string (SQLite fallback for zero-cost Google Drive persistence)
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
+if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
 
 # Create engine
-# check_same_thread=False is needed for SQLite to work with FastAPI
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args=connect_args
 )
 
 # Create session
