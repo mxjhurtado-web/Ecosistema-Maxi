@@ -2253,9 +2253,9 @@ async def check_bill_status_inner(
     contact_name = sanitize_input(request.contact_name)
     
     metadata = request.metadata or {}
-    tracking_number = sanitize_input(request.tracking_number) or sanitize_input(metadata.get("tracking_number"))
+    tracking_number = sanitize_input(request.tracking_number) or sanitize_input(request.codigo_envio) or sanitize_input(metadata.get("tracking_number")) or sanitize_input(metadata.get("codigo_envio"))
     biller = sanitize_input(request.biller) or sanitize_input(metadata.get("biller"))
-    nombre_completo_customer = sanitize_input(request.nombre_completo_customer) or sanitize_input(metadata.get("nombre_completo_customer"))
+    nombre_completo_customer = sanitize_input(request.nombre_completo_customer) or sanitize_input(request.nombre_remitente) or sanitize_input(metadata.get("nombre_completo_customer")) or sanitize_input(metadata.get("nombre_remitente"))
     perfil = sanitize_input(request.perfil) or sanitize_input(metadata.get("perfil")) or sanitize_input(metadata.get("perfil_usuario"))
 
     # Auto-extract missing tracking number, biller or customer name from user_text
@@ -2679,7 +2679,8 @@ async def log_csat_feedback_inner(
                 
             return CSATLogResponse(
                 status="success",
-                message=next_text or "CSAT logged successfully to Google Sheets"
+                message=next_text or "CSAT logged successfully to Google Sheets",
+                reply_text=next_text
             )
         else:
             raise HTTPException(status_code=500, detail="Failed to write CSAT row to Google Sheets")
@@ -2773,7 +2774,7 @@ async def check_topup_status_inner(
     contact_name = sanitize_input(request.contact_name)
     
     metadata = request.metadata or {}
-    transaction_id = sanitize_input(request.transaction_id) or sanitize_input(metadata.get("transaction_id"))
+    transaction_id = sanitize_input(request.transaction_id) or sanitize_input(request.codigo_envio) or sanitize_input(metadata.get("transaction_id")) or sanitize_input(metadata.get("codigo_envio"))
     customer_number = sanitize_input(request.customer_number) or sanitize_input(metadata.get("customer_number"))
     cellular_number = sanitize_input(request.cellular_number) or sanitize_input(metadata.get("cellular_number"))
     perfil = sanitize_input(request.perfil) or sanitize_input(metadata.get("perfil")) or sanitize_input(metadata.get("perfil_usuario"))
@@ -4708,28 +4709,47 @@ async def agent_interact_inner(
         )
 
     # ------------------------------------------------------------
-    # 2c. SPECIALIZED AGENTS: CoordinacionPago / AgenteComunicador / Derivaciones (RNE.41)
+    # 2c. SPECIALIZED AGENTS: CoordinacionPago / AgenteComunicador (RNE.41 / RNE.53)
     # ------------------------------------------------------------
-    if agent_name in ["CoordinacionPago", "AgenteComunicador"]:
-        if agent_name == "CoordinacionPago":
-            sc22_text = scripts.get("SC.022", "Para asistirlo con el detalle de las tarifas y comisiones de su envío:")
-            translated = await translate_script_if_needed(sc22_text, user_text, contact_id=contact_id)
-            return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
+    if agent_name == "CoordinacionPago":
+        sc22_text = scripts.get("SC.022", "Para asistirlo con el detalle de las tarifas y comisiones de su envío:")
+        translated = await translate_script_if_needed(sc22_text, user_text, contact_id=contact_id)
+        return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
-        sc13_text = scripts.get("SC.013", "Lo transferiré con uno de nuestros asesores. Por favor espere un momento.")
-        translated = await translate_script_if_needed(sc13_text, user_text, contact_id=contact_id)
-        team = "Servicio al Cliente"
-        if agent_name == "DerivacionFraudes":
-            team = "DerivacionFraudes"
-        elif agent_name == "DerivacionBSA":
-            team = "DerivacionBSA"
-        elif agent_name == "AgenteComunicador":
-            team = "AgenteComunicador"
-            
+    if agent_name == "AgenteComunicador":
+        logger.info(f"📢 AgenteComunicador handling agency request for contact {contact_id}: '{user_text[:50]}'")
+        in_dept_hours = check_department_hours("SOPORTE_TECNICO", ct_now)
+        try:
+            from .google_chat_service import google_chat_service
+            target_space = (
+                os.getenv("GOOGLE_CHATS_SOPORTE_SPACE") or 
+                getattr(settings, "GOOGLE_CHATS_SOPORTE_SPACE", None) or 
+                "spaces/AAQAQhx5RTM"
+            )
+            await google_chat_service.send_unified_notification(
+                dept_key="SOPORTE_TECNICO",
+                contact_id=contact_id,
+                user_text=user_text,
+                nombre_usuario=parse_name_from_text(user_text) or None,
+                numero_agencia=parse_agency_from_text(user_text) or None,
+                media_url=media_url,
+                space_id=target_space,
+                custom_summary=f"Solicitud General de Agencia / Comunicación Interna: {user_text}",
+                is_out_of_hours=not in_dept_hours,
+                template_type="plantilla_2"
+            )
+            logger.info("✅ Google Chat AgenteComunicador general alert sent")
+        except Exception as err:
+            logger.error(f"Failed to send AgenteComunicador alert: {err}")
+
+        sc_code = "SC.011" if in_dept_hours else "SC.028"
+        sc_text = scripts.get(sc_code, sc11_default if in_dept_hours else sc28_default)
+        translated = await translate_script_if_needed(sc_text, user_text, contact_id=contact_id)
+        await clear_redis_session(redis, contact_id)
         return AgentInteractResponse(
             status="success",
             reply_text=translated,
-            derivacion=team
+            derivacion="cerrar"
         )
 
     # ------------------------------------------------------------

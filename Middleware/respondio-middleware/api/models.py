@@ -354,8 +354,10 @@ class BillCheckRequest(BaseModel):
     user_text: str = Field(..., description="Mensaje del usuario")
     contact_name: Optional[str] = Field(None, description="Nombre del contacto")
     tracking_number: Optional[str] = Field(None, description="Tracking number del bill payment")
+    codigo_envio: Optional[str] = Field(None, description="Alias de tracking number / código de pago")
     biller: Optional[str] = Field(None, description="Nombre del biller")
     nombre_completo_customer: Optional[str] = Field(None, description="Nombre completo del customer")
+    nombre_remitente: Optional[str] = Field(None, description="Alias de nombre del cliente/remitente")
     perfil: Optional[str] = Field(default="CLIENTE", description="Perfil del usuario (CLIENTE, BENEFICIARIO, AGENTE)")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Metadata adicional")
 
@@ -373,7 +375,8 @@ class BillCheckResponse(BaseModel):
 class CSATLogRequest(BaseModel):
     """Request structure for CSAT logging"""
     contact_id: str = Field(..., description="ID del contacto en Respond.io")
-    contact_name: str = Field(..., description="Nombre del contacto")
+    conversation_id: Optional[str] = Field(None, description="ID de la conversación en Respond.io")
+    contact_name: Optional[str] = Field("Cliente", description="Nombre del contacto")
     rating: int = Field(..., description="Calificación de la encuesta (1 al 5)")
     comment: Optional[str] = Field(None, description="Comentario o feedback del cliente")
     assigned_agent: Optional[str] = Field(None, description="Nombre del agente previo que atendió")
@@ -383,6 +386,7 @@ class CSATLogResponse(BaseModel):
     """Response structure for CSAT logging"""
     status: str = Field(..., description="Estado de la operación ('success' o 'error')")
     message: str = Field(..., description="Mensaje explicativo")
+    reply_text: Optional[str] = Field(None, description="Texto literal de despedida o seguimiento CSAT")
 
 
 class TopupCheckRequest(BaseModel):
@@ -391,6 +395,7 @@ class TopupCheckRequest(BaseModel):
     user_text: str = Field(..., description="Mensaje del usuario")
     contact_name: Optional[str] = Field(None, description="Nombre del contacto")
     transaction_id: Optional[str] = Field(None, description="ID de transacción / Folio de recarga")
+    codigo_envio: Optional[str] = Field(None, description="Alias de transaction_id / folio")
     customer_number: Optional[str] = Field(None, description="Número telefónico del cliente")
     cellular_number: Optional[str] = Field(None, description="Número telefónico destino de recarga")
     perfil: Optional[str] = Field(default="CLIENTE", description="Perfil del usuario (CLIENTE, BENEFICIARIO, AGENTE)")
