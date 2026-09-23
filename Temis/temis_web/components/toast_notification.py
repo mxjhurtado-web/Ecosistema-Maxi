@@ -57,5 +57,5 @@ def toast_notification() -> rx.Component:
             min_width="300px",
             transition="all 0.2s ease-in-out",
         ),
-        rx.box(),
+        rx.fragment(),
     )

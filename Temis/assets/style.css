@@ -109,11 +109,15 @@ input, textarea, select {
   background-color: var(--temis-surface-subtle) !important;
   border-color: var(--temis-border) !important;
   color: var(--temis-text-primary) !important;
+  pointer-events: auto !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 input:focus, textarea:focus, select:focus {
   border-color: var(--temis-accent-primary) !important;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
+  outline: none !important;
 }
 
 /* Hide "Built with Reflex" badge */

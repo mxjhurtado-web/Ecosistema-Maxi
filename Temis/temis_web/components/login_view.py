@@ -13,7 +13,7 @@ from temis_web.state import FlowState
 def login_view() -> rx.Component:
     """The enterprise login page component for TEMIS Work OS in dark executive slate."""
     return rx.box(
-        # Subtle ambient electric blue glows
+        # Subtle ambient electric blue glows (non-blocking)
         rx.box(
             style={
                 "position": "absolute",
@@ -24,7 +24,9 @@ def login_view() -> rx.Component:
                 "opacity": "0.12",
                 "top": "15%",
                 "left": "25%",
-                "z_index": "0"
+                "z_index": "0",
+                "pointer_events": "none",
+                "user_select": "none",
             }
         ),
         rx.box(
@@ -37,14 +39,16 @@ def login_view() -> rx.Component:
                 "opacity": "0.10",
                 "bottom": "15%",
                 "right": "25%",
-                "z_index": "0"
+                "z_index": "0",
+                "pointer_events": "none",
+                "user_select": "none",
             }
         ),
         
-        # Centered Login Card
+        # Centered Login Card with elevated interactive layer
         rx.center(
             rx.vstack(
-                rx.vstack(
+                rx.box(
                     # TEMIS Header & Logo
                     rx.vstack(
                         rx.hstack(
@@ -79,86 +83,94 @@ def login_view() -> rx.Component:
                         )
                     ),
 
-                    # Login Form
-                    rx.vstack(
-                        # Email Input
+                    # Login Form with Form Submit & Enter Key support
+                    rx.form(
                         rx.vstack(
-                            rx.hstack(
-                                rx.icon("mail", size=14, color="#94a3b8"),
-                                rx.text("Correo Electrónico Institucional", size="1", weight="bold", color="#94a3b8"),
-                                align="center",
-                                spacing="1"
-                            ),
-                            rx.input(
-                                placeholder="mxjhurtado@maxillc.com",
-                                value=FlowState.login_email,
-                                on_change=FlowState.set_login_email,
-                                type="email",
+                            # Email Input
+                            rx.vstack(
+                                rx.hstack(
+                                    rx.icon("mail", size=14, color="#94a3b8"),
+                                    rx.text("Correo Electrónico Institucional", size="1", weight="bold", color="#94a3b8"),
+                                    align="center",
+                                    spacing="1"
+                                ),
+                                rx.input(
+                                    name="email",
+                                    placeholder="mxjhurtado@maxillc.com",
+                                    value=FlowState.login_email,
+                                    on_change=FlowState.set_login_email,
+                                    type="email",
+                                    width="100%",
+                                    size="2",
+                                    variant="surface",
+                                    radius="medium",
+                                    auto_focus=True,
+                                ),
+                                align_items="start",
                                 width="100%",
-                                size="2",
-                                variant="surface",
-                                radius="medium",
+                                spacing="1",
                             ),
-                            align_items="start",
-                            width="100%",
-                            spacing="1",
-                        ),
-                        
-                        # Password Input
-                        rx.vstack(
-                            rx.hstack(
-                                rx.icon("lock", size=14, color="#94a3b8"),
-                                rx.text("Contraseña de Acceso", size="1", weight="bold", color="#94a3b8"),
-                                align="center",
-                                spacing="1"
-                            ),
-                            rx.input(
-                                placeholder="••••••••••••",
-                                value=FlowState.login_password,
-                                on_change=FlowState.set_login_password,
-                                type="password",
+                            
+                            # Password Input
+                            rx.vstack(
+                                rx.hstack(
+                                    rx.icon("lock", size=14, color="#94a3b8"),
+                                    rx.text("Contraseña de Acceso", size="1", weight="bold", color="#94a3b8"),
+                                    align="center",
+                                    spacing="1"
+                                ),
+                                rx.input(
+                                    name="password",
+                                    placeholder="••••••••••••",
+                                    value=FlowState.login_password,
+                                    on_change=FlowState.set_login_password,
+                                    type="password",
+                                    width="100%",
+                                    size="2",
+                                    variant="surface",
+                                    radius="medium",
+                                ),
+                                align_items="start",
                                 width="100%",
-                                size="2",
-                                variant="surface",
-                                radius="medium",
+                                spacing="1",
                             ),
-                            align_items="start",
-                            width="100%",
-                            spacing="1",
-                        ),
 
-                        # Submit Button
-                        rx.button(
+                            # Submit Button
+                            rx.button(
+                                rx.hstack(
+                                    rx.icon("log-in", size=16),
+                                    rx.text("Iniciar Sesión en TEMIS", weight="bold"),
+                                    align="center",
+                                    spacing="2"
+                                ),
+                                type="submit",
+                                loading=FlowState.is_logging_in,
+                                width="100%",
+                                size="3",
+                                color_scheme="blue",
+                                radius="medium",
+                                margin_top="12px",
+                                box_shadow="0 4px 14px 0 rgba(59, 130, 246, 0.35)",
+                                cursor="pointer",
+                            ),
+                            
+                            # Help footnote
                             rx.hstack(
-                                rx.icon("log-in", size=16),
-                                rx.text("Iniciar Sesión en TEMIS", weight="bold"),
+                                rx.icon("shield-check", size=13, color="#10b981"),
+                                rx.text(
+                                    "Autenticación centralizada y control de roles RBAC",
+                                    size="1",
+                                    color="#94a3b8"
+                                ),
                                 align="center",
-                                spacing="2"
+                                spacing="1",
+                                margin_top="16px"
                             ),
-                            on_click=FlowState.handle_login,
-                            loading=FlowState.is_logging_in,
+                            
+                            spacing="3",
                             width="100%",
-                            size="3",
-                            color_scheme="blue",
-                            radius="medium",
-                            margin_top="12px",
-                            box_shadow="0 4px 14px 0 rgba(59, 130, 246, 0.35)",
                         ),
-                        
-                        # Help footnote
-                        rx.hstack(
-                            rx.icon("shield-check", size=13, color="#10b981"),
-                            rx.text(
-                                "Autenticación centralizada y control de roles RBAC",
-                                size="1",
-                                color="#94a3b8"
-                            ),
-                            align="center",
-                            spacing="1",
-                            margin_top="16px"
-                        ),
-                        
-                        spacing="3",
+                        on_submit=FlowState.handle_login,
                         width="100%",
                     ),
                     
@@ -168,13 +180,16 @@ def login_view() -> rx.Component:
                     border="1px solid #1e293b",
                     border_radius="16px",
                     box_shadow="0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+                    position="relative",
+                    z_index="20",
                 ),
                 align="center",
                 width="100%",
             ),
             height="100vh",
             width="100vw",
-            z_index="10"
+            position="relative",
+            z_index="10",
         ),
         background_color="#0b0f17",
         width="100vw",

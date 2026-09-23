@@ -128,11 +128,18 @@ class FlowState(rx.State):
     def set_login_password(self, val: str):
         self.login_password = val
 
-    def handle_login(self):
+    def handle_login(self, form_data: dict = None):
         self.is_logging_in = True
         self.login_error_message = ""
         try:
             from backend.services.user_service import authenticate_user, load_users
+            if form_data and isinstance(form_data, dict):
+                email = form_data.get("email")
+                password = form_data.get("password")
+                if email:
+                    self.login_email = email
+                if password:
+                    self.login_password = password
             res = authenticate_user(self.login_email, self.login_password)
             if res and "error" not in res:
                 self.is_authenticated = True
