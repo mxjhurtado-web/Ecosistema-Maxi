@@ -257,8 +257,10 @@ class FlowState(rx.State):
                 self.users_list = load_users()
                 self.show_assign_projects_modal = False
                 self.status_message = f"{msg}"
+                self.trigger_toast("Asignación de proyectos actualizada", "success")
             else:
                 self.status_message = f"Error: {msg}"
+                self.trigger_toast(f"Error: {msg}", "error")
         except Exception as e:
             self.status_message = f"Error al guardar asignación: {str(e)}"
 
@@ -1068,6 +1070,7 @@ class FlowState(rx.State):
             self.project_pages[self.active_page_index]["swimlanes"] = list(self.swimlanes)
 
         self.status_message = f"Diagrama de Flujo generado con {len(self.nodes)} símbolos desde la Matriz SIPOC"
+        self.trigger_toast(f"Diagrama sincronizado ({len(self.nodes)} nodos generados)", "success")
         self.active_view = "flow"
 
     def complete_sipoc_with_ai(self):
@@ -1084,8 +1087,10 @@ class FlowState(rx.State):
             if res.get("rows"):
                 self.sipoc_rows = res["rows"]
                 self.status_message = f"Matriz SIPOC completada con {len(self.sipoc_rows)} pasos sugeridos"
+                self.trigger_toast("Matriz SIPOC completada con Gemini AI", "success")
         except Exception as e:
             self.status_message = f"Error al autocompletar SIPOC: {str(e)}"
+            self.trigger_toast(f"Error IA: {str(e)}", "error")
         finally:
             self.is_completing_sipoc = False
 
@@ -1101,12 +1106,14 @@ class FlowState(rx.State):
             )
             safe_name = self.project_name.replace(" ", "_")
             self.status_message = "Excel de Matriz SIPOC descargado exitosamente"
+            self.trigger_toast("Matriz SIPOC (.xlsx) descargada", "success")
             return rx.download(
                 data=stream.getvalue(),
                 filename=f"Matriz_SIPOC_{safe_name}.xlsx"
             )
         except Exception as e:
             self.status_message = f"Error al exportar Excel: {str(e)}"
+            self.trigger_toast("Error al exportar Excel", "error")
 
     # Narrative & Policy Manual State
     narrative_text: str = """# Manual de Procedimientos & Narrativa Oficial
@@ -1176,9 +1183,272 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         """Download narrative as Markdown/Text document"""
         safe_name = self.project_name.replace(" ", "_")
         self.status_message = "Manual de Procedimientos exportado (.md)"
+        self.trigger_toast("Manual de Procedimientos (.md) descargado", "success")
         return rx.download(
             data=self.narrative_text,
             filename=f"Manual_Procedimiento_{safe_name}.md"
+        )
+
+    def export_executive_charter_html(self):
+        """Generate and download a self-contained Executive Project One-Pager in HTML/Print-ready format"""
+        safe_name = self.project_name.replace(" ", "_")
+        
+        # Build SIPOC rows HTML
+        sipoc_html_rows = ""
+        for r in self.sipoc_rows:
+            sipoc_html_rows += f"""
+            <tr>
+                <td style="padding: 8px 12px; border: 1px solid #d7e0ea; font-weight: bold; text-align: center; color: #2563eb;">{r.get('step_num', '')}</td>
+                <td style="padding: 8px 12px; border: 1px solid #d7e0ea; color: #334155;">{r.get('provider', '')}</td>
+                <td style="padding: 8px 12px; border: 1px solid #d7e0ea; color: #334155;">{r.get('input', '')}</td>
+                <td style="padding: 8px 12px; border: 1px solid #d7e0ea; font-weight: 600; color: #0f172a;">{r.get('step', '')}</td>
+                <td style="padding: 8px 12px; border: 1px solid #d7e0ea; color: #334155;">{r.get('output', '')}</td>
+                <td style="padding: 8px 12px; border: 1px solid #d7e0ea; color: #334155;">{r.get('customer', '')}</td>
+            </tr>
+            """
+
+        # Build Sprints rows HTML
+        sprints_html = ""
+        for s in self.plan_sprints:
+            s_status = s.get('status', 'Planned')
+            badge_color = "#16a34a" if s_status in ["Completado", "Done"] else ("#2563eb" if s_status in ["In Progress", "En Progreso"] else "#64748b")
+            sprints_html += f"""
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #ffffff; border: 1px solid #d7e0ea; border-radius: 6px; margin-bottom: 6px;">
+                <div>
+                    <strong style="color: #0f172a;">{s.get('sprint_id', '')}</strong>: <span style="color: #475569;">{s.get('objective', '')}</span>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Periodo: {s.get('period', '')} · Hito: {s.get('milestone', '')}</div>
+                </div>
+                <span style="font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px; background: {badge_color}15; color: {badge_color}; border: 1px solid {badge_color}40;">
+                    {s_status}
+                </span>
+            </div>
+            """
+
+        html_content = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha Ejecutiva - {self.project_name} ({self.project_code})</title>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f6fa;
+            color: #17283c;
+            margin: 0;
+            padding: 32px 16px;
+        }}
+        .container {{
+            max-width: 960px;
+            margin: 0 auto;
+            background: #ffffff;
+            border: 1px solid #d7e0ea;
+            border-radius: 12px;
+            padding: 36px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        }}
+        .header-bar {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }}
+        .logo {{
+            font-size: 22px;
+            font-weight: 800;
+            color: #1d4ed8;
+            letter-spacing: -0.02em;
+        }}
+        .badge-code {{
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid #bfdbfe;
+        }}
+        .grid-2 {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }}
+        .card {{
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+        }}
+        .section-title {{
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 6px;
+        }}
+        .meta-row {{
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }}
+        .meta-label {{
+            color: #64748b;
+            font-weight: 500;
+        }}
+        .meta-val {{
+            color: #0f172a;
+            font-weight: 600;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 10px;
+        }}
+        th {{
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 700;
+            text-align: left;
+            padding: 8px 12px;
+            border: 1px solid #d7e0ea;
+        }}
+        .score-box {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-top: 24px;
+        }}
+        .score-num {{
+            font-size: 28px;
+            font-weight: 800;
+            color: #059669;
+        }}
+        @media print {{
+            body {{ background: #ffffff; padding: 0; }}
+            .container {{ border: none; box-shadow: none; padding: 0; }}
+            .no-print {{ display: none; }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-bar">
+            <div>
+                <div class="logo">TEMIS · Process Suite</div>
+                <div style="font-size: 12px; color: #64748b;">Ficha Ejecutiva Oficial & Project Charter</div>
+            </div>
+            <div style="text-align: right;">
+                <span class="badge-code">{self.project_code}</span>
+                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Generado el 22/09/2026</div>
+            </div>
+        </div>
+
+        <h1 style="font-size: 22px; color: #0f172a; margin-top: 0; margin-bottom: 8px;">{self.project_name}</h1>
+        <p style="font-size: 14px; color: #475569; line-height: 1.5; margin-bottom: 24px;">{self.project_purpose}</p>
+
+        <div class="grid-2">
+            <div class="card">
+                <div class="section-title">Datos Maestros & Responsables</div>
+                <div class="meta-row">
+                    <span class="meta-label">Dueño de Proyecto (PM):</span>
+                    <span class="meta-val">{self.project_manager}</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">Sponsor Directivo:</span>
+                    <span class="meta-val">{self.project_sponsor}</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">Fecha de Inicio:</span>
+                    <span class="meta-val">{self.start_date}</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">Fecha de Cierre:</span>
+                    <span class="meta-val">{self.end_date}</span>
+                </div>
+                <div class="meta-row">
+                    <span class="meta-label">Fase de Gobernanza:</span>
+                    <span class="meta-val">{self.phase_name}</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-title">Alcance & Requisitos</div>
+                <div style="font-size: 12px; margin-bottom: 8px;">
+                    <strong style="color: #16a34a;">Alcance Incluido (In Scope):</strong><br>
+                    <span style="color: #475569;">{self.scope_in}</span>
+                </div>
+                <div style="font-size: 12px; margin-bottom: 8px;">
+                    <strong style="color: #dc2626;">Fuera de Alcance (Out of Scope):</strong><br>
+                    <span style="color: #475569;">{self.scope_out}</span>
+                </div>
+                <div style="font-size: 12px;">
+                    <strong style="color: #2563eb;">Requisitos del Cliente:</strong><br>
+                    <span style="color: #475569;">{self.customer_requirements}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="section-title">Matriz SIPOC Resumida (Mapeo Six Sigma)</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px; text-align: center;">#</th>
+                        <th style="width: 18%;">Proveedores (S)</th>
+                        <th style="width: 18%;">Entradas (I)</th>
+                        <th style="width: 26%;">Proceso (P)</th>
+                        <th style="width: 18%;">Salidas (O)</th>
+                        <th style="width: 16%;">Clientes (C)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {sipoc_html_rows}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="section-title">Plan de Trabajo & Sprints Scrum</div>
+            {sprints_html}
+        </div>
+
+        <div class="score-box">
+            <div>
+                <div style="font-size: 16px; font-weight: bold; color: #065f46;">Certificación de Calidad Six Sigma (IA TEMIS)</div>
+                <div style="font-size: 12px; color: #047857; margin-top: 2px;">Auditoría automatizada de gobierno, completitud y trazabilidad de flujo.</div>
+            </div>
+            <div style="text-align: right;">
+                <div class="score-num">{self.audit_score} / 100</div>
+                <div style="font-size: 11px; font-weight: bold; color: #059669;">Nivel de Calidad Óptimo</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 32px; text-align: center;" class="no-print">
+            <button onclick="window.print()" style="background: #2563eb; color: #ffffff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer;">
+                Imprimir o Guardar como PDF
+            </button>
+        </div>
+    </div>
+</body>
+</html>"""
+
+        self.status_message = "Ficha Ejecutiva del Proyecto exportada exitosamente"
+        self.trigger_toast(f"Ficha Ejecutiva de '{self.project_name}' generada", "success")
+        return rx.download(
+            data=html_content,
+            filename=f"Ficha_Ejecutiva_{safe_name}.html"
         )
 
     
@@ -2466,8 +2736,14 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             new_list.insert(0, current_dict)
 
         self.saved_projects = new_list
-        self.auto_save_status = "Cambios Guardados"
+        try:
+            from datetime import datetime
+            self.last_saved_time = datetime.now().strftime("%H:%M")
+        except Exception:
+            self.last_saved_time = "12:00"
+        self.auto_save_status = f"Sincronizado {self.last_saved_time}"
         self.status_message = f"Proceso '{self.project_name}' guardado exitosamente ({now_str})"
+        self.trigger_toast(f"Proyecto '{self.project_name}' sincronizado con éxito", "success")
 
     def save_diagram(self):
         """Alias for save_current_project called from menu"""
@@ -2563,22 +2839,54 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         """Close recent projects modal"""
         self.show_recent_modal = False
 
+    # Toast Notification System State
+    show_toast: bool = False
+    toast_message: str = ""
+    toast_type: str = "success"
+
+    def trigger_toast(self, message: str, toast_type: str = "success"):
+        """Display a floating non-intrusive notification toast"""
+        self.toast_message = message
+        self.toast_type = toast_type
+        self.show_toast = True
+
+    def dismiss_toast(self):
+        """Close floating notification toast"""
+        self.show_toast = False
+
     # Connector Modal & Interactive Line Connection State
     show_connect_modal: bool = False
     connect_target_id: str = ""
     connect_label: str = ""
-    auto_save_status: str = "Cambios Guardados"
+    auto_save_status: str = "Sincronizado"
+    last_saved_time: str = "12:00"
 
     @rx.var
     def target_node_options(self) -> List[str]:
         """Return candidate target node option strings for connect modal"""
         return [f"{n['id']} - {n.get('label', '')}" for n in self.nodes if n["id"] != self.selected_node_id]
 
-    # AI Process Auditor State
+    # AI Process Auditor State & Quality Deltas
     show_audit_modal: bool = False
     is_auditing_ai: bool = False
     audit_score: int = 95
+    previous_audit_score: int = 92
+    last_audit_date: str = "22 Sep 2026, 12:00"
+    audit_rules_version: str = "v2.4 Six Sigma Enterprise"
     audit_findings: List[Dict[str, Any]] = []
+
+    @rx.var
+    def audit_score_delta(self) -> int:
+        return self.audit_score - self.previous_audit_score
+
+    @rx.var
+    def audit_score_delta_label(self) -> str:
+        delta = self.audit_score_delta
+        if delta > 0:
+            return f"+{delta} pts"
+        elif delta < 0:
+            return f"{delta} pts"
+        return "= pts"
 
     def set_connect_target_id(self, val: str):
         if " - " in str(val or ""):

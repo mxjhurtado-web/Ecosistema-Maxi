@@ -38,13 +38,24 @@ def project_charter() -> rx.Component:
                         radius="medium",
                     ),
                     rx.button(
+                        rx.icon("file-text", size=15),
+                        " Ficha Ejecutiva (PDF)",
+                        on_click=FlowState.export_executive_charter_html,
+                        color_scheme="blue",
+                        variant="soft",
+                        size="2",
+                        radius="medium",
+                        title="Exportar Ficha Ejecutiva oficial lista para imprimir o PDF",
+                    ),
+                    rx.button(
                         rx.icon("download", size=15),
-                        " Exportar Manual (.md)",
+                        " Manual (.md)",
                         on_click=FlowState.export_narrative_markdown,
                         color_scheme="gray",
                         variant="soft",
                         size="2",
                         radius="medium",
+                        title="Exportar Manual de Procedimientos en Markdown",
                     ),
                     rx.button(
                         rx.hstack(
@@ -60,6 +71,7 @@ def project_charter() -> rx.Component:
                         radius="medium",
                     ),
                     spacing="2",
+                    wrap="wrap",
                 ),
                 width="100%",
                 padding_y="3",

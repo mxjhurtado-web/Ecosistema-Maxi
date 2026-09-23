@@ -25,26 +25,58 @@ def audit_modal() -> rx.Component:
                 spacing="3",
             ),
             rx.vstack(
-                # Score Badge Header
-                rx.hstack(
-                    rx.badge(
-                        "Puntaje de Calidad: ", FlowState.audit_score.to(str), "/100",
-                        color_scheme=rx.cond(FlowState.audit_score >= 80, "green", rx.cond(FlowState.audit_score >= 60, "amber", "red")),
-                        variant="solid",
-                        size="3",
+                # Score Badge & Delta Header
+                rx.vstack(
+                    rx.hstack(
+                        rx.badge(
+                            "Puntaje de Calidad: ", FlowState.audit_score.to(str), "/100",
+                            color_scheme=rx.cond(FlowState.audit_score >= 80, "green", rx.cond(FlowState.audit_score >= 60, "amber", "red")),
+                            variant="solid",
+                            size="3",
+                        ),
+                        rx.badge(
+                            rx.hstack(
+                                rx.icon("trending-up", size=12, color="#16a34a"),
+                                rx.text(FlowState.audit_score_delta_label, " vs anterior"),
+                                align="center",
+                                spacing="1",
+                            ),
+                            color_scheme="green",
+                            variant="soft",
+                            size="2",
+                        ),
+                        rx.spacer(),
+                        rx.button(
+                            rx.icon("refresh-cw", size=14),
+                            " Re-Auditar",
+                            on_click=FlowState.run_ai_process_audit,
+                            loading=FlowState.is_auditing_ai,
+                            size="1",
+                            color_scheme="indigo",
+                            variant="soft",
+                        ),
+                        width="100%",
+                        align="center",
                     ),
-                    rx.spacer(),
-                    rx.button(
-                        rx.icon("refresh-cw", size=14),
-                        " Re-Auditar",
-                        on_click=FlowState.run_ai_process_audit,
-                        loading=FlowState.is_auditing_ai,
-                        size="1",
-                        color_scheme="indigo",
-                        variant="soft",
+                    rx.hstack(
+                        rx.hstack(
+                            rx.icon("calendar", size=12, color="#64748b"),
+                            rx.text("Evaluación: ", FlowState.last_audit_date, size="1", color="#64748b"),
+                            align="center",
+                            spacing="1",
+                        ),
+                        rx.text("·", size="1", color="#94a3b8"),
+                        rx.hstack(
+                            rx.icon("shield", size=12, color="#64748b"),
+                            rx.text("Reglas: ", FlowState.audit_rules_version, size="1", color="#64748b"),
+                            align="center",
+                            spacing="1",
+                        ),
+                        spacing="2",
+                        align="center",
                     ),
                     width="100%",
-                    align="center",
+                    spacing="2",
                     padding_y="2",
                 ),
                 # Findings List

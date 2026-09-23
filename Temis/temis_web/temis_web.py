@@ -25,6 +25,7 @@ from temis_web.components.governance_view import governance_view
 from temis_web.components.project_hub import project_hub
 from temis_web.components.login_view import login_view
 from temis_web.components.user_management_view import user_management_view
+from temis_web.components.toast_notification import toast_notification
 
 
 def workspace_view() -> rx.Component:
@@ -90,14 +91,19 @@ def hub_view() -> rx.Component:
 
 def index() -> rx.Component:
     """Main modern SaaS layout of TEMIS: Login, Hub (Portfolio/Users) or Workspace"""
-    return rx.cond(
-        ~FlowState.is_authenticated,
-        login_view(),
+    return rx.box(
+        toast_notification(),
         rx.cond(
-            FlowState.active_mode == "hub",
-            hub_view(),
-            workspace_view(),
+            ~FlowState.is_authenticated,
+            login_view(),
+            rx.cond(
+                FlowState.active_mode == "hub",
+                hub_view(),
+                workspace_view(),
+            ),
         ),
+        width="100%",
+        height="100vh",
     )
 
 
