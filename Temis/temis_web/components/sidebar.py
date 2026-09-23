@@ -4,6 +4,7 @@
 """
 Sidebar component for TEMIS Web Flow
 Navigation for the 7 framework phases
+Styled in Executive Light Slate Theme (WCAG 2.2 AA compliant).
 """
 
 import reflex as rx
@@ -21,14 +22,14 @@ PHASES_DATA = [
 
 
 def phase_item(phase: dict) -> rx.Component:
-    """Single phase sidebar item in dark theme"""
+    """Single phase sidebar item in light slate theme"""
     is_active = FlowState.current_phase == phase["num"]
     return rx.box(
         rx.hstack(
-            rx.icon(phase["icon"], size=18, color=rx.cond(is_active, "#38bdf8", "#94a3b8")),
+            rx.icon(phase["icon"], size=18, color=rx.cond(is_active, "#1e5a9a", "#52657a")),
             rx.vstack(
-                rx.text(f"Fase {phase['num']}", size="1", weight="bold", color=rx.cond(is_active, "#38bdf8", "#94a3b8")),
-                rx.text(phase["name"], size="2", weight="medium", color=rx.cond(is_active, "#f8fafc", "#cbd5e1")),
+                rx.text(f"Fase {phase['num']}", size="1", weight="bold", color=rx.cond(is_active, "#1e5a9a", "#52657a")),
+                rx.text(phase["name"], size="2", weight="medium", color=rx.cond(is_active, "#17283c", "#52657a")),
                 spacing="0",
             ),
             spacing="3",
@@ -37,19 +38,19 @@ def phase_item(phase: dict) -> rx.Component:
         padding_x="3",
         padding_y="2.5",
         border_radius="md",
-        background_color=rx.cond(is_active, "rgba(59, 130, 246, 0.15)", "transparent"),
-        border_left=rx.cond(is_active, "3px solid #3b82f6", "3px solid transparent"),
+        background_color=rx.cond(is_active, "rgba(30, 90, 154, 0.12)", "transparent"),
+        border_left=rx.cond(is_active, "3px solid #1e5a9a", "3px solid transparent"),
         cursor="pointer",
         on_click=lambda: FlowState.set_phase(phase["num"]),
-        _hover={"background_color": "#1e293b"},
+        _hover={"background_color": "#d9e2ec"},
         width="100%",
     )
 
 
 def sidebar() -> rx.Component:
-    """Left sidebar component in dark theme"""
+    """Left sidebar component in light slate theme"""
     return rx.vstack(
-        rx.text("MARCO DE GOBERNANZA", size="1", weight="bold", color="#94a3b8", padding_x="3", padding_top="2"),
+        rx.text("MARCO DE GOBERNANZA", size="1", weight="bold", color="#52657a", padding_x="3", padding_top="2"),
         rx.vstack(
             *[phase_item(p) for p in PHASES_DATA],
             spacing="1",
@@ -57,7 +58,7 @@ def sidebar() -> rx.Component:
         ),
         rx.divider(color_scheme="gray", margin_y="3"),
         rx.vstack(
-            rx.text("ACCIONES DE LIENZO", size="1", weight="bold", color="#94a3b8", padding_x="3"),
+            rx.text("ACCIONES DE LIENZO", size="1", weight="bold", color="#52657a", padding_x="3"),
             rx.button(
                 rx.icon("trash-2", size=16),
                 " Limpiar Lienzo",
@@ -73,8 +74,8 @@ def sidebar() -> rx.Component:
         ),
         width="240px",
         height="calc(100vh - 65px)",
-        background_color="#0f172a",
-        border_right="1px solid #1e293b",
+        background_color="#eaf0f6",
+        border_right="1px solid #d9e2ec",
         padding="3",
         spacing="3",
     )

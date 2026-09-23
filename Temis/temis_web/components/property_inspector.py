@@ -4,6 +4,7 @@
 """
 Right Property Inspector Component for TEMIS Web Flow
 Contextual side panel for editing selected node properties, routing, and connections
+Styled in Executive Light Slate Theme (WCAG 2.2 AA compliant).
 """
 
 import reflex as rx
@@ -16,8 +17,8 @@ def property_inspector() -> rx.Component:
     active_inspector = rx.vstack(
         # Inspector Header
         rx.hstack(
-            rx.icon("sliders-horizontal", size=15, color="#3b82f6"),
-            rx.text(f"Nodo: ", FlowState.selected_node_id, size="2", weight="bold", color="#f8fafc"),
+            rx.icon("sliders-horizontal", size=15, color="#1e5a9a"),
+            rx.text(f"Nodo: ", FlowState.selected_node_id, size="2", weight="bold", color="#17283c"),
             rx.spacer(),
             rx.button(
                 rx.icon("x", size=13),
@@ -30,17 +31,18 @@ def property_inspector() -> rx.Component:
             width="100%",
             align="center",
             padding_bottom="2",
-            border_bottom="1px solid #1e293b",
+            border_bottom="1px solid #d9e2ec",
         ),
         # Label / Text Field
         rx.vstack(
-            rx.text("Texto del Nodo:", size="1", weight="bold", color="#94a3b8"),
+            rx.text("Texto del Nodo:", size="1", weight="bold", color="#52657a"),
             rx.text_area(
                 value=FlowState.node_label_edit,
                 on_change=FlowState.set_selected_node_label,
                 size="1",
                 width="100%",
                 rows="2",
+                variant="surface",
             ),
             align="start",
             spacing="1",
@@ -48,7 +50,7 @@ def property_inspector() -> rx.Component:
         ),
         # Swimlane / Carril
         rx.vstack(
-            rx.text("Carril / Actor (Swimlane):", size="1", weight="bold", color="#94a3b8"),
+            rx.text("Carril / Actor (Swimlane):", size="1", weight="bold", color="#52657a"),
             rx.input(
                 value=FlowState.node_swimlane_edit,
                 on_change=FlowState.set_selected_node_swimlane,
@@ -62,7 +64,7 @@ def property_inspector() -> rx.Component:
         ),
         # Attached System
         rx.vstack(
-            rx.text("Sistema Asignado:", size="1", weight="bold", color="#94a3b8"),
+            rx.text("Sistema Asignado:", size="1", weight="bold", color="#52657a"),
             rx.select(
                 ["", "Chronos ERP", "Freshdesk", "Base de Datos", "Servicio Web"],
                 value=FlowState.selected_node_system,
@@ -76,7 +78,7 @@ def property_inspector() -> rx.Component:
         ),
         # Attached Channel
         rx.vstack(
-            rx.text("Canal de Comunicación:", size="1", weight="bold", color="#94a3b8"),
+            rx.text("Canal de Comunicación:", size="1", weight="bold", color="#52657a"),
             rx.select(
                 ["", "WhatsApp", "Bria", "Correo / Formulario", "Presencial"],
                 value=FlowState.selected_node_channel,
@@ -105,7 +107,7 @@ def property_inspector() -> rx.Component:
         ),
         # Position Nudge Control
         rx.vstack(
-            rx.text("Reposicionar en Lienzo:", size="1", weight="bold", color="#94a3b8"),
+            rx.text("Reposicionar en Lienzo:", size="1", weight="bold", color="#52657a"),
             rx.vstack(
                 rx.button(rx.icon("arrow-up", size=13), on_click=lambda: FlowState.move_selected_node(0, -30), size="1", variant="soft", color_scheme="gray"),
                 rx.hstack(
@@ -138,7 +140,7 @@ def property_inspector() -> rx.Component:
                 rx.icon("trash-2", size=13),
                 "Eliminar",
                 on_click=FlowState.delete_selected_node,
-                color_scheme="red",
+                color_scheme="ruby",
                 variant="soft",
                 size="1",
                 flex="1",
@@ -154,23 +156,23 @@ def property_inspector() -> rx.Component:
     # Empty State View (When no node is clicked)
     empty_inspector = rx.vstack(
         rx.hstack(
-            rx.icon("info", size=15, color="#94a3b8"),
-            rx.text("Resumen del Lienzo", size="2", weight="bold", color="#f8fafc"),
+            rx.icon("info", size=15, color="#52657a"),
+            rx.text("Resumen del Lienzo", size="2", weight="bold", color="#17283c"),
             align="center",
             spacing="2",
             padding_bottom="2",
-            border_bottom="1px solid #1e293b",
+            border_bottom="1px solid #d9e2ec",
             width="100%",
         ),
         rx.vstack(
             rx.hstack(
-                rx.text("Nodos en hoja:", size="1", color="#94a3b8"),
+                rx.text("Nodos en hoja:", size="1", color="#52657a"),
                 rx.spacer(),
                 rx.badge(FlowState.nodes.length().to(str), color_scheme="blue", variant="soft", size="1"),
                 width="100%",
             ),
             rx.hstack(
-                rx.text("Conectores:", size="1", color="#94a3b8"),
+                rx.text("Conectores:", size="1", color="#52657a"),
                 rx.spacer(),
                 rx.badge(FlowState.edges.length().to(str), color_scheme="indigo", variant="soft", size="1"),
                 width="100%",
@@ -181,18 +183,18 @@ def property_inspector() -> rx.Component:
         ),
         rx.box(
             rx.hstack(
-                rx.icon("info", size=13, color="#94a3b8"),
+                rx.icon("info", size=13, color="#52657a"),
                 rx.text(
                     "Haz clic en cualquier símbolo del lienzo para editar sus propiedades, sistemas o conectores.",
                     size="1",
-                    color="#94a3b8",
+                    color="#52657a",
                     line_height="1.4",
                 ),
                 align="start",
                 spacing="2",
             ),
-            background_color="#131b2e",
-            border="1px dashed #1e293b",
+            background_color="#f8fafc",
+            border="1px dashed #d9e2ec",
             border_radius="md",
             padding="2.5",
             width="100%",
@@ -210,7 +212,7 @@ def property_inspector() -> rx.Component:
         ),
         width="260px",
         height="100%",
-        background_color="#0f172a",
-        border_left="1px solid #1e293b",
+        background_color="#ffffff",
+        border_left="1px solid #d9e2ec",
         overflow_y="auto",
     )

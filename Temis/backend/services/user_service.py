@@ -122,6 +122,13 @@ def load_users() -> List[Dict[str, Any]]:
             with open(USERS_FILE, "r", encoding="utf-8") as f:
                 raw_users = json.load(f)
                 
+        # Ensure seed PM Ana Martínez is safely present in directory
+        if not any(u.get("email", "").strip().lower() == "ana.martinez@maxillc.com" for u in raw_users):
+            ana = next((s for s in SEED_USERS if s["email"] == "ana.martinez@maxillc.com"), None)
+            if ana:
+                raw_users.insert(1, dict(ana))
+                save_users(raw_users)
+
         # Normalize fields: clean old emojis, ensure initials, assigned_projects, is_global_access and assigned_projects_display
         changed = False
         for u in raw_users:

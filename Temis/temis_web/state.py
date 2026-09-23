@@ -183,10 +183,18 @@ class FlowState(rx.State):
     assign_user_projects: List[str] = []
     new_user_assigned_projects: List[str] = ["all"]
 
+    show_delete_user_modal: bool = False
+    user_to_delete_email: str = ""
+    user_to_delete_name: str = ""
+    user_to_delete_role: str = ""
+    user_to_delete_department: str = ""
+    user_to_delete_projects: str = ""
+
     show_delete_project_modal: bool = False
     project_to_delete_id: str = ""
     project_to_delete_name: str = ""
     project_to_delete_code: str = ""
+    is_workspace_dirty: bool = False
 
     @rx.var
     def available_project_options(self) -> List[Dict[str, str]]:
@@ -383,20 +391,49 @@ class FlowState(rx.State):
         except Exception as e:
             self.status_message = f"Error: {str(e)}"
 
-    def delete_user_action(self, email: str):
+    def open_delete_user_modal(self, email: str):
         if email.strip().lower() == self.user_email.strip().lower():
-            self.status_message = "No es posible eliminar tu propia cuenta Super Admin en sesión."
+            self.status_message = "No es posible eliminar tu propia cuenta Super Admin en sesión activa."
+            self.trigger_toast("No puedes eliminar tu propia cuenta en sesión", "warning")
+            return
+        user = next((u for u in self.users_list if u.get("email", "").strip().lower() == email.strip().lower()), None)
+        if not user:
+            self.status_message = f"No se encontró el usuario '{email}'"
+            return
+        self.user_to_delete_email = user.get("email", "")
+        self.user_to_delete_name = user.get("name", "")
+        self.user_to_delete_role = user.get("role_label", user.get("role", "Colaborador"))
+        self.user_to_delete_department = user.get("department", "General")
+        self.user_to_delete_projects = user.get("assigned_projects_display", "PRJ-TEMIS")
+        self.show_delete_user_modal = True
+
+    def close_delete_user_modal(self):
+        self.show_delete_user_modal = False
+        self.user_to_delete_email = ""
+        self.user_to_delete_name = ""
+
+    def confirm_delete_user(self):
+        if not self.user_to_delete_email:
+            self.show_delete_user_modal = False
             return
         try:
             from backend.services.user_service import delete_user, load_users
-            ok, msg = delete_user(email)
+            ok, msg = delete_user(self.user_to_delete_email)
             if ok:
                 self.users_list = load_users()
-                self.status_message = f"{msg}"
+                self.status_message = msg
+                self.trigger_toast(f"Usuario {self.user_to_delete_name} eliminado", "info")
             else:
                 self.status_message = f"Error: {msg}"
+                self.trigger_toast(msg, "error")
         except Exception as e:
             self.status_message = f"Error: {str(e)}"
+        finally:
+            self.show_delete_user_modal = False
+            self.user_to_delete_email = ""
+
+    def delete_user_action(self, email: str):
+        self.open_delete_user_modal(email)
 
     # Navigation Mode: "hub" (Level 1 Monday.com Portfolio) or "workspace" (Level 2 Modeling Suite)
     active_mode: str = "hub"
@@ -635,7 +672,7 @@ class FlowState(rx.State):
             "role": "Backend Dev (FastAPI)",
             "priority": "Alta",
             "deliverable": "Drive Service & Sheets API",
-            "status": "En Progreso"
+            "status": "Completado"
         },
         {
             "item_id": "7",
@@ -2310,12 +2347,15 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.load_saved_project(proj_id)
         self.active_mode = "workspace"
         self.active_view = "charter"  # Clear landing on Charter view for consistent onboarding & context
+        self.is_workspace_dirty = False
         self.auto_save_status = "Sincronizado"
         self.status_message = f"Espacio de trabajo abierto: {self.project_name}"
 
     def return_to_hub(self):
         """Save changes and return to Level 1 Hub"""
-        self.save_current_project()
+        if getattr(self, "is_workspace_dirty", False):
+            self.save_current_project()
+            self.is_workspace_dirty = False
         self.active_mode = "hub"
         self.status_message = "Regresaste al Hub de Portafolio"
 
@@ -2705,9 +2745,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "drive_folder_id": self.drive_folder_id or existing.get("drive_folder_id", ""),
             "drive_folder_url": self.drive_folder_url or existing.get("drive_folder_url", ""),
             "sheet_id": self.sheet_id or existing.get("sheet_id", ""),
-            "sheet_url": self.sheet_url or existing.get("sheet_url", ""),
-            "current_sprint": self.plan_sprints[0]["sprint_id"] if self.plan_sprints else existing.get("current_sprint", "Sprint 01"),
-            "current_sprint_name": self.plan_sprints[0].get("modules", "General") if self.plan_sprints else existing.get("current_sprint_name", "Operaciones"),
+            "current_sprint": next((s["sprint_id"] for s in self.plan_sprints if s.get("status") in ["En Progreso", "In Progress", "Activo"]), existing.get("current_sprint", (self.plan_sprints[-1]["sprint_id"] if self.plan_sprints else "Sprint 04"))),
+            "current_sprint_name": next((s.get("modules", "General") for s in self.plan_sprints if s.get("status") in ["En Progreso", "In Progress", "Activo"]), existing.get("current_sprint_name", (self.plan_sprints[-1].get("modules", "General") if self.plan_sprints else "Integraciones"))),
             "progress_percentage": prog_pct,
             "completed_sp": completed_sp,
             "total_sp": total_sp,

@@ -75,7 +75,7 @@ def workspace_view() -> rx.Component:
             height="100vh",
             spacing="0",
         ),
-        background_color="#0b0f17",
+        background_color="#f3f6fa",
         font_family="Inter, sans-serif",
     )
 
@@ -104,14 +104,14 @@ def index() -> rx.Component:
         ),
         width="100%",
         height="100vh",
-        background_color="#0b0f17",
+        background_color="#f3f6fa",
         font_family="Inter, sans-serif",
     )
 
 
 app = rx.App(
     theme=rx.theme(
-        appearance="dark",
+        appearance="light",
         accent_color="blue",
         gray_color="slate",
         radius="medium",

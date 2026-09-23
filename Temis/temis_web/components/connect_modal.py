@@ -4,6 +4,7 @@
 """
 Connect Nodes Modal Component for TEMIS Web Flow
 Allows users to interactively draw SVG Bézier connections between shapes
+Styled in Executive Light Slate Theme (WCAG 2.2 AA compliant).
 """
 
 import reflex as rx
@@ -11,13 +12,13 @@ from temis_web.state import FlowState
 
 
 def connect_modal() -> rx.Component:
-    """Dialog modal to interactively connect selected node to a target node in dark executive slate"""
+    """Dialog modal to interactively connect selected node to a target node in light slate theme"""
     return rx.dialog.root(
         rx.dialog.content(
             rx.dialog.title(
                 rx.hstack(
-                    rx.icon("link", size=20, color="#38bdf8"),
-                    rx.text("Conectar Nodo a Destino", size="4", weight="bold", color="#f8fafc"),
+                    rx.icon("link", size=20, color="#1e5a9a"),
+                    rx.text("Conectar Nodo a Destino", size="4", weight="bold", color="#17283c"),
                     align="center",
                     spacing="2",
                 ),
@@ -25,17 +26,17 @@ def connect_modal() -> rx.Component:
             rx.dialog.description(
                 "Establece una línea de conexión Bézier y una etiqueta de decisión:",
                 size="2",
-                color="#94a3b8",
+                color="#52657a",
             ),
             rx.vstack(
                 rx.vstack(
-                    rx.text("Nodo de Origen:", size="2", weight="bold", color="#94a3b8"),
+                    rx.text("Nodo de Origen:", size="2", weight="bold", color="#52657a"),
                     rx.badge(FlowState.selected_node_id, color_scheme="blue", variant="soft", size="2"),
                     align="start",
                     spacing="1",
                 ),
                 rx.vstack(
-                    rx.text("Selecciona el Nodo Destino:", size="2", weight="bold", color="#94a3b8"),
+                    rx.text("Selecciona el Nodo Destino:", size="2", weight="bold", color="#52657a"),
                     rx.select(
                         FlowState.target_node_options,
                         placeholder="Elegir nodo destino...",
@@ -47,7 +48,7 @@ def connect_modal() -> rx.Component:
                     width="100%",
                 ),
                 rx.vstack(
-                    rx.text("Etiqueta del Conector (Opcional):", size="2", weight="bold", color="#94a3b8"),
+                    rx.text("Etiqueta del Conector (Opcional):", size="2", weight="bold", color="#52657a"),
                     rx.input(
                         placeholder="ej: Sí, No, Válido, Aprobado, Reintentar...",
                         value=FlowState.connect_label,
@@ -82,8 +83,8 @@ def connect_modal() -> rx.Component:
             width="460px",
             border_radius="xl",
             padding="5",
-            background_color="#0f172a",
-            border="1px solid #1e293b",
+            background_color="#ffffff",
+            border="1px solid #d9e2ec",
         ),
         open=FlowState.show_connect_modal,
         on_open_change=FlowState.close_connect_modal,

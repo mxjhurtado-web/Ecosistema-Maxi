@@ -4,6 +4,7 @@
 """
 Project Charter & Official Process Narrative Component for TEMIS Web Flow
 Manages project master data, objectives, scope, and AI-generated policy & procedure manuals.
+Styled in Executive Light Slate Theme (WCAG 2.2 AA compliant).
 """
 
 import reflex as rx
@@ -17,10 +18,10 @@ def project_charter() -> rx.Component:
             # Top Banner
             rx.hstack(
                 rx.hstack(
-                    rx.icon("file-text", size=24, color="#3b82f6"),
+                    rx.icon("file-text", size=24, color="#1e5a9a"),
                     rx.vstack(
-                        rx.text("Ficha del Proyecto & Narrativa Oficial", size="4", weight="bold", color="#f8fafc"),
-                        rx.text("Datos maestros, propósito del proceso y manual de procedimientos en texto corrido", size="2", color="#94a3b8"),
+                        rx.text("Ficha del Proyecto & Narrativa Oficial", size="4", weight="bold", color="#17283c"),
+                        rx.text("Datos maestros, propósito del proceso y manual de procedimientos en texto corrido", size="2", color="#52657a"),
                         spacing="0",
                     ),
                     align="center",
@@ -75,54 +76,54 @@ def project_charter() -> rx.Component:
                 ),
                 width="100%",
                 padding_y="3",
-                border_bottom="1px solid #1e293b",
+                border_bottom="1px solid #d9e2ec",
                 align="center",
             ),
 
-            # 4-Step Operational Workflow Roadmap (P21)
+            # 4-Step Operational Workflow Roadmap
             rx.box(
                 rx.hstack(
                     rx.hstack(
                         rx.box(
                             rx.text("1", size="1", weight="bold", color="#ffffff"),
-                            width="20px", height="20px", border_radius="full", background_color="#2563eb",
+                            width="20px", height="20px", border_radius="full", background_color="#1e5a9a",
                             display="flex", align_items="center", justify_content="center",
                         ),
-                        rx.text("1. Ficha Charter (Actual)", size="1", weight="bold", color="#38bdf8"),
+                        rx.text("1. Ficha Charter (Actual)", size="1", weight="bold", color="#1e5a9a"),
                         align="center", spacing="1",
                     ),
-                    rx.icon("chevron-right", size=14, color="#475569"),
+                    rx.icon("chevron-right", size=14, color="#94a3b8"),
                     rx.hstack(
                         rx.box(
-                            rx.text("2", size="1", weight="bold", color="#94a3b8"),
-                            width="20px", height="20px", border_radius="full", background_color="#0f172a",
+                            rx.text("2", size="1", weight="bold", color="#52657a"),
+                            width="20px", height="20px", border_radius="full", background_color="#e2e8f0",
                             display="flex", align_items="center", justify_content="center",
                         ),
-                        rx.text("2. Plan & Sprints", size="1", weight="medium", color="#94a3b8"),
+                        rx.text("2. Plan & Sprints", size="1", weight="medium", color="#52657a"),
                         on_click=lambda: FlowState.set_active_view("plan"),
                         cursor="pointer",
                         align="center", spacing="1",
                     ),
-                    rx.icon("chevron-right", size=14, color="#475569"),
+                    rx.icon("chevron-right", size=14, color="#94a3b8"),
                     rx.hstack(
                         rx.box(
-                            rx.text("3", size="1", weight="bold", color="#94a3b8"),
-                            width="20px", height="20px", border_radius="full", background_color="#0f172a",
+                            rx.text("3", size="1", weight="bold", color="#52657a"),
+                            width="20px", height="20px", border_radius="full", background_color="#e2e8f0",
                             display="flex", align_items="center", justify_content="center",
                         ),
-                        rx.text("3. Modelado BPMN / SIPOC", size="1", weight="medium", color="#94a3b8"),
+                        rx.text("3. Modelado BPMN / SIPOC", size="1", weight="medium", color="#52657a"),
                         on_click=lambda: FlowState.set_active_view("flow"),
                         cursor="pointer",
                         align="center", spacing="1",
                     ),
-                    rx.icon("chevron-right", size=14, color="#475569"),
+                    rx.icon("chevron-right", size=14, color="#94a3b8"),
                     rx.hstack(
                         rx.box(
-                            rx.text("4", size="1", weight="bold", color="#94a3b8"),
-                            width="20px", height="20px", border_radius="full", background_color="#0f172a",
+                            rx.text("4", size="1", weight="bold", color="#52657a"),
+                            width="20px", height="20px", border_radius="full", background_color="#e2e8f0",
                             display="flex", align_items="center", justify_content="center",
                         ),
-                        rx.text("4. Gobernanza & Calidad", size="1", weight="medium", color="#94a3b8"),
+                        rx.text("4. Gobernanza & Calidad", size="1", weight="medium", color="#52657a"),
                         on_click=lambda: FlowState.set_active_view("governance"),
                         cursor="pointer",
                         align="center", spacing="1",
@@ -134,10 +135,10 @@ def project_charter() -> rx.Component:
                 ),
                 padding_x="4",
                 padding_y="2.5",
-                background_color="#131b2e",
-                border="1px solid #1e293b",
+                background_color="#ffffff",
+                border="1px solid #d9e2ec",
                 border_radius="8px",
-                box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.4)",
+                box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
                 width="100%",
             ),
             
@@ -147,31 +148,33 @@ def project_charter() -> rx.Component:
                 rx.box(
                     rx.vstack(
                         rx.hstack(
-                            rx.icon("briefcase", size=18, color="#3b82f6"),
-                            rx.text("Datos Maestros del Proyecto", size="3", weight="bold", color="#f8fafc"),
+                            rx.icon("briefcase", size=18, color="#1e5a9a"),
+                            rx.text("Datos Maestros del Proyecto", size="3", weight="bold", color="#17283c"),
                             align="center",
                             spacing="2",
                         ),
                         rx.vstack(
-                            rx.text("Nombre del Proyecto / Proceso:", size="1", weight="bold", color="#94a3b8"),
+                            rx.text("Nombre del Proyecto / Proceso:", size="1", weight="bold", color="#52657a"),
                             rx.input(
                                 value=FlowState.project_name,
                                 on_change=FlowState.set_project_name,
                                 width="100%",
                                 size="2",
+                                variant="surface",
                                 radius="medium",
                             ),
                             width="100%",
                             spacing="1",
                         ),
                         rx.vstack(
-                            rx.text("Propósito / Objetivo (\"¿Para qué es?\"):", size="1", weight="bold", color="#94a3b8"),
+                            rx.text("Propósito / Objetivo (\"¿Para qué es?\"):", size="1", weight="bold", color="#52657a"),
                             rx.text_area(
                                 value=FlowState.project_purpose,
                                 on_change=FlowState.set_project_purpose,
                                 width="100%",
                                 rows="3",
                                 size="2",
+                                variant="surface",
                                 radius="medium",
                             ),
                             width="100%",
@@ -179,24 +182,26 @@ def project_charter() -> rx.Component:
                         ),
                         rx.hstack(
                             rx.vstack(
-                                rx.text("Líder del Proyecto (PM):", size="1", weight="bold", color="#94a3b8"),
+                                rx.text("Líder del Proyecto (PM):", size="1", weight="bold", color="#52657a"),
                                 rx.input(
                                     value=FlowState.project_manager,
                                     on_change=FlowState.set_project_manager,
                                     width="100%",
                                     size="2",
+                                    variant="surface",
                                     radius="medium",
                                 ),
                                 width="50%",
                                 spacing="1",
                             ),
                             rx.vstack(
-                                rx.text("Patrocinador (Sponsor):", size="1", weight="bold", color="#94a3b8"),
+                                rx.text("Patrocinador (Sponsor):", size="1", weight="bold", color="#52657a"),
                                 rx.input(
                                     value=FlowState.project_sponsor,
                                     on_change=FlowState.set_project_sponsor,
                                     width="100%",
                                     size="2",
+                                    variant="surface",
                                     radius="medium",
                                 ),
                                 width="50%",
@@ -207,24 +212,26 @@ def project_charter() -> rx.Component:
                         ),
                         rx.hstack(
                             rx.vstack(
-                                rx.text("Fecha Inicio:", size="1", weight="bold", color="#94a3b8"),
+                                rx.text("Fecha Inicio:", size="1", weight="bold", color="#52657a"),
                                 rx.input(
                                     value=FlowState.start_date,
                                     on_change=FlowState.set_start_date,
                                     width="100%",
                                     size="2",
+                                    variant="surface",
                                     radius="medium",
                                 ),
                                 width="50%",
                                 spacing="1",
                             ),
                             rx.vstack(
-                                rx.text("Fecha Entrega Final:", size="1", weight="bold", color="#94a3b8"),
+                                rx.text("Fecha Entrega Final:", size="1", weight="bold", color="#52657a"),
                                 rx.input(
                                     value=FlowState.end_date,
                                     on_change=FlowState.set_end_date,
                                     width="100%",
                                     size="2",
+                                    variant="surface",
                                     radius="medium",
                                 ),
                                 width="50%",
@@ -234,26 +241,28 @@ def project_charter() -> rx.Component:
                             spacing="3",
                         ),
                         rx.vstack(
-                            rx.text("Alcance Incluido (In Scope):", size="1", weight="bold", color="#94a3b8"),
+                            rx.text("Alcance Incluido (In Scope):", size="1", weight="bold", color="#52657a"),
                             rx.text_area(
                                 value=FlowState.scope_in,
                                 on_change=FlowState.set_scope_in,
                                 width="100%",
                                 rows="2",
                                 size="2",
+                                variant="surface",
                                 radius="medium",
                             ),
                             width="100%",
                             spacing="1",
                         ),
                         rx.vstack(
-                            rx.text("Fuera de Alcance (Out of Scope):", size="1", weight="bold", color="#94a3b8"),
+                            rx.text("Fuera de Alcance (Out of Scope):", size="1", weight="bold", color="#52657a"),
                             rx.text_area(
                                 value=FlowState.scope_out,
                                 on_change=FlowState.set_scope_out,
                                 width="100%",
                                 rows="2",
                                 size="2",
+                                variant="surface",
                                 radius="medium",
                             ),
                             width="100%",
@@ -264,11 +273,11 @@ def project_charter() -> rx.Component:
                     ),
                     width="40%",
                     min_width="380px",
-                    background_color="#131b2e",
-                    border="1px solid #1e293b",
+                    background_color="#ffffff",
+                    border="1px solid #d9e2ec",
                     border_radius="10px",
                     padding="4",
-                    box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)",
+                    box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
                 ),
 
                 # Right Panel: Official Procedure Manual & Narrative
@@ -276,8 +285,8 @@ def project_charter() -> rx.Component:
                     rx.vstack(
                         rx.hstack(
                             rx.hstack(
-                                rx.icon("book-open", size=18, color="#10b981"),
-                                rx.text("Manual de Políticas y Procedimientos (Narrativa Oficial)", size="3", weight="bold", color="#f8fafc"),
+                                rx.icon("book-open", size=18, color="#107c41"),
+                                rx.text("Manual de Políticas y Procedimientos (Narrativa Oficial)", size="3", weight="bold", color="#17283c"),
                                 align="center",
                                 spacing="2",
                             ),
@@ -295,9 +304,10 @@ def project_charter() -> rx.Component:
                                 rx.box(
                                     rx.markdown(FlowState.narrative_text),
                                     padding="4",
-                                    background_color="#0f172a",
-                                    border="1px solid #1e293b",
+                                    background_color="#f8fafc",
+                                    border="1px solid #d9e2ec",
                                     border_radius="6px",
+                                    color="#17283c",
                                     height="calc(100vh - 270px)",
                                     overflow_y="auto",
                                 ),
@@ -313,6 +323,7 @@ def project_charter() -> rx.Component:
                                         font_family="monospace",
                                         font_size="13px",
                                         size="3",
+                                        variant="surface",
                                         radius="medium",
                                     ),
                                     padding_top="2",
@@ -327,11 +338,11 @@ def project_charter() -> rx.Component:
                     ),
                     width="60%",
                     flex="1",
-                    background_color="#131b2e",
-                    border="1px solid #1e293b",
+                    background_color="#ffffff",
+                    border="1px solid #d9e2ec",
                     border_radius="10px",
                     padding="4",
-                    box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)",
+                    box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
                 ),
                 width="100%",
                 height="calc(100vh - 165px)",
@@ -346,5 +357,5 @@ def project_charter() -> rx.Component:
         width="100%",
         height="100%",
         overflow="hidden",
-        background_color="#0b0f17",
+        background_color="#f3f6fa",
     )

@@ -19,13 +19,13 @@ def nav_item(label: str, icon_name: str, view_value: str, badge_text: str = "") 
             rx.icon(
                 icon_name,
                 size=16,
-                color=rx.cond(is_active, "#38bdf8", "#94a3b8"),
+                color=rx.cond(is_active, "#1e5a9a", "#52657a"),
             ),
             rx.text(
                 label,
                 size="2",
                 weight=rx.cond(is_active, "bold", "medium"),
-                color=rx.cond(is_active, "#f8fafc", "#94a3b8"),
+                color=rx.cond(is_active, "#17283c", "#52657a"),
             ),
             rx.spacer(),
             rx.cond(
@@ -41,18 +41,18 @@ def nav_item(label: str, icon_name: str, view_value: str, badge_text: str = "") 
         padding_x="3",
         padding_y="2",
         border_radius="8px",
-        background_color=rx.cond(is_active, "rgba(59, 130, 246, 0.15)", "transparent"),
-        border=rx.cond(is_active, "1px solid rgba(59, 130, 246, 0.35)", "1px solid transparent"),
+        background_color=rx.cond(is_active, "#ffffff", "transparent"),
+        border=rx.cond(is_active, "1px solid #c9d6e3", "1px solid transparent"),
+        box_shadow=rx.cond(is_active, "0 1px 2px 0 rgba(0, 0, 0, 0.05)", "none"),
         cursor="pointer",
         role="button",
         tab_index=0,
         width="100%",
         _hover={
-            "background_color": rx.cond(is_active, "rgba(59, 130, 246, 0.2)", "rgba(255, 255, 255, 0.04)"),
-            "border_color": rx.cond(is_active, "rgba(59, 130, 246, 0.4)", "rgba(255, 255, 255, 0.08)"),
+            "background_color": rx.cond(is_active, "#ffffff", "#dce5ee"),
         },
         _focus_visible={
-            "outline": "2px solid #3b82f6",
+            "outline": "2px solid #1e5a9a",
             "outline_offset": "2px",
         },
         transition="all 0.15s ease",
@@ -60,7 +60,7 @@ def nav_item(label: str, icon_name: str, view_value: str, badge_text: str = "") 
 
 
 def workspace_sidebar() -> rx.Component:
-    """Left navigation sidebar for Level 2 Workspace"""
+    """Left navigation sidebar for Level 2 Workspace in Executive Light Slate"""
     return rx.box(
         rx.vstack(
             # 1. Back to Portfolio Navigation Header
@@ -79,18 +79,18 @@ def workspace_sidebar() -> rx.Component:
                     radius="medium",
                 ),
                 rx.spacer(),
-                rx.badge("Workspace", color_scheme="indigo", variant="surface", size="1"),
+                rx.badge("Workspace", color_scheme="blue", variant="surface", size="1"),
                 width="100%",
                 align="center",
                 padding_bottom="2",
-                border_bottom="1px solid #1e293b",
+                border_bottom="1px solid #d9e2ec",
             ),
 
             # 2. Active Project Context Box
             rx.box(
                 rx.vstack(
                     rx.hstack(
-                        rx.badge(FlowState.project_code, color_scheme="indigo", variant="solid", size="1"),
+                        rx.badge(FlowState.project_code, color_scheme="blue", variant="solid", size="1"),
                         rx.spacer(),
                         rx.badge(
                             FlowState.phase_name,
@@ -105,15 +105,15 @@ def workspace_sidebar() -> rx.Component:
                         FlowState.project_name,
                         size="2",
                         weight="bold",
-                        color="#f8fafc",
+                        color="#17283c",
                         max_width="100%",
                         overflow="hidden",
                         text_overflow="ellipsis",
                         white_space="nowrap",
                     ),
                     rx.hstack(
-                        rx.icon("user", size=12, color="#94a3b8"),
-                        rx.text(FlowState.project_manager, size="1", color="#94a3b8"),
+                        rx.icon("user", size=12, color="#52657a"),
+                        rx.text(FlowState.project_manager, size="1", color="#52657a"),
                         align="center",
                         spacing="1",
                     ),
@@ -121,10 +121,10 @@ def workspace_sidebar() -> rx.Component:
                     width="100%",
                 ),
                 padding="3",
-                background_color="#131b2e",
-                border="1px solid #1e293b",
+                background_color="#ffffff",
+                border="1px solid #d9e2ec",
                 border_radius="8px",
-                box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.4)",
+                box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.05)",
                 width="100%",
             ),
 
@@ -132,7 +132,7 @@ def workspace_sidebar() -> rx.Component:
             rx.vstack(
                 # Group 1: Definición & Planificación
                 rx.vstack(
-                    rx.text("DEFINICIÓN & PLAN", size="1", weight="bold", color="#64748b", letter_spacing="0.05em"),
+                    rx.text("DEFINICIÓN & PLAN", size="1", weight="bold", color="#8295a9", letter_spacing="0.05em"),
                     nav_item("Ficha del Proyecto", "file-text", "charter"),
                     nav_item("Plan & Backlog Scrum", "calendar-range", "plan"),
                     spacing="1",
@@ -141,7 +141,7 @@ def workspace_sidebar() -> rx.Component:
 
                 # Group 2: Modelado de Procesos
                 rx.vstack(
-                    rx.text("MODELADO DE PROCESOS", size="1", weight="bold", color="#64748b", letter_spacing="0.05em"),
+                    rx.text("MODELADO DE PROCESOS", size="1", weight="bold", color="#8295a9", letter_spacing="0.05em"),
                     nav_item("Diagrama de Flujo (BPMN)", "network", "flow"),
                     nav_item("Matriz SIPOC Tabular", "table-2", "sipoc"),
                     spacing="1",
@@ -150,12 +150,12 @@ def workspace_sidebar() -> rx.Component:
 
                 # Group 3: Gobernanza & Calidad
                 rx.vstack(
-                    rx.text("GOBERNANZA & CALIDAD", size="1", weight="bold", color="#64748b", letter_spacing="0.05em"),
+                    rx.text("GOBERNANZA & CALIDAD", size="1", weight="bold", color="#8295a9", letter_spacing="0.05em"),
                     nav_item("Metodología 7 Fases", "layers", "governance"),
                     rx.box(
                         rx.hstack(
-                            rx.icon("shield-check", size=16, color="#a855f7"),
-                            rx.text("Auditoría IA (0-100)", size="2", weight="medium", color="#c084fc"),
+                            rx.icon("shield-check", size=16, color="#7c3aed"),
+                            rx.text("Auditoría IA (0-100)", size="2", weight="medium", color="#6d28d9"),
                             rx.spacer(),
                             rx.badge("Six Sigma", color_scheme="purple", variant="soft", size="1"),
                             align="center",
@@ -166,11 +166,11 @@ def workspace_sidebar() -> rx.Component:
                         padding_x="3",
                         padding_y="2",
                         border_radius="8px",
-                        background_color="rgba(139, 92, 246, 0.12)",
-                        border="1px solid rgba(139, 92, 246, 0.3)",
+                        background_color="#ede9fe",
+                        border="1px solid #ddd6fe",
                         cursor="pointer",
                         width="100%",
-                        _hover={"background_color": "rgba(139, 92, 246, 0.2)"},
+                        _hover={"background_color": "#e0e7ff"},
                     ),
                     spacing="1",
                     width="100%",
@@ -252,10 +252,10 @@ def workspace_sidebar() -> rx.Component:
         min_width="240px",
         max_width="240px",
         height="100vh",
-        background_color="#0f172a",
-        border_right="1px solid #1e293b",
+        background_color="#eaf0f6",
+        border_right="1px solid #d9e2ec",
         padding="3",
-        box_shadow="1px 0 3px 0 rgba(0, 0, 0, 0.4)",
+        box_shadow="1px 0 3px 0 rgba(0, 0, 0, 0.05)",
         display="flex",
         flex_direction="column",
     )

@@ -4,6 +4,7 @@
 """
 SIPOC Matrix Component for TEMIS Web Flow
 Six Sigma Tabular Process Mapping with Bidirectional Synchronization to Flowchart Canvas
+Styled in Executive Light Slate Theme with expansive column widths and smooth horizontal scroll.
 """
 
 import reflex as rx
@@ -11,13 +12,13 @@ from temis_web.state import FlowState
 
 
 def render_sipoc_row(row: rx.Var[dict]) -> rx.Component:
-    """Render a single interactive SIPOC step row"""
+    """Render a single interactive SIPOC step row with generous column widths"""
     return rx.table.row(
         # Step Number (1.0, 2.0...)
         rx.table.cell(
             rx.badge(row["step_num"], color_scheme="blue", variant="solid", size="1"),
             align="center",
-            width="60px",
+            width="50px",
         ),
         # S: Suppliers / Proveedores
         rx.table.cell(
@@ -25,12 +26,13 @@ def render_sipoc_row(row: rx.Var[dict]) -> rx.Component:
                 value=row["provider"],
                 on_change=lambda val: FlowState.update_sipoc_provider(row["id"], val),
                 size="1",
-                variant="soft",
+                variant="surface",
                 radius="small",
                 placeholder="ej. Usuario / Cliente",
                 width="100%",
             ),
-            width="17%",
+            width="180px",
+            min_width="160px",
         ),
         # I: Inputs / Entradas
         rx.table.cell(
@@ -38,12 +40,13 @@ def render_sipoc_row(row: rx.Var[dict]) -> rx.Component:
                 value=row["input"],
                 on_change=lambda val: FlowState.update_sipoc_input(row["id"], val),
                 size="1",
-                variant="soft",
+                variant="surface",
                 radius="small",
                 placeholder="ej. Folio vía WhatsApp",
                 width="100%",
             ),
-            width="17%",
+            width="180px",
+            min_width="160px",
         ),
         # P: Process / Proceso (1.0..N)
         rx.table.cell(
@@ -56,7 +59,8 @@ def render_sipoc_row(row: rx.Var[dict]) -> rx.Component:
                 placeholder="ej. 1.0 Consulta en Chronos",
                 width="100%",
             ),
-            width="22%",
+            width="260px",
+            min_width="220px",
         ),
         # O: Outputs / Salidas
         rx.table.cell(
@@ -64,12 +68,13 @@ def render_sipoc_row(row: rx.Var[dict]) -> rx.Component:
                 value=row["output"],
                 on_change=lambda val: FlowState.update_sipoc_output(row["id"], val),
                 size="1",
-                variant="soft",
+                variant="surface",
                 radius="small",
                 placeholder="ej. Estatus confirmado",
                 width="100%",
             ),
-            width="17%",
+            width="180px",
+            min_width="160px",
         ),
         # C: Customer / Cliente
         rx.table.cell(
@@ -77,12 +82,13 @@ def render_sipoc_row(row: rx.Var[dict]) -> rx.Component:
                 value=row["customer"],
                 on_change=lambda val: FlowState.update_sipoc_customer(row["id"], val),
                 size="1",
-                variant="soft",
+                variant="surface",
                 radius="small",
                 placeholder="ej. Agente / Chronos",
                 width="100%",
             ),
-            width="14%",
+            width="160px",
+            min_width="140px",
         ),
         # Actions: Delete row
         rx.table.cell(
@@ -106,10 +112,10 @@ def sipoc_matrix() -> rx.Component:
             # Top Toolbar & Pipeline Dispatches
             rx.hstack(
                 rx.hstack(
-                    rx.icon("table-properties", size=24, color="#38bdf8"),
+                    rx.icon("table-properties", size=24, color="#1e5a9a"),
                     rx.vstack(
-                        rx.text("Matriz SIPOC Six Sigma", size="4", weight="bold", color="#f8fafc"),
-                        rx.text("Mapeo estructurado: Proveedores -> Entradas -> Proceso -> Salidas -> Clientes", size="2", color="#94a3b8"),
+                        rx.text("Matriz SIPOC Six Sigma", size="4", weight="bold", color="#17283c"),
+                        rx.text("Mapeo estructurado: Proveedores -> Entradas -> Proceso -> Salidas -> Clientes", size="2", color="#52657a"),
                         spacing="0",
                     ),
                     align="center",
@@ -158,7 +164,7 @@ def sipoc_matrix() -> rx.Component:
                 ),
                 width="100%",
                 padding_y="3",
-                border_bottom="1px solid #1e293b",
+                border_bottom="1px solid #d9e2ec",
                 align="center",
                 wrap="wrap",
             ),
@@ -169,12 +175,12 @@ def sipoc_matrix() -> rx.Component:
                     rx.table.root(
                         rx.table.header(
                             rx.table.row(
-                                rx.table.column_header_cell("#", width="60px", align="center"),
-                                rx.table.column_header_cell("S · PROVEEDORES (Suppliers)", width="17%"),
-                                rx.table.column_header_cell("I · ENTRADAS (Inputs)", width="17%"),
-                                rx.table.column_header_cell("P · PROCESO (Process 1.0..N)", width="22%"),
-                                rx.table.column_header_cell("O · SALIDAS (Outputs)", width="17%"),
-                                rx.table.column_header_cell("C · CLIENTES (Customers)", width="14%"),
+                                rx.table.column_header_cell("#", width="50px", align="center"),
+                                rx.table.column_header_cell("S · PROVEEDORES (Suppliers)", width="180px"),
+                                rx.table.column_header_cell("I · ENTRADAS (Inputs)", width="180px"),
+                                rx.table.column_header_cell("P · PROCESO (Process 1.0..N)", width="260px"),
+                                rx.table.column_header_cell("O · SALIDAS (Outputs)", width="180px"),
+                                rx.table.column_header_cell("C · CLIENTES (Customers)", width="160px"),
                                 rx.table.column_header_cell("", width="50px", align="center"),
                             ),
                         ),
@@ -182,7 +188,7 @@ def sipoc_matrix() -> rx.Component:
                             rx.foreach(FlowState.sipoc_rows, render_sipoc_row),
                         ),
                         width="100%",
-                        min_width="760px",
+                        min_width="980px",
                         variant="surface",
                         size="2",
                     ),
@@ -190,11 +196,11 @@ def sipoc_matrix() -> rx.Component:
                     width="100%",
                 ),
                 width="100%",
-                background_color="#131b2e",
-                border="1px solid #1e293b",
+                background_color="#ffffff",
+                border="1px solid #d9e2ec",
                 border_radius="10px",
                 padding="3",
-                box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)",
+                box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
                 max_height="calc(100vh - 290px)",
                 overflow_y="auto",
             ),
@@ -203,8 +209,8 @@ def sipoc_matrix() -> rx.Component:
             rx.box(
                 rx.vstack(
                     rx.hstack(
-                        rx.icon("circle-check", size=16, color="#f59e0b"),
-                        rx.text("Requisitos del Cliente & Notas de Calidad (Customer Requirements)", size="2", weight="bold", color="#fcd34d"),
+                        rx.icon("circle-check", size=16, color="#107c41"),
+                        rx.text("Requisitos del Cliente & Notas de Calidad (Customer Requirements)", size="2", weight="bold", color="#17283c"),
                         align="center",
                         spacing="2",
                     ),
@@ -214,15 +220,15 @@ def sipoc_matrix() -> rx.Component:
                         placeholder="ej. SLA de respuesta < 5 min, trazabilidad en Chronos y confirmación de satisfacción...",
                         width="100%",
                         size="2",
-                        variant="soft",
+                        variant="surface",
                         radius="medium",
                     ),
                     width="100%",
                     spacing="1",
                 ),
                 width="100%",
-                background_color="rgba(245, 158, 11, 0.12)",
-                border="1px solid rgba(245, 158, 11, 0.3)",
+                background_color="#f8fafc",
+                border="1px solid #d9e2ec",
                 border_radius="8px",
                 padding="3",
             ),
@@ -235,5 +241,5 @@ def sipoc_matrix() -> rx.Component:
         width="100%",
         height="100%",
         overflow="hidden",
-        background_color="#0b0f17",
+        background_color="#f3f6fa",
     )

@@ -4,6 +4,7 @@
 """
 Governance & 7-Phase Methodology Component for TEMIS Web Flow
 Visual tracking of project phases, key deliverables, gates, and AI quality auditing.
+Styled in Executive Light Slate Theme (WCAG 2.2 AA compliant).
 """
 
 import reflex as rx
@@ -19,7 +20,7 @@ PHASE_LIST = [
         "deliverables": ["Ficha de Diagnóstico", "Matriz de Interesados", "Justificación de Negocio"],
         "gate_criteria": "Aprobación de oportunidad y factibilidad inicial.",
         "icon": "search",
-        "color": "#3b82f6"
+        "color": "#1e5a9a"
     },
     {
         "num": 2,
@@ -29,7 +30,7 @@ PHASE_LIST = [
         "deliverables": ["Project Charter Oficial", "Matriz SIPOC Inicial", "Asignación RACI"],
         "gate_criteria": "Charter firmado y alcance preliminar delimitado.",
         "icon": "play",
-        "color": "#6366f1"
+        "color": "#4f46e5"
     },
     {
         "num": 3,
@@ -39,7 +40,7 @@ PHASE_LIST = [
         "deliverables": ["Diagrama BPMN Multi-Pestaña", "Backlog Scrum Técnico", "Matriz de Riesgos"],
         "gate_criteria": "Plan de trabajo desglosado en Sprints y estimación de SP.",
         "icon": "calendar",
-        "color": "#8b5cf6"
+        "color": "#7c3aed"
     },
     {
         "num": 4,
@@ -49,7 +50,7 @@ PHASE_LIST = [
         "deliverables": ["Manual de Políticas y Procedimientos", "Servicios Backend / UI", "Daily Logs (EOD)"],
         "gate_criteria": "Entregables del sprint completados y documentados.",
         "icon": "code",
-        "color": "#06b6d4"
+        "color": "#0891b2"
     },
     {
         "num": 5,
@@ -59,7 +60,7 @@ PHASE_LIST = [
         "deliverables": ["Auditoría IA de Calidad (0-100)", "Reporte de Cumplimiento SLA", "Pruebas UAT"],
         "gate_criteria": "Score de calidad Six Sigma >= 80 y sin bloqueos P0.",
         "icon": "shield-check",
-        "color": "#10b981"
+        "color": "#107c41"
     },
     {
         "num": 6,
@@ -69,7 +70,7 @@ PHASE_LIST = [
         "deliverables": ["Plan de Ajustes Kaizen", "Encuesta de Satisfacción", "Métricas Operativas"],
         "gate_criteria": "Retroalimentación recopilada y plan de optimización activo.",
         "icon": "trending-up",
-        "color": "#f59e0b"
+        "color": "#b76e00"
     },
     {
         "num": 7,
@@ -79,13 +80,13 @@ PHASE_LIST = [
         "deliverables": ["Acta de Cierre Aprobada", "Paquete .temis.json Exportado", "Lecciones Aprendidas"],
         "gate_criteria": "Acta de cierre firmada y archivo respaldado en Drive.",
         "icon": "circle-check",
-        "color": "#ec4899"
+        "color": "#db2777"
     }
 ]
 
 
 def render_phase_card(p: dict) -> rx.Component:
-    """Render a single methodology phase card with operational governance tracking (T16)"""
+    """Render a single methodology phase card with operational governance tracking"""
     is_active = FlowState.current_phase == p["num"]
     is_past = FlowState.current_phase > p["num"]
     return rx.box(
@@ -93,7 +94,7 @@ def render_phase_card(p: dict) -> rx.Component:
             rx.hstack(
                 rx.hstack(
                     rx.icon(p["icon"], size=18, color=p["color"]),
-                    rx.text(p["name"], size="2", weight="bold", color="#f8fafc"),
+                    rx.text(p["name"], size="2", weight="bold", color="#17283c"),
                     rx.cond(
                         is_active,
                         rx.badge(rx.hstack(rx.icon("star", size=10), rx.text("Fase Activa"), align="center", spacing="1"), color_scheme="green", variant="solid", size="1"),
@@ -113,7 +114,7 @@ def render_phase_card(p: dict) -> rx.Component:
                     rx.button(
                         "Activar Fase",
                         on_click=lambda: FlowState.set_phase(p["num"]),
-                        color_scheme="purple",
+                        color_scheme="blue",
                         variant="soft",
                         size="1",
                         radius="small",
@@ -122,20 +123,20 @@ def render_phase_card(p: dict) -> rx.Component:
                 width="100%",
                 align="center",
             ),
-            rx.text(p["desc"], size="1", color="#94a3b8"),
+            rx.text(p["desc"], size="1", color="#52657a"),
             rx.hstack(
                 rx.hstack(
-                    rx.icon("user-check", size=13, color="#818cf8"),
-                    rx.text("Responsable: ", size="1", weight="bold", color="#94a3b8"),
-                    rx.text(p["owner"], size="1", color="#818cf8", weight="medium"),
+                    rx.icon("user-check", size=13, color="#4f46e5"),
+                    rx.text("Responsable: ", size="1", weight="bold", color="#52657a"),
+                    rx.text(p["owner"], size="1", color="#4f46e5", weight="medium"),
                     spacing="1",
                     align="center",
                 ),
                 rx.spacer(),
                 rx.hstack(
-                    rx.icon("git-commit-horizontal", size=13, color="#34d399"),
-                    rx.text("Criterio Gate: ", size="1", weight="bold", color="#94a3b8"),
-                    rx.text(p["gate_criteria"], size="1", color="#34d399"),
+                    rx.icon("git-commit-horizontal", size=13, color="#107c41"),
+                    rx.text("Criterio Gate: ", size="1", weight="bold", color="#52657a"),
+                    rx.text(p["gate_criteria"], size="1", color="#107c41", weight="medium"),
                     spacing="1",
                     align="center",
                 ),
@@ -145,7 +146,7 @@ def render_phase_card(p: dict) -> rx.Component:
             ),
             rx.divider(color_scheme="gray", opacity=0.15),
             rx.hstack(
-                rx.text("Entregables & Evidencia Requerida:", size="1", weight="bold", color="#94a3b8"),
+                rx.text("Entregables & Evidencia Requerida:", size="1", weight="bold", color="#52657a"),
                 rx.spacer(),
                 rx.hstack(
                     *[
@@ -157,7 +158,7 @@ def render_phase_card(p: dict) -> rx.Component:
                                 spacing="1",
                             ),
                             color_scheme="gray",
-                            variant="soft",
+                            variant="surface",
                             size="1",
                         ) for d in p["deliverables"]
                     ],
@@ -171,11 +172,11 @@ def render_phase_card(p: dict) -> rx.Component:
             width="100%",
             spacing="2",
         ),
-        background_color=rx.cond(is_active, "rgba(16, 185, 129, 0.12)", "#131b2e"),
-        border=rx.cond(is_active, "1px solid rgba(16, 185, 129, 0.4)", "1px solid #1e293b"),
+        background_color=rx.cond(is_active, "#f0fdf4", "#ffffff"),
+        border=rx.cond(is_active, "1px solid #86efac", "1px solid #d9e2ec"),
         border_radius="10px",
         padding="3.5",
-        box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)",
+        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
         width="100%",
     )
 
@@ -187,10 +188,10 @@ def governance_view() -> rx.Component:
             # Header
             rx.hstack(
                 rx.hstack(
-                    rx.icon("layers", size=24, color="#a855f7"),
+                    rx.icon("layers", size=24, color="#1e5a9a"),
                     rx.vstack(
-                        rx.text("Gobernanza & Metodología de 7 Fases", size="4", weight="bold", color="#f8fafc"),
-                        rx.text("Ciclo de vida corporativo de procesos, control de entregables y auditoría de calidad", size="2", color="#94a3b8"),
+                        rx.text("Gobernanza & Metodología de 7 Fases", size="4", weight="bold", color="#17283c"),
+                        rx.text("Ciclo de vida corporativo de procesos, control de entregables y auditoría de calidad", size="2", color="#52657a"),
                         spacing="0",
                     ),
                     align="center",
@@ -217,7 +218,7 @@ def governance_view() -> rx.Component:
                 ),
                 width="100%",
                 padding_y="3",
-                border_bottom="1px solid #1e293b",
+                border_bottom="1px solid #d9e2ec",
                 align="center",
             ),
 
@@ -241,5 +242,5 @@ def governance_view() -> rx.Component:
         width="100%",
         height="100%",
         overflow="hidden",
-        background_color="#0b0f17",
+        background_color="#f3f6fa",
     )

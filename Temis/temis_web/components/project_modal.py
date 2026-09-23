@@ -4,6 +4,7 @@
 """
 Saved Flows & Projects Catalog Modal Component for TEMIS Web Flow
 Dialog to browse, search, open, export and manage saved process flows
+Styled in Executive Light Slate Theme (WCAG 2.2 AA compliant).
 """
 
 import reflex as rx
@@ -11,21 +12,21 @@ from temis_web.state import FlowState
 
 
 def render_saved_project_card(proj: rx.Var[dict]) -> rx.Component:
-    """Render a single saved flow/project card in the catalog in dark theme"""
+    """Render a single saved flow/project card in the catalog in light slate theme"""
     return rx.box(
         rx.vstack(
             rx.hstack(
                 rx.vstack(
                     rx.hstack(
-                        rx.icon("network", size=16, color="#38bdf8"),
-                        rx.text(proj["name"], size="3", weight="bold", color="#f8fafc"),
+                        rx.icon("network", size=16, color="#1e5a9a"),
+                        rx.text(proj["name"], size="3", weight="bold", color="#17283c"),
                         align="center",
                         spacing="2",
                     ),
                     rx.text(
                         proj["purpose"],
                         size="1",
-                        color="#94a3b8",
+                        color="#52657a",
                         max_width="440px",
                         overflow="hidden",
                         text_overflow="ellipsis",
@@ -66,7 +67,7 @@ def render_saved_project_card(proj: rx.Var[dict]) -> rx.Component:
                 width="100%",
                 align="center",
             ),
-            rx.divider(),
+            rx.divider(color_scheme="gray", opacity=0.15),
             rx.hstack(
                 rx.badge(
                     "Fase ", proj["current_phase"],
@@ -88,8 +89,8 @@ def render_saved_project_card(proj: rx.Var[dict]) -> rx.Component:
                 ),
                 rx.spacer(),
                 rx.hstack(
-                    rx.icon("calendar", size=12, color="#94a3b8"),
-                    rx.text(proj["updated_at"], size="1", color="#94a3b8"),
+                    rx.icon("calendar", size=12, color="#52657a"),
+                    rx.text(proj["updated_at"], size="1", color="#52657a"),
                     align="center",
                     spacing="1",
                 ),
@@ -100,31 +101,31 @@ def render_saved_project_card(proj: rx.Var[dict]) -> rx.Component:
             width="100%",
         ),
         padding="3",
-        background_color="#131b2e",
-        border="1px solid #1e293b",
+        background_color="#f8fafc",
+        border="1px solid #d9e2ec",
         border_radius="8px",
         width="100%",
         _hover={
-            "border_color": "#3b82f6",
-            "box_shadow": "0 4px 12px 0 rgba(0, 0, 0, 0.4)",
+            "border_color": "#1e5a9a",
+            "box_shadow": "0 4px 12px 0 rgba(0, 0, 0, 0.08)",
         },
     )
 
 
 def recent_projects_modal() -> rx.Component:
-    """Dialog modal to browse and manage saved projects catalog in dark executive slate"""
+    """Dialog modal to browse and manage saved projects catalog in executive light slate"""
     return rx.dialog.root(
         rx.dialog.content(
             rx.vstack(
                 # Modal Header
                 rx.hstack(
-                    rx.icon("folder-git-2", size=22, color="#38bdf8"),
+                    rx.icon("folder-git-2", size=22, color="#1e5a9a"),
                     rx.vstack(
-                        rx.dialog.title("Catálogo de Flujos & Proyectos Guardados", size="4", weight="bold", color="#f8fafc"),
+                        rx.dialog.title("Catálogo de Flujos & Proyectos Guardados", size="4", weight="bold", color="#17283c"),
                         rx.dialog.description(
                             "Explora, abre y gestiona los procesos documentados en TEMIS",
                             size="2",
-                            color="#94a3b8",
+                            color="#52657a",
                         ),
                         spacing="0",
                     ),
@@ -161,8 +162,8 @@ def recent_projects_modal() -> rx.Component:
                         ),
                         rx.box(
                             rx.vstack(
-                                rx.icon("folder-open", size=32, color="#64748b"),
-                                rx.text("No se encontraron flujos guardados con ese criterio.", size="2", color="#94a3b8"),
+                                rx.icon("folder-open", size=32, color="#8295a9"),
+                                rx.text("No se encontraron flujos guardados con ese criterio.", size="2", color="#52657a"),
                                 align="center",
                                 spacing="2",
                             ),
@@ -203,8 +204,8 @@ def recent_projects_modal() -> rx.Component:
             max_width="95vw",
             border_radius="xl",
             padding="5",
-            background_color="#0f172a",
-            border="1px solid #1e293b",
+            background_color="#ffffff",
+            border="1px solid #d9e2ec",
         ),
         open=FlowState.show_recent_modal,
         on_open_change=FlowState.close_recent_modal,

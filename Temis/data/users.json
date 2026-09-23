@@ -7,10 +7,14 @@
     "role": "super_admin",
     "role_label": "Super Admin",
     "department": "Dirección General & Tecnología",
-    "assigned_projects": ["all"],
+    "assigned_projects": [
+      "all"
+    ],
     "status": "active",
     "created_at": "2026-01-16",
-    "last_login": "2026-09-23 01:12"
+    "last_login": "2026-09-23 01:12",
+    "is_global_access": true,
+    "assigned_projects_display": "Acceso Global"
   },
   {
     "email": "ana.martinez@maxillc.com",
@@ -20,10 +24,15 @@
     "role": "project_manager",
     "role_label": "Dueño de Proyecto (PM)",
     "department": "Operaciones & Procesos",
-    "assigned_projects": ["PRJ-TEMIS", "PRJ-X"],
+    "assigned_projects": [
+      "PRJ-TEMIS",
+      "PRJ-X"
+    ],
     "status": "active",
     "created_at": "2026-02-01",
-    "last_login": "2026-09-17 10:30"
+    "last_login": "2026-09-23 09:48",
+    "is_global_access": false,
+    "assigned_projects_display": "PRJ-TEMIS, PRJ-X"
   },
   {
     "email": "carlos.lopez@maxillc.com",
@@ -33,10 +42,14 @@
     "role": "analyst",
     "role_label": "Analista de Procesos",
     "department": "Ingeniería de Software",
-    "assigned_projects": ["PRJ-TEMIS"],
+    "assigned_projects": [
+      "PRJ-TEMIS"
+    ],
     "status": "active",
     "created_at": "2026-02-15",
-    "last_login": "2026-09-18 09:15"
+    "last_login": "2026-09-18 09:15",
+    "is_global_access": false,
+    "assigned_projects_display": "PRJ-TEMIS"
   },
   {
     "email": "laura.torres@maxillc.com",
@@ -46,9 +59,14 @@
     "role": "qa_auditor",
     "role_label": "Auditor QA / Six Sigma",
     "department": "Calidad & Gobernanza",
-    "assigned_projects": ["PRJ-TEMIS", "PRJ-X"],
+    "assigned_projects": [
+      "PRJ-TEMIS",
+      "PRJ-X"
+    ],
     "status": "active",
     "created_at": "2026-03-01",
-    "last_login": "2026-09-16 16:45"
+    "last_login": "2026-09-16 16:45",
+    "is_global_access": false,
+    "assigned_projects_display": "PRJ-TEMIS, PRJ-X"
   }
 ]

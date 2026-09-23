@@ -4,6 +4,7 @@
 """
 Flowchart Canvas Component for TEMIS Web Flow
 High-performance SVG and CSS canvas for Swimlanes, Nodes, and Bézier Connectors
+Styled in Executive Light Slate Theme (WCAG 2.2 AA compliant).
 """
 
 import reflex as rx
@@ -13,24 +14,24 @@ from temis_web.components.import_modal import import_modal
 
 
 def render_node(node: rx.Var) -> rx.Component:
-    """Render individual diagram node according to official PDF symbology"""
+    """Render individual diagram node according to official PDF symbology in light slate theme"""
     node_id = node["id"]
     node_type = node["type"]
     label = node["label"]
 
     is_selected = FlowState.selected_node_id == node_id
-    shadow = rx.cond(is_selected, "0 0 0 3px rgba(37, 99, 235, 0.4), 0 4px 12px rgba(0,0,0,0.1)", "0 2px 6px rgba(0,0,0,0.06)")
+    shadow = rx.cond(is_selected, "0 0 0 3px rgba(30, 90, 154, 0.4), 0 4px 12px rgba(0,0,0,0.12)", "0 2px 6px rgba(0,0,0,0.06)")
 
     # 1. Start Node Symbol (Pill)
     start_shape = rx.box(
         rx.hstack(
-            rx.icon("play", size=13, color="#60a5fa"),
-            rx.text(label, size="2", weight="bold", color="#93c5fd", truncate=True),
+            rx.icon("play", size=13, color="#1e5a9a"),
+            rx.text(label, size="2", weight="bold", color="#1e5a9a", truncate=True),
             align="center",
             spacing="1",
         ),
-        background_color="rgba(37, 99, 235, 0.2)",
-        border="2px solid #3b82f6",
+        background_color="#eff6ff",
+        border="2px solid #1e5a9a",
         border_radius="9999px",
         padding_x="4",
         padding_y="1",
@@ -44,12 +45,12 @@ def render_node(node: rx.Var) -> rx.Component:
     # 2. End Node Symbol (Pill)
     end_shape = rx.box(
         rx.hstack(
-            rx.icon("square", size=13, color="#94a3b8"),
-            rx.text(label, size="2", weight="bold", color="#e2e8f0", truncate=True),
+            rx.icon("square", size=13, color="#475569"),
+            rx.text(label, size="2", weight="bold", color="#334155", truncate=True),
             align="center",
             spacing="1",
         ),
-        background_color="#1e293b",
+        background_color="#f1f5f9",
         border="2px solid #64748b",
         border_radius="9999px",
         padding_x="4",
@@ -65,8 +66,8 @@ def render_node(node: rx.Var) -> rx.Component:
     decision_shape = rx.box(
         rx.vstack(
             rx.hstack(
-                rx.icon("circle-help", size=14, color="#f59e0b"),
-                rx.text(label, size="2", weight="bold", color="#fde68a", line_height="1.2"),
+                rx.icon("circle-help", size=14, color="#d97706"),
+                rx.text(label, size="2", weight="bold", color="#92400e", line_height="1.2"),
                 align="center",
                 spacing="1",
             ),
@@ -74,15 +75,15 @@ def render_node(node: rx.Var) -> rx.Component:
             justify="center",
             height="100%",
         ),
-        background_color="rgba(245, 158, 11, 0.2)",
-        border="2px solid #f59e0b",
+        background_color="#fffbeb",
+        border="2px solid #d97706",
         border_radius="lg",
         padding="2",
         width="160px",
         height="68px",
     )
 
-    # 4. Activity Node Symbol (Tarjeta Verde con Badges)
+    # 4. Activity Node Symbol (Tarjeta Blanca con Borde Verde y Badges)
     activity_shape = rx.box(
         rx.vstack(
             rx.hstack(
@@ -90,7 +91,7 @@ def render_node(node: rx.Var) -> rx.Component:
                     node["activity_number"].to(str) != "",
                     rx.badge(node["activity_number"].to(str), color_scheme="green", variant="solid", size="1"),
                 ),
-                rx.text(label, size="2", weight="bold", color="#f8fafc", line_height="1.2"),
+                rx.text(label, size="2", weight="bold", color="#17283c", line_height="1.2"),
                 align="center",
                 spacing="1",
             ),
@@ -111,7 +112,7 @@ def render_node(node: rx.Var) -> rx.Component:
             justify="center",
             height="100%",
         ),
-        background_color="#131b2e",
+        background_color="#ffffff",
         border="2px solid #10b981",
         border_radius="lg",
         padding="2",
@@ -122,13 +123,13 @@ def render_node(node: rx.Var) -> rx.Component:
     # 5. System / Channel Node Symbol
     system_shape = rx.box(
         rx.hstack(
-            rx.icon("cpu", size=14, color="#34d399"),
-            rx.text(label, size="2", weight="bold", color="#a7f3d0", line_height="1.2"),
+            rx.icon("cpu", size=14, color="#059669"),
+            rx.text(label, size="2", weight="bold", color="#065f46", line_height="1.2"),
             align="center",
             spacing="1",
             height="100%",
         ),
-        background_color="rgba(16, 185, 129, 0.15)",
+        background_color="#ecfdf5",
         border="2px solid #10b981",
         border_radius="md",
         padding="2",
@@ -138,9 +139,9 @@ def render_node(node: rx.Var) -> rx.Component:
 
     # 6. Default / Fallback Symbol
     default_shape = rx.box(
-        rx.text(label, size="2", weight="medium", color="#f8fafc"),
-        background_color="#131b2e",
-        border="1px solid #334155",
+        rx.text(label, size="2", weight="medium", color="#17283c"),
+        background_color="#ffffff",
+        border="1px solid #d9e2ec",
         border_radius="md",
         padding="2",
         width="160px",
@@ -182,13 +183,13 @@ def flowchart_canvas() -> rx.Component:
         rx.cond(
             FlowState.show_swimlanes,
             rx.hstack(
-                rx.box(rx.text("INPUT", size="1", weight="bold", color="#94a3b8"), width="25%", background_color="#0f172a", padding="2", text_align="center", border_right="1px solid #1e293b"),
-                rx.box(rx.text("ACTOR 1 (Usuario)", size="1", weight="bold", color="#34d399"), width="25%", background_color="rgba(16, 185, 129, 0.08)", padding="2", text_align="center", border_right="1px solid #1e293b"),
-                rx.box(rx.text("ACTOR 2 (Sistema)", size="1", weight="bold", color="#38bdf8"), width="25%", background_color="rgba(59, 130, 246, 0.08)", padding="2", text_align="center", border_right="1px solid #1e293b"),
-                rx.box(rx.text("OUTPUT", size="1", weight="bold", color="#94a3b8"), width="25%", background_color="#0f172a", padding="2", text_align="center"),
+                rx.box(rx.text("INPUT", size="1", weight="bold", color="#52657a"), width="25%", background_color="#f1f5f9", padding="2", text_align="center", border_right="1px solid #d9e2ec"),
+                rx.box(rx.text("ACTOR 1 (Usuario)", size="1", weight="bold", color="#059669"), width="25%", background_color="#ecfdf5", padding="2", text_align="center", border_right="1px solid #d9e2ec"),
+                rx.box(rx.text("ACTOR 2 (Sistema)", size="1", weight="bold", color="#1e5a9a"), width="25%", background_color="#eff6ff", padding="2", text_align="center", border_right="1px solid #d9e2ec"),
+                rx.box(rx.text("OUTPUT", size="1", weight="bold", color="#52657a"), width="25%", background_color="#f1f5f9", padding="2", text_align="center"),
                 width="100%",
                 spacing="0",
-                border_bottom="1px solid #1e293b",
+                border_bottom="1px solid #d9e2ec",
             ),
         ),
         # Flowchart Drawing Area
@@ -197,7 +198,7 @@ def flowchart_canvas() -> rx.Component:
             rx.el.svg(
                 rx.el.defs(
                     rx.el.marker(
-                        rx.el.polygon(points="0 0, 10 3.5, 0 7", fill="#38bdf8"),
+                        rx.el.polygon(points="0 0, 10 3.5, 0 7", fill="#1e5a9a"),
                         id="arrow-blue",
                         viewBox="0 0 10 10",
                         refX="6",
@@ -213,7 +214,7 @@ def flowchart_canvas() -> rx.Component:
                     lambda edge: rx.el.g(
                         rx.el.path(
                             d=edge["d"],
-                            stroke="#38bdf8",
+                            stroke="#1e5a9a",
                             stroke_width="2.5",
                             fill="none",
                             marker_end="url(#arrow-blue)",
@@ -224,7 +225,7 @@ def flowchart_canvas() -> rx.Component:
                                 edge["label"],
                                 x=edge["label_x"].to(str),
                                 y=edge["label_y"].to(str),
-                                fill="#34d399",
+                                fill="#065f46",
                                 font_size="12px",
                                 font_weight="bold",
                                 text_anchor="middle",
@@ -250,8 +251,8 @@ def flowchart_canvas() -> rx.Component:
             min_height="100%",
             min_width="100%",
             position="relative",
-            background_color="#0b0f17",
-            background_image="radial-gradient(#1e293b 1.5px, transparent 1.5px)",
+            background_color="#f8fafc",
+            background_image="radial-gradient(#d9e2ec 1.5px, transparent 1.5px)",
             background_size="24px 24px",
             style={
                 "transform": f"scale({FlowState.zoom_level})",

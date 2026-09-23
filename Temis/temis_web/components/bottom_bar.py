@@ -4,6 +4,7 @@
 """
 Bottom Bar Component for TEMIS Web Flow
 Lucidchart/Excel style bottom bar containing Document Page Tabs and Zoom Navigation Controls
+Styled in Executive Light Slate Theme (WCAG 2.2 AA compliant).
 """
 
 import reflex as rx
@@ -11,11 +12,11 @@ from temis_web.state import FlowState
 
 
 def bottom_bar() -> rx.Component:
-    """Bottom bar with page tabs and zoom controls in dark executive slate"""
+    """Bottom bar with page tabs and zoom controls in executive light slate"""
     return rx.hstack(
         # Left: Multi-Tab Page Switcher
         rx.hstack(
-            rx.icon("layers", size=14, color="#38bdf8"),
+            rx.icon("layers", size=14, color="#1e5a9a"),
             rx.foreach(
                 FlowState.project_pages,
                 lambda page, idx: rx.hstack(
@@ -41,8 +42,8 @@ def bottom_bar() -> rx.Component:
                     ),
                     align="center",
                     spacing="1",
-                    background_color=rx.cond(FlowState.active_page_index == idx, "rgba(59, 130, 246, 0.2)", "transparent"),
-                    border=rx.cond(FlowState.active_page_index == idx, "1px solid rgba(59, 130, 246, 0.4)", "1px solid transparent"),
+                    background_color=rx.cond(FlowState.active_page_index == idx, "rgba(30, 90, 154, 0.12)", "transparent"),
+                    border=rx.cond(FlowState.active_page_index == idx, "1px solid rgba(30, 90, 154, 0.3)", "1px solid transparent"),
                     border_radius="md",
                     padding_x="1",
                 ),
@@ -79,7 +80,7 @@ def bottom_bar() -> rx.Component:
                 variant="ghost",
                 size="1",
             ),
-            rx.text(FlowState.zoom_percent, size="1", weight="bold", color="#f8fafc", min_width="42px", text_align="center"),
+            rx.text(FlowState.zoom_percent, size="1", weight="bold", color="#17283c", min_width="42px", text_align="center"),
             rx.button(
                 rx.icon("plus", size=12),
                 on_click=FlowState.zoom_in,
@@ -96,8 +97,8 @@ def bottom_bar() -> rx.Component:
             ),
             align="center",
             spacing="1",
-            background_color="#131b2e",
-            border="1px solid #1e293b",
+            background_color="#ffffff",
+            border="1px solid #d9e2ec",
             border_radius="md",
             padding_x="2",
             padding_y="1",
@@ -106,7 +107,7 @@ def bottom_bar() -> rx.Component:
         height="38px",
         align="center",
         padding_x="3",
-        background_color="#0f172a",
-        border_top="1px solid #1e293b",
+        background_color="#ffffff",
+        border_top="1px solid #d9e2ec",
         z_index="10",
     )
