@@ -214,7 +214,7 @@ class FlowState(rx.State):
                 self.users_list = load_users()
                 self.show_new_user_modal = False
                 self.new_user_password = ""
-                self.status_message = f"✓ {msg}"
+                self.status_message = f"{msg}"
             else:
                 self.status_message = f"Error: {msg}"
         except Exception as e:
@@ -226,7 +226,7 @@ class FlowState(rx.State):
             ok, msg = update_user_role(email, new_role)
             if ok:
                 self.users_list = load_users()
-                self.status_message = f"✓ {msg}"
+                self.status_message = f"{msg}"
             else:
                 self.status_message = f"Error: {msg}"
         except Exception as e:
@@ -241,7 +241,7 @@ class FlowState(rx.State):
             ok, msg = toggle_user_status(email)
             if ok:
                 self.users_list = load_users()
-                self.status_message = f"✓ {msg}"
+                self.status_message = f"{msg}"
             else:
                 self.status_message = f"Error: {msg}"
         except Exception as e:
@@ -256,7 +256,7 @@ class FlowState(rx.State):
             ok, msg = delete_user(email)
             if ok:
                 self.users_list = load_users()
-                self.status_message = f"✓ {msg}"
+                self.status_message = f"{msg}"
             else:
                 self.status_message = f"Error: {msg}"
         except Exception as e:
@@ -617,7 +617,7 @@ class FlowState(rx.State):
             if result.get("backlog_items"):
                 self.plan_backlog_items = result["backlog_items"]
             self.save_current_project()
-            self.status_message = f"✓ Plan de Trabajo generado con IA: {len(self.plan_sprints)} Sprints y {len(self.plan_backlog_items)} tareas"
+            self.status_message = f"Plan de Trabajo generado con IA: {len(self.plan_sprints)} Sprints y {len(self.plan_backlog_items)} tareas"
         except Exception as e:
             self.status_message = f"Error al generar plan con IA: {str(e)}"
         finally:
@@ -640,7 +640,7 @@ class FlowState(rx.State):
             )
             if ok:
                 self.save_current_project()
-                self.status_message = "✓ ¡Plan de Trabajo sincronizado con éxito en Google Sheets!"
+                self.status_message = "¡Plan de Trabajo sincronizado con éxito en Google Sheets!"
             else:
                 self.status_message = f"Error al sincronizar con Google Sheets: {msg}"
         except Exception as e:
@@ -817,7 +817,7 @@ class FlowState(rx.State):
 
     def sync_sipoc_to_flow(self):
         """
-        ⚡ Transform SIPOC Table into Flowchart DAG on the Canvas:
+        Transform SIPOC Table into Flowchart DAG on the Canvas:
         Generates Start Node, Activities/Decisions with Systems/Channels, End Node and Bézier connections.
         """
         if not self.sipoc_rows:
@@ -1270,7 +1270,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.current_phase = phase_num
         self.phase_name = PHASE_NAMES.get(phase_num, f"Fase {phase_num}")
         self.save_current_project()
-        self.status_message = f"✓ Fase {phase_num} activada exitosamente para '{self.project_name}' por {self.user_name}"
+        self.status_message = f"Fase {phase_num} activada exitosamente para '{self.project_name}' por {self.user_name}"
 
     # Set prompt text handler
     def set_ai_prompt_text(self, val: str):
@@ -1412,7 +1412,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "sponsor": "Dirección General & Tecnología",
             "start_date": "2026-01-16",
             "end_date": "2026-12-04",
-            "scope_in": "Migración Desktop ➔ Web SaaS, Canvas Bézier SVG, Google Drive sync, AI Gemini 2.5 y auditoría continua.",
+            "scope_in": "Migración Desktop hacia Web SaaS, Canvas Bézier SVG, Google Drive sync, AI Gemini 2.5 y auditoría continua.",
             "scope_out": "Integraciones legacy propietarias no web.",
             "current_phase": 4,
             "phase_name": "Fase 4: Ejecución Iterativa",
@@ -1894,7 +1894,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.load_saved_project(proj_id)
         self.active_mode = "workspace"
         self.active_view = "charter"  # Clear landing on Charter view for consistent onboarding & context
-        self.auto_save_status = "✓ Sincronizado"
+        self.auto_save_status = "Sincronizado"
         self.status_message = f"Espacio de trabajo abierto: {self.project_name}"
 
     def return_to_hub(self):
@@ -2131,7 +2131,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.is_creating_project_drive = False
         self.show_new_project_modal = False
         self.open_project_workspace(new_id)
-        self.status_message = f"✓ ¡Proyecto '{name_clean}' ({code_clean}) creado con éxito!"
+        self.status_message = f"Proyecto '{name_clean}' ({code_clean}) creado con éxito"
 
     def set_project_name(self, name: str):
         """Set project title"""
@@ -2187,7 +2187,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         ]
         self.narrative_text = f"# Manual de Procedimientos\n# {self.project_name}\n\n## 1. Objetivo\n{self.project_purpose}\n"
         self.show_recent_modal = False
-        self.status_message = f"✓ Nuevo proceso '{self.project_name}' inicializado"
+        self.status_message = f"Nuevo proceso '{self.project_name}' inicializado"
 
     def select_page_tab(self, index: int):
         """Save current tab state and switch active page"""
@@ -2331,8 +2331,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             new_list.insert(0, current_dict)
 
         self.saved_projects = new_list
-        self.auto_save_status = "✓ Cambios Guardados"
-        self.status_message = f"✓ Proceso '{self.project_name}' guardado exitosamente ({now_str})"
+        self.auto_save_status = "Cambios Guardados"
+        self.status_message = f"Proceso '{self.project_name}' guardado exitosamente ({now_str})"
 
     def save_diagram(self):
         """Alias for save_current_project called from menu"""
@@ -2395,7 +2395,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             self.narrative_text = selected["narrative_text"]
 
         self.show_recent_modal = False
-        self.status_message = f"✓ Flujo '{self.project_name}' cargado con éxito en todas las vistas"
+        self.status_message = f"Flujo '{self.project_name}' cargado con éxito en todas las vistas"
 
     def delete_saved_project(self, proj_id: str):
         """Delete a project from saved projects catalog"""
@@ -2427,7 +2427,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
     show_connect_modal: bool = False
     connect_target_id: str = ""
     connect_label: str = ""
-    auto_save_status: str = "✓ Cambios Guardados"
+    auto_save_status: str = "Cambios Guardados"
 
     @rx.var
     def target_node_options(self) -> List[str]:
@@ -2493,7 +2493,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         if 0 <= self.active_page_index < len(self.project_pages):
             self.project_pages[self.active_page_index]["nodes"] = list(self.nodes)
             self.project_pages[self.active_page_index]["edges"] = list(self.edges)
-        self.auto_save_status = "✓ Cambios Guardados"
+        self.auto_save_status = "Cambios Guardados"
 
     def open_audit_modal(self):
         """Open AI Process Auditor modal and execute structural governance analysis"""

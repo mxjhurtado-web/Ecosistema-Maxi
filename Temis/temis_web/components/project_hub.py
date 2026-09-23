@@ -566,7 +566,7 @@ def new_project_modal() -> rx.Component:
                                 ),
                                 rx.hstack(
                                     rx.text("Cronograma:", size="1", weight="bold", color="#64748b", width="120px"),
-                                    rx.text(FlowState.new_proj_start_date, " ➔ ", FlowState.new_proj_end_date, size="1", color="#1e293b"),
+                                    rx.text(FlowState.new_proj_start_date, " al ", FlowState.new_proj_end_date, size="1", color="#1e293b"),
                                     align="center",
                                 ),
                                 rx.hstack(
