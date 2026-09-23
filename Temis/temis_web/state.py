@@ -730,6 +730,8 @@ class FlowState(rx.State):
 
     @rx.var
     def plan_sprint_options(self) -> List[str]:
+        if not self.plan_sprints:
+            return ["Sin Sprint Asignado"]
         seen = set()
         opts = []
         for s in self.plan_sprints:
@@ -737,7 +739,7 @@ class FlowState(rx.State):
             if sid and sid not in seen:
                 seen.add(sid)
                 opts.append(sid)
-        return opts
+        return opts or ["Sin Sprint Asignado"]
 
     def set_plan_start_date(self, val: str):
         self.plan_start_date = val
@@ -821,13 +823,13 @@ class FlowState(rx.State):
         finally:
             self.is_syncing_plan_sheet = False
 
-    # Task Creator & Editor Modal State (F04)
+    # Task Creator & Editor Modal State (F04, H05)
     show_task_modal: bool = False
     task_modal_mode: str = "create"  # "create" or "edit"
     task_form_id: str = ""
     task_form_module: str = "General"
     task_form_story: str = ""
-    task_form_sprint: str = "Sprint 01"
+    task_form_sprint: str = "Sin Sprint Asignado"
     task_form_sp: int = 3
     task_form_hours: int = 10
     task_form_start_date: str = "2026-01-16"
@@ -836,12 +838,15 @@ class FlowState(rx.State):
     task_form_priority: str = "Media"
     task_form_deliverable: str = ""
     task_form_status: str = "Planificado"
+    task_form_error: str = ""
 
     def set_task_form_module(self, val: str):
         self.task_form_module = val
 
     def set_task_form_story(self, val: str):
         self.task_form_story = val
+        if val.strip():
+            self.task_form_error = ""
 
     def set_task_form_sprint(self, val: str):
         self.task_form_sprint = val
@@ -877,12 +882,12 @@ class FlowState(rx.State):
         self.task_form_status = val
 
     def open_add_task_modal(self):
-        """Open modal to add a new task with custom parameters"""
+        """Open modal to add a new task with custom parameters (H05)"""
         count = len(self.plan_backlog_items) + 1
         self.task_form_id = str(count)
         self.task_form_module = "General"
         self.task_form_story = ""
-        self.task_form_sprint = self.plan_sprints[0]["sprint_id"] if self.plan_sprints else "Sprint 01"
+        self.task_form_sprint = self.plan_sprints[0]["sprint_id"] if self.plan_sprints else "Sin Sprint Asignado"
         self.task_form_sp = 3
         self.task_form_hours = 10
         self.task_form_start_date = self.plan_start_date
@@ -891,6 +896,7 @@ class FlowState(rx.State):
         self.task_form_priority = "Media"
         self.task_form_deliverable = ""
         self.task_form_status = "Planificado"
+        self.task_form_error = ""
         self.task_modal_mode = "create"
         self.show_task_modal = True
 
@@ -902,7 +908,7 @@ class FlowState(rx.State):
         self.task_form_id = str(selected.get("item_id", ""))
         self.task_form_module = str(selected.get("module", "General"))
         self.task_form_story = str(selected.get("user_story", ""))
-        self.task_form_sprint = str(selected.get("sprint", "Sprint 01"))
+        self.task_form_sprint = str(selected.get("sprint", (self.plan_sprints[0]["sprint_id"] if self.plan_sprints else "Sin Sprint Asignado")))
         self.task_form_sp = int(selected.get("story_points", 3))
         self.task_form_hours = int(selected.get("hours_estimated", 10))
         self.task_form_start_date = str(selected.get("start_date", self.plan_start_date))
@@ -911,6 +917,7 @@ class FlowState(rx.State):
         self.task_form_priority = str(selected.get("priority", "Media"))
         self.task_form_deliverable = str(selected.get("deliverable", ""))
         self.task_form_status = str(selected.get("status", "Planificado"))
+        self.task_form_error = ""
         self.task_modal_mode = "edit"
         self.show_task_modal = True
 
@@ -918,10 +925,12 @@ class FlowState(rx.State):
         self.show_task_modal = False
 
     def save_task_modal(self):
-        """Save created or updated task from modal"""
+        """Save created or updated task from modal with strict validation (H05)"""
         if not self.task_form_story.strip():
-            self.trigger_toast("Ingresa la descripción o historia de usuario", "warning")
+            self.task_form_error = "La historia de usuario o descripción técnica es obligatoria"
+            self.trigger_toast("Ingresa la descripción de la tarea para continuar", "error")
             return
+        self.task_form_error = ""
         item_data = {
             "item_id": self.task_form_id or str(len(self.plan_backlog_items) + 1),
             "module": self.task_form_module.strip() or "General",
@@ -2019,7 +2028,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
     is_generating_ai: bool = False
     status_message: str = "Listo"
 
-    # Phase Gate Governance State (F01)
+    # Phase Gate Governance State & Audit Log (F01, H01)
     show_phase_gate_modal: bool = False
     show_phase_blocked_modal: bool = False
     target_gate_phase_num: int = 1
@@ -2030,6 +2039,13 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
     phase_gate_signer: str = ""
     phase_gate_notes: str = ""
     phase_gate_checked_deliverables: List[str] = []
+    gate_approvals_history: List[Dict[str, Any]] = []
+
+    @rx.var
+    def all_gate_deliverables_checked(self) -> bool:
+        if not self.target_gate_deliverables:
+            return True
+        return len(self.phase_gate_checked_deliverables) >= len(self.target_gate_deliverables)
 
     def set_phase_gate_signer(self, val: str):
         self.phase_gate_signer = val
@@ -2044,7 +2060,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             self.phase_gate_checked_deliverables = self.phase_gate_checked_deliverables + [item]
 
     def request_phase_change(self, target_phase: int):
-        """Evaluate governance gate requirements before activating target phase (F01)"""
+        """Evaluate governance gate requirements before activating target phase (F01, H01)"""
         if target_phase == self.current_phase:
             return
 
@@ -2073,8 +2089,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             self.target_gate_phase_owner = target_data["owner"]
             self.target_gate_criteria = curr_data["gate_criteria"]
             self.target_gate_deliverables = list(curr_data["deliverables"])
-            self.phase_gate_checked_deliverables = list(curr_data["deliverables"])
-            self.phase_gate_signer = self.project_manager or self.user_name
+            self.phase_gate_checked_deliverables = []  # Requires explicit verification check!
+            self.phase_gate_signer = f"{self.user_name} ({self.user_role.upper()})"
             self.phase_gate_notes = ""
             self.show_phase_gate_modal = True
             return
@@ -2093,7 +2109,28 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.show_phase_blocked_modal = False
 
     def confirm_phase_gate_approval(self):
-        """Approve gate deliverable signoff and advance to next methodology phase"""
+        """Approve gate deliverable signoff, log immutable audit entry, and advance phase (H01)"""
+        if len(self.phase_gate_checked_deliverables) < len(self.target_gate_deliverables):
+            missing = len(self.target_gate_deliverables) - len(self.phase_gate_checked_deliverables)
+            self.trigger_toast(f"Falta validar {missing} entregable(s) requerido(s) para este Gate", "warning")
+            return
+
+        from datetime import datetime
+        now = datetime.now()
+        log_entry = {
+            "phase": self.target_gate_phase_num,
+            "phase_name": self.target_gate_phase_name,
+            "from_phase": self.current_phase,
+            "approved_by": self.user_name,
+            "user_email": self.user_email,
+            "user_role": self.user_role,
+            "approved_at": now.strftime("%d %b %Y, %H:%M"),
+            "gate_criteria": self.target_gate_criteria,
+            "deliverables": list(self.phase_gate_checked_deliverables),
+            "notes": self.phase_gate_notes.strip() or "Aprobación formal de Gate metodológico TEMIS",
+            "project_code": getattr(self, "project_code", "PRJ")
+        }
+        self.gate_approvals_history.append(log_entry)
         self.set_phase(self.target_gate_phase_num)
         self.show_phase_gate_modal = False
         self.trigger_toast(f"Gate Aprobado: Avanzaste a {self.phase_name}", "success")
@@ -2729,8 +2766,6 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             has_active = any(s.get("status") in ["In Progress", "En Progreso", "Activo"] for s in sprints)
             if has_active:
                 count += 1
-            elif p.get("current_sprint") and p.get("health_status") not in ["unrated", "completed"]:
-                count += 1
         return count
 
     @rx.var
@@ -3165,8 +3200,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "drive_folder_id": self.drive_folder_id or existing.get("drive_folder_id", ""),
             "drive_folder_url": self.drive_folder_url or existing.get("drive_folder_url", ""),
             "sheet_id": self.sheet_id or existing.get("sheet_id", ""),
-            "current_sprint": next((s["sprint_id"] for s in self.plan_sprints if s.get("status") in ["En Progreso", "In Progress", "Activo"]), existing.get("current_sprint", (self.plan_sprints[-1]["sprint_id"] if self.plan_sprints else "Sprint 04"))),
-            "current_sprint_name": next((s.get("modules", "General") for s in self.plan_sprints if s.get("status") in ["En Progreso", "In Progress", "Activo"]), existing.get("current_sprint_name", (self.plan_sprints[-1].get("modules", "General") if self.plan_sprints else "Integraciones"))),
+            "current_sprint": next((s["sprint_id"] for s in self.plan_sprints if s.get("status") in ["En Progreso", "In Progress", "Activo"]), ("Sprint 01" if self.plan_sprints else "Sin Sprint")),
+            "current_sprint_name": next((s.get("modules", "General") for s in self.plan_sprints if s.get("status") in ["En Progreso", "In Progress", "Activo"]), (self.plan_sprints[0].get("modules", "General") if self.plan_sprints else "Sin Agenda")),
             "progress_percentage": prog_pct,
             "completed_sp": completed_sp,
             "total_sp": total_sp,
@@ -3177,7 +3212,9 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "previous_audit_score": self.previous_audit_score,
             "last_audit_date": self.last_audit_date,
             "has_audit_run": self.has_audit_run,
+            "is_audit_outdated": self.is_audit_outdated,
             "audit_findings": list(self.audit_findings),
+            "gate_approvals_history": list(self.gate_approvals_history),
             "nodes_count": len(self.nodes),
             "steps_count": len(self.sipoc_rows),
             "plan_start_date": self.plan_start_date,
@@ -3224,7 +3261,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.save_current_project()
 
     def load_saved_project(self, proj_id: str):
-        """Load a selected project from saved projects into active workspace (F02 & F03)"""
+        """Load a selected project from saved projects into active workspace (F02, F03, H01)"""
         self.unselect_node()
         selected = next((p for p in self.saved_projects if p.get("id") == proj_id), None)
         if not selected:
@@ -3279,6 +3316,9 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
         if selected.get("narrative_text"):
             self.narrative_text = selected["narrative_text"]
+
+        self.gate_approvals_history = list(selected.get("gate_approvals_history", []))
+        self.is_audit_outdated = bool(selected.get("is_audit_outdated", False))
 
         if selected.get("has_audit_run") or selected.get("last_audit_date"):
             self.has_audit_run = True
@@ -3349,10 +3389,11 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         """Return candidate target node option strings for connect modal"""
         return [f"{n['id']} - {n.get('label', '')}" for n in self.nodes if n["id"] != self.selected_node_id]
 
-    # AI Process Auditor State & Quality Deltas (F03)
+    # AI Process Auditor State & Quality Deltas (F03, H03)
     show_audit_modal: bool = False
     is_auditing_ai: bool = False
     has_audit_run: bool = False
+    is_audit_outdated: bool = False
     audit_score: int = 0
     previous_audit_score: int = 0
     last_audit_date: str = ""
@@ -3365,12 +3406,19 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     @rx.var
     def audit_score_delta_label(self) -> str:
+        if not self.has_audit_run or self.previous_audit_score == 0:
+            return "Primera evaluación"
         delta = self.audit_score_delta
         if delta > 0:
             return f"+{delta} pts"
         elif delta < 0:
             return f"{delta} pts"
         return "= pts"
+
+    def mark_audit_outdated(self):
+        """Flag audit as outdated when BPMN or SIPOC model is modified (H03)"""
+        if self.has_audit_run:
+            self.is_audit_outdated = True
 
     def set_connect_target_id(self, val: str):
         if " - " in str(val or ""):
@@ -3412,12 +3460,14 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.edges.append(new_edge)
         self.show_connect_modal = False
         self.status_message = f"Conexión agregada hacia {self.connect_target_id}"
+        self.mark_audit_outdated()
         self.trigger_auto_save()
 
     def delete_edge(self, edge_id: str):
         """Delete an edge connector"""
         self.edges = [e for e in self.edges if e.get("id") != edge_id]
         self.status_message = "Conector eliminado"
+        self.mark_audit_outdated()
         self.trigger_auto_save()
 
     def trigger_auto_save(self):
@@ -3435,7 +3485,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.show_audit_modal = False
 
     def run_ai_process_audit(self):
-        """Execute Gemini AI & Structural Governance Audit on current active flowchart tab (F03)"""
+        """Execute Gemini AI & Structural Governance Audit on current active flowchart tab (F03, H03)"""
         self.is_auditing_ai = True
         findings = []
         deductions = 0
@@ -3533,6 +3583,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.previous_audit_score = self.audit_score if self.has_audit_run else new_score
         self.audit_score = new_score
         self.has_audit_run = True
+        self.is_audit_outdated = False
         self.last_audit_date = datetime.now().strftime("%d %b %Y, %H:%M")
         self.audit_findings = findings
         self.is_auditing_ai = False

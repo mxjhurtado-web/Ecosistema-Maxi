@@ -29,7 +29,7 @@ from temis_web.components.toast_notification import toast_notification
 
 
 def workspace_view() -> rx.Component:
-    """Level 2 Workspace with lateral navigation sidebar and 5 modular views"""
+    """Level 2 Workspace with lateral navigation sidebar and 5 modular views (H04 Responsive)"""
     return rx.box(
         recent_projects_modal(),
         connect_modal(),
@@ -52,6 +52,7 @@ def workspace_view() -> rx.Component:
                                 flowchart_canvas(),
                                 property_inspector(),
                                 width="100%",
+                                max_width="100%",
                                 flex="1",
                                 height="calc(100vh - 92px)",
                                 overflow="hidden",
@@ -64,17 +65,27 @@ def workspace_view() -> rx.Component:
                         ),
                     ),
                     flex="1",
+                    width="100%",
+                    max_width="100vw",
                     height="calc(100vh - 54px)",
                     overflow="hidden",
                 ),
                 width="100%",
+                max_width="100vw",
                 height="calc(100vh - 54px)",
+                overflow="hidden",
                 spacing="0",
             ),
             width="100%",
+            max_width="100vw",
             height="100vh",
+            overflow="hidden",
             spacing="0",
         ),
+        width="100%",
+        max_width="100vw",
+        height="100vh",
+        overflow="hidden",
         background_color="#f3f6fa",
         font_family="Inter, sans-serif",
     )

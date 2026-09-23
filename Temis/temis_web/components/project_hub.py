@@ -77,65 +77,73 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                     ),
                     align="center",
                     spacing="2",
+                    wrap="wrap",
                 ),
                 rx.spacer(),
-                # Health Semaphore Badge (T05 - No Emojis, Pure SVG, WCAG 2.2 AA Contrast)
-                rx.cond(
-                    proj["health_status"] == "green",
-                    rx.badge(
-                        rx.hstack(rx.icon("circle-check", size=11), rx.text("Salud: Al día"), align="center", spacing="1"),
-                        color_scheme="green",
-                        variant="solid",
-                        size="1",
-                    ),
+                rx.hstack(
+                    # Health Semaphore Badge (T05 - No Emojis, Pure SVG, WCAG 2.2 AA Contrast)
                     rx.cond(
-                        proj["health_status"] == "yellow",
+                        proj["health_status"] == "green",
                         rx.badge(
-                            rx.hstack(rx.icon("triangle-alert", size=11), rx.text("Salud: En riesgo"), align="center", spacing="1"),
-                            color_scheme="amber",
+                            rx.hstack(rx.icon("circle-check", size=11), rx.text("Salud: Al día"), align="center", spacing="1"),
+                            color_scheme="green",
                             variant="solid",
                             size="1",
                         ),
                         rx.cond(
-                            proj["health_status"] == "red",
+                            proj["health_status"] == "yellow",
                             rx.badge(
-                                rx.hstack(rx.icon("circle-alert", size=11), rx.text("Salud: Bloqueado"), align="center", spacing="1"),
-                                color_scheme="ruby",
+                                rx.hstack(rx.icon("triangle-alert", size=11), rx.text("Salud: En riesgo"), align="center", spacing="1"),
+                                color_scheme="amber",
                                 variant="solid",
                                 size="1",
                             ),
-                            rx.badge(
-                                rx.hstack(rx.icon("circle", size=11), rx.text("Salud: Sin evaluar"), align="center", spacing="1"),
-                                color_scheme="gray",
-                                variant="soft",
-                                size="1",
+                            rx.cond(
+                                proj["health_status"] == "red",
+                                rx.badge(
+                                    rx.hstack(rx.icon("circle-alert", size=11), rx.text("Salud: Bloqueado"), align="center", spacing="1"),
+                                    color_scheme="ruby",
+                                    variant="solid",
+                                    size="1",
+                                    ),
+                                rx.badge(
+                                    rx.hstack(rx.icon("circle", size=11), rx.text("Salud: Sin evaluar"), align="center", spacing="1"),
+                                    color_scheme="gray",
+                                    variant="soft",
+                                    size="1",
+                                ),
                             ),
                         ),
                     ),
-                ),
-                # Six Sigma Audit Score Badge (Clarified label: Auditoría BPMN)
-                rx.cond(
-                    (proj["health_status"] == "unrated") | (proj["audit_score"] == 0),
-                    rx.badge(
-                        rx.hstack(rx.icon("shield", size=11), rx.text("Auditoría: N/A"), align="center", spacing="1"),
-                        color_scheme="gray",
-                        variant="soft",
-                        size="1",
-                    ),
-                    rx.badge(
-                        rx.hstack(
-                            rx.icon("shield-check", size=12),
-                            rx.text("Auditoría: ", proj["audit_score"], "/100"),
-                            align="center",
-                            spacing="1",
+                    # Six Sigma Audit Score Badge (Clarified label: Auditoría BPMN)
+                    rx.cond(
+                        (proj["health_status"] == "unrated") | (proj["audit_score"] == 0),
+                        rx.badge(
+                            rx.hstack(rx.icon("shield", size=11), rx.text("Auditoría: N/A"), align="center", spacing="1"),
+                            color_scheme="gray",
+                            variant="soft",
+                            size="1",
                         ),
-                        color_scheme="purple",
-                        variant="soft",
-                        size="1",
+                        rx.badge(
+                            rx.hstack(
+                                rx.icon("shield-check", size=12),
+                                rx.text("Auditoría: ", proj["audit_score"], "/100"),
+                                align="center",
+                                spacing="1",
+                            ),
+                            color_scheme="purple",
+                            variant="soft",
+                            size="1",
+                        ),
                     ),
+                    align="center",
+                    spacing="2",
+                    wrap="wrap",
                 ),
                 width="100%",
                 align="center",
+                wrap="wrap",
+                spacing="2",
             ),
 
             # Purpose / Scope description
@@ -293,6 +301,8 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                 ),
                 width="100%",
                 align="center",
+                wrap="wrap",
+                spacing="2",
             ),
             spacing="3",
             width="100%",

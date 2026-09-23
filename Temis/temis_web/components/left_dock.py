@@ -86,9 +86,10 @@ def left_dock() -> rx.Component:
             width="100%",
             padding="2",
         ),
-        width="180px",
+        width={"initial": "0px", "md": "180px"},
         height="100%",
         background_color="#eaf0f6",
         border_right="1px solid #d9e2ec",
         overflow_y="auto",
+        display={"initial": "none", "md": "block"},
     )

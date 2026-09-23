@@ -248,6 +248,18 @@ def task_editor_modal() -> rx.Component:
                     spacing="3",
                 ),
                 rx.divider(),
+                # Validation Error Banner (H05)
+                rx.cond(
+                    FlowState.task_form_error != "",
+                    rx.callout(
+                        FlowState.task_form_error,
+                        icon="triangle-alert",
+                        color_scheme="ruby",
+                        size="1",
+                        width="100%",
+                    ),
+                    rx.box(),
+                ),
                 # Row 1: Module and User Story
                 rx.vstack(
                     rx.hstack(
@@ -283,7 +295,16 @@ def task_editor_modal() -> rx.Component:
                         spacing="3",
                     ),
                     rx.vstack(
-                        rx.text("Historia de Usuario / Descripción Técnica:", size="1", weight="bold", color="#52657a"),
+                        rx.hstack(
+                            rx.text("Historia de Usuario / Descripción Técnica *:", size="1", weight="bold", color="#52657a"),
+                            rx.cond(
+                                FlowState.task_form_error != "",
+                                rx.badge("Requerido", color_scheme="ruby", variant="solid", size="1"),
+                                rx.box(),
+                            ),
+                            align="center",
+                            spacing="2",
+                        ),
                         rx.text_area(
                             value=FlowState.task_form_story,
                             on_change=FlowState.set_task_form_story,

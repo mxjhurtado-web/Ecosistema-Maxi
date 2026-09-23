@@ -35,6 +35,49 @@ def audit_modal() -> rx.Component:
                 FlowState.has_audit_run,
                 # State 1: Audit has been executed
                 rx.vstack(
+                    # Outdated Warning Banner (H03)
+                    rx.cond(
+                        FlowState.is_audit_outdated,
+                        rx.box(
+                            rx.hstack(
+                                rx.box(
+                                    rx.icon("refresh-cw", size=18, color="#b45309"),
+                                    padding="2",
+                                    background_color="#fef3c7",
+                                    border_radius="6px",
+                                ),
+                                rx.vstack(
+                                    rx.text("Diagrama modificado - Requiere re-auditoría", size="2", weight="bold", color="#92400e"),
+                                    rx.text("Se detectaron cambios en el lienzo BPMN o Matriz SIPOC posteriores a la última evaluación. Re-audita para actualizar el puntaje de calidad.", size="1", color="#78350f"),
+                                    spacing="0",
+                                ),
+                                rx.spacer(),
+                                rx.button(
+                                    rx.hstack(
+                                        rx.icon("refresh-cw", size=14),
+                                        rx.text("Re-Auditar Ahora"),
+                                        align="center",
+                                        spacing="1",
+                                    ),
+                                    on_click=FlowState.run_ai_process_audit,
+                                    loading=FlowState.is_auditing_ai,
+                                    color_scheme="amber",
+                                    variant="solid",
+                                    size="1",
+                                    radius="medium",
+                                ),
+                                width="100%",
+                                align="center",
+                                spacing="3",
+                            ),
+                            padding="3",
+                            background_color="#fffbeb",
+                            border="1px solid #fde68a",
+                            border_radius="8px",
+                            width="100%",
+                        ),
+                        rx.box(),
+                    ),
                     # Score Badge & Delta Header
                     rx.vstack(
                         rx.hstack(
@@ -47,7 +90,10 @@ def audit_modal() -> rx.Component:
                             rx.badge(
                                 rx.hstack(
                                     rx.icon("trending-up", size=12, color="#107c41"),
-                                    rx.text(FlowState.audit_score_delta_label, " vs anterior"),
+                                    rx.text(
+                                        FlowState.audit_score_delta_label,
+                                        rx.cond(FlowState.audit_score_delta_label == "Primera evaluación", "", " vs anterior"),
+                                    ),
                                     align="center",
                                     spacing="1",
                                 ),
@@ -66,8 +112,8 @@ def audit_modal() -> rx.Component:
                                 on_click=FlowState.run_ai_process_audit,
                                 loading=FlowState.is_auditing_ai,
                                 size="2",
-                                color_scheme="blue",
-                                variant="soft",
+                                color_scheme=rx.cond(FlowState.is_audit_outdated, "amber", "blue"),
+                                variant=rx.cond(FlowState.is_audit_outdated, "solid", "soft"),
                                 radius="medium",
                             ),
                             width="100%",

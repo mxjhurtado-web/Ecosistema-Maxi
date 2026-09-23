@@ -159,44 +159,89 @@ def phase_gate_approval_modal() -> rx.Component:
                     border_radius="8px",
                     width="100%",
                 ),
-                # Deliverables Checklist
+                # Deliverables Checklist (H01)
                 rx.vstack(
-                    rx.text("Verificación de Entregables de la Fase:", size="2", weight="bold", color="#17283c"),
+                    rx.hstack(
+                        rx.text("Verificación de Entregables de la Fase:", size="2", weight="bold", color="#17283c"),
+                        rx.spacer(),
+                        rx.badge(
+                            FlowState.phase_gate_checked_deliverables.length().to(str) + " de " + FlowState.target_gate_deliverables.length().to(str) + " Validados",
+                            color_scheme=rx.cond(FlowState.all_gate_deliverables_checked, "green", "amber"),
+                            variant="surface",
+                            size="1",
+                        ),
+                        width="100%",
+                        align="center",
+                    ),
                     rx.foreach(
                         FlowState.target_gate_deliverables,
                         lambda item: rx.hstack(
-                            rx.icon("circle-check", size=16, color="#107c41"),
-                            rx.text(item, size="2", color="#17283c", weight="medium"),
+                            rx.checkbox(
+                                checked=FlowState.phase_gate_checked_deliverables.contains(item),
+                                on_change=lambda _: FlowState.toggle_gate_deliverable(item),
+                                size="2",
+                            ),
+                            rx.text(item, size="2", color="#17283c", weight="medium", cursor="pointer"),
                             rx.spacer(),
-                            rx.badge("Listo para Aprobación", color_scheme="green", variant="soft", size="1"),
+                            rx.cond(
+                                FlowState.phase_gate_checked_deliverables.contains(item),
+                                rx.badge(rx.hstack(rx.icon("check", size=10), rx.text("Verificado"), align="center", spacing="1"), color_scheme="green", variant="solid", size="1"),
+                                rx.badge(rx.hstack(rx.icon("clock", size=10), rx.text("Pendiente"), align="center", spacing="1"), color_scheme="amber", variant="soft", size="1"),
+                            ),
+                            on_click=lambda: FlowState.toggle_gate_deliverable(item),
                             align="center",
                             width="100%",
-                            padding_y="1",
-                            padding_x="2",
-                            background_color="#ffffff",
-                            border="1px solid #e2e8f0",
+                            padding_y="1.5",
+                            padding_x="2.5",
+                            background_color=rx.cond(
+                                FlowState.phase_gate_checked_deliverables.contains(item),
+                                "#f0fdf4",
+                                "#ffffff",
+                            ),
+                            border=rx.cond(
+                                FlowState.phase_gate_checked_deliverables.contains(item),
+                                "1px solid #bbf7d0",
+                                "1px solid #e2e8f0",
+                            ),
                             border_radius="6px",
+                            cursor="pointer",
                         ),
                     ),
                     spacing="2",
                     width="100%",
                 ),
-                # Signer & Approval Notes
+                # Checkbox Validation Warning Callout
+                rx.cond(
+                    ~FlowState.all_gate_deliverables_checked,
+                    rx.callout(
+                        "Debes verificar y marcar todos los entregables requeridos para habilitar la firma del Gate.",
+                        icon="info",
+                        color_scheme="amber",
+                        size="1",
+                        width="100%",
+                    ),
+                    rx.box(),
+                ),
+                # Authenticated Signer & Approval Notes (H01)
                 rx.vstack(
-                    rx.hstack(
-                        rx.vstack(
-                            rx.text("Aprobador / Responsable (Signer):", size="1", weight="bold", color="#52657a"),
-                            rx.input(
-                                value=FlowState.phase_gate_signer,
-                                on_change=FlowState.set_phase_gate_signer,
-                                placeholder="Nombre del PM / Responsable de Gate",
-                                size="1",
-                                width="100%",
-                            ),
-                            flex="1",
-                            spacing="1",
+                    rx.vstack(
+                        rx.text("Aprobador Autenticado (Signer):", size="1", weight="bold", color="#52657a"),
+                        rx.hstack(
+                            rx.icon("user-check", size=16, color="#1e5a9a"),
+                            rx.text(FlowState.phase_gate_signer, size="2", weight="bold", color="#17283c"),
+                            rx.spacer(),
+                            rx.badge("Sesión Verificada", color_scheme="green", variant="soft", size="1"),
+                            align="center",
+                            spacing="2",
+                            padding_x="3",
+                            padding_y="2",
+                            background_color="#f8fafc",
+                            border="1px solid #d9e2ec",
+                            border_radius="6px",
+                            width="100%",
                         ),
                         width="100%",
+                        spacing="1",
                     ),
                     rx.vstack(
                         rx.text("Notas / Observaciones de Aprobación:", size="1", weight="bold", color="#52657a"),
@@ -232,6 +277,7 @@ def phase_gate_approval_modal() -> rx.Component:
                             spacing="1",
                         ),
                         on_click=FlowState.confirm_phase_gate_approval,
+                        disabled=~FlowState.all_gate_deliverables_checked,
                         color_scheme="blue",
                         size="2",
                         radius="medium",
@@ -424,6 +470,111 @@ def render_phase_card(p: dict) -> rx.Component:
     )
 
 
+def render_gate_history_item(log: rx.Var[dict]) -> rx.Component:
+    """Render an immutable gate approval log record (H01)"""
+    return rx.box(
+        rx.vstack(
+            rx.hstack(
+                rx.hstack(
+                    rx.icon("shield-check", size=16, color="#107c41"),
+                    rx.text(log["phase_name"], size="2", weight="bold", color="#17283c"),
+                    align="center",
+                    spacing="2",
+                ),
+                rx.spacer(),
+                rx.badge(
+                    rx.hstack(rx.icon("calendar", size=11), rx.text(log["approved_at"]), align="center", spacing="1"),
+                    color_scheme="blue",
+                    variant="surface",
+                    size="1",
+                ),
+                width="100%",
+                align="center",
+            ),
+            rx.hstack(
+                rx.hstack(
+                    rx.icon("user-check", size=13, color="#4f46e5"),
+                    rx.text("Aprobado por:", size="1", weight="bold", color="#52657a"),
+                    rx.text(log["approved_by"], size="1", color="#4f46e5", weight="bold"),
+                    rx.badge(log["user_role"], color_scheme="indigo", variant="soft", size="1"),
+                    spacing="1",
+                    align="center",
+                ),
+                rx.spacer(),
+                rx.hstack(
+                    rx.icon("git-commit-horizontal", size=13, color="#107c41"),
+                    rx.text("Criterio:", size="1", weight="bold", color="#52657a"),
+                    rx.text(log["gate_criteria"], size="1", color="#107c41"),
+                    spacing="1",
+                    align="center",
+                ),
+                width="100%",
+                wrap="wrap",
+                spacing="2",
+            ),
+            rx.text(log["notes"], size="1", color="#52657a", font_style="italic"),
+            spacing="1.5",
+            width="100%",
+        ),
+        padding="3",
+        background_color="#ffffff",
+        border="1px solid #d9e2ec",
+        border_left="4px solid #107c41",
+        border_radius="8px",
+        width="100%",
+    )
+
+
+def render_gate_history_section() -> rx.Component:
+    """Render the immutable audit history of completed phase gates (H01)"""
+    return rx.box(
+        rx.vstack(
+            rx.hstack(
+                rx.icon("history", size=18, color="#1e5a9a"),
+                rx.text("Bitácora Inmutable de Aprobación de Gates", size="3", weight="bold", color="#17283c"),
+                rx.spacer(),
+                rx.badge(
+                    FlowState.gate_approvals_history.length().to(str) + " Gates Aprobados",
+                    color_scheme="green",
+                    variant="soft",
+                    size="1",
+                ),
+                width="100%",
+                align="center",
+            ),
+            rx.divider(color_scheme="gray", opacity=0.15),
+            rx.cond(
+                FlowState.gate_approvals_history.length() > 0,
+                rx.vstack(
+                    rx.foreach(FlowState.gate_approvals_history, render_gate_history_item),
+                    spacing="2",
+                    width="100%",
+                ),
+                rx.box(
+                    rx.hstack(
+                        rx.icon("info", size=14, color="#52657a"),
+                        rx.text("Aún no se han registrado aprobaciones de gate en este proyecto. Al avanzar secuencialmente de fase, se generará la bitácora inmutable de auditoría.", size="1", color="#52657a"),
+                        spacing="2",
+                        align="center",
+                    ),
+                    padding="3",
+                    background_color="#ffffff",
+                    border="1px dashed #d9e2ec",
+                    border_radius="8px",
+                    width="100%",
+                ),
+            ),
+            spacing="3",
+            width="100%",
+        ),
+        padding="4",
+        background_color="#f8fafc",
+        border="1px solid #d9e2ec",
+        border_radius="10px",
+        width="100%",
+    )
+
+
 def governance_view() -> rx.Component:
     """Governance & Methodology View (F01)"""
     return rx.box(
@@ -445,10 +596,14 @@ def governance_view() -> rx.Component:
                 rx.spacer(),
                 rx.hstack(
                     rx.button(
-                        rx.icon("shield-check", size=15),
-                        " Auditar Proceso con IA",
+                        rx.hstack(
+                            rx.icon(rx.cond(FlowState.is_audit_outdated, "refresh-cw", "shield-check"), size=15),
+                            rx.text(rx.cond(FlowState.is_audit_outdated, " Re-Auditar Proceso (Desactualizado)", " Auditar Proceso con IA")),
+                            align="center",
+                            spacing="1",
+                        ),
                         on_click=FlowState.open_audit_modal,
-                        color_scheme="indigo",
+                        color_scheme=rx.cond(FlowState.is_audit_outdated, "amber", "indigo"),
                         size="2",
                         radius="medium",
                     ),
@@ -467,12 +622,17 @@ def governance_view() -> rx.Component:
                 align="center",
             ),
 
-            # Grid of 7 Phases
+            # Scrollable Content: 7 Phases Cards + Gate History Section
             rx.box(
                 rx.vstack(
-                    *[render_phase_card(p) for p in PHASE_LIST],
+                    rx.vstack(
+                        *[render_phase_card(p) for p in PHASE_LIST],
+                        width="100%",
+                        spacing="3",
+                    ),
+                    render_gate_history_section(),
                     width="100%",
-                    spacing="3",
+                    spacing="4",
                 ),
                 width="100%",
                 max_height="calc(100vh - 165px)",

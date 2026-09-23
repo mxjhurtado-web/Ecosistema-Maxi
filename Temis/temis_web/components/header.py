@@ -12,40 +12,56 @@ from temis_web.state import FlowState
 
 
 def header() -> rx.Component:
-    """Consolidated top context bar for the active workspace"""
+    """Consolidated top context bar for the active workspace with responsive mobile containment (H04)"""
     return rx.hstack(
-        # Left Section: Active Project Title & Phase Context
+        # Left Section: Active Project Title & Phase Context + Mobile View Selector
         rx.hstack(
             rx.hstack(
-                rx.icon("network", size=20, color="#3b82f6"),
-                rx.text("TEMIS", size="3", weight="bold", color="#f8fafc"),
+                rx.icon("network", size=18, color="#3b82f6"),
+                rx.text("TEMIS", size="2", weight="bold", color="#f8fafc"),
                 align="center",
-                spacing="2",
+                spacing="1.5",
             ),
             rx.divider(orientation="vertical", size="2"),
             rx.badge(FlowState.project_code, color_scheme="indigo", variant="surface", size="1"),
             rx.input(
                 value=FlowState.project_name,
                 on_change=FlowState.set_project_name,
-                width="240px",
+                width={"initial": "110px", "sm": "180px", "md": "220px"},
                 size="1",
                 variant="surface",
                 radius="medium",
                 title="Editar nombre del proyecto",
             ),
+            # Mobile View Selector (visible only on mobile when sidebar is hidden)
+            rx.box(
+                rx.select.root(
+                    rx.select.trigger(placeholder="Vista", size="1"),
+                    rx.select.content(
+                        rx.select.item("Ficha Proyecto", value="charter"),
+                        rx.select.item("Plan & Backlog", value="plan"),
+                        rx.select.item("Diagrama BPMN", value="flow"),
+                        rx.select.item("Matriz SIPOC", value="sipoc"),
+                        rx.select.item("Gobernanza 7 Fases", value="governance"),
+                    ),
+                    value=FlowState.active_view,
+                    on_change=FlowState.set_active_view,
+                ),
+                display={"initial": "block", "md": "none"},
+            ),
             align="center",
-            spacing="3",
+            spacing="2",
         ),
 
         rx.spacer(),
 
-        # Center Section: Gemini AI Prompt Bar
+        # Center Section: Gemini AI Prompt Bar (Hidden on mobile to preserve 390px viewport)
         rx.hstack(
             rx.input(
                 placeholder="Describe el proceso para modelar o enriquecer con IA...",
                 value=FlowState.ai_prompt_text,
                 on_change=FlowState.set_ai_prompt_text,
-                width="340px",
+                width="280px",
                 size="1",
                 variant="surface",
                 radius="medium",
@@ -65,17 +81,18 @@ def header() -> rx.Component:
             ),
             align="center",
             spacing="2",
+            display={"initial": "none", "md": "flex"},
         ),
 
         rx.spacer(),
 
         # Right Section: Auto-Save Status, File Menu & User Profile
         rx.hstack(
-            # Auto-save status
+            # Auto-save status (Compact on mobile)
             rx.badge(
                 rx.hstack(
                     rx.icon("circle-check", size=12),
-                    rx.text(FlowState.auto_save_status),
+                    rx.text(FlowState.auto_save_status, display={"initial": "none", "sm": "inline"}),
                     align="center",
                     spacing="1",
                 ),
@@ -90,7 +107,7 @@ def header() -> rx.Component:
                     rx.button(
                         rx.hstack(
                             rx.icon("folder-cog", size=14),
-                            rx.text("Archivo", size="1"),
+                            rx.text("Archivo", size="1", display={"initial": "none", "sm": "inline"}),
                             rx.icon("chevron-down", size=12),
                             align="center",
                             spacing="1",
@@ -142,7 +159,7 @@ def header() -> rx.Component:
             rx.button(
                 rx.hstack(
                     rx.icon("log-out", size=13),
-                    rx.text("Salir", size="1"),
+                    rx.text("Salir", size="1", display={"initial": "none", "sm": "inline"}),
                     align="center",
                     spacing="1",
                 ),
@@ -155,11 +172,12 @@ def header() -> rx.Component:
             ),
 
             align="center",
-            spacing="3",
+            spacing="2",
         ),
         width="100%",
+        max_width="100vw",
         height="54px",
-        padding_x="4",
+        padding_x={"initial": "2", "sm": "4"},
         background_color="#17324d",
         border_bottom="1px solid #0f2236",
         align="center",

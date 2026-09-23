@@ -307,7 +307,7 @@ def property_inspector() -> rx.Component:
         height="100%",
         background_color="#ffffff",
         border_left="1px solid #d9e2ec",
-        display="flex",
+        display={"initial": "none", "md": "flex"},
         align_items="start",
         justify_content="center",
         padding_top="2",
@@ -325,6 +325,7 @@ def property_inspector() -> rx.Component:
         background_color="#ffffff",
         border_left="1px solid #d9e2ec",
         overflow_y="auto",
+        display={"initial": "none", "md": "block"},
     )
 
     return rx.cond(
