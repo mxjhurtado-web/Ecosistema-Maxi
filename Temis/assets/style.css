@@ -1,11 +1,101 @@
+/* ==========================================================================
+   TEMIS Web Flow - Executive Design System & Stylesheet
+   Paleta Corporativa: Linear / Notion / Stripe / Monday.com Style
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --temis-bg: #F3F6FA;
+  --temis-surface: #FFFFFF;
+  --temis-sidebar-bg: #F8FAFC;
+  --temis-border: #D7E0EA;
+  --temis-border-subtle: #E2E8F0;
+  
+  --temis-text-primary: #17283C;
+  --temis-text-secondary: #59697B;
+  --temis-text-muted: #8B9BAE;
+  
+  --temis-accent-primary: #2563EB;
+  --temis-accent-primary-hover: #1D4ED8;
+  --temis-accent-soft: #EFF6FF;
+  
+  --temis-success: #059669;
+  --temis-success-bg: #ECFDF5;
+  --temis-warning: #D97706;
+  --temis-warning-bg: #FEF3C7;
+  --temis-danger: #DC2626;
+  --temis-danger-bg: #FEE2E2;
+  --temis-purple: #7C3AED;
+  --temis-purple-bg: #F3E8FF;
+  
+  --temis-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --temis-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --temis-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --temis-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+}
+
+/* Global Reset & Base Typography */
+* {
+  box-sizing: border-box;
+}
+
+body, html {
+  margin: 0;
+  padding: 0;
+  background-color: var(--temis-bg) !important;
+  color: var(--temis-text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Executive Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+
+/* Card Transitions & Elevations */
+.temis-card {
+  background-color: var(--temis-surface);
+  border: 1px solid var(--temis-border);
+  border-radius: 12px;
+  box-shadow: var(--temis-shadow-sm);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.temis-card:hover {
+  border-color: #B4C6D8;
+  box-shadow: var(--temis-shadow-md);
+}
+
 /* Hide "Built with Reflex" badge */
 a[href*="reflex.dev"],
 div:has(a[href*="reflex.dev"]),
 button:has(a[href*="reflex.dev"]),
 [class*="BuiltWithReflex"],
 [class*="built-with-reflex"] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }

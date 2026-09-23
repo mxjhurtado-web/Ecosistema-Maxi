@@ -35,23 +35,23 @@ def kpi_card(title: str, value: rx.Var[str] | str, subtitle: rx.Var[str] | str |
                 width="100%",
                 align="center",
             ),
-            rx.text(title, size="1", color="#64748b", weight="medium"),
-            rx.text(value, size="6", weight="bold", color="#0f172a"),
-            rx.text(subtitle, size="1", color="#94a3b8"),
+            rx.text(title, size="1", color="#59697b", weight="medium"),
+            rx.text(value, size="6", weight="bold", color="#17283c"),
+            rx.text(subtitle, size="1", color="#8b9bae"),
             spacing="1",
             align="start",
             width="100%",
         ),
         padding="4",
         background_color="#ffffff",
-        border="1px solid #e2e8f0",
+        border="1px solid #d7e0ea",
         border_radius="12px",
-        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.02)",
+        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)",
         flex="1",
         min_width="220px",
         _hover={
-            "box_shadow": "0 4px 12px 0 rgba(0, 0, 0, 0.05)",
-            "border_color": "#cbd5e1",
+            "box_shadow": "0 4px 12px 0 rgba(0, 0, 0, 0.06)",
+            "border_color": "#b4c6d8",
         },
     )
 
@@ -73,7 +73,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                         proj["name"],
                         size="3",
                         weight="bold",
-                        color="#0f172a",
+                        color="#17283c",
                     ),
                     align="center",
                     spacing="2",
@@ -142,7 +142,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
             rx.text(
                 proj["purpose"],
                 size="2",
-                color="#64748b",
+                color="#59697b",
                 max_width="100%",
                 line_clamp=2,
             ),
@@ -180,10 +180,10 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
             # Progress Bar (% Avance Backlog)
             rx.vstack(
                 rx.hstack(
-                    rx.text("Avance del Backlog Scrum:", size="1", color="#64748b", weight="medium"),
+                    rx.text("Avance del Backlog Scrum:", size="1", color="#59697b", weight="medium"),
                     rx.spacer(),
                     rx.hstack(
-                        rx.text(proj["progress_percentage"].to_string(), "% (", proj["completed_sp"].to_string(), "/", proj["total_sp"].to_string(), " SP)", size="1", weight="bold", color="#0f172a"),
+                        rx.text(proj["progress_percentage"].to_string(), "% (", proj["completed_sp"].to_string(), "/", proj["total_sp"].to_string(), " SP)", size="1", weight="bold", color="#17283c"),
                         spacing="0",
                     ),
                     width="100%",
@@ -213,10 +213,10 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                         color_scheme="blue",
                     ),
                     rx.vstack(
-                        rx.text(proj["manager"], size="1", weight="medium", color="#1e293b"),
+                        rx.text(proj["manager"], size="1", weight="medium", color="#17283c"),
                         rx.hstack(
-                            rx.text("Sponsor:", size="1", color="#94a3b8"),
-                            rx.text(proj["sponsor"], size="1", color="#94a3b8"),
+                            rx.text("Sponsor:", size="1", color="#59697b"),
+                            rx.text(proj["sponsor"], size="1", color="#59697b"),
                             spacing="1",
                         ),
                         spacing="0",
@@ -299,13 +299,13 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
         ),
         padding="4",
         background_color="#ffffff",
-        border="1px solid #e2e8f0",
+        border="1px solid #d7e0ea",
         border_radius="12px",
-        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.02)",
+        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)",
         width="100%",
         _hover={
             "border_color": "#93c5fd",
-            "box_shadow": "0 4px 12px 0 rgba(37, 99, 235, 0.06)",
+            "box_shadow": "0 6px 16px 0 rgba(37, 99, 235, 0.08)",
         },
     )
 
@@ -849,8 +849,8 @@ def project_hub() -> rx.Component:
                 align="center",
                 padding_x="6",
                 background_color="#ffffff",
-                border_bottom="1px solid #e2e8f0",
-                box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.02)",
+                border_bottom="1px solid #d7e0ea",
+                box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.03)",
             ),
 
             # 2. Main Content Container
@@ -941,7 +941,7 @@ def project_hub() -> rx.Component:
                         rx.box(),
                     ),
 
-                    # Filter and Search Bar
+                    # Filter and Search Bar (Polished White Card with Slate Border)
                     rx.hstack(
                         # Search Input
                         rx.hstack(
@@ -957,11 +957,16 @@ def project_hub() -> rx.Component:
                             ),
                             align="center",
                             spacing="2",
+                            padding_x="2",
+                            padding_y="1",
+                            background_color="#ffffff",
+                            border="1px solid #d7e0ea",
+                            border_radius="8px",
                         ),
                         rx.spacer(),
                         # Phase Filter
                         rx.hstack(
-                            rx.text("Fase:", size="1", color="#64748b", weight="medium"),
+                            rx.text("Fase:", size="1", color="#59697b", weight="medium"),
                             rx.select.root(
                                 rx.select.trigger(placeholder="Todas las Fases", size="1"),
                                 rx.select.content(
@@ -982,7 +987,7 @@ def project_hub() -> rx.Component:
                         ),
                         # Status Filter (Clean, No Emojis)
                         rx.hstack(
-                            rx.text("Salud:", size="1", color="#64748b", weight="medium"),
+                            rx.text("Salud:", size="1", color="#59697b", weight="medium"),
                             rx.select.root(
                                 rx.select.trigger(placeholder="Todos", size="1"),
                                 rx.select.content(
@@ -1017,8 +1022,8 @@ def project_hub() -> rx.Component:
                         rx.box(
                             rx.vstack(
                                 rx.icon("folder-open", size=48, color="#94a3b8"),
-                                rx.text("No se encontraron proyectos con los filtros seleccionados.", size="3", weight="medium", color="#475569"),
-                                rx.text("Intenta cambiar el criterio de búsqueda o crea un nuevo proyecto.", size="2", color="#94a3b8"),
+                                rx.text("No se encontraron proyectos con los filtros seleccionados.", size="3", weight="medium", color="#17283c"),
+                                rx.text("Intenta cambiar el criterio de búsqueda o crea un nuevo proyecto.", size="2", color="#8b9bae"),
                                 rx.cond(
                                     (FlowState.search_hub_query != "") | (FlowState.filter_hub_phase != "all") | (FlowState.filter_hub_status != "all"),
                                     rx.hstack(
@@ -1051,7 +1056,7 @@ def project_hub() -> rx.Component:
                             ),
                             padding="12",
                             background_color="#ffffff",
-                            border="1px dashed #cbd5e1",
+                            border="1px dashed #d7e0ea",
                             border_radius="12px",
                             text_align="center",
                             width="100%",
@@ -1071,7 +1076,7 @@ def project_hub() -> rx.Component:
             height="100vh",
             spacing="0",
         ),
-        background_color="#f8fafc",
+        background_color="#f3f6fa",
         font_family="Inter, sans-serif",
         width="100%",
         height="100vh",

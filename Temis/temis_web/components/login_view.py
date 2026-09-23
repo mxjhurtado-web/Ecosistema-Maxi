@@ -48,8 +48,8 @@ def login_view() -> rx.Component:
                     # TEMIS Header & Logo
                     rx.vstack(
                         rx.hstack(
-                            rx.icon("network", size=32, color="#3b82f6"),
-                            rx.text("TEMIS", size="8", weight="bold", color="#0f172a"),
+                            rx.icon("network", size=32, color="#2563eb"),
+                            rx.text("TEMIS", size="8", weight="bold", color="#17283c"),
                             align="center",
                             spacing="2",
                         ),
@@ -57,7 +57,7 @@ def login_view() -> rx.Component:
                             "Work OS & Gobernanza de Procesos Corporativos",
                             size="2",
                             weight="medium",
-                            color="#64748b",
+                            color="#59697b",
                             text_align="center"
                         ),
                         rx.badge("TEMIS v2.0 · Acceso Corporativo", color_scheme="indigo", variant="soft", size="1"),
@@ -85,7 +85,7 @@ def login_view() -> rx.Component:
                         rx.vstack(
                             rx.hstack(
                                 rx.icon("mail", size=14, color="#64748b"),
-                                rx.text("Correo Electrónico Institucional", size="1", weight="bold", color="#334155"),
+                                rx.text("Correo Electrónico Institucional", size="1", weight="bold", color="#59697b"),
                                 align="center",
                                 spacing="1"
                             ),
@@ -108,7 +108,7 @@ def login_view() -> rx.Component:
                         rx.vstack(
                             rx.hstack(
                                 rx.icon("lock", size=14, color="#64748b"),
-                                rx.text("Contraseña de Acceso", size="1", weight="bold", color="#334155"),
+                                rx.text("Contraseña de Acceso", size="1", weight="bold", color="#59697b"),
                                 align="center",
                                 spacing="1"
                             ),
@@ -139,19 +139,19 @@ def login_view() -> rx.Component:
                             loading=FlowState.is_logging_in,
                             width="100%",
                             size="3",
-                            color_scheme="indigo",
+                            color_scheme="blue",
                             radius="medium",
                             margin_top="12px",
-                            box_shadow="0 4px 14px 0 rgba(99, 102, 241, 0.35)",
+                            box_shadow="0 4px 14px 0 rgba(37, 99, 235, 0.25)",
                         ),
                         
                         # Help footnote
                         rx.hstack(
-                            rx.icon("shield-check", size=13, color="#10b981"),
+                            rx.icon("shield-check", size=13, color="#059669"),
                             rx.text(
                                 "Autenticación centralizada y control de roles RBAC",
                                 size="1",
-                                color="#64748b"
+                                color="#59697b"
                             ),
                             align="center",
                             spacing="1",
@@ -165,7 +165,7 @@ def login_view() -> rx.Component:
                     padding="36px",
                     width="420px",
                     background_color="#ffffff",
-                    border="1px solid #e2e8f0",
+                    border="1px solid #d7e0ea",
                     border_radius="16px",
                     box_shadow="0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
                 ),
@@ -176,7 +176,7 @@ def login_view() -> rx.Component:
             width="100vw",
             z_index="10"
         ),
-        background_color="#f8fafc",
+        background_color="#f3f6fa",
         width="100vw",
         height="100vh",
         position="relative",

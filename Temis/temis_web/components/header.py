@@ -18,7 +18,7 @@ def header() -> rx.Component:
         rx.hstack(
             rx.hstack(
                 rx.icon("network", size=20, color="#1d4ed8"),
-                rx.text("TEMIS", size="3", weight="bold", color="#0f172a"),
+                rx.text("TEMIS", size="3", weight="bold", color="#17283c"),
                 align="center",
                 spacing="2",
             ),
@@ -112,6 +112,10 @@ def header() -> rx.Component:
                     ),
                     rx.menu.separator(),
                     rx.menu.item(
+                        rx.hstack(rx.icon("file-check", size=14), rx.text("Ficha Ejecutiva (PDF / HTML)"), align="center", spacing="2"),
+                        on_click=FlowState.export_project_charter_pdf,
+                    ),
+                    rx.menu.item(
                         rx.hstack(rx.icon("upload", size=14), rx.text("Importar Diagrama / PDF..."), align="center", spacing="2"),
                         on_click=FlowState.open_import_modal,
                     ),
@@ -153,7 +157,7 @@ def header() -> rx.Component:
         height="54px",
         padding_x="4",
         background_color="#ffffff",
-        border_bottom="1px solid #e2e8f0",
+        border_bottom="1px solid #d7e0ea",
         align="center",
-        box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.02)",
+        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.03)",
     )

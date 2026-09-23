@@ -17,7 +17,7 @@ def property_inspector() -> rx.Component:
         # Inspector Header
         rx.hstack(
             rx.icon("sliders-horizontal", size=15, color="#2563eb"),
-            rx.text(f"Nodo: ", FlowState.selected_node_id, size="2", weight="bold", color="#1e293b"),
+            rx.text(f"Nodo: ", FlowState.selected_node_id, size="2", weight="bold", color="#17283c"),
             rx.spacer(),
             rx.button(
                 rx.icon("x", size=13),
@@ -30,11 +30,11 @@ def property_inspector() -> rx.Component:
             width="100%",
             align="center",
             padding_bottom="2",
-            border_bottom="1px solid #e2e8f0",
+            border_bottom="1px solid #d7e0ea",
         ),
         # Label / Text Field
         rx.vstack(
-            rx.text("Texto del Nodo:", size="1", weight="bold", color="#475569"),
+            rx.text("Texto del Nodo:", size="1", weight="bold", color="#59697b"),
             rx.text_area(
                 value=FlowState.node_label_edit,
                 on_change=FlowState.set_selected_node_label,
@@ -48,7 +48,7 @@ def property_inspector() -> rx.Component:
         ),
         # Swimlane / Carril
         rx.vstack(
-            rx.text("Carril / Actor (Swimlane):", size="1", weight="bold", color="#475569"),
+            rx.text("Carril / Actor (Swimlane):", size="1", weight="bold", color="#59697b"),
             rx.input(
                 value=FlowState.node_swimlane_edit,
                 on_change=FlowState.set_selected_node_swimlane,
@@ -211,6 +211,6 @@ def property_inspector() -> rx.Component:
         width="260px",
         height="100%",
         background_color="#ffffff",
-        border_left="1px solid #e2e8f0",
+        border_left="1px solid #d7e0ea",
         overflow_y="auto",
     )

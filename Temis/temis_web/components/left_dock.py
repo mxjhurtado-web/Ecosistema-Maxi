@@ -15,7 +15,7 @@ def shape_button(icon_name: str, label: str, node_type: str, color: str = "#4755
     return rx.button(
         rx.hstack(
             rx.icon(icon_name, size=14, color=color),
-            rx.text(label, size="1", weight="medium", color="#1e293b", truncate=True),
+            rx.text(label, size="1", weight="medium", color="#17283c", truncate=True),
             align="center",
             spacing="2",
             width="100%",
@@ -40,7 +40,7 @@ def left_dock() -> rx.Component:
             # Header
             rx.hstack(
                 rx.icon("shapes", size=15, color="#2563eb"),
-                rx.text("FORMAS", size="1", weight="bold", color="#64748b", letter_spacing="0.05em"),
+                rx.text("FORMAS", size="1", weight="bold", color="#8b9bae", letter_spacing="0.05em"),
                 align="center",
                 spacing="2",
                 padding_x="2",
@@ -48,7 +48,7 @@ def left_dock() -> rx.Component:
             ),
             # BPMN Category
             rx.vstack(
-                rx.text("BPMN / Proceso", size="1", weight="bold", color="#94a3b8", padding_x="2"),
+                rx.text("BPMN / Proceso", size="1", weight="bold", color="#8b9bae", padding_x="2"),
                 shape_button("circle-play", "Inicio Proceso", "node_start", "#2563eb"),
                 shape_button("square-check", "Actividad", "node_activity", "#16a34a"),
                 shape_button("circle-help", "Decisión", "node_decision", "#d97706"),
@@ -59,10 +59,10 @@ def left_dock() -> rx.Component:
                 spacing="1",
                 width="100%",
             ),
-            rx.divider(color="#e2e8f0"),
+            rx.divider(color="#d7e0ea"),
             # Systems & Channels Category
             rx.vstack(
-                rx.text("Sistemas & Canales", size="1", weight="bold", color="#94a3b8", padding_x="2"),
+                rx.text("Sistemas & Canales", size="1", weight="bold", color="#8b9bae", padding_x="2"),
                 shape_button("cpu", "Sistema Chronos", "node_system", "#059669"),
                 shape_button("database", "Base de Datos", "node_database", "#0891b2"),
                 shape_button("monitor", "Pantalla / Menú", "node_system", "#2563eb"),
@@ -72,10 +72,10 @@ def left_dock() -> rx.Component:
                 spacing="1",
                 width="100%",
             ),
-            rx.divider(color="#e2e8f0"),
+            rx.divider(color="#d7e0ea"),
             # Logic Gateways
             rx.vstack(
-                rx.text("Compuertas", size="1", weight="bold", color="#94a3b8", padding_x="2"),
+                rx.text("Compuertas", size="1", weight="bold", color="#8b9bae", padding_x="2"),
                 shape_button("git-merge", "Paralelo (Y)", "node_activity", "#9333ea"),
                 shape_button("git-branch", "Exclusivo (O)", "node_decision", "#c026d3"),
                 spacing="1",
@@ -88,6 +88,6 @@ def left_dock() -> rx.Component:
         width="180px",
         height="100%",
         background_color="#ffffff",
-        border_right="1px solid #e2e8f0",
+        border_right="1px solid #d7e0ea",
         overflow_y="auto",
     )

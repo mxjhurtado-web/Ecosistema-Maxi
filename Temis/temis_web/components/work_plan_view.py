@@ -21,10 +21,10 @@ def capacity_stat(title: str, value: rx.Var[str] | str, subtitle: str, icon_name
             border_radius="6px",
         ),
         rx.vstack(
-            rx.text(title, size="1", color="#64748b", weight="medium"),
+            rx.text(title, size="1", color="#59697b", weight="medium"),
             rx.hstack(
-                rx.text(value, size="3", weight="bold", color="#0f172a"),
-                rx.text(subtitle, size="1", color="#94a3b8"),
+                rx.text(value, size="3", weight="bold", color="#17283c"),
+                rx.text(subtitle, size="1", color="#8b9bae"),
                 align="baseline",
                 spacing="1",
             ),
@@ -33,8 +33,9 @@ def capacity_stat(title: str, value: rx.Var[str] | str, subtitle: str, icon_name
         ),
         padding="2",
         background_color="#ffffff",
-        border="1px solid #e2e8f0",
+        border="1px solid #d7e0ea",
         border_radius="8px",
+        box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.02)",
         align="center",
         spacing="2",
         flex="1",
@@ -55,7 +56,7 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
         ),
         rx.table.cell(
             rx.vstack(
-                rx.text(item["user_story"], size="2", weight="medium", color="#1e293b"),
+                rx.text(item["user_story"], size="2", weight="medium", color="#17283c"),
                 rx.cond(
                     item["deliverable"] != "",
                     rx.hstack(
@@ -215,8 +216,8 @@ def work_plan_view() -> rx.Component:
                         rx.hstack(
                             rx.icon("calendar-clock", size=22, color="#2563eb"),
                             rx.vstack(
-                                rx.text("Plan de Trabajo & Planificador Inteligente de Sprints", size="4", weight="bold", color="#0f172a"),
-                                rx.text("Configura la capacidad laboral y genera la distribución automática de Sprints y Backlog con Gemini 2.5 Flash", size="2", color="#64748b"),
+                                rx.text("Plan de Trabajo & Planificador Inteligente de Sprints", size="4", weight="bold", color="#17283c"),
+                                rx.text("Configura la capacidad laboral y genera la distribución automática de Sprints y Backlog con Gemini 2.5 Flash", size="2", color="#59697b"),
                                 spacing="0",
                             ),
                             align="center",
@@ -484,12 +485,13 @@ def work_plan_view() -> rx.Component:
                         width="100%",
                     ),
                     background_color="#ffffff",
-                    border="1px solid #e2e8f0",
+                    border="1px solid #d7e0ea",
                     border_radius="10px",
                     overflow="hidden",
                     width="100%",
                     max_height="calc(100vh - 420px)",
                     overflow_y="auto",
+                    box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)",
                 ),
                 # Subtab 2: Sprints Agenda Cards
                 rx.box(
@@ -517,5 +519,5 @@ def work_plan_view() -> rx.Component:
         width="100%",
         height="100%",
         overflow="hidden",
-        background_color="#f8fafc",
+        background_color="#f3f6fa",
     )

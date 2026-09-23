@@ -19,13 +19,13 @@ def nav_item(label: str, icon_name: str, view_value: str, badge_text: str = "") 
             rx.icon(
                 icon_name,
                 size=16,
-                color=rx.cond(is_active, "#1d4ed8", "#64748b"),
+                color=rx.cond(is_active, "#2563eb", "#64748b"),
             ),
             rx.text(
                 label,
                 size="2",
                 weight=rx.cond(is_active, "bold", "medium"),
-                color=rx.cond(is_active, "#1d4ed8", "#334155"),
+                color=rx.cond(is_active, "#2563eb", "#59697b"),
             ),
             rx.spacer(),
             rx.cond(
@@ -48,7 +48,7 @@ def nav_item(label: str, icon_name: str, view_value: str, badge_text: str = "") 
         tab_index=0,
         width="100%",
         _hover={
-            "background_color": rx.cond(is_active, "#eff6ff", "#f8fafc"),
+            "background_color": rx.cond(is_active, "#eff6ff", "#f1f5f9"),
             "border_color": rx.cond(is_active, "#bfdbfe", "#e2e8f0"),
         },
         _focus_visible={
@@ -83,7 +83,7 @@ def workspace_sidebar() -> rx.Component:
                 width="100%",
                 align="center",
                 padding_bottom="2",
-                border_bottom="1px solid #f1f5f9",
+                border_bottom="1px solid #d7e0ea",
             ),
 
             # 2. Active Project Context Box
@@ -105,15 +105,15 @@ def workspace_sidebar() -> rx.Component:
                         FlowState.project_name,
                         size="2",
                         weight="bold",
-                        color="#0f172a",
+                        color="#17283c",
                         max_width="100%",
                         overflow="hidden",
                         text_overflow="ellipsis",
                         white_space="nowrap",
                     ),
                     rx.hstack(
-                        rx.icon("user", size=12, color="#64748b"),
-                        rx.text(FlowState.project_manager, size="1", color="#64748b"),
+                        rx.icon("user", size=12, color="#59697b"),
+                        rx.text(FlowState.project_manager, size="1", color="#59697b"),
                         align="center",
                         spacing="1",
                     ),
@@ -121,9 +121,10 @@ def workspace_sidebar() -> rx.Component:
                     width="100%",
                 ),
                 padding="3",
-                background_color="#f8fafc",
-                border="1px solid #e2e8f0",
+                background_color="#ffffff",
+                border="1px solid #d7e0ea",
                 border_radius="8px",
+                box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.02)",
                 width="100%",
             ),
 
@@ -131,7 +132,7 @@ def workspace_sidebar() -> rx.Component:
             rx.vstack(
                 # Group 1: Definición & Planificación
                 rx.vstack(
-                    rx.text("DEFINICIÓN & PLAN", size="1", weight="bold", color="#94a3b8", letter_spacing="0.05em"),
+                    rx.text("DEFINICIÓN & PLAN", size="1", weight="bold", color="#8b9bae", letter_spacing="0.05em"),
                     nav_item("Ficha del Proyecto", "file-text", "charter"),
                     nav_item("Plan & Backlog Scrum", "calendar-range", "plan"),
                     spacing="1",
@@ -140,7 +141,7 @@ def workspace_sidebar() -> rx.Component:
 
                 # Group 2: Modelado de Procesos
                 rx.vstack(
-                    rx.text("MODELADO DE PROCESOS", size="1", weight="bold", color="#94a3b8", letter_spacing="0.05em"),
+                    rx.text("MODELADO DE PROCESOS", size="1", weight="bold", color="#8b9bae", letter_spacing="0.05em"),
                     nav_item("Diagrama de Flujo (BPMN)", "network", "flow"),
                     nav_item("Matriz SIPOC Tabular", "table-2", "sipoc"),
                     spacing="1",
@@ -149,7 +150,7 @@ def workspace_sidebar() -> rx.Component:
 
                 # Group 3: Gobernanza & Calidad
                 rx.vstack(
-                    rx.text("GOBERNANZA & CALIDAD", size="1", weight="bold", color="#94a3b8", letter_spacing="0.05em"),
+                    rx.text("GOBERNANZA & CALIDAD", size="1", weight="bold", color="#8b9bae", letter_spacing="0.05em"),
                     nav_item("Metodología 7 Fases", "layers", "governance"),
                     rx.box(
                         rx.hstack(
@@ -251,10 +252,10 @@ def workspace_sidebar() -> rx.Component:
         min_width="240px",
         max_width="240px",
         height="100vh",
-        background_color="#ffffff",
-        border_right="1px solid #e2e8f0",
+        background_color="#f8fafc",
+        border_right="1px solid #d7e0ea",
         padding="3",
-        box_shadow="1px 0 3px 0 rgba(0, 0, 0, 0.02)",
+        box_shadow="1px 0 3px 0 rgba(0, 0, 0, 0.03)",
         display="flex",
         flex_direction="column",
     )

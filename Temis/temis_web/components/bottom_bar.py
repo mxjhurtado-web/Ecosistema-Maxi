@@ -105,6 +105,6 @@ def bottom_bar() -> rx.Component:
         align="center",
         padding_x="3",
         background_color="#ffffff",
-        border_top="1px solid #e2e8f0",
+        border_top="1px solid #d7e0ea",
         z_index="10",
     )

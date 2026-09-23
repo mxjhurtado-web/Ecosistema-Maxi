@@ -75,7 +75,7 @@ def workspace_view() -> rx.Component:
             height="100vh",
             spacing="0",
         ),
-        background_color="#f8fafc",
+        background_color="#f3f6fa",
         font_family="Inter, sans-serif",
     )
 
@@ -104,6 +104,8 @@ def index() -> rx.Component:
         ),
         width="100%",
         height="100vh",
+        background_color="#f3f6fa",
+        font_family="Inter, sans-serif",
     )
 
 
