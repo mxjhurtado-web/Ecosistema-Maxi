@@ -129,12 +129,25 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
             align="center",
         ),
         rx.table.cell(
-            rx.icon_button(
-                rx.icon("trash-2", size=13),
-                on_click=lambda: FlowState.delete_backlog_item(item["item_id"]),
-                color_scheme="ruby",
-                variant="ghost",
-                size="1",
+            rx.hstack(
+                rx.icon_button(
+                    rx.icon("pencil", size=13),
+                    on_click=lambda: FlowState.open_edit_task_modal(item["item_id"]),
+                    color_scheme="blue",
+                    variant="ghost",
+                    size="1",
+                    title="Editar Tarea",
+                ),
+                rx.icon_button(
+                    rx.icon("trash-2", size=13),
+                    on_click=lambda: FlowState.delete_backlog_item(item["item_id"]),
+                    color_scheme="ruby",
+                    variant="ghost",
+                    size="1",
+                    title="Eliminar Tarea",
+                ),
+                spacing="1",
+                align="center",
             ),
             align="center",
         ),
@@ -142,7 +155,7 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
 
 
 def render_sprint_card(sprint: rx.Var[dict]) -> rx.Component:
-    """Render a card for an individual Sprint in the Timeline view"""
+    """Render a card for an individual Sprint in the Timeline view with proper status unification (F05)"""
     return rx.box(
         rx.vstack(
             rx.hstack(
@@ -154,9 +167,13 @@ def render_sprint_card(sprint: rx.Var[dict]) -> rx.Component:
                 ),
                 rx.spacer(),
                 rx.cond(
-                    sprint["status"] == "In Progress",
-                    rx.badge(rx.hstack(rx.icon("flame", size=11), rx.text("En Progreso"), align="center", spacing="1"), color_scheme="orange", variant="solid", size="1"),
-                    rx.badge(rx.hstack(rx.icon("calendar", size=11), rx.text("Planificado"), align="center", spacing="1"), color_scheme="gray", variant="soft", size="1"),
+                    (sprint["status"] == "Completado") | (sprint["status"] == "Done") | (sprint["status"] == "Finalizado"),
+                    rx.badge(rx.hstack(rx.icon("circle-check", size=11), rx.text("Completado"), align="center", spacing="1"), color_scheme="green", variant="solid", size="1"),
+                    rx.cond(
+                        (sprint["status"] == "En Progreso") | (sprint["status"] == "In Progress") | (sprint["status"] == "Activo"),
+                        rx.badge(rx.hstack(rx.icon("flame", size=11), rx.text("En Progreso"), align="center", spacing="1"), color_scheme="orange", variant="solid", size="1"),
+                        rx.badge(rx.hstack(rx.icon("calendar", size=11), rx.text("Planificado"), align="center", spacing="1"), color_scheme="gray", variant="soft", size="1"),
+                    ),
                 ),
                 width="100%",
                 align="center",
@@ -205,9 +222,215 @@ def render_sprint_card(sprint: rx.Var[dict]) -> rx.Component:
     )
 
 
+def task_editor_modal() -> rx.Component:
+    """Modal dialog for creating and editing Scrum Backlog tasks (F04)"""
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.vstack(
+                rx.hstack(
+                    rx.box(
+                        rx.icon("list-todo", size=22, color="#1e5a9a"),
+                        padding="2",
+                        background_color="#e0e7ff",
+                        border_radius="8px",
+                    ),
+                    rx.vstack(
+                        rx.dialog.title(
+                            rx.cond(FlowState.task_modal_mode == "create", "Nueva Tarea Técnica / Historia de Usuario", "Editar Tarea del Backlog"),
+                            size="4",
+                            weight="bold",
+                            color="#17283c",
+                        ),
+                        rx.dialog.description("Define los parámetros de estimación, rol y entregable para el Backlog Scrum.", size="2", color="#52657a"),
+                        spacing="0",
+                    ),
+                    align="center",
+                    spacing="3",
+                ),
+                rx.divider(),
+                # Row 1: Module and User Story
+                rx.vstack(
+                    rx.hstack(
+                        rx.vstack(
+                            rx.text("Módulo / Épica:", size="1", weight="bold", color="#52657a"),
+                            rx.input(
+                                value=FlowState.task_form_module,
+                                on_change=FlowState.set_task_form_module,
+                                placeholder="ej. Diagnóstico & Arquitectura, Integraciones...",
+                                size="1",
+                                width="100%",
+                            ),
+                            flex="1",
+                            spacing="1",
+                        ),
+                        rx.vstack(
+                            rx.text("Sprint Asignado:", size="1", weight="bold", color="#52657a"),
+                            rx.select.root(
+                                rx.select.trigger(placeholder="Seleccionar Sprint", size="1"),
+                                rx.select.content(
+                                    rx.foreach(
+                                        FlowState.plan_sprint_options,
+                                        lambda s: rx.select.item(s, value=s),
+                                    ),
+                                ),
+                                value=FlowState.task_form_sprint,
+                                on_change=FlowState.set_task_form_sprint,
+                            ),
+                            width="160px",
+                            spacing="1",
+                        ),
+                        width="100%",
+                        spacing="3",
+                    ),
+                    rx.vstack(
+                        rx.text("Historia de Usuario / Descripción Técnica:", size="1", weight="bold", color="#52657a"),
+                        rx.text_area(
+                            value=FlowState.task_form_story,
+                            on_change=FlowState.set_task_form_story,
+                            placeholder="Como analista de procesos, requiero validar el diagrama con el área de operaciones para...",
+                            size="1",
+                            rows="3",
+                            width="100%",
+                        ),
+                        width="100%",
+                        spacing="1",
+                    ),
+                    # Row 2: SP, Hours, Priority, Status
+                    rx.hstack(
+                        rx.vstack(
+                            rx.text("Story Points (SP):", size="1", weight="bold", color="#52657a"),
+                            rx.input(
+                                value=FlowState.task_form_sp.to(str),
+                                on_change=FlowState.set_task_form_sp,
+                                type="number",
+                                size="1",
+                                width="100%",
+                            ),
+                            flex="1",
+                            spacing="1",
+                        ),
+                        rx.vstack(
+                            rx.text("Horas Estimadas:", size="1", weight="bold", color="#52657a"),
+                            rx.input(
+                                value=FlowState.task_form_hours.to(str),
+                                on_change=FlowState.set_task_form_hours,
+                                type="number",
+                                size="1",
+                                width="100%",
+                            ),
+                            flex="1",
+                            spacing="1",
+                        ),
+                        rx.vstack(
+                            rx.text("Prioridad:", size="1", weight="bold", color="#52657a"),
+                            rx.select.root(
+                                rx.select.trigger(placeholder="Prioridad", size="1"),
+                                rx.select.content(
+                                    rx.select.item("Alta", value="Alta"),
+                                    rx.select.item("Media", value="Media"),
+                                    rx.select.item("Baja", value="Baja"),
+                                ),
+                                value=FlowState.task_form_priority,
+                                on_change=FlowState.set_task_form_priority,
+                            ),
+                            flex="1",
+                            spacing="1",
+                        ),
+                        rx.vstack(
+                            rx.text("Estado:", size="1", weight="bold", color="#52657a"),
+                            rx.select.root(
+                                rx.select.trigger(placeholder="Estado", size="1"),
+                                rx.select.content(
+                                    rx.select.item("Planificado", value="Planificado"),
+                                    rx.select.item("En Progreso", value="En Progreso"),
+                                    rx.select.item("Completado", value="Completado"),
+                                    rx.select.item("Bloqueado", value="Bloqueado"),
+                                ),
+                                value=FlowState.task_form_status,
+                                on_change=FlowState.set_task_form_status,
+                            ),
+                            flex="1",
+                            spacing="1",
+                        ),
+                        width="100%",
+                        spacing="3",
+                    ),
+                    # Row 3: Role & Deliverable
+                    rx.hstack(
+                        rx.vstack(
+                            rx.text("Rol Asignado:", size="1", weight="bold", color="#52657a"),
+                            rx.input(
+                                value=FlowState.task_form_role,
+                                on_change=FlowState.set_task_form_role,
+                                placeholder="ej. Desarrollador, Analista de Procesos...",
+                                size="1",
+                                width="100%",
+                            ),
+                            flex="1",
+                            spacing="1",
+                        ),
+                        rx.vstack(
+                            rx.text("Entregable Asociado:", size="1", weight="bold", color="#52657a"),
+                            rx.input(
+                                value=FlowState.task_form_deliverable,
+                                on_change=FlowState.set_task_form_deliverable,
+                                placeholder="ej. Project Charter Oficial, Matriz SIPOC...",
+                                size="1",
+                                width="100%",
+                            ),
+                            flex="1",
+                            spacing="1",
+                        ),
+                        width="100%",
+                        spacing="3",
+                    ),
+                    spacing="3",
+                    width="100%",
+                ),
+                rx.divider(),
+                # Actions
+                rx.hstack(
+                    rx.button(
+                        "Cancelar",
+                        color_scheme="gray",
+                        variant="soft",
+                        size="2",
+                        on_click=FlowState.close_task_modal,
+                    ),
+                    rx.spacer(),
+                    rx.button(
+                        rx.hstack(
+                            rx.icon("check", size=16),
+                            rx.text(rx.cond(FlowState.task_modal_mode == "create", "Crear Tarea", "Guardar Cambios")),
+                            align="center",
+                            spacing="1",
+                        ),
+                        on_click=FlowState.save_task_modal,
+                        color_scheme="blue",
+                        size="2",
+                        radius="medium",
+                    ),
+                    width="100%",
+                    align="center",
+                ),
+                spacing="3",
+                width="100%",
+            ),
+            width="560px",
+            max_width="95vw",
+            border_radius="xl",
+            padding="5",
+            background_color="#ffffff",
+        ),
+        open=FlowState.show_task_modal,
+        on_open_change=FlowState.close_task_modal,
+    )
+
+
 def work_plan_view() -> rx.Component:
-    """Main Work Plan & Capacity Planner View (Planificador Inteligente de Trabajo)"""
+    """Main Work Plan & Capacity Planner View (Planificador Inteligente de Trabajo) (F04, F05)"""
     return rx.box(
+        task_editor_modal(),
         rx.vstack(
             # 1. Top Section: Planning Parameters & Capacity Calculator
             rx.box(

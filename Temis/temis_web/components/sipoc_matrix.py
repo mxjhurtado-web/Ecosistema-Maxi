@@ -282,6 +282,49 @@ def sipoc_matrix() -> rx.Component:
                 wrap="wrap",
             ),
 
+            # Outdated Flow Warning Banner (F06)
+            rx.cond(
+                FlowState.is_sipoc_flow_outdated,
+                rx.box(
+                    rx.hstack(
+                        rx.box(
+                            rx.icon("refresh-cw", size=18, color="#b45309"),
+                            padding="2",
+                            background_color="#fef3c7",
+                            border_radius="6px",
+                        ),
+                        rx.vstack(
+                            rx.text("Diagrama desactualizado respecto a la Matriz SIPOC", size="2", weight="bold", color="#92400e"),
+                            rx.text("Se detectaron modificaciones recientes en los pasos SIPOC. Sincroniza el diagrama para actualizar los bloques en el lienzo BPMN.", size="1", color="#78350f"),
+                            spacing="0",
+                        ),
+                        rx.spacer(),
+                        rx.button(
+                            rx.hstack(
+                                rx.icon("zap", size=14),
+                                rx.text("Sincronizar Diagrama"),
+                                align="center",
+                                spacing="1",
+                            ),
+                            on_click=FlowState.sync_sipoc_to_flow,
+                            color_scheme="amber",
+                            variant="solid",
+                            size="1",
+                            radius="medium",
+                        ),
+                        width="100%",
+                        align="center",
+                        spacing="3",
+                    ),
+                    padding="3",
+                    background_color="#fffbeb",
+                    border="1px solid #fde68a",
+                    border_radius="8px",
+                    width="100%",
+                ),
+                rx.box(),
+            ),
+
             # SIPOC Interactive Table Container (Self-contained horizontal scroll to prevent 1271px mobile blowout)
             rx.box(
                 rx.box(

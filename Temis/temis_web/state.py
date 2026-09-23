@@ -821,32 +821,146 @@ class FlowState(rx.State):
         finally:
             self.is_syncing_plan_sheet = False
 
-    def add_backlog_item(self):
-        """Add a new task row to the Backlog"""
+    # Task Creator & Editor Modal State (F04)
+    show_task_modal: bool = False
+    task_modal_mode: str = "create"  # "create" or "edit"
+    task_form_id: str = ""
+    task_form_module: str = "General"
+    task_form_story: str = ""
+    task_form_sprint: str = "Sprint 01"
+    task_form_sp: int = 3
+    task_form_hours: int = 10
+    task_form_start_date: str = "2026-01-16"
+    task_form_end_date: str = "2026-01-30"
+    task_form_role: str = "Desarrollador"
+    task_form_priority: str = "Media"
+    task_form_deliverable: str = ""
+    task_form_status: str = "Planificado"
+
+    def set_task_form_module(self, val: str):
+        self.task_form_module = val
+
+    def set_task_form_story(self, val: str):
+        self.task_form_story = val
+
+    def set_task_form_sprint(self, val: str):
+        self.task_form_sprint = val
+
+    def set_task_form_sp(self, val: str):
+        try:
+            self.task_form_sp = int(val)
+        except Exception:
+            self.task_form_sp = 3
+
+    def set_task_form_hours(self, val: str):
+        try:
+            self.task_form_hours = int(val)
+        except Exception:
+            self.task_form_hours = 10
+
+    def set_task_form_start_date(self, val: str):
+        self.task_form_start_date = val
+
+    def set_task_form_end_date(self, val: str):
+        self.task_form_end_date = val
+
+    def set_task_form_role(self, val: str):
+        self.task_form_role = val
+
+    def set_task_form_priority(self, val: str):
+        self.task_form_priority = val
+
+    def set_task_form_deliverable(self, val: str):
+        self.task_form_deliverable = val
+
+    def set_task_form_status(self, val: str):
+        self.task_form_status = val
+
+    def open_add_task_modal(self):
+        """Open modal to add a new task with custom parameters"""
         count = len(self.plan_backlog_items) + 1
-        new_item = {
-            "item_id": str(count),
-            "module": "General",
-            "user_story": f"Nueva tarea técnica / historia de usuario #{count}",
-            "sprint": self.plan_sprints[0]["sprint_id"] if self.plan_sprints else "Sprint 01",
-            "story_points": 3,
-            "hours_estimated": 10,
-            "start_date": self.plan_start_date,
-            "end_date": self.plan_end_date,
-            "role": "Desarrollador",
-            "priority": "Media",
-            "deliverable": "Entregable",
-            "status": "Planificado"
+        self.task_form_id = str(count)
+        self.task_form_module = "General"
+        self.task_form_story = ""
+        self.task_form_sprint = self.plan_sprints[0]["sprint_id"] if self.plan_sprints else "Sprint 01"
+        self.task_form_sp = 3
+        self.task_form_hours = 10
+        self.task_form_start_date = self.plan_start_date
+        self.task_form_end_date = self.plan_end_date
+        self.task_form_role = "Desarrollador"
+        self.task_form_priority = "Media"
+        self.task_form_deliverable = ""
+        self.task_form_status = "Planificado"
+        self.task_modal_mode = "create"
+        self.show_task_modal = True
+
+    def open_edit_task_modal(self, item_id: str):
+        """Open modal to edit an existing task"""
+        selected = next((i for i in self.plan_backlog_items if i.get("item_id") == str(item_id)), None)
+        if not selected:
+            return
+        self.task_form_id = str(selected.get("item_id", ""))
+        self.task_form_module = str(selected.get("module", "General"))
+        self.task_form_story = str(selected.get("user_story", ""))
+        self.task_form_sprint = str(selected.get("sprint", "Sprint 01"))
+        self.task_form_sp = int(selected.get("story_points", 3))
+        self.task_form_hours = int(selected.get("hours_estimated", 10))
+        self.task_form_start_date = str(selected.get("start_date", self.plan_start_date))
+        self.task_form_end_date = str(selected.get("end_date", self.plan_end_date))
+        self.task_form_role = str(selected.get("role", "Desarrollador"))
+        self.task_form_priority = str(selected.get("priority", "Media"))
+        self.task_form_deliverable = str(selected.get("deliverable", ""))
+        self.task_form_status = str(selected.get("status", "Planificado"))
+        self.task_modal_mode = "edit"
+        self.show_task_modal = True
+
+    def close_task_modal(self):
+        self.show_task_modal = False
+
+    def save_task_modal(self):
+        """Save created or updated task from modal"""
+        if not self.task_form_story.strip():
+            self.trigger_toast("Ingresa la descripción o historia de usuario", "warning")
+            return
+        item_data = {
+            "item_id": self.task_form_id or str(len(self.plan_backlog_items) + 1),
+            "module": self.task_form_module.strip() or "General",
+            "user_story": self.task_form_story.strip(),
+            "sprint": self.task_form_sprint,
+            "story_points": int(self.task_form_sp),
+            "hours_estimated": int(self.task_form_hours),
+            "start_date": self.task_form_start_date,
+            "end_date": self.task_form_end_date,
+            "role": self.task_form_role.strip() or "Desarrollador",
+            "priority": self.task_form_priority,
+            "deliverable": self.task_form_deliverable.strip(),
+            "status": self.task_form_status
         }
-        self.plan_backlog_items.append(new_item)
+        if self.task_modal_mode == "create":
+            self.plan_backlog_items.append(item_data)
+            self.trigger_toast(f"Tarea #{item_data['item_id']} agregada al Backlog", "success")
+        else:
+            updated = []
+            for it in self.plan_backlog_items:
+                if str(it.get("item_id")) == str(self.task_form_id):
+                    updated.append(item_data)
+                else:
+                    updated.append(it)
+            self.plan_backlog_items = updated
+            self.trigger_toast(f"Tarea #{item_data['item_id']} actualizada con éxito", "success")
+        self.show_task_modal = False
         self.save_current_project()
-        self.status_message = f"Tarea #{count} agregada al Backlog"
+
+    def add_backlog_item(self):
+        """Add a new task row to the Backlog (opens task modal)"""
+        self.open_add_task_modal()
 
     def delete_backlog_item(self, item_id: str):
         """Remove a task row from the Backlog"""
         self.plan_backlog_items = [i for i in self.plan_backlog_items if i.get("item_id") != str(item_id)]
         self.save_current_project()
         self.status_message = "Tarea eliminada del Backlog"
+        self.trigger_toast("Tarea eliminada del Backlog", "info")
 
     # Project Charter & Master Metadata State
     project_purpose: str = "Estandarizar y automatizar el ciclo integral de atención de aclaraciones y transacciones de clientes vía canales digitales y sistemas centrales."
@@ -1905,6 +2019,85 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
     is_generating_ai: bool = False
     status_message: str = "Listo"
 
+    # Phase Gate Governance State (F01)
+    show_phase_gate_modal: bool = False
+    show_phase_blocked_modal: bool = False
+    target_gate_phase_num: int = 1
+    target_gate_phase_name: str = ""
+    target_gate_phase_owner: str = ""
+    target_gate_criteria: str = ""
+    target_gate_deliverables: List[str] = []
+    phase_gate_signer: str = ""
+    phase_gate_notes: str = ""
+    phase_gate_checked_deliverables: List[str] = []
+
+    def set_phase_gate_signer(self, val: str):
+        self.phase_gate_signer = val
+
+    def set_phase_gate_notes(self, val: str):
+        self.phase_gate_notes = val
+
+    def toggle_gate_deliverable(self, item: str):
+        if item in self.phase_gate_checked_deliverables:
+            self.phase_gate_checked_deliverables = [d for d in self.phase_gate_checked_deliverables if d != item]
+        else:
+            self.phase_gate_checked_deliverables = self.phase_gate_checked_deliverables + [item]
+
+    def request_phase_change(self, target_phase: int):
+        """Evaluate governance gate requirements before activating target phase (F01)"""
+        if target_phase == self.current_phase:
+            return
+
+        phase_info = {
+            1: {"name": "Fase 1: Diagnóstico Estratégico", "owner": "Dirección General / Sponsor", "deliverables": ["Ficha de Diagnóstico", "Matriz de Interesados", "Justificación de Negocio"], "gate_criteria": "Aprobación de oportunidad y factibilidad inicial."},
+            2: {"name": "Fase 2: Inicio del Proyecto", "owner": "Project Manager (PM)", "deliverables": ["Project Charter Oficial", "Matriz SIPOC Inicial", "Asignación RACI"], "gate_criteria": "Charter firmado y alcance preliminar delimitado."},
+            3: {"name": "Fase 3: Planificación Híbrida", "owner": "PM & Analista de Procesos", "deliverables": ["Diagrama BPMN Multi-Pestaña", "Backlog Scrum Técnico", "Matriz de Riesgos"], "gate_criteria": "Plan de trabajo desglosado en Sprints y estimación de SP."},
+            4: {"name": "Fase 4: Ejecución Iterativa", "owner": "Equipo de Desarrollo & Procesos", "deliverables": ["Manual de Políticas y Procedimientos", "Servicios Backend / UI", "Daily Logs (EOD)"], "gate_criteria": "Entregables del sprint completados y documentados."},
+            5: {"name": "Fase 5: Monitoreo y Control", "owner": "Auditor QA / Six Sigma", "deliverables": ["Auditoría IA de Calidad (0-100)", "Reporte de Cumplimiento SLA", "Pruebas UAT"], "gate_criteria": "Score de calidad Six Sigma >= 80 y sin bloqueos P0."},
+            6: {"name": "Fase 6: Mejora Continua", "owner": "Operaciones & Mejora Continua", "deliverables": ["Plan de Ajustes Kaizen", "Encuesta de Satisfacción", "Métricas Operativas"], "gate_criteria": "Retroalimentación recopilada y plan de optimización activo."},
+            7: {"name": "Fase 7: Cierre del Proyecto", "owner": "PM & Sponsor", "deliverables": ["Acta de Cierre Aprobada", "Paquete .temis.json Exportado", "Lecciones Aprendidas"], "gate_criteria": "Acta de cierre firmada y archivo respaldado en Drive."}
+        }
+
+        # Going back to earlier phase
+        if target_phase < self.current_phase:
+            self.set_phase(target_phase)
+            self.trigger_toast(f"Retornaste a {PHASE_NAMES.get(target_phase, f'Fase {target_phase}')}", "info")
+            return
+
+        # Promoting to immediate next phase (Sequential Gate Verification)
+        if target_phase == self.current_phase + 1:
+            curr_data = phase_info.get(self.current_phase, phase_info[1])
+            target_data = phase_info.get(target_phase, phase_info[1])
+            self.target_gate_phase_num = target_phase
+            self.target_gate_phase_name = target_data["name"]
+            self.target_gate_phase_owner = target_data["owner"]
+            self.target_gate_criteria = curr_data["gate_criteria"]
+            self.target_gate_deliverables = list(curr_data["deliverables"])
+            self.phase_gate_checked_deliverables = list(curr_data["deliverables"])
+            self.phase_gate_signer = self.project_manager or self.user_name
+            self.phase_gate_notes = ""
+            self.show_phase_gate_modal = True
+            return
+
+        # Multi-phase jump blocked
+        if target_phase > self.current_phase + 1:
+            target_data = phase_info.get(target_phase, phase_info[1])
+            self.target_gate_phase_num = target_phase
+            self.target_gate_phase_name = target_data["name"]
+            self.show_phase_blocked_modal = True
+
+    def close_phase_gate_modal(self):
+        self.show_phase_gate_modal = False
+
+    def close_phase_blocked_modal(self):
+        self.show_phase_blocked_modal = False
+
+    def confirm_phase_gate_approval(self):
+        """Approve gate deliverable signoff and advance to next methodology phase"""
+        self.set_phase(self.target_gate_phase_num)
+        self.show_phase_gate_modal = False
+        self.trigger_toast(f"Gate Aprobado: Avanzaste a {self.phase_name}", "success")
+
     # Set phase handler (T16 Governance)
     def set_phase(self, phase_num: int):
         self.current_phase = phase_num
@@ -2561,7 +2754,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     # Hub & Workspace Navigation Handlers
     def open_project_workspace(self, proj_id: str):
-        """Open project in Level 2 Workspace and load full state (T15)"""
+        """Open project in Level 2 Workspace and load full state (T15 & F02)"""
+        self.unselect_node()
         self.load_saved_project(proj_id)
         self.active_mode = "workspace"
         self.active_view = "charter"  # Clear landing on Charter view for consistent onboarding & context
@@ -2570,7 +2764,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.status_message = f"Espacio de trabajo abierto: {self.project_name}"
 
     def return_to_hub(self):
-        """Save changes and return to Level 1 Hub"""
+        """Save changes and return to Level 1 Hub (F02)"""
+        self.unselect_node()
         if getattr(self, "is_workspace_dirty", False):
             self.save_current_project()
             self.is_workspace_dirty = False
@@ -2977,8 +3172,12 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "total_sp": total_sp,
             "completed_tasks": completed_tasks,
             "total_tasks": total_tasks,
-            "health_status": existing.get("health_status", "unrated"),
-            "audit_score": existing.get("audit_score", 0),
+            "health_status": "green" if self.audit_score >= 80 else ("yellow" if self.audit_score >= 60 else ("unrated" if not self.has_audit_run else "red")),
+            "audit_score": self.audit_score,
+            "previous_audit_score": self.previous_audit_score,
+            "last_audit_date": self.last_audit_date,
+            "has_audit_run": self.has_audit_run,
+            "audit_findings": list(self.audit_findings),
             "nodes_count": len(self.nodes),
             "steps_count": len(self.sipoc_rows),
             "plan_start_date": self.plan_start_date,
@@ -3025,7 +3224,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.save_current_project()
 
     def load_saved_project(self, proj_id: str):
-        """Load a selected project from saved projects into active workspace"""
+        """Load a selected project from saved projects into active workspace (F02 & F03)"""
+        self.unselect_node()
         selected = next((p for p in self.saved_projects if p.get("id") == proj_id), None)
         if not selected:
             self.status_message = "No se encontró el flujo seleccionado"
@@ -3080,10 +3280,18 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         if selected.get("narrative_text"):
             self.narrative_text = selected["narrative_text"]
 
-        if selected.get("audit_score"):
-            self.audit_score = int(selected.get("audit_score", 95))
+        if selected.get("has_audit_run") or selected.get("last_audit_date"):
+            self.has_audit_run = True
+            self.last_audit_date = str(selected.get("last_audit_date", ""))
+            self.audit_score = int(selected.get("audit_score", 0))
+            self.previous_audit_score = int(selected.get("previous_audit_score", self.audit_score))
+            self.audit_findings = list(selected.get("audit_findings", []))
         else:
-            self.audit_score = 95 if selected.get("health_status") != "unrated" else 0
+            self.has_audit_run = False
+            self.last_audit_date = ""
+            self.audit_score = 0
+            self.previous_audit_score = 0
+            self.audit_findings = []
 
         self.show_recent_modal = False
         self.status_message = f"Flujo '{self.project_name}' cargado con éxito en todas las vistas"
@@ -3141,12 +3349,13 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         """Return candidate target node option strings for connect modal"""
         return [f"{n['id']} - {n.get('label', '')}" for n in self.nodes if n["id"] != self.selected_node_id]
 
-    # AI Process Auditor State & Quality Deltas
+    # AI Process Auditor State & Quality Deltas (F03)
     show_audit_modal: bool = False
     is_auditing_ai: bool = False
-    audit_score: int = 95
-    previous_audit_score: int = 92
-    last_audit_date: str = "22 Sep 2026, 12:00"
+    has_audit_run: bool = False
+    audit_score: int = 0
+    previous_audit_score: int = 0
+    last_audit_date: str = ""
     audit_rules_version: str = "v2.4 Six Sigma Enterprise"
     audit_findings: List[Dict[str, Any]] = []
 
@@ -3219,15 +3428,14 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.auto_save_status = "Cambios Guardados"
 
     def open_audit_modal(self):
-        """Open AI Process Auditor modal and execute structural governance analysis"""
+        """Open AI Process Auditor modal (F03)"""
         self.show_audit_modal = True
-        self.run_ai_process_audit()
 
     def close_audit_modal(self):
         self.show_audit_modal = False
 
     def run_ai_process_audit(self):
-        """Execute Gemini AI & Structural Governance Audit on current active flowchart tab"""
+        """Execute Gemini AI & Structural Governance Audit on current active flowchart tab (F03)"""
         self.is_auditing_ai = True
         findings = []
         deductions = 0
@@ -3320,9 +3528,16 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
                 "recommendation": "El flujo está listo para ser promovido a la siguiente Fase de Gobierno."
             })
 
+        from datetime import datetime
+        new_score = max(0, 100 - deductions)
+        self.previous_audit_score = self.audit_score if self.has_audit_run else new_score
+        self.audit_score = new_score
+        self.has_audit_run = True
+        self.last_audit_date = datetime.now().strftime("%d %b %Y, %H:%M")
         self.audit_findings = findings
-        self.audit_score = max(0, 100 - deductions)
         self.is_auditing_ai = False
+        self.save_current_project()
+        self.trigger_toast(f"Auditoría IA completada: {self.audit_score}/100 pts", "success")
 
     # Duplicate Selected Node
     def duplicate_selected_node(self):

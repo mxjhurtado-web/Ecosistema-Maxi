@@ -23,15 +23,15 @@ class PhaseStatus(str, enum.Enum):
     COMPLETED = "completed"
 
 
-# Phase names mapping (sin acentos para evitar UnicodeEncodeError)
+# Phase names mapping
 PHASE_NAMES = {
-    1: "Diagnostico Estrategico",
-    2: "Inicio del Proyecto",
-    3: "Planificacion Hibrida",
-    4: "Ejecucion Iterativa",
-    5: "Monitoreo y Control",
-    6: "Mejora Continua",
-    7: "Cierre del Proyecto"
+    1: "Fase 1: Diagnóstico Estratégico",
+    2: "Fase 2: Inicio del Proyecto",
+    3: "Fase 3: Planificación Híbrida",
+    4: "Fase 4: Ejecución Iterativa",
+    5: "Fase 5: Monitoreo y Control",
+    6: "Fase 6: Mejora Continua",
+    7: "Fase 7: Cierre del Proyecto"
 }
 
 

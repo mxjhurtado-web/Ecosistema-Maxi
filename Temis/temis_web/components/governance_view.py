@@ -85,6 +85,249 @@ PHASE_LIST = [
 ]
 
 
+def phase_gate_approval_modal() -> rx.Component:
+    """Dialog modal for approving phase gate deliverables and advancing sequentially (F01)"""
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.vstack(
+                rx.hstack(
+                    rx.box(
+                        rx.icon("git-commit-horizontal", size=22, color="#1e5a9a"),
+                        padding="2",
+                        background_color="#e0e7ff",
+                        border_radius="8px",
+                    ),
+                    rx.vstack(
+                        rx.dialog.title("Aprobación de Gate de Gobernanza TEMIS", size="4", weight="bold", color="#17283c"),
+                        rx.dialog.description(
+                            "Verifica los entregables y confirma la promoción de fase oficial.",
+                            size="2",
+                            color="#52657a",
+                        ),
+                        spacing="0",
+                    ),
+                    align="center",
+                    spacing="3",
+                ),
+                rx.divider(),
+                # Current vs Target Phase Info
+                rx.hstack(
+                    rx.box(
+                        rx.vstack(
+                            rx.text("Fase Origen", size="1", color="#64748b", weight="bold"),
+                            rx.text(FlowState.phase_name, size="2", weight="bold", color="#17283c"),
+                            spacing="0",
+                        ),
+                        padding="3",
+                        background_color="#f8fafc",
+                        border="1px solid #e2e8f0",
+                        border_radius="8px",
+                        flex="1",
+                    ),
+                    rx.icon("arrow-right", size=20, color="#64748b"),
+                    rx.box(
+                        rx.vstack(
+                            rx.text("Fase Destino (Promoción)", size="1", color="#1d4ed8", weight="bold"),
+                            rx.text(FlowState.target_gate_phase_name, size="2", weight="bold", color="#1e5a9a"),
+                            spacing="0",
+                        ),
+                        padding="3",
+                        background_color="#eff6ff",
+                        border="1px solid #bfdbfe",
+                        border_radius="8px",
+                        flex="1",
+                    ),
+                    align="center",
+                    width="100%",
+                    spacing="3",
+                ),
+                # Gate Criteria Callout
+                rx.box(
+                    rx.vstack(
+                        rx.hstack(
+                            rx.icon("shield-check", size=15, color="#107c41"),
+                            rx.text("Criterio de Gate Requerido:", size="1", weight="bold", color="#166534"),
+                            spacing="1",
+                            align="center",
+                        ),
+                        rx.text(FlowState.target_gate_criteria, size="2", color="#14532d"),
+                        spacing="1",
+                    ),
+                    padding="3",
+                    background_color="#f0fdf4",
+                    border="1px solid #bbf7d0",
+                    border_radius="8px",
+                    width="100%",
+                ),
+                # Deliverables Checklist
+                rx.vstack(
+                    rx.text("Verificación de Entregables de la Fase:", size="2", weight="bold", color="#17283c"),
+                    rx.foreach(
+                        FlowState.target_gate_deliverables,
+                        lambda item: rx.hstack(
+                            rx.icon("circle-check", size=16, color="#107c41"),
+                            rx.text(item, size="2", color="#17283c", weight="medium"),
+                            rx.spacer(),
+                            rx.badge("Listo para Aprobación", color_scheme="green", variant="soft", size="1"),
+                            align="center",
+                            width="100%",
+                            padding_y="1",
+                            padding_x="2",
+                            background_color="#ffffff",
+                            border="1px solid #e2e8f0",
+                            border_radius="6px",
+                        ),
+                    ),
+                    spacing="2",
+                    width="100%",
+                ),
+                # Signer & Approval Notes
+                rx.vstack(
+                    rx.hstack(
+                        rx.vstack(
+                            rx.text("Aprobador / Responsable (Signer):", size="1", weight="bold", color="#52657a"),
+                            rx.input(
+                                value=FlowState.phase_gate_signer,
+                                on_change=FlowState.set_phase_gate_signer,
+                                placeholder="Nombre del PM / Responsable de Gate",
+                                size="1",
+                                width="100%",
+                            ),
+                            flex="1",
+                            spacing="1",
+                        ),
+                        width="100%",
+                    ),
+                    rx.vstack(
+                        rx.text("Notas / Observaciones de Aprobación:", size="1", weight="bold", color="#52657a"),
+                        rx.input(
+                            value=FlowState.phase_gate_notes,
+                            on_change=FlowState.set_phase_gate_notes,
+                            placeholder="ej. Entregables revisados y validados conforme al estándar Six Sigma",
+                            size="1",
+                            width="100%",
+                        ),
+                        width="100%",
+                        spacing="1",
+                    ),
+                    spacing="2",
+                    width="100%",
+                ),
+                rx.divider(),
+                # Actions
+                rx.hstack(
+                    rx.button(
+                        "Cancelar",
+                        color_scheme="gray",
+                        variant="soft",
+                        size="2",
+                        on_click=FlowState.close_phase_gate_modal,
+                    ),
+                    rx.spacer(),
+                    rx.button(
+                        rx.hstack(
+                            rx.icon("circle-check", size=16),
+                            rx.text("Firmar y Avanzar de Fase"),
+                            align="center",
+                            spacing="1",
+                        ),
+                        on_click=FlowState.confirm_phase_gate_approval,
+                        color_scheme="blue",
+                        size="2",
+                        radius="medium",
+                    ),
+                    width="100%",
+                    align="center",
+                ),
+                spacing="3",
+                width="100%",
+            ),
+            width="540px",
+            max_width="95vw",
+            border_radius="xl",
+            padding="5",
+            background_color="#ffffff",
+        ),
+        open=FlowState.show_phase_gate_modal,
+        on_open_change=FlowState.close_phase_gate_modal,
+    )
+
+
+def phase_blocked_modal() -> rx.Component:
+    """Dialog modal shown when attempting to skip phases without completing sequential gates (F01)"""
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.vstack(
+                rx.hstack(
+                    rx.box(
+                        rx.icon("triangle-alert", size=24, color="#dc2626"),
+                        padding="2",
+                        background_color="#fee2e2",
+                        border_radius="8px",
+                    ),
+                    rx.vstack(
+                        rx.dialog.title("Salto de Fase Bloqueado por Gobernanza", size="4", weight="bold", color="#991b1b"),
+                        rx.dialog.description(
+                            "La metodología TEMIS exige avance secuencial con aprobación de gates.",
+                            size="2",
+                            color="#64748b",
+                        ),
+                        spacing="0",
+                    ),
+                    align="center",
+                    spacing="3",
+                ),
+                rx.divider(),
+                rx.box(
+                    rx.vstack(
+                        rx.text(
+                            "No puedes activar ",
+                            rx.text(FlowState.target_gate_phase_name, weight="bold", as_="span"),
+                            " directamente desde ",
+                            rx.text(FlowState.phase_name, weight="bold", as_="span"),
+                            ".",
+                            size="2",
+                            color="#17283c",
+                        ),
+                        rx.text(
+                            "Debes completar y aprobar secuencialmente los entregables de cada fase intermedia para mantener la trazabilidad y calidad Six Sigma.",
+                            size="2",
+                            color="#52657a",
+                        ),
+                        spacing="2",
+                    ),
+                    padding="3",
+                    background_color="#f8fafc",
+                    border="1px solid #e2e8f0",
+                    border_radius="8px",
+                    width="100%",
+                ),
+                rx.hstack(
+                    rx.spacer(),
+                    rx.button(
+                        "Entendido",
+                        color_scheme="blue",
+                        variant="solid",
+                        size="2",
+                        on_click=FlowState.close_phase_blocked_modal,
+                    ),
+                    width="100%",
+                    align="center",
+                ),
+                spacing="3",
+                width="100%",
+            ),
+            width="480px",
+            max_width="95vw",
+            border_radius="xl",
+            padding="5",
+            background_color="#ffffff",
+        ),
+        open=FlowState.show_phase_blocked_modal,
+        on_open_change=FlowState.close_phase_blocked_modal,
+    )
+
+
 def render_phase_card(p: dict) -> rx.Component:
     """Render a single methodology phase card with operational governance tracking"""
     is_active = FlowState.current_phase == p["num"]
@@ -113,7 +356,7 @@ def render_phase_card(p: dict) -> rx.Component:
                     rx.badge("En Curso", color_scheme="green", variant="surface", size="1"),
                     rx.button(
                         "Activar Fase",
-                        on_click=lambda: FlowState.set_phase(p["num"]),
+                        on_click=lambda: FlowState.request_phase_change(p["num"]),
                         color_scheme="blue",
                         variant="soft",
                         size="1",
@@ -182,8 +425,10 @@ def render_phase_card(p: dict) -> rx.Component:
 
 
 def governance_view() -> rx.Component:
-    """Governance & Methodology View"""
+    """Governance & Methodology View (F01)"""
     return rx.box(
+        phase_gate_approval_modal(),
+        phase_blocked_modal(),
         rx.vstack(
             # Header
             rx.hstack(

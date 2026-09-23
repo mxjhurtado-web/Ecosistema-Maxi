@@ -41,7 +41,7 @@ def phase_item(phase: dict) -> rx.Component:
         background_color=rx.cond(is_active, "rgba(30, 90, 154, 0.12)", "transparent"),
         border_left=rx.cond(is_active, "3px solid #1e5a9a", "3px solid transparent"),
         cursor="pointer",
-        on_click=lambda: FlowState.set_phase(phase["num"]),
+        on_click=lambda: FlowState.request_phase_change(phase["num"]),
         _hover={"background_color": "#d9e2ec"},
         width="100%",
     )
