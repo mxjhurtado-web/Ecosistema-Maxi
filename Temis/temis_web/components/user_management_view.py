@@ -18,7 +18,7 @@ def role_badge(role: str) -> rx.Component:
         ("super_admin", rx.badge(rx.hstack(rx.icon("shield", size=11), rx.text("Super Admin"), align="center", spacing="1"), color_scheme="purple", variant="soft", size="1", radius="medium")),
         ("project_manager", rx.badge(rx.hstack(rx.icon("briefcase", size=11), rx.text("Dueño de Proyecto (PM)"), align="center", spacing="1"), color_scheme="blue", variant="soft", size="1", radius="medium")),
         ("analyst", rx.badge(rx.hstack(rx.icon("bar-chart-3", size=11), rx.text("Analista de Procesos"), align="center", spacing="1"), color_scheme="teal", variant="soft", size="1", radius="medium")),
-        ("qa_auditor", rx.badge(rx.hstack(rx.icon("check-circle-2", size=11), rx.text("Auditor QA / Six Sigma"), align="center", spacing="1"), color_scheme="amber", variant="soft", size="1", radius="medium")),
+        ("qa_auditor", rx.badge(rx.hstack(rx.icon("circle-check", size=11), rx.text("Auditor QA / Six Sigma"), align="center", spacing="1"), color_scheme="amber", variant="soft", size="1", radius="medium")),
         rx.badge(rx.hstack(rx.icon("user", size=11), rx.text("Colaborador (Invitado)"), align="center", spacing="1"), color_scheme="gray", variant="soft", size="1", radius="medium"),
     )
 
@@ -33,9 +33,9 @@ def status_badge(status: str) -> rx.Component:
 
 
 def user_assigned_projects_cell(u: dict) -> rx.Component:
-    """Helper to render assigned projects column badges"""
+    """Helper to render assigned projects column badges safely"""
     return rx.cond(
-        (u["role"] == "super_admin") | u["assigned_projects"].contains("all"),
+        u["is_global_access"],
         rx.badge(
             rx.hstack(rx.icon("globe", size=11), rx.text("Acceso Global (Todos)"), align="center", spacing="1"),
             color_scheme="indigo",
@@ -43,24 +43,12 @@ def user_assigned_projects_cell(u: dict) -> rx.Component:
             size="1",
             radius="medium",
         ),
-        rx.cond(
-            u["assigned_projects"].length() > 0,
-            rx.hstack(
-                rx.foreach(
-                    u["assigned_projects"],
-                    lambda p_code: rx.badge(
-                        rx.hstack(rx.icon("folder", size=10), rx.text(p_code), align="center", spacing="1"),
-                        color_scheme="blue",
-                        variant="soft",
-                        size="1",
-                        radius="medium",
-                    ),
-                ),
-                wrap="wrap",
-                spacing="1",
-                align="center",
-            ),
-            rx.badge("Sin proyectos", color_scheme="gray", variant="soft", size="1", radius="medium"),
+        rx.badge(
+            rx.hstack(rx.icon("folder", size=10), rx.text(u["assigned_projects_display"]), align="center", spacing="1"),
+            color_scheme="blue",
+            variant="soft",
+            size="1",
+            radius="medium",
         ),
     )
 
@@ -72,7 +60,7 @@ def user_row(u: dict) -> rx.Component:
         rx.table.cell(
             rx.hstack(
                 rx.avatar(
-                    fallback=rx.cond(u["initials"] != "", u["initials"], "US"),
+                    fallback=u["initials"],
                     size="2",
                     radius="full",
                     color_scheme="indigo",
@@ -257,7 +245,7 @@ def assign_projects_modal() -> rx.Component:
                 rx.box(
                     rx.hstack(
                         rx.checkbox(
-                            checked=FlowState.assign_user_projects.contains("all"),
+                            checked=FlowState.assign_user_is_global,
                             on_change=lambda: FlowState.toggle_assign_project("all"),
                         ),
                         rx.vstack(
@@ -271,15 +259,16 @@ def assign_projects_modal() -> rx.Component:
                         width="100%",
                     ),
                     padding="3",
-                    background_color=rx.cond(FlowState.assign_user_projects.contains("all"), "#eff6ff", "#ffffff"),
-                    border=rx.cond(FlowState.assign_user_projects.contains("all"), "1px solid #bfdbfe", "1px solid #e2e8f0"),
+                    background_color=rx.cond(FlowState.assign_user_is_global, "#eff6ff", "#ffffff"),
+                    border=rx.cond(FlowState.assign_user_is_global, "1px solid #bfdbfe", "1px solid #e2e8f0"),
                     border_radius="8px",
                     width="100%",
                 ),
 
-                # Individual Projects List
+                # Individual Projects List (shown only when not global)
                 rx.cond(
-                    ~FlowState.assign_user_projects.contains("all"),
+                    FlowState.assign_user_is_global,
+                    rx.box(),
                     rx.vstack(
                         rx.text("Seleccionar Proyectos Específicos:", size="1", weight="bold", color="#334155"),
                         rx.box(
@@ -317,7 +306,6 @@ def assign_projects_modal() -> rx.Component:
                         spacing="2",
                         width="100%",
                     ),
-                    rx.box(),
                 ),
 
                 # Modal Actions
@@ -451,7 +439,7 @@ def new_user_modal() -> rx.Component:
                         rx.vstack(
                             rx.hstack(
                                 rx.checkbox(
-                                    checked=FlowState.new_user_assigned_projects.contains("all"),
+                                    checked=FlowState.new_user_is_global,
                                     on_change=lambda: FlowState.toggle_new_user_project("all"),
                                 ),
                                 rx.text("Acceso Global (Todos los Proyectos)", size="2", weight="medium", color="#1e293b"),
@@ -459,7 +447,8 @@ def new_user_modal() -> rx.Component:
                                 spacing="2",
                             ),
                             rx.cond(
-                                ~FlowState.new_user_assigned_projects.contains("all"),
+                                FlowState.new_user_is_global,
+                                rx.box(),
                                 rx.vstack(
                                     rx.foreach(
                                         FlowState.available_project_options,
@@ -478,7 +467,6 @@ def new_user_modal() -> rx.Component:
                                     padding_left="4",
                                     width="100%",
                                 ),
-                                rx.box(),
                             ),
                             spacing="2",
                             width="100%",
@@ -698,7 +686,7 @@ def user_management_view() -> rx.Component:
                                 ),
                                 rx.spacer(),
                                 rx.box(
-                                    rx.icon("check-circle-2", size=20, color="#0d9488"),
+                                    rx.icon("circle-check", size=20, color="#0d9488"),
                                     padding="3",
                                     background_color="#ccfbf1",
                                     border_radius="12px"
@@ -851,7 +839,7 @@ def user_management_view() -> rx.Component:
                                 ),
                                 rx.box(
                                     rx.vstack(
-                                        rx.badge(rx.hstack(rx.icon("check-circle-2", size=11), rx.text("Auditor QA / Six Sigma"), align="center", spacing="1"), color_scheme="amber", variant="soft", size="1"),
+                                        rx.badge(rx.hstack(rx.icon("circle-check", size=11), rx.text("Auditor QA / Six Sigma"), align="center", spacing="1"), color_scheme="amber", variant="soft", size="1"),
                                         rx.text("• Ejecución de Auditorías IA", size="1", color="#475569"),
                                         rx.text("• Validación de reglas Six Sigma", size="1", color="#475569"),
                                         rx.text("• Aprobación de entregables", size="1", color="#475569"),

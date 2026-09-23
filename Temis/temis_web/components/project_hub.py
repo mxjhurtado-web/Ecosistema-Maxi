@@ -873,7 +873,7 @@ def project_hub() -> rx.Component:
                             "Story Points Entregados",
                             FlowState.total_completed_sp_count.to_string() + " / " + FlowState.total_sp_count.to_string() + " SP",
                             FlowState.global_progress_pct.to_string() + "% de avance global",
-                            "check-circle-2",
+                            "circle-check",
                             "#16a34a",
                             badge_text="Scrum",
                         ),

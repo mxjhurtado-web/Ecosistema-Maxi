@@ -74,7 +74,7 @@ def header() -> rx.Component:
             # Auto-save status
             rx.badge(
                 rx.hstack(
-                    rx.icon("check-circle-2", size=12),
+                    rx.icon("circle-check", size=12),
                     rx.text(FlowState.auto_save_status),
                     align="center",
                     spacing="1",

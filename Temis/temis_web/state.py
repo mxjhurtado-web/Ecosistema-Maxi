@@ -186,6 +186,14 @@ class FlowState(rx.State):
         """List of available projects in portfolio for assignment"""
         return [{"code": str(p.get("code", "PRJ")), "name": str(p.get("name", "Proyecto"))} for p in self.saved_projects]
 
+    @rx.var
+    def assign_user_is_global(self) -> bool:
+        return "all" in self.assign_user_projects
+
+    @rx.var
+    def new_user_is_global(self) -> bool:
+        return "all" in self.new_user_assigned_projects
+
     def set_show_assign_projects_modal(self, val: bool):
         self.show_assign_projects_modal = val
 

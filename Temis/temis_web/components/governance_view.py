@@ -151,7 +151,7 @@ def render_phase_card(p: dict) -> rx.Component:
                     *[
                         rx.badge(
                             rx.hstack(
-                                rx.icon("check-circle-2", size=11),
+                                rx.icon("circle-check", size=11),
                                 rx.text(d),
                                 align="center",
                                 spacing="1",

@@ -117,31 +117,42 @@ def _ensure_data_file() -> None:
 def load_users() -> List[Dict[str, Any]]:
     _ensure_data_file()
     try:
+        raw_users = list(SEED_USERS)
         if os.path.exists(USERS_FILE):
             with open(USERS_FILE, "r", encoding="utf-8") as f:
                 raw_users = json.load(f)
                 
-            # Normalize fields: clean old emojis, ensure initials and assigned_projects
-            changed = False
-            for u in raw_users:
-                role = u.get("role", "collaborator")
-                role_info = ROLE_MAP.get(role, ROLE_MAP["collaborator"])
-                if u.get("role_label") != role_info["label"]:
-                    u["role_label"] = role_info["label"]
-                    changed = True
-                if "assigned_projects" not in u:
-                    if role == "super_admin":
-                        u["assigned_projects"] = ["all"]
-                    else:
-                        u["assigned_projects"] = ["PRJ-TEMIS"]
-                    changed = True
-                if not u.get("initials"):
-                    parts = u.get("name", "").split()
-                    u["initials"] = "".join([p[0].upper() for p in parts if p])[:2] or "US"
-                    changed = True
-            if changed:
-                save_users(raw_users)
-            return raw_users
+        # Normalize fields: clean old emojis, ensure initials, assigned_projects, is_global_access and assigned_projects_display
+        changed = False
+        for u in raw_users:
+            role = u.get("role", "collaborator")
+            role_info = ROLE_MAP.get(role, ROLE_MAP["collaborator"])
+            if u.get("role_label") != role_info["label"]:
+                u["role_label"] = role_info["label"]
+                changed = True
+            if "assigned_projects" not in u:
+                if role == "super_admin":
+                    u["assigned_projects"] = ["all"]
+                else:
+                    u["assigned_projects"] = ["PRJ-TEMIS"]
+                changed = True
+            if not u.get("initials"):
+                parts = u.get("name", "").split()
+                u["initials"] = "".join([p[0].upper() for p in parts if p])[:2] or "US"
+                changed = True
+            
+            # Precompute UI display properties
+            is_global = (role == "super_admin") or ("all" in u.get("assigned_projects", []))
+            u["is_global_access"] = is_global
+            if is_global:
+                u["assigned_projects_display"] = "Acceso Global"
+            else:
+                projs = [p for p in u.get("assigned_projects", []) if p != "all"]
+                u["assigned_projects_display"] = ", ".join(projs) if projs else "Sin proyectos"
+        
+        if changed:
+            save_users(raw_users)
+        return raw_users
     except Exception as e:
         logger.error(f"Error loading users: {e}")
     return list(SEED_USERS)
