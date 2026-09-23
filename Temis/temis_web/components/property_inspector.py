@@ -180,11 +180,16 @@ def property_inspector() -> rx.Component:
             padding_y="2",
         ),
         rx.box(
-            rx.text(
-                "💡 Haz clic en cualquier casilla del lienzo para editar sus propiedades, sistemas o conectores.",
-                size="1",
-                color="#64748b",
-                line_height="1.4",
+            rx.hstack(
+                rx.icon("info", size=13, color="#64748b"),
+                rx.text(
+                    "Haz clic en cualquier símbolo del lienzo para editar sus propiedades, sistemas o conectores.",
+                    size="1",
+                    color="#64748b",
+                    line_height="1.4",
+                ),
+                align="start",
+                spacing="2",
             ),
             background_color="#f8fafc",
             border="1px dashed #cbd5e1",

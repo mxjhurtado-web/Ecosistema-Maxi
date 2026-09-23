@@ -9,6 +9,7 @@ Full-Stack Web App for Process Governance & Official Flowchart Diagrams
 import reflex as rx
 
 from temis_web.state import FlowState
+from temis_web.components.workspace_sidebar import workspace_sidebar
 from temis_web.components.header import header
 from temis_web.components.left_dock import left_dock
 from temis_web.components.flowchart_canvas import flowchart_canvas
@@ -27,36 +28,47 @@ from temis_web.components.user_management_view import user_management_view
 
 
 def workspace_view() -> rx.Component:
-    """Level 2 Workspace with 5 modular modeling views"""
+    """Level 2 Workspace with lateral navigation sidebar and 5 modular views"""
     return rx.box(
         recent_projects_modal(),
         connect_modal(),
         audit_modal(),
         rx.vstack(
             header(),
-            rx.match(
-                FlowState.active_view,
-                ("charter", project_charter()),
-                ("plan", work_plan_view()),
-                ("sipoc", sipoc_matrix()),
-                ("governance", governance_view()),
-                # Default: Interactive Canvas Flowchart View (View 2)
-                rx.vstack(
-                    rx.hstack(
-                        left_dock(),
-                        flowchart_canvas(),
-                        property_inspector(),
-                        width="100%",
-                        flex="1",
-                        height="calc(100vh - 88px)",
-                        overflow="hidden",
-                        spacing="0",
+            rx.hstack(
+                workspace_sidebar(),
+                rx.box(
+                    rx.match(
+                        FlowState.active_view,
+                        ("charter", project_charter()),
+                        ("plan", work_plan_view()),
+                        ("sipoc", sipoc_matrix()),
+                        ("governance", governance_view()),
+                        # Default: Interactive Canvas Flowchart View (BPMN)
+                        rx.vstack(
+                            rx.hstack(
+                                left_dock(),
+                                flowchart_canvas(),
+                                property_inspector(),
+                                width="100%",
+                                flex="1",
+                                height="calc(100vh - 92px)",
+                                overflow="hidden",
+                                spacing="0",
+                            ),
+                            bottom_bar(),
+                            width="100%",
+                            height="calc(100vh - 54px)",
+                            spacing="0",
+                        ),
                     ),
-                    bottom_bar(),
-                    width="100%",
-                    height="calc(100vh - 50px)",
-                    spacing="0",
+                    flex="1",
+                    height="calc(100vh - 54px)",
+                    overflow="hidden",
                 ),
+                width="100%",
+                height="calc(100vh - 54px)",
+                spacing="0",
             ),
             width="100%",
             height="100vh",

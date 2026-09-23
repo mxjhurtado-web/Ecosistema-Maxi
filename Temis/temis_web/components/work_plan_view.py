@@ -117,11 +117,11 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
         rx.table.cell(
             rx.cond(
                 item["priority"] == "Alta",
-                rx.badge("🔴 Alta", color_scheme="ruby", variant="soft", size="1"),
+                rx.badge(rx.hstack(rx.icon("alert-circle", size=10), rx.text("Alta"), align="center", spacing="1"), color_scheme="ruby", variant="soft", size="1"),
                 rx.cond(
                     item["priority"] == "Media",
-                    rx.badge("🟡 Media", color_scheme="amber", variant="soft", size="1"),
-                    rx.badge("🟢 Baja", color_scheme="green", variant="soft", size="1"),
+                    rx.badge(rx.hstack(rx.icon("alert-triangle", size=10), rx.text("Media"), align="center", spacing="1"), color_scheme="amber", variant="soft", size="1"),
+                    rx.badge(rx.hstack(rx.icon("circle", size=10), rx.text("Baja"), align="center", spacing="1"), color_scheme="green", variant="soft", size="1"),
                 ),
             ),
             align="center",
@@ -153,8 +153,8 @@ def render_sprint_card(sprint: rx.Var[dict]) -> rx.Component:
                 rx.spacer(),
                 rx.cond(
                     sprint["status"] == "In Progress",
-                    rx.badge("🔥 En Progreso", color_scheme="orange", variant="surface", size="1"),
-                    rx.badge("📋 Planificado", color_scheme="gray", variant="soft", size="1"),
+                    rx.badge(rx.hstack(rx.icon("flame", size=11), rx.text("En Progreso"), align="center", spacing="1"), color_scheme="orange", variant="surface", size="1"),
+                    rx.badge(rx.hstack(rx.icon("calendar", size=11), rx.text("Planificado"), align="center", spacing="1"), color_scheme="gray", variant="soft", size="1"),
                 ),
                 width="100%",
                 align="center",
@@ -393,8 +393,8 @@ def work_plan_view() -> rx.Component:
             # 2. Middle Section: Subtab Switcher & Filters
             rx.hstack(
                 rx.segmented_control.root(
-                    rx.segmented_control.item("📋 Backlog Scrum Técnico (Tareas & SP)", value="backlog"),
-                    rx.segmented_control.item("📅 Agenda de Sprints (Cronograma)", value="sprints"),
+                    rx.segmented_control.item("Backlog Scrum Técnico (Tareas & SP)", value="backlog"),
+                    rx.segmented_control.item("Agenda de Sprints (Cronograma)", value="sprints"),
                     value=FlowState.plan_active_subtab,
                     on_change=FlowState.set_plan_active_subtab,
                     size="2",

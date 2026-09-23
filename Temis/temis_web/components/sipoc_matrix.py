@@ -109,7 +109,7 @@ def sipoc_matrix() -> rx.Component:
                     rx.icon("table-properties", size=24, color="#0284c7"),
                     rx.vstack(
                         rx.text("Matriz SIPOC Six Sigma", size="4", weight="bold", color="#0f172a"),
-                        rx.text("Mapeo estructurado: Proveedores ➔ Entradas ➔ Proceso ➔ Salidas ➔ Clientes", size="2", color="#64748b"),
+                        rx.text("Mapeo estructurado: Proveedores -> Entradas -> Proceso -> Salidas -> Clientes", size="2", color="#64748b"),
                         spacing="0",
                     ),
                     align="center",

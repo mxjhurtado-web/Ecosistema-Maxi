@@ -34,7 +34,7 @@ class FlowState(rx.State):
             "name": "Ing. José Antonio Hurtado",
             "password": "Temis123456*",
             "role": "super_admin",
-            "role_label": "👑 Super Admin",
+            "role_label": "Super Admin",
             "department": "Dirección General & Tecnología",
             "status": "active",
             "created_at": "2026-01-16",
@@ -45,7 +45,7 @@ class FlowState(rx.State):
             "name": "Lic. Ana Martínez",
             "password": "Temis123456*",
             "role": "project_manager",
-            "role_label": "👔 Dueño de Proyecto (PM)",
+            "role_label": "Dueño de Proyecto (PM)",
             "department": "Operaciones & Procesos",
             "status": "active",
             "created_at": "2026-02-01",
@@ -56,7 +56,7 @@ class FlowState(rx.State):
             "name": "Ing. Carlos López",
             "password": "Temis123456*",
             "role": "analyst",
-            "role_label": "📊 Analista de Procesos",
+            "role_label": "Analista de Procesos",
             "department": "Ingeniería de Software",
             "status": "active",
             "created_at": "2026-02-15",
@@ -67,7 +67,7 @@ class FlowState(rx.State):
             "name": "Mtra. Laura Torres",
             "password": "Temis123456*",
             "role": "qa_auditor",
-            "role_label": "🛡️ Auditor QA / Six Sigma",
+            "role_label": "Auditor QA / Six Sigma",
             "department": "Calidad & Gobernanza",
             "status": "active",
             "created_at": "2026-03-01",
@@ -264,6 +264,10 @@ class FlowState(rx.State):
 
     # Navigation Mode: "hub" (Level 1 Monday.com Portfolio) or "workspace" (Level 2 Modeling Suite)
     active_mode: str = "hub"
+    is_workspace_sidebar_collapsed: bool = False
+
+    def toggle_workspace_sidebar(self):
+        self.is_workspace_sidebar_collapsed = not self.is_workspace_sidebar_collapsed
     
     # User Profile & RBAC Role Simulation
     user_role: str = "super_admin"  # "super_admin", "project_manager", "collaborator"
@@ -273,9 +277,9 @@ class FlowState(rx.State):
     def set_user_role(self, role: str):
         self.user_role = role
         role_labels = {
-            "super_admin": "👑 Super Admin (Portafolio Total)",
-            "project_manager": "👔 Dueño de Proyecto (Asignados)",
-            "collaborator": "👥 Colaborador (Invitado)"
+            "super_admin": "Super Admin (Portafolio Total)",
+            "project_manager": "Dueño de Proyecto (Asignados)",
+            "collaborator": "Colaborador (Invitado)"
         }
         self.status_message = f"Rol cambiado a: {role_labels.get(role, role)}"
 
@@ -936,7 +940,7 @@ class FlowState(rx.State):
             self.project_pages[self.active_page_index]["edges"] = list(self.edges)
             self.project_pages[self.active_page_index]["swimlanes"] = list(self.swimlanes)
 
-        self.status_message = f"⚡ Diagrama de Flujo generado con {len(self.nodes)} símbolos desde la Matriz SIPOC"
+        self.status_message = f"Diagrama de Flujo generado con {len(self.nodes)} símbolos desde la Matriz SIPOC"
         self.active_view = "flow"
 
     def complete_sipoc_with_ai(self):
@@ -952,7 +956,7 @@ class FlowState(rx.State):
             ))
             if res.get("rows"):
                 self.sipoc_rows = res["rows"]
-                self.status_message = f"✨ Matriz SIPOC completada con {len(self.sipoc_rows)} pasos sugeridos"
+                self.status_message = f"Matriz SIPOC completada con {len(self.sipoc_rows)} pasos sugeridos"
         except Exception as e:
             self.status_message = f"Error al autocompletar SIPOC: {str(e)}"
         finally:
@@ -978,20 +982,20 @@ class FlowState(rx.State):
             self.status_message = f"Error al exportar Excel: {str(e)}"
 
     # Narrative & Policy Manual State
-    narrative_text: str = """# 📘 Manual de Procedimientos & Narrativa Oficial
+    narrative_text: str = """# Manual de Procedimientos & Narrativa Oficial
 # PROYECTO DEMO TEMIS
 
-## 🎯 1. Objetivo y Propósito del Proceso
+## 1. Objetivo y Propósito del Proceso
 Estandarizar y automatizar el ciclo integral de atención de aclaraciones y transacciones de clientes vía canales digitales y sistemas centrales.
 
-## 👥 2. Matriz de Roles y Responsabilidades
+## 2. Matriz de Roles y Responsabilidades
 - **Actores y Participantes:** Agente Operativo, Sistema Chronos, Usuario / Cliente
 - **Sistemas y Plataformas:** Chronos, Freshdesk
 - **Canales de Interacción:** WhatsApp
 
 ---
 
-## 📝 3. Narrativa Operativa Secuencial (Paso a Paso)
+## 3. Narrativa Operativa Secuencial (Paso a Paso)
 
 ### 1.0 Entrada e Inicio del Proceso
 El proceso inicia formalmente cuando el participante **[Usuario / Cliente]** detona el evento: *"Inicio: Solicitud de aclaración"* por el canal **WhatsApp**. Se reciben los datos iniciales y se habilita el caso para su gestión.
@@ -1012,7 +1016,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
 ---
 
-## ⚖️ 4. Políticas y Reglas de Negocio Clave
+## 4. Políticas y Reglas de Negocio Clave
 1. **Trazabilidad Absoluta:** Toda interacción por canal digital o sistema debe quedar registrada con marca de tiempo y folio.
 2. **Control de Calidad:** Las compuertas de decisión deben validar que la totalidad de requisitos previos se cumplan antes de pasar a la siguiente fase.
 3. **Escalamiento:** En caso de excepción no contemplada en las reglas estándar, el caso se turna al líder del proceso para dictamen.
@@ -1023,7 +1027,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.narrative_text = val
 
     def generate_narrative_ai(self):
-        """⚡ Generate procedure manual narrative in continuous prose from current Flow and SIPOC data"""
+        """Generate procedure manual narrative in continuous prose from current Flow and SIPOC data"""
         self.is_generating_narrative = True
         self.status_message = "Gemini AI redactando la Narrativa Oficial del proceso..."
         try:
@@ -1035,7 +1039,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
                 edges=self.edges,
                 sipoc_rows=self.sipoc_rows
             )
-            self.status_message = "✨ Narrativa Oficial redactada y sincronizada con éxito"
+            self.status_message = "Narrativa Oficial redactada y sincronizada con éxito"
         except Exception as e:
             self.status_message = f"Error al generar narrativa: {str(e)}"
         finally:
@@ -1522,7 +1526,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
                     "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"]
                 }
             ],
-            "narrative_text": "# 📘 Manual de Arquitectura TEMIS Web Flow\n\nTEMIS es la suite integral para el diseño, gobernanza y auditoría automatizada de procesos de negocio..."
+            "narrative_text": "# Manual de Arquitectura TEMIS Web Flow\n\nTEMIS es la suite integral para el diseño, gobernanza y auditoría automatizada de procesos de negocio..."
         },
         {
             "id": "proj-x",
@@ -1601,7 +1605,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
                     "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Output"]
                 }
             ],
-            "narrative_text": "# 📘 Proyecto X Procesos\n\nFase de diagnóstico estratégico y alineación con la metodología TEMIS."
+            "narrative_text": "# Proyecto X Procesos\n\nFase de diagnóstico estratégico y alineación con la metodología TEMIS."
         },
         {
             "id": "proj-wha",
@@ -1700,7 +1704,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
                     "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"]
                 }
             ],
-            "narrative_text": "# 📘 Manual de Procedimientos - Aclaraciones WhatsApp\n\nEl proceso inicia cuando el cliente envía su folio vía WhatsApp..."
+            "narrative_text": "# Manual de Procedimientos - Aclaraciones WhatsApp\n\nEl proceso inicia cuando el cliente envía su folio vía WhatsApp..."
         },
         {
             "id": "proj-chronos",
@@ -1775,7 +1779,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
                     "swimlanes": ["Input", "Agente", "Output"]
                 }
             ],
-            "narrative_text": "# 📘 Manual de Validación de Pólizas en Chronos\n\nProcedimiento para verificar la vigencia de pólizas..."
+            "narrative_text": "# Manual de Validación de Pólizas en Chronos\n\nProcedimiento para verificar la vigencia de pólizas..."
         }
     ]
 
@@ -1916,6 +1920,32 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
     def set_new_proj_end_date(self, val: str):
         self.new_proj_end_date = val
 
+    # 3-Step Project Creation Wizard State
+    new_proj_wizard_step: int = 1
+
+    def set_new_proj_wizard_step(self, step: int):
+        self.new_proj_wizard_step = step
+
+    def next_wizard_step(self):
+        if self.new_proj_wizard_step == 1:
+            name_clean = self.new_proj_name.strip()
+            if not name_clean:
+                self.status_message = "Por favor ingresa un nombre para el proyecto."
+                return
+            code_clean = self.new_proj_code.strip().upper()
+            if not code_clean:
+                self.new_proj_code = f"PRJ-{len(self.saved_projects) + 1:03d}"
+            elif any(p.get("code", "").strip().upper() == code_clean for p in self.saved_projects):
+                self.status_message = f"Error: Ya existe un proyecto con el código '{code_clean}'. Ingresa un código único."
+                return
+            self.new_proj_wizard_step = 2
+        elif self.new_proj_wizard_step == 2:
+            self.new_proj_wizard_step = 3
+
+    def prev_wizard_step(self):
+        if self.new_proj_wizard_step > 1:
+            self.new_proj_wizard_step -= 1
+
     def open_new_project_modal(self):
         import datetime
         today_str = datetime.date.today().strftime("%Y-%m-%d")
@@ -1929,11 +1959,13 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.new_proj_end_date = default_end
         self.creation_progress_status = ""
         self.is_creating_project_drive = False
+        self.new_proj_wizard_step = 1
         self.show_new_project_modal = True
 
     def close_new_project_modal(self):
         self.show_new_project_modal = False
         self.is_creating_project_drive = False
+        self.new_proj_wizard_step = 1
 
     def set_show_new_project_modal(self, val: bool):
         self.show_new_project_modal = val
@@ -2087,7 +2119,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
                     "swimlanes": ["Input", "Actor 1 (ej. Operador)", "Output"]
                 }
             ],
-            "narrative_text": f"# 📘 Manual de Procedimientos\n# {name_clean}\n\n## 🎯 1. Objetivo\n{purpose_str}\n"
+            "narrative_text": f"# Manual de Procedimientos\n# {name_clean}\n\n## 1. Objetivo\n{purpose_str}\n"
         }
 
         self.saved_projects.insert(0, new_proj_dict)
@@ -2148,7 +2180,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
                 "customer": "Operador",
             }
         ]
-        self.narrative_text = f"# 📘 Manual de Procedimientos\n# {self.project_name}\n\n## 🎯 1. Objetivo\n{self.project_purpose}\n"
+        self.narrative_text = f"# Manual de Procedimientos\n# {self.project_name}\n\n## 1. Objetivo\n{self.project_purpose}\n"
         self.show_recent_modal = False
         self.status_message = f"✓ Nuevo proceso '{self.project_name}' inicializado"
 

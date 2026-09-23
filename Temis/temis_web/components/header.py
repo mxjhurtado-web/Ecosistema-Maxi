@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-Header Component for TEMIS Web Flow
-Single-row sleek 52px top app bar with File menu, project title, Gemini AI prompt, and governance
+Header Component for TEMIS Web Flow (Workspace Level 2)
+Consolidated sleek 54px top app bar with context, Gemini AI Prompt, auto-save status and File menu.
+All emojis replaced with professional Lucide icons (WCAG 2.2 AA compliant).
 """
 
 import reflex as rx
@@ -11,50 +12,103 @@ from temis_web.state import FlowState
 
 
 def header() -> rx.Component:
-    """Consolidated single-row top navigation bar"""
+    """Consolidated top context bar for the active workspace"""
     return rx.hstack(
-        # Left Section: Back to Hub Button, Logo, File Menu & Editable Title
+        # Left Section: Active Project Title & Phase Context
         rx.hstack(
-            rx.button(
-                rx.icon("chevron-left", size=15),
-                " Mis Proyectos",
-                on_click=FlowState.return_to_hub,
-                color_scheme="gray",
-                variant="soft",
-                size="1",
-                radius="medium",
-            ),
-            rx.divider(orientation="vertical", size="2"),
             rx.hstack(
-                rx.icon("network", size=20, color="#3b82f6"),
+                rx.icon("network", size=20, color="#1d4ed8"),
                 rx.text("TEMIS", size="3", weight="bold", color="#0f172a"),
                 align="center",
                 spacing="2",
             ),
-            # File Menu Dropdown (Archivo ▾)
+            rx.divider(orientation="vertical", size="2"),
+            rx.badge(FlowState.project_code, color_scheme="indigo", variant="surface", size="1"),
+            rx.input(
+                value=FlowState.project_name,
+                on_change=FlowState.set_project_name,
+                width="240px",
+                size="1",
+                variant="soft",
+                radius="medium",
+                title="Editar nombre del proyecto",
+            ),
+            align="center",
+            spacing="3",
+        ),
+
+        rx.spacer(),
+
+        # Center Section: Gemini AI Prompt Bar
+        rx.hstack(
+            rx.input(
+                placeholder="Describe el proceso para modelar o enriquecer con IA...",
+                value=FlowState.ai_prompt_text,
+                on_change=FlowState.set_ai_prompt_text,
+                width="340px",
+                size="1",
+                variant="surface",
+                radius="medium",
+            ),
+            rx.button(
+                rx.hstack(
+                    rx.icon("sparkles", size=13),
+                    rx.text("Generar con IA", size="1", weight="medium"),
+                    align="center",
+                    spacing="1",
+                ),
+                on_click=FlowState.generate_with_gemini,
+                loading=FlowState.is_generating_ai,
+                color_scheme="blue",
+                size="1",
+                radius="medium",
+            ),
+            align="center",
+            spacing="2",
+        ),
+
+        rx.spacer(),
+
+        # Right Section: Auto-Save Status, File Menu & User Profile
+        rx.hstack(
+            # Auto-save status
+            rx.badge(
+                rx.hstack(
+                    rx.icon("check-circle-2", size=12),
+                    rx.text(FlowState.auto_save_status),
+                    align="center",
+                    spacing="1",
+                ),
+                color_scheme="green",
+                variant="soft",
+                size="1",
+            ),
+
+            # File Actions Menu (Archivo)
             rx.menu.root(
                 rx.menu.trigger(
                     rx.button(
-                        rx.icon("folder-open", size=14),
-                        " Archivo ▾",
+                        rx.hstack(
+                            rx.icon("folder-cog", size=14),
+                            rx.text("Archivo", size="1"),
+                            rx.icon("chevron-down", size=12),
+                            align="center",
+                            spacing="1",
+                        ),
                         color_scheme="gray",
-                        variant="ghost",
-                        size="2",
+                        variant="soft",
+                        size="1",
                         radius="medium",
                     ),
                 ),
                 rx.menu.content(
                     rx.menu.item(
-                        rx.hstack(rx.icon("file-plus", size=14), rx.text("Nuevo Proceso"), align="center", spacing="2"),
-                        on_click=FlowState.create_new_project,
-                    ),
-                    rx.menu.item(
-                        rx.hstack(rx.icon("folder-git-2", size=14), rx.text("Flujos Guardados..."), align="center", spacing="2"),
-                        on_click=FlowState.open_recent_modal,
-                    ),
-                    rx.menu.item(
                         rx.hstack(rx.icon("save", size=14), rx.text("Guardar Cambios"), align="center", spacing="2"),
                         on_click=FlowState.save_diagram,
+                    ),
+                    rx.menu.item(
+                        rx.hstack(rx.icon("folder-git-2", size=14), rx.text("Catálogo de Flujos..."), align="center", spacing="2"),
+                        on_click=FlowState.open_recent_modal,
                     ),
                     rx.menu.separator(),
                     rx.menu.item(
@@ -75,114 +129,31 @@ def header() -> rx.Component:
                     ),
                 ),
             ),
-            # Editable Project Title
-            rx.hstack(
-                rx.input(
-                    value=FlowState.project_name,
-                    on_change=FlowState.set_project_name,
-                    width="210px",
-                    size="1",
-                    variant="soft",
-                    radius="medium",
+
+            # Exit / Return to Portfolio
+            rx.button(
+                rx.hstack(
+                    rx.icon("log-out", size=13),
+                    rx.text("Salir", size="1"),
+                    align="center",
+                    spacing="1",
                 ),
-                rx.icon("pencil", size=13, color="#94a3b8"),
-                align="center",
-                spacing="1",
+                on_click=FlowState.return_to_hub,
+                color_scheme="gray",
+                variant="ghost",
+                size="1",
+                radius="medium",
+                title="Regresar al Hub de Portafolio",
             ),
+
             align="center",
             spacing="3",
         ),
-        # Center-Left Section: 5 Modular View Switchers
-        rx.segmented_control.root(
-            rx.segmented_control.item("📄 Ficha & Charter", value="charter"),
-            rx.segmented_control.item("📅 Plan de Trabajo", value="plan"),
-            rx.segmented_control.item("📊 Diagrama de Flujo", value="flow"),
-            rx.segmented_control.item("📋 Matriz SIPOC", value="sipoc"),
-            rx.segmented_control.item("🏛️ Gobernanza", value="governance"),
-            value=FlowState.active_view,
-            on_change=FlowState.set_active_view,
-            size="1",
-            radius="medium",
-        ),
-        rx.spacer(),
-        # Center-Right Section: Gemini AI Prompt Bar
-        rx.hstack(
-            rx.input(
-                placeholder="Describe el proceso para generar con IA (ej: Reembolso por WhatsApp)...",
-                value=FlowState.ai_prompt_text,
-                on_change=FlowState.set_ai_prompt_text,
-                width="280px",
-                size="1",
-                variant="surface",
-                radius="medium",
-            ),
-            rx.button(
-                rx.icon("sparkles", size=14),
-                " Generar",
-                on_click=FlowState.generate_with_gemini,
-                loading=FlowState.is_generating_ai,
-                color_scheme="indigo",
-                size="1",
-                radius="medium",
-            ),
-            align="center",
-            spacing="2",
-        ),
-        rx.spacer(),
-        # Right Section: Auto-Save, AI Auditor & Governance Phase
-        rx.hstack(
-            rx.badge(FlowState.auto_save_status, color_scheme="green", variant="soft", size="1"),
-            rx.button(
-                rx.icon("shield-check", size=14),
-                " Auditar IA",
-                on_click=FlowState.open_audit_modal,
-                color_scheme="indigo",
-                variant="soft",
-                size="1",
-                radius="medium",
-            ),
-            rx.menu.root(
-                rx.menu.trigger(
-                    rx.button(
-                        rx.icon("layers", size=14),
-                        " Fase ",
-                        FlowState.current_phase,
-                        " ▾",
-                        color_scheme="purple",
-                        variant="soft",
-                        size="1",
-                    ),
-                ),
-                rx.menu.content(
-                    rx.menu.item("Fase 1: Diagnóstico Estratégico", on_click=lambda: FlowState.set_phase(1)),
-                    rx.menu.item("Fase 2: Inicio del Proyecto", on_click=lambda: FlowState.set_phase(2)),
-                    rx.menu.item("Fase 3: Planificación Híbrida", on_click=lambda: FlowState.set_phase(3)),
-                    rx.menu.item("Fase 4: Ejecución Iterativa", on_click=lambda: FlowState.set_phase(4)),
-                    rx.menu.item("Fase 5: Monitoreo y Control", on_click=lambda: FlowState.set_phase(5)),
-                    rx.menu.item("Fase 6: Mejora Continua", on_click=lambda: FlowState.set_phase(6)),
-                    rx.menu.item("Fase 7: Cierre del Proyecto", on_click=lambda: FlowState.set_phase(7)),
-                ),
-            ),
-            rx.divider(orientation="vertical", size="2"),
-            rx.button(
-                rx.icon("log-out", size=13),
-                " Salir",
-                on_click=FlowState.logout,
-                color_scheme="ruby",
-                variant="soft",
-                size="1",
-                radius="medium",
-                title="Cerrar Sesión",
-            ),
-            align="center",
-            spacing="2",
-        ),
         width="100%",
-        height="50px",
-        align="center",
+        height="54px",
         padding_x="4",
         background_color="#ffffff",
         border_bottom="1px solid #e2e8f0",
-        box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.03)",
-        z_index="10",
+        align="center",
+        box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.02)",
     )

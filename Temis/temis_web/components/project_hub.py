@@ -3,8 +3,12 @@
 
 """
 Project Hub Component (Level 1) for TEMIS Web Flow
-Enterprise Work OS Portfolio Dashboard (Monday.com / Linear / Notion style)
-Displays projects catalog, KPIs, live Backlog progress %, sprint status, and Google Drive sync.
+Enterprise Work OS Portfolio Dashboard (Linear / Notion / Monday.com style)
+All emojis removed and replaced with professional Lucide SVG icons (WCAG 2.2 AA compliant).
+Features:
+- Action-driven executive KPIs
+- 3-Step Project Creation Wizard Modal
+- Portfolio projects list with clear status badges, Scrum progress, and Drive sync.
 """
 
 import reflex as rx
@@ -12,12 +16,12 @@ from temis_web.state import FlowState
 
 
 def kpi_card(title: str, value: rx.Var[str] | str, subtitle: rx.Var[str] | str | None, icon_name: str, color_hex: str, badge_text: str = "") -> rx.Component:
-    """Render a single executive KPI metric card"""
+    """Render a single executive KPI metric card without emojis"""
     return rx.box(
         rx.vstack(
             rx.hstack(
                 rx.box(
-                    rx.icon(icon_name, size=20, color=color_hex),
+                    rx.icon(icon_name, size=18, color=color_hex),
                     padding="2",
                     background_color=f"{color_hex}15",
                     border_radius="8px",
@@ -25,7 +29,7 @@ def kpi_card(title: str, value: rx.Var[str] | str, subtitle: rx.Var[str] | str |
                 rx.spacer(),
                 rx.cond(
                     badge_text != "",
-                    rx.badge(badge_text, color_scheme="green", variant="soft", size="1"),
+                    rx.badge(badge_text, color_scheme="blue", variant="soft", size="1"),
                     rx.box(),
                 ),
                 width="100%",
@@ -53,10 +57,10 @@ def kpi_card(title: str, value: rx.Var[str] | str, subtitle: rx.Var[str] | str |
 
 
 def project_card(proj: rx.Var[dict]) -> rx.Component:
-    """Render an interactive project card in Monday.com style"""
+    """Render an interactive project card in clean Linear/Monday.com style"""
     return rx.box(
         rx.vstack(
-            # Card Top Row: Code, Name, Role badge & Action Menu
+            # Card Top Row: Code, Name, Health Badge & Audit Score
             rx.hstack(
                 rx.hstack(
                     rx.badge(
@@ -75,24 +79,49 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                     spacing="2",
                 ),
                 rx.spacer(),
-                # Health Semaphore Badge (T05)
+                # Health Semaphore Badge (T05 - No Emojis, Pure SVG)
                 rx.cond(
                     proj["health_status"] == "green",
-                    rx.badge("🟢 Al día", color_scheme="green", variant="soft", size="1"),
+                    rx.badge(
+                        rx.hstack(rx.icon("circle-dot", size=11), rx.text("Al día"), align="center", spacing="1"),
+                        color_scheme="green",
+                        variant="soft",
+                        size="1",
+                    ),
                     rx.cond(
                         proj["health_status"] == "yellow",
-                        rx.badge("🟡 En riesgo", color_scheme="amber", variant="soft", size="1"),
+                        rx.badge(
+                            rx.hstack(rx.icon("alert-triangle", size=11), rx.text("En riesgo"), align="center", spacing="1"),
+                            color_scheme="amber",
+                            variant="soft",
+                            size="1",
+                        ),
                         rx.cond(
                             proj["health_status"] == "red",
-                            rx.badge("🔴 Bloqueado", color_scheme="ruby", variant="soft", size="1"),
-                            rx.badge("⚪ Sin evaluar", color_scheme="gray", variant="soft", size="1"),
+                            rx.badge(
+                                rx.hstack(rx.icon("alert-circle", size=11), rx.text("Bloqueado"), align="center", spacing="1"),
+                                color_scheme="ruby",
+                                variant="soft",
+                                size="1",
+                            ),
+                            rx.badge(
+                                rx.hstack(rx.icon("circle", size=11), rx.text("Sin evaluar"), align="center", spacing="1"),
+                                color_scheme="gray",
+                                variant="soft",
+                                size="1",
+                            ),
                         ),
                     ),
                 ),
-                # Six Sigma Audit Score (T05)
+                # Six Sigma Audit Score Badge (T05)
                 rx.cond(
                     (proj["health_status"] == "unrated") | (proj["audit_score"] == 0),
-                    rx.badge("🛡️ Sin evaluar", color_scheme="gray", variant="soft", size="1"),
+                    rx.badge(
+                        rx.hstack(rx.icon("shield", size=11), rx.text("Sin evaluar"), align="center", spacing="1"),
+                        color_scheme="gray",
+                        variant="soft",
+                        size="1",
+                    ),
                     rx.badge(
                         rx.hstack(
                             rx.icon("shield-check", size=12),
@@ -123,7 +152,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
             # Middle Row: Governance Phase & Active Sprint
             rx.hstack(
                 rx.hstack(
-                    rx.icon("layers", size=14, color="#8b5cf6"),
+                    rx.icon("layers", size=14, color="#7c3aed"),
                     rx.text("Fase ", proj["current_phase"].to_string(), ": ", proj["phase_name"], size="1", weight="medium", color="#6b21a8"),
                     align="center",
                     spacing="1",
@@ -133,7 +162,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                     border_radius="6px",
                 ),
                 rx.hstack(
-                    rx.icon("flame", size=14, color="#ea580c"),
+                    rx.icon("flame", size=14, color="#c2410c"),
                     rx.text(proj["current_sprint"], " • ", proj["current_sprint_name"], size="1", weight="medium", color="#9a3412"),
                     align="center",
                     spacing="1",
@@ -203,8 +232,12 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                         proj["drive_folder_url"] != "",
                         rx.link(
                             rx.button(
-                                rx.icon("folder-open", size=13),
-                                " Drive",
+                                rx.hstack(
+                                    rx.icon("folder-open", size=13),
+                                    rx.text("Drive"),
+                                    align="center",
+                                    spacing="1",
+                                ),
                                 color_scheme="gray",
                                 variant="soft",
                                 size="1",
@@ -219,8 +252,12 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                         proj["sheet_url"] != "",
                         rx.link(
                             rx.button(
-                                rx.icon("file-spreadsheet", size=13),
-                                " Plan de Trabajo",
+                                rx.hstack(
+                                    rx.icon("file-spreadsheet", size=13),
+                                    rx.text("Plan de Trabajo"),
+                                    align="center",
+                                    spacing="1",
+                                ),
                                 color_scheme="green",
                                 variant="soft",
                                 size="1",
@@ -233,8 +270,12 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                     ),
                     # Primary Open Workspace Button
                     rx.button(
-                        rx.icon("sparkles", size=14),
-                        " Abrir Espacio de Trabajo",
+                        rx.hstack(
+                            rx.icon("arrow-right", size=14),
+                            rx.text("Abrir Espacio de Trabajo", weight="medium"),
+                            align="center",
+                            spacing="1",
+                        ),
                         on_click=lambda: FlowState.open_project_workspace(proj["id"]),
                         color_scheme="blue",
                         size="1",
@@ -262,23 +303,98 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
     )
 
 
+def wizard_step_indicator() -> rx.Component:
+    """Render 3-step visual progress bar in the project creation modal"""
+    return rx.hstack(
+        # Step 1: Datos Básicos
+        rx.hstack(
+            rx.box(
+                rx.text("1", size="1", weight="bold", color=rx.cond(FlowState.new_proj_wizard_step >= 1, "#ffffff", "#64748b")),
+                width="22px",
+                height="22px",
+                border_radius="full",
+                background_color=rx.cond(FlowState.new_proj_wizard_step >= 1, "#1d4ed8", "#e2e8f0"),
+                display="flex",
+                align_items="center",
+                justify_content="center",
+            ),
+            rx.text(
+                "Datos Básicos",
+                size="1",
+                weight=rx.cond(FlowState.new_proj_wizard_step == 1, "bold", "medium"),
+                color=rx.cond(FlowState.new_proj_wizard_step == 1, "#1d4ed8", "#64748b"),
+            ),
+            align="center",
+            spacing="1",
+        ),
+        rx.divider(width="30px"),
+        # Step 2: Plan e Integraciones
+        rx.hstack(
+            rx.box(
+                rx.text("2", size="1", weight="bold", color=rx.cond(FlowState.new_proj_wizard_step >= 2, "#ffffff", "#64748b")),
+                width="22px",
+                height="22px",
+                border_radius="full",
+                background_color=rx.cond(FlowState.new_proj_wizard_step >= 2, "#1d4ed8", "#e2e8f0"),
+                display="flex",
+                align_items="center",
+                justify_content="center",
+            ),
+            rx.text(
+                "Plan & Integraciones",
+                size="1",
+                weight=rx.cond(FlowState.new_proj_wizard_step == 2, "bold", "medium"),
+                color=rx.cond(FlowState.new_proj_wizard_step == 2, "#1d4ed8", "#64748b"),
+            ),
+            align="center",
+            spacing="1",
+        ),
+        rx.divider(width="30px"),
+        # Step 3: Revisar & Confirmar
+        rx.hstack(
+            rx.box(
+                rx.text("3", size="1", weight="bold", color=rx.cond(FlowState.new_proj_wizard_step == 3, "#ffffff", "#64748b")),
+                width="22px",
+                height="22px",
+                border_radius="full",
+                background_color=rx.cond(FlowState.new_proj_wizard_step == 3, "#1d4ed8", "#e2e8f0"),
+                display="flex",
+                align_items="center",
+                justify_content="center",
+            ),
+            rx.text(
+                "Revisar & Crear",
+                size="1",
+                weight=rx.cond(FlowState.new_proj_wizard_step == 3, "bold", "medium"),
+                color=rx.cond(FlowState.new_proj_wizard_step == 3, "#1d4ed8", "#64748b"),
+            ),
+            align="center",
+            spacing="1",
+        ),
+        width="100%",
+        align="center",
+        justify="center",
+        padding_y="2",
+    )
+
+
 def new_project_modal() -> rx.Component:
-    """Dialog modal to create a new project and trigger Google Drive SA replication"""
+    """3-Step Wizard dialog modal to create a project and deploy Drive/Sheets scaffolding"""
     return rx.dialog.root(
         rx.dialog.content(
             rx.vstack(
                 # Modal Header
                 rx.hstack(
                     rx.box(
-                        rx.icon("plus", size=20, color="#2563eb"),
+                        rx.icon("folder-plus", size=20, color="#1d4ed8"),
                         padding="2",
                         background_color="#eff6ff",
                         border_radius="8px",
                     ),
                     rx.vstack(
-                        rx.dialog.title("Crear Nuevo Proyecto en TEMIS", size="4", weight="bold", color="#0f172a"),
+                        rx.dialog.title("Alta de Nuevo Proyecto en TEMIS", size="4", weight="bold", color="#0f172a"),
                         rx.dialog.description(
-                            "Inicializa el proyecto, crea las 11 carpetas en Google Drive y replica el Google Sheet de planeación.",
+                            "Asistente en 3 pasos para configurar el proyecto, 11 carpetas en Drive y cronograma.",
                             size="2",
                             color="#64748b",
                         ),
@@ -287,135 +403,204 @@ def new_project_modal() -> rx.Component:
                     align="center",
                     spacing="3",
                 ),
+
+                wizard_step_indicator(),
                 rx.divider(),
 
-                # Form Fields
-                rx.vstack(
-                    rx.hstack(
-                        rx.vstack(
-                            rx.text("Nombre del Proyecto *", size="1", weight="bold", color="#334155"),
-                            rx.input(
-                                placeholder="Ej: Automatización de Cobranza Digital",
-                                value=FlowState.new_proj_name,
-                                on_change=FlowState.set_new_proj_name,
-                                width="100%",
-                                size="2",
-                            ),
-                            width="70%",
-                            align="start",
-                            spacing="1",
-                        ),
-                        rx.vstack(
-                            rx.text("Código *", size="1", weight="bold", color="#334155"),
-                            rx.input(
-                                placeholder="PRJ-COB",
-                                value=FlowState.new_proj_code,
-                                on_change=FlowState.set_new_proj_code,
-                                width="100%",
-                                size="2",
-                            ),
-                            width="30%",
-                            align="start",
-                            spacing="1",
-                        ),
-                        width="100%",
-                        spacing="3",
-                    ),
-
+                # STEP 1: Datos Básicos
+                rx.cond(
+                    FlowState.new_proj_wizard_step == 1,
                     rx.vstack(
-                        rx.text("Propósito y Objetivo de Negocio *", size="1", weight="bold", color="#334155"),
-                        rx.text_area(
-                            placeholder="Describe para qué es el proyecto, qué soluciona y su alcance operativo...",
-                            value=FlowState.new_proj_purpose,
-                            on_change=FlowState.set_new_proj_purpose,
+                        rx.hstack(
+                            rx.vstack(
+                                rx.text("Nombre del Proyecto *", size="1", weight="bold", color="#334155"),
+                                rx.input(
+                                    placeholder="Ej: Automatización de Cobranza Digital",
+                                    value=FlowState.new_proj_name,
+                                    on_change=FlowState.set_new_proj_name,
+                                    width="100%",
+                                    size="2",
+                                ),
+                                width="70%",
+                                align="start",
+                                spacing="1",
+                            ),
+                            rx.vstack(
+                                rx.text("Código Único *", size="1", weight="bold", color="#334155"),
+                                rx.input(
+                                    placeholder="PRJ-COB",
+                                    value=FlowState.new_proj_code,
+                                    on_change=FlowState.set_new_proj_code,
+                                    width="100%",
+                                    size="2",
+                                ),
+                                width="30%",
+                                align="start",
+                                spacing="1",
+                            ),
                             width="100%",
-                            size="2",
-                            rows="3",
+                            spacing="3",
                         ),
-                        width="100%",
-                        align="start",
-                        spacing="1",
-                    ),
-
-                    rx.hstack(
                         rx.vstack(
-                            rx.text("Project Manager / Responsable", size="1", weight="bold", color="#334155"),
-                            rx.input(
-                                placeholder="Ing. José Antonio Hurtado",
-                                value=FlowState.new_proj_manager,
-                                on_change=FlowState.set_new_proj_manager,
+                            rx.text("Propósito y Alcance Operativo *", size="1", weight="bold", color="#334155"),
+                            rx.text_area(
+                                placeholder="Describe el objetivo del proceso, qué dolor resuelve y su alcance...",
+                                value=FlowState.new_proj_purpose,
+                                on_change=FlowState.set_new_proj_purpose,
                                 width="100%",
                                 size="2",
+                                rows="4",
                             ),
-                            width="50%",
+                            width="100%",
                             align="start",
                             spacing="1",
                         ),
-                        rx.vstack(
-                            rx.text("Sponsor / Área Líder", size="1", weight="bold", color="#334155"),
-                            rx.input(
-                                placeholder="Dirección de Operaciones",
-                                value=FlowState.new_proj_sponsor,
-                                on_change=FlowState.set_new_proj_sponsor,
-                                width="100%",
-                                size="2",
-                            ),
-                            width="50%",
-                            align="start",
-                            spacing="1",
-                        ),
-                        width="100%",
                         spacing="3",
-                    ),
-
-                    rx.hstack(
-                        rx.vstack(
-                            rx.text("Fecha Inicio", size="1", weight="bold", color="#334155"),
-                            rx.input(
-                                type="date",
-                                value=FlowState.new_proj_start_date,
-                                on_change=FlowState.set_new_proj_start_date,
-                                width="100%",
-                                size="2",
-                            ),
-                            width="50%",
-                            align="start",
-                            spacing="1",
-                        ),
-                        rx.vstack(
-                            rx.text("Fecha Fin Estimada", size="1", weight="bold", color="#334155"),
-                            rx.input(
-                                type="date",
-                                value=FlowState.new_proj_end_date,
-                                on_change=FlowState.set_new_proj_end_date,
-                                width="100%",
-                                size="2",
-                            ),
-                            width="50%",
-                            align="start",
-                            spacing="1",
-                        ),
                         width="100%",
-                        spacing="3",
                     ),
+                    rx.box(),
+                ),
 
-                    # Live Drive Creation Progress Message
-                    rx.cond(
-                        FlowState.is_creating_project_drive,
+                # STEP 2: Plan & Integraciones
+                rx.cond(
+                    FlowState.new_proj_wizard_step == 2,
+                    rx.vstack(
+                        rx.hstack(
+                            rx.vstack(
+                                rx.text("Project Manager / Responsable", size="1", weight="bold", color="#334155"),
+                                rx.input(
+                                    placeholder="Ing. José Antonio Hurtado",
+                                    value=FlowState.new_proj_manager,
+                                    on_change=FlowState.set_new_proj_manager,
+                                    width="100%",
+                                    size="2",
+                                ),
+                                width="50%",
+                                align="start",
+                                spacing="1",
+                            ),
+                            rx.vstack(
+                                rx.text("Sponsor / Área Líder", size="1", weight="bold", color="#334155"),
+                                rx.input(
+                                    placeholder="Dirección de Operaciones & Tecnología",
+                                    value=FlowState.new_proj_sponsor,
+                                    on_change=FlowState.set_new_proj_sponsor,
+                                    width="100%",
+                                    size="2",
+                                ),
+                                width="50%",
+                                align="start",
+                                spacing="1",
+                            ),
+                            width="100%",
+                            spacing="3",
+                        ),
+                        rx.hstack(
+                            rx.vstack(
+                                rx.text("Fecha Inicio", size="1", weight="bold", color="#334155"),
+                                rx.input(
+                                    type="date",
+                                    value=FlowState.new_proj_start_date,
+                                    on_change=FlowState.set_new_proj_start_date,
+                                    width="100%",
+                                    size="2",
+                                ),
+                                width="50%",
+                                align="start",
+                                spacing="1",
+                            ),
+                            rx.vstack(
+                                rx.text("Fecha Fin Estimada", size="1", weight="bold", color="#334155"),
+                                rx.input(
+                                    type="date",
+                                    value=FlowState.new_proj_end_date,
+                                    on_change=FlowState.set_new_proj_end_date,
+                                    width="100%",
+                                    size="2",
+                                ),
+                                width="50%",
+                                align="start",
+                                spacing="1",
+                            ),
+                            width="100%",
+                            spacing="3",
+                        ),
+                        # Integrations Callout
                         rx.callout(
-                            FlowState.creation_progress_status,
-                            icon="loader",
+                            "Se creará automáticamente la estructura oficial de 11 carpetas en Google Drive y se sincronizará la hoja de cálculo de planeación con la Service Account.",
+                            icon="info",
                             color_scheme="blue",
                             size="1",
                         ),
-                        rx.box(),
+                        spacing="3",
+                        width="100%",
                     ),
-
-                    spacing="3",
-                    width="100%",
+                    rx.box(),
                 ),
 
-                # Modal Footer
+                # STEP 3: Revisar & Confirmar
+                rx.cond(
+                    FlowState.new_proj_wizard_step == 3,
+                    rx.vstack(
+                        rx.box(
+                            rx.vstack(
+                                rx.hstack(
+                                    rx.text("Proyecto:", size="1", weight="bold", color="#64748b", width="120px"),
+                                    rx.text(FlowState.new_proj_name, size="2", weight="bold", color="#0f172a"),
+                                    align="center",
+                                ),
+                                rx.hstack(
+                                    rx.text("Código:", size="1", weight="bold", color="#64748b", width="120px"),
+                                    rx.badge(FlowState.new_proj_code, color_scheme="indigo", variant="surface", size="1"),
+                                    align="center",
+                                ),
+                                rx.hstack(
+                                    rx.text("Responsable / PM:", size="1", weight="bold", color="#64748b", width="120px"),
+                                    rx.text(FlowState.new_proj_manager, size="1", color="#1e293b"),
+                                    align="center",
+                                ),
+                                rx.hstack(
+                                    rx.text("Sponsor:", size="1", weight="bold", color="#64748b", width="120px"),
+                                    rx.text(FlowState.new_proj_sponsor, size="1", color="#1e293b"),
+                                    align="center",
+                                ),
+                                rx.hstack(
+                                    rx.text("Cronograma:", size="1", weight="bold", color="#64748b", width="120px"),
+                                    rx.text(FlowState.new_proj_start_date, " ➔ ", FlowState.new_proj_end_date, size="1", color="#1e293b"),
+                                    align="center",
+                                ),
+                                rx.hstack(
+                                    rx.text("Propósito:", size="1", weight="bold", color="#64748b", width="120px"),
+                                    rx.text(FlowState.new_proj_purpose, size="1", color="#64748b", line_clamp=2),
+                                    align="start",
+                                ),
+                                spacing="2",
+                                width="100%",
+                            ),
+                            padding="3",
+                            background_color="#f8fafc",
+                            border="1px solid #e2e8f0",
+                            border_radius="8px",
+                            width="100%",
+                        ),
+                        # Live Drive Creation Progress Message
+                        rx.cond(
+                            FlowState.is_creating_project_drive,
+                            rx.callout(
+                                FlowState.creation_progress_status,
+                                icon="loader",
+                                color_scheme="blue",
+                                size="1",
+                            ),
+                            rx.box(),
+                        ),
+                        spacing="3",
+                        width="100%",
+                    ),
+                    rx.box(),
+                ),
+
+                # Modal Footer with Step Navigation
                 rx.hstack(
                     rx.button(
                         "Cancelar",
@@ -425,14 +610,41 @@ def new_project_modal() -> rx.Component:
                         on_click=FlowState.close_new_project_modal,
                     ),
                     rx.spacer(),
-                    rx.button(
-                        rx.icon("cloud-upload", size=15),
-                        " Crear Proyecto & Desplegar en Drive",
-                        on_click=FlowState.create_project_with_drive,
-                        loading=FlowState.is_creating_project_drive,
-                        color_scheme="blue",
-                        size="2",
-                        radius="medium",
+                    # Previous Step Button
+                    rx.cond(
+                        FlowState.new_proj_wizard_step > 1,
+                        rx.button(
+                            rx.hstack(rx.icon("chevron-left", size=14), rx.text("Atrás"), align="center", spacing="1"),
+                            on_click=FlowState.prev_wizard_step,
+                            color_scheme="gray",
+                            variant="surface",
+                            size="2",
+                        ),
+                        rx.box(),
+                    ),
+                    # Next Step Button (for steps 1 & 2)
+                    rx.cond(
+                        FlowState.new_proj_wizard_step < 3,
+                        rx.button(
+                            rx.hstack(rx.text("Siguiente"), rx.icon("chevron-right", size=14), align="center", spacing="1"),
+                            on_click=FlowState.next_wizard_step,
+                            color_scheme="blue",
+                            size="2",
+                        ),
+                        # Final Submit Button (for step 3)
+                        rx.button(
+                            rx.hstack(
+                                rx.icon("cloud-upload", size=15),
+                                rx.text("Confirmar & Desplegar en Drive"),
+                                align="center",
+                                spacing="1",
+                            ),
+                            on_click=FlowState.create_project_with_drive,
+                            loading=FlowState.is_creating_project_drive,
+                            color_scheme="blue",
+                            size="2",
+                            radius="medium",
+                        ),
                     ),
                     width="100%",
                     align="center",
@@ -441,7 +653,7 @@ def new_project_modal() -> rx.Component:
                 spacing="4",
                 width="100%",
             ),
-            width="580px",
+            width="600px",
             max_width="95vw",
             border_radius="xl",
             padding="5",
@@ -460,7 +672,7 @@ def project_hub() -> rx.Component:
             # 1. Top App Header for Hub
             rx.hstack(
                 rx.hstack(
-                    rx.icon("network", size=24, color="#2563eb"),
+                    rx.icon("network", size=24, color="#1d4ed8"),
                     rx.vstack(
                         rx.hstack(
                             rx.text("TEMIS", size="4", weight="bold", color="#0f172a"),
@@ -475,10 +687,10 @@ def project_hub() -> rx.Component:
                     spacing="3",
                 ),
                 rx.spacer(),
-                # Subview Switcher: Portfolio vs Users Control
+                # Subview Switcher: Portfolio vs Users Control (No Emojis)
                 rx.segmented_control.root(
-                    rx.segmented_control.item("📂 Portafolio de Proyectos", value="portfolio"),
-                    rx.segmented_control.item("👥 Control de Usuarios", value="users"),
+                    rx.segmented_control.item("Portafolio de Proyectos", value="portfolio"),
+                    rx.segmented_control.item("Control de Usuarios", value="users"),
                     value=FlowState.hub_active_subview,
                     on_change=FlowState.set_hub_active_subview,
                     size="2",
@@ -504,8 +716,12 @@ def project_hub() -> rx.Component:
                         spacing="2",
                     ),
                     rx.button(
-                        rx.icon("plus", size=15),
-                        " Nuevo Proyecto",
+                        rx.hstack(
+                            rx.icon("plus", size=15),
+                            rx.text("Nuevo Proyecto"),
+                            align="center",
+                            spacing="1",
+                        ),
                         on_click=FlowState.open_new_project_modal,
                         color_scheme="blue",
                         size="2",
@@ -513,8 +729,12 @@ def project_hub() -> rx.Component:
                     ),
                     rx.divider(orientation="vertical", size="2"),
                     rx.button(
-                        rx.icon("log-out", size=14),
-                        " Salir",
+                        rx.hstack(
+                            rx.icon("log-out", size=14),
+                            rx.text("Salir"),
+                            align="center",
+                            spacing="1",
+                        ),
                         on_click=FlowState.logout,
                         color_scheme="ruby",
                         variant="soft",
@@ -537,21 +757,21 @@ def project_hub() -> rx.Component:
             # 2. Main Content Container
             rx.box(
                 rx.vstack(
-                    # Executive KPIs Row
+                    # Executive KPIs Row (Pure Lucide Icons)
                     rx.hstack(
                         kpi_card(
                             "Proyectos en Portafolio",
                             FlowState.total_hub_projects_count.to_string(),
                             FlowState.hub_drive_status_summary,
                             "folder-kanban",
-                            "#2563eb",
+                            "#1d4ed8",
                             badge_text="Activos",
                         ),
                         kpi_card(
                             "Story Points Entregados",
                             FlowState.total_completed_sp_count.to_string() + " / " + FlowState.total_sp_count.to_string() + " SP",
                             FlowState.global_progress_pct.to_string() + "% de avance global",
-                            "circle-check",
+                            "check-circle-2",
                             "#16a34a",
                             badge_text="Scrum",
                         ),
@@ -560,7 +780,7 @@ def project_hub() -> rx.Component:
                             FlowState.average_audit_score.to_string() + " / 100",
                             "Auditoría con IA Gemini 2.5",
                             "shield-check",
-                            "#8b5cf6",
+                            "#7c3aed",
                             badge_text="IA",
                         ),
                         kpi_card(
@@ -615,17 +835,17 @@ def project_hub() -> rx.Component:
                             align="center",
                             spacing="2",
                         ),
-                        # Status Filter (T05)
+                        # Status Filter (Clean, No Emojis)
                         rx.hstack(
                             rx.text("Salud:", size="1", color="#64748b", weight="medium"),
                             rx.select.root(
                                 rx.select.trigger(placeholder="Todos", size="1"),
                                 rx.select.content(
                                     rx.select.item("Todos los Estados", value="all"),
-                                    rx.select.item("🟢 Al día", value="green"),
-                                    rx.select.item("🟡 En riesgo", value="yellow"),
-                                    rx.select.item("🔴 Bloqueado", value="red"),
-                                    rx.select.item("⚪ Sin evaluar", value="unrated"),
+                                    rx.select.item("Al día (Verde)", value="green"),
+                                    rx.select.item("En riesgo (Amarillo)", value="yellow"),
+                                    rx.select.item("Bloqueado (Rojo)", value="red"),
+                                    rx.select.item("Sin evaluar", value="unrated"),
                                 ),
                                 value=FlowState.filter_hub_status,
                                 on_change=FlowState.set_filter_hub_status,
@@ -658,16 +878,14 @@ def project_hub() -> rx.Component:
                                     (FlowState.search_hub_query != "") | (FlowState.filter_hub_phase != "all") | (FlowState.filter_hub_status != "all"),
                                     rx.hstack(
                                         rx.button(
-                                            rx.icon("rotate-ccw", size=14),
-                                            " Limpiar Filtros",
+                                            rx.hstack(rx.icon("rotate-ccw", size=14), rx.text("Limpiar Filtros"), align="center", spacing="1"),
                                             on_click=FlowState.clear_hub_filters,
                                             color_scheme="gray",
                                             variant="soft",
                                             size="2",
                                         ),
                                         rx.button(
-                                            rx.icon("plus", size=14),
-                                            " Crear Nuevo Proyecto",
+                                            rx.hstack(rx.icon("plus", size=14), rx.text("Crear Nuevo Proyecto"), align="center", spacing="1"),
                                             on_click=FlowState.open_new_project_modal,
                                             color_scheme="blue",
                                             size="2",
@@ -676,8 +894,7 @@ def project_hub() -> rx.Component:
                                         margin_top="2",
                                     ),
                                     rx.button(
-                                        rx.icon("plus", size=14),
-                                        " Crear Primer Proyecto",
+                                        rx.hstack(rx.icon("plus", size=14), rx.text("Crear Primer Proyecto"), align="center", spacing="1"),
                                         on_click=FlowState.open_new_project_modal,
                                         color_scheme="blue",
                                         size="2",

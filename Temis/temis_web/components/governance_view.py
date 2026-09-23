@@ -96,11 +96,11 @@ def render_phase_card(p: dict) -> rx.Component:
                     rx.text(p["name"], size="2", weight="bold", color="#1e293b"),
                     rx.cond(
                         is_active,
-                        rx.badge("⭐ Fase Activa", color_scheme="green", variant="solid", size="1"),
+                        rx.badge(rx.hstack(rx.icon("star", size=10), rx.text("Fase Activa"), align="center", spacing="1"), color_scheme="green", variant="solid", size="1"),
                         rx.cond(
                             is_past,
-                            rx.badge("✓ Completada", color_scheme="blue", variant="soft", size="1"),
-                            rx.badge("⏳ Pendiente", color_scheme="gray", variant="soft", size="1"),
+                            rx.badge(rx.hstack(rx.icon("check", size=10), rx.text("Completada"), align="center", spacing="1"), color_scheme="blue", variant="soft", size="1"),
+                            rx.badge(rx.hstack(rx.icon("clock", size=10), rx.text("Pendiente"), align="center", spacing="1"), color_scheme="gray", variant="soft", size="1"),
                         ),
                     ),
                     align="center",

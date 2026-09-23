@@ -47,8 +47,13 @@ def project_charter() -> rx.Component:
                         radius="medium",
                     ),
                     rx.button(
-                        rx.icon("network", size=15),
-                        " Ver Diagrama ➔",
+                        rx.hstack(
+                            rx.icon("network", size=15),
+                            rx.text("Ver Diagrama"),
+                            rx.icon("arrow-right", size=13),
+                            align="center",
+                            spacing="1",
+                        ),
                         on_click=lambda: FlowState.set_active_view("flow"),
                         color_scheme="blue",
                         size="2",
