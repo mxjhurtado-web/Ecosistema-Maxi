@@ -19,6 +19,8 @@ from temis_web.components.project_modal import recent_projects_modal
 from temis_web.components.connect_modal import connect_modal
 from temis_web.components.audit_modal import audit_modal
 from temis_web.components.project_charter import project_charter
+from temis_web.components.narrative_analysis_view import narrative_analysis_view
+from temis_web.components.diff_merge_modal import diff_merge_modal
 from temis_web.components.work_plan_view import work_plan_view
 from temis_web.components.sipoc_matrix import sipoc_matrix
 from temis_web.components.governance_view import governance_view
@@ -29,11 +31,12 @@ from temis_web.components.toast_notification import toast_notification
 
 
 def workspace_view() -> rx.Component:
-    """Level 2 Workspace with lateral navigation sidebar and 5 modular views (H04 Responsive)"""
+    """Level 2 Workspace with lateral navigation sidebar and 6 modular views (H04 Responsive)"""
     return rx.box(
         recent_projects_modal(),
         connect_modal(),
         audit_modal(),
+        diff_merge_modal(),
         rx.vstack(
             header(),
             rx.hstack(
@@ -42,6 +45,7 @@ def workspace_view() -> rx.Component:
                     rx.match(
                         FlowState.active_view,
                         ("charter", project_charter()),
+                        ("narrative", narrative_analysis_view()),
                         ("plan", work_plan_view()),
                         ("sipoc", sipoc_matrix()),
                         ("governance", governance_view()),

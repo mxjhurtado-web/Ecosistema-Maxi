@@ -1044,6 +1044,34 @@ class FlowState(rx.State):
             "requirements": "Confirmación de entrega y cierre en Freshdesk"
         }
     ]
+    # Dual SIPOC Matrix State (AS-IS vs TO-BE)
+    sipoc_active_mode: str = "asis"  # "asis" or "tobe"
+    sipoc_rows_asis: List[Dict[str, Any]] = []
+    sipoc_rows_tobe: List[Dict[str, Any]] = []
+
+    # Narrative Analysis & Source Document State
+    narrative_documents: List[Dict[str, Any]] = []
+    active_narrative_doc_id: str = ""
+    active_narrative_doc_name: str = ""
+    narrative_total_blocks: int = 0
+    is_analyzing_narrative: bool = False
+    is_generating_narrative: bool = False
+    narrative_analysis_step: int = 1  # 1: Carga, 2: Revisión, 3: Generación, 4: Resultados
+    extracted_findings: List[Dict[str, Any]] = []
+    clarification_points: List[Dict[str, Any]] = []
+    narrative_overview_target: str = ""
+    narrative_overview_scope: str = ""
+    narrative_overview_input: str = ""
+    narrative_overview_output: str = ""
+    narrative_overview_frequency: str = "Siempre que la operación lo requiera"
+    narrative_legal_framework: List[str] = []
+    narrative_validity_control: Dict[str, Any] = {}
+    narrative_asis_steps_data: List[Dict[str, Any]] = []
+    narrative_tobe_steps_data: List[Dict[str, Any]] = []
+    generated_narrative_markdown: str = ""
+    show_narrative_diff_modal: bool = False
+    diff_proposal_data: Dict[str, Any] = {}
+
     customer_requirements: str = "Tiempos de respuesta (SLA) menores a 5 min, trazabilidad de logs en Chronos y encuesta con satisfacción >= 95%."
     is_completing_sipoc: bool = False
     show_sipoc_ai_modal: bool = False
@@ -1388,6 +1416,246 @@ class FlowState(rx.State):
         except Exception as e:
             self.status_message = f"Error al exportar Excel: {str(e)}"
             self.trigger_toast("Error al exportar Excel", "error")
+
+    @rx.var
+    def current_sipoc_rows(self) -> List[Dict[str, Any]]:
+        """Return either AS-IS or TO-BE SIPOC rows based on active mode"""
+        if self.sipoc_active_mode == "tobe":
+            return self.sipoc_rows_tobe if self.sipoc_rows_tobe else self.sipoc_rows
+        else:
+            return self.sipoc_rows_asis if self.sipoc_rows_asis else self.sipoc_rows
+
+    def set_sipoc_active_mode(self, mode: Union[str, List[str]]):
+        """Switch between AS-IS and TO-BE SIPOC matrix tabs"""
+        val = mode[0] if isinstance(mode, list) else str(mode)
+        self.sipoc_active_mode = val
+        self.status_message = f"Vista de Matriz SIPOC cambiada a: {val.upper()}"
+
+    def set_narrative_analysis_step(self, step: int):
+        """Set sequential step in narrative analysis workflow"""
+        self.narrative_analysis_step = step
+
+    async def handle_narrative_file_upload(self, files: List[rx.UploadFile]):
+        """Handle upload of DOCX or PDF narrative document for AI analysis"""
+        import datetime
+        for file in files:
+            upload_data = await file.read()
+            ext = "." + file.filename.split(".")[-1].lower()
+            from backend.services.document_parser import DocumentParser
+            
+            blocks = DocumentParser.extract_blocks(upload_data, ext)
+            doc_hash = DocumentParser.compute_file_hash(upload_data)
+            
+            doc_entry = {
+                "id": f"doc-{len(self.narrative_documents)+1}",
+                "filename": file.filename,
+                "extension": ext,
+                "file_hash": doc_hash,
+                "file_size_bytes": len(upload_data),
+                "total_paragraphs": len(blocks),
+                "uploaded_by": self.user_email,
+                "uploaded_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            self.narrative_documents.append(doc_entry)
+            self.active_narrative_doc_id = doc_entry["id"]
+            self.active_narrative_doc_name = file.filename
+            self.narrative_total_blocks = len(blocks)
+            self._cached_narrative_blocks = blocks
+            self._cached_narrative_bytes = upload_data
+            self._cached_narrative_ext = ext
+            
+            self.status_message = f"Documento '{file.filename}' cargado ({len(blocks)} párrafos indexados)."
+            self.trigger_toast(f"Documento cargado con éxito ({len(blocks)} bloques)", "success")
+            self.trigger_auto_save()
+
+    def run_narrative_ai_analysis(self):
+        """Execute Gemini AI extraction on the uploaded narrative document"""
+        import datetime
+        if not hasattr(self, "_cached_narrative_blocks") or not self._cached_narrative_blocks:
+            self.status_message = "Cargue un documento DOCX o PDF antes de iniciar el análisis."
+            self.trigger_toast("Cargue un documento primero", "warning")
+            return
+
+        self.is_analyzing_narrative = True
+        self.status_message = "Gemini 2.5 Flash analizando la narrativa del cliente..."
+        try:
+            from backend.services.narrative_ai_extractor import NarrativeAiExtractor
+            extractor = NarrativeAiExtractor()
+            result = extractor.analyze_document(
+                project_id=self.project_id,
+                document_id=self.active_narrative_doc_id,
+                blocks=self._cached_narrative_blocks
+            )
+
+            # Store extracted data
+            self.extracted_findings = [f.model_dump() for f in result.findings]
+            self.clarification_points = [c.model_dump() for c in result.clarification_points]
+            self.narrative_overview_target = result.overview.target
+            self.narrative_overview_scope = result.overview.scope
+            self.narrative_overview_input = result.overview.process_input
+            self.narrative_overview_output = result.overview.process_output
+            self.narrative_overview_frequency = result.overview.frequency
+            self.narrative_legal_framework = list(result.legal_framework.regulations)
+            self.narrative_validity_control = result.validity_control.model_dump()
+            self.narrative_asis_steps_data = [s.model_dump() for s in result.asis_steps]
+            self.narrative_tobe_steps_data = [s.model_dump() for s in result.tobe_steps]
+
+            # Also suggest updating Project Charter if purpose was empty
+            if not self.project_purpose:
+                self.project_purpose = result.overview.target
+            if not self.scope_in:
+                self.scope_in = result.overview.scope
+
+            self.narrative_analysis_step = 2
+            self.status_message = f"Análisis IA completado: {len(self.extracted_findings)} hallazgos y {len(result.asis_steps)} actividades extraídas con citas."
+            self.trigger_toast(f"Análisis IA completado ({len(self.extracted_findings)} hallazgos)", "success")
+            self.trigger_auto_save()
+        except Exception as e:
+            self.status_message = f"Error durante el análisis IA: {str(e)}"
+            self.trigger_toast(f"Error en análisis: {str(e)}", "error")
+        finally:
+            self.is_analyzing_narrative = False
+
+    def update_finding_status(self, finding_id: str, new_status: str):
+        """Update curation status of a finding in Human-in-the-Loop review"""
+        import datetime
+        for f in self.extracted_findings:
+            if f.get("id") == finding_id:
+                f["curation_status"] = new_status
+                f["curated_by"] = self.user_email
+                f["curated_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                break
+        self.trigger_auto_save()
+
+    def generate_dual_sipoc_from_analysis(self):
+        """Generate AS-IS and TO-BE SIPOC rows from analyzed narrative steps"""
+        from backend.models.narrative_source_model import NarrativeAnalysisResult, ActivityStepData
+        from backend.services.process_generator_service import ProcessGeneratorService
+
+        asis_objs = [ActivityStepData(**s) for s in self.narrative_asis_steps_data]
+        tobe_objs = [ActivityStepData(**s) for s in self.narrative_tobe_steps_data]
+
+        res = NarrativeAnalysisResult(
+            project_id=self.project_id,
+            document_id=self.active_narrative_doc_id,
+            project_purpose=self.narrative_overview_target,
+            scope_in=self.narrative_overview_scope,
+            asis_steps=asis_objs,
+            tobe_steps=tobe_objs
+        )
+
+        dual_sipoc = ProcessGeneratorService.generate_dual_sipoc(res)
+        self.sipoc_rows_asis = [r.model_dump() for r in dual_sipoc.asis_rows]
+        self.sipoc_rows_tobe = [r.model_dump() for r in dual_sipoc.tobe_rows]
+        self.sipoc_rows = list(self.sipoc_rows_asis)
+        self.sipoc_active_mode = "asis"
+        self.is_sipoc_flow_outdated = True
+        self.status_message = f"Matrices SIPOC Duales generadas: {len(self.sipoc_rows_asis)} pasos AS-IS y {len(self.sipoc_rows_tobe)} pasos TO-BE."
+        self.trigger_toast("SIPOCs AS-IS y TO-BE generados con éxito", "success")
+        self.trigger_auto_save()
+
+    def generate_dual_bpmn_from_analysis(self):
+        """Generate AS-IS and TO-BE multi-tab BPMN diagram pages on the flowchart canvas"""
+        from backend.models.narrative_source_model import NarrativeAnalysisResult, ActivityStepData
+        from backend.services.process_generator_service import ProcessGeneratorService
+
+        asis_objs = [ActivityStepData(**s) for s in self.narrative_asis_steps_data]
+        tobe_objs = [ActivityStepData(**s) for s in self.narrative_tobe_steps_data]
+
+        res = NarrativeAnalysisResult(
+            project_id=self.project_id,
+            document_id=self.active_narrative_doc_id,
+            project_purpose=self.narrative_overview_target,
+            scope_in=self.narrative_overview_scope,
+            asis_steps=asis_objs,
+            tobe_steps=tobe_objs
+        )
+
+        page_asis, page_tobe = ProcessGeneratorService.generate_dual_bpmn(res)
+        
+        # Replace or add pages to project_pages
+        new_pages = [page_asis, page_tobe]
+        self.project_pages = new_pages
+        self.active_page_index = 0
+        self.nodes = list(page_asis.get("nodes", []))
+        self.edges = list(page_asis.get("edges", []))
+        self.swimlanes = list(page_asis.get("swimlanes", []))
+
+        self.status_message = "Diagramas BPMN Duales ('Flujo AS-IS' y 'Flujo TO-BE') generados en el lienzo."
+        self.trigger_toast("Diagramas BPMN AS-IS y TO-BE generados en el lienzo", "success")
+        self.trigger_auto_save()
+
+    def generate_narrative_document_from_analysis(self):
+        """Generate official 4-table Markdown manual and prepare Word download"""
+        from backend.services.process_narrative import generate_process_narrative_markdown
+
+        overview_dict = {
+            "target": self.narrative_overview_target,
+            "scope": self.narrative_overview_scope,
+            "process_input": self.narrative_overview_input,
+            "process_output": self.narrative_overview_output,
+            "frequency": self.narrative_overview_frequency,
+        }
+
+        md = generate_process_narrative_markdown(
+            project_name=self.project_name,
+            overview_data=overview_dict,
+            steps_data=self.narrative_asis_steps_data,
+            legal_framework=self.narrative_legal_framework,
+            validity_data=self.narrative_validity_control,
+            clarification_points=self.clarification_points,
+            sipoc_rows=self.sipoc_rows,
+            mode_label="AS-IS"
+        )
+        self.generated_narrative_markdown = md
+        self.narrative_analysis_step = 4
+        self.status_message = "Manual de procedimientos oficial generado exitosamente."
+        self.trigger_toast("Manual de Procedimientos generado con éxito", "success")
+        self.trigger_auto_save()
+
+    def export_narrative_word(self):
+        """Download styled 4-table Word (.docx) document"""
+        try:
+            from backend.services.process_narrative import export_narrative_to_docx
+            overview_dict = {
+                "target": self.narrative_overview_target,
+                "scope": self.narrative_overview_scope,
+                "process_input": self.narrative_overview_input,
+                "process_output": self.narrative_overview_output,
+                "frequency": self.narrative_overview_frequency,
+            }
+            buf = export_narrative_to_docx(
+                project_name=self.project_name,
+                overview_data=overview_dict,
+                steps_data=self.narrative_asis_steps_data,
+                legal_framework=self.narrative_legal_framework,
+                validity_data=self.narrative_validity_control,
+                clarification_points=self.clarification_points,
+                mode_label="AS-IS"
+            )
+            safe_name = self.project_name.replace(" ", "_")
+            self.status_message = "Documento Word (.docx) generado exitosamente"
+            self.trigger_toast("Documento Word oficial descargado", "success")
+            return rx.download(
+                data=buf.getvalue(),
+                filename=f"Procedimiento_{safe_name}.docx",
+                mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+        except Exception as e:
+            self.status_message = f"Error al exportar Word: {str(e)}"
+            self.trigger_toast(f"Error al exportar Word: {str(e)}", "error")
+
+    def open_narrative_diff_modal(self):
+        self.show_narrative_diff_modal = True
+
+    def close_narrative_diff_modal(self):
+        self.show_narrative_diff_modal = False
+
+    def apply_narrative_diff_proposal(self):
+        """Apply AI diff proposal without losing manual data"""
+        self.show_narrative_diff_modal = False
+        self.status_message = "Propuesta de IA aplicada correctamente."
+        self.trigger_toast("Cambios aplicados", "success")
 
     def export_diagram_svg(self):
         """Export current flowchart diagram as a clean SVG vector file"""
@@ -3230,7 +3498,25 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "edges": list(self.edges),
             "swimlanes": list(self.swimlanes),
             "project_pages": list(self.project_pages),
-            "narrative_text": self.narrative_text
+            "narrative_text": self.narrative_text,
+            "narrative_documents": list(self.narrative_documents),
+            "active_narrative_doc_id": self.active_narrative_doc_id,
+            "active_narrative_doc_name": self.active_narrative_doc_name,
+            "narrative_total_blocks": self.narrative_total_blocks,
+            "extracted_findings": list(self.extracted_findings),
+            "clarification_points": list(self.clarification_points),
+            "narrative_overview_target": self.narrative_overview_target,
+            "narrative_overview_scope": self.narrative_overview_scope,
+            "narrative_overview_input": self.narrative_overview_input,
+            "narrative_overview_output": self.narrative_overview_output,
+            "narrative_overview_frequency": self.narrative_overview_frequency,
+            "narrative_legal_framework": list(self.narrative_legal_framework),
+            "narrative_validity_control": dict(self.narrative_validity_control),
+            "narrative_asis_steps_data": list(self.narrative_asis_steps_data),
+            "narrative_tobe_steps_data": list(self.narrative_tobe_steps_data),
+            "generated_narrative_markdown": self.generated_narrative_markdown,
+            "sipoc_rows_asis": list(self.sipoc_rows_asis),
+            "sipoc_rows_tobe": list(self.sipoc_rows_tobe)
         }
 
         # Check if already exists in saved_projects
@@ -3299,6 +3585,25 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             self.sipoc_rows = list(selected["sipoc_rows"])
         if selected.get("customer_requirements"):
             self.customer_requirements = selected["customer_requirements"]
+
+        self.narrative_documents = list(selected.get("narrative_documents", []))
+        self.active_narrative_doc_id = selected.get("active_narrative_doc_id", "")
+        self.active_narrative_doc_name = selected.get("active_narrative_doc_name", "")
+        self.narrative_total_blocks = int(selected.get("narrative_total_blocks", 0))
+        self.extracted_findings = list(selected.get("extracted_findings", []))
+        self.clarification_points = list(selected.get("clarification_points", []))
+        self.narrative_overview_target = selected.get("narrative_overview_target", "")
+        self.narrative_overview_scope = selected.get("narrative_overview_scope", "")
+        self.narrative_overview_input = selected.get("narrative_overview_input", "")
+        self.narrative_overview_output = selected.get("narrative_overview_output", "")
+        self.narrative_overview_frequency = selected.get("narrative_overview_frequency", "Siempre que la operación lo requiera")
+        self.narrative_legal_framework = list(selected.get("narrative_legal_framework", []))
+        self.narrative_validity_control = dict(selected.get("narrative_validity_control", {}))
+        self.narrative_asis_steps_data = list(selected.get("narrative_asis_steps_data", []))
+        self.narrative_tobe_steps_data = list(selected.get("narrative_tobe_steps_data", []))
+        self.generated_narrative_markdown = selected.get("generated_narrative_markdown", "")
+        self.sipoc_rows_asis = list(selected.get("sipoc_rows_asis", []))
+        self.sipoc_rows_tobe = list(selected.get("sipoc_rows_tobe", []))
 
         if selected.get("project_pages"):
             self.project_pages = list(selected["project_pages"])

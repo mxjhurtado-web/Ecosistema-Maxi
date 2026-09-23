@@ -142,6 +142,7 @@ def workspace_sidebar() -> rx.Component:
                 # Group 2: Modelado de Procesos
                 rx.vstack(
                     rx.text("MODELADO DE PROCESOS", size="1", weight="bold", color="#8295a9", letter_spacing="0.05em"),
+                    nav_item("Análisis de Narrativa", "file-search", "narrative", badge_text="IA"),
                     nav_item("Diagrama de Flujo (BPMN)", "network", "flow"),
                     nav_item("Matriz SIPOC Tabular", "table-2", "sipoc"),
                     spacing="1",

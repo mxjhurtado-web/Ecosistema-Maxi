@@ -1,0 +1,559 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Narrative Analysis View Component for TEMIS Web Flow
+Complete workspace view for uploading source client documents (DOCX/PDF),
+reviewing AI extractions with paragraph citations (Human-in-the-Loop),
+generating Dual AS-IS/TO-BE SIPOCs, official 4-table Word manuals, and BPMN canvas graphs.
+Styled in Executive Light Slate Theme (WCAG 2.2 AA compliant).
+"""
+
+import reflex as rx
+from temis_web.state import FlowState
+
+
+def step_indicator(step_num: int, label: str, current_step: rx.Var[int]) -> rx.Component:
+    """Render a sequential step indicator pill"""
+    is_active = current_step == step_num
+    is_completed = current_step > step_num
+    
+    bg_color = rx.cond(is_active, "#1e5a9a", rx.cond(is_completed, "#10b981", "#e2e8f0"))
+    text_color = rx.cond(is_active | is_completed, "#ffffff", "#64748b")
+    
+    return rx.hstack(
+        rx.center(
+            rx.cond(
+                is_completed,
+                rx.icon("check", size=14, color="#ffffff"),
+                rx.text(str(step_num), size="1", weight="bold", color=text_color),
+            ),
+            width="24px",
+            height="24px",
+            border_radius="full",
+            background_color=bg_color,
+        ),
+        rx.text(
+            label,
+            size="2",
+            weight=rx.cond(is_active, "bold", "medium"),
+            color=rx.cond(is_active, "#17283c", "#64748b"),
+        ),
+        align="center",
+        spacing="2",
+    )
+
+
+def finding_card(finding: rx.Var[dict]) -> rx.Component:
+    """Render a single extracted finding with citation and curation controls"""
+    status = finding["curation_status"]
+    
+    status_badge = rx.cond(
+        status == "approved",
+        rx.badge("Aprobado", color_scheme="green", variant="surface", size="1"),
+        rx.cond(
+            status == "pending_clarification",
+            rx.badge("Pendiente Aclaración", color_scheme="amber", variant="surface", size="1"),
+            rx.badge("Descartado", color_scheme="gray", variant="surface", size="1")
+        )
+    )
+    
+    return rx.box(
+        rx.vstack(
+            rx.hstack(
+                rx.badge(finding["category"], color_scheme="blue", variant="soft", size="1"),
+                rx.spacer(),
+                status_badge,
+                width="100%",
+                align="center",
+            ),
+            rx.text(finding["title"], size="2", weight="bold", color="#17283c"),
+            rx.text(finding["content"], size="2", color="#334155", line_height="1.5"),
+            
+            # Citation box
+            rx.cond(
+                finding["source_quote"] != "",
+                rx.box(
+                    rx.hstack(
+                        rx.icon("quote", size=14, color="#64748b"),
+                        rx.vstack(
+                            rx.text(
+                                f"\"{finding['source_quote']}\"",
+                                size="1",
+                                italic=True,
+                                color="#475569",
+                            ),
+                            rx.cond(
+                                finding["source_paragraph_index"] != None,
+                                rx.badge(
+                                    f"Bloque {finding['source_paragraph_index']}",
+                                    color_scheme="gray",
+                                    variant="soft",
+                                    size="1",
+                                ),
+                                rx.box(),
+                            ),
+                            spacing="1",
+                            align="start",
+                        ),
+                        align="start",
+                        spacing="2",
+                        width="100%",
+                    ),
+                    padding="2",
+                    background_color="#f8fafc",
+                    border_left="3px solid #3b82f6",
+                    border_radius="4px",
+                    width="100%",
+                ),
+                rx.box(),
+            ),
+            
+            # Action controls
+            rx.hstack(
+                rx.button(
+                    rx.hstack(rx.icon("check", size=12), rx.text("Aprobar", size="1"), align="center", spacing="1"),
+                    on_click=lambda: FlowState.update_finding_status(finding["id"], "approved"),
+                    color_scheme="green",
+                    variant="soft",
+                    size="1",
+                ),
+                rx.button(
+                    rx.hstack(rx.icon("help-circle", size=12), rx.text("Duda", size="1"), align="center", spacing="1"),
+                    on_click=lambda: FlowState.update_finding_status(finding["id"], "pending_clarification"),
+                    color_scheme="amber",
+                    variant="soft",
+                    size="1",
+                ),
+                rx.button(
+                    rx.hstack(rx.icon("x", size=12), rx.text("Descartar", size="1"), align="center", spacing="1"),
+                    on_click=lambda: FlowState.update_finding_status(finding["id"], "discarded"),
+                    color_scheme="gray",
+                    variant="soft",
+                    size="1",
+                ),
+                spacing="2",
+                margin_top="2",
+                justify="end",
+                width="100%",
+            ),
+            spacing="2",
+            width="100%",
+        ),
+        padding="4",
+        background_color="#ffffff",
+        border="1px solid #e2e8f0",
+        border_radius="8px",
+        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+        width="100%",
+    )
+
+
+def narrative_analysis_view() -> rx.Component:
+    """Main view for client narrative ingestion, extraction with citations and process generation"""
+    return rx.box(
+        rx.vstack(
+            # 1. Header Bar
+            rx.hstack(
+                rx.vstack(
+                    rx.hstack(
+                        rx.icon("file-search", size=22, color="#1e5a9a"),
+                        rx.heading("Análisis de Narrativa & Generación de Procesos", size="5", weight="bold", color="#17283c"),
+                        rx.badge("Gemini 2.5", color_scheme="purple", variant="soft", size="1"),
+                        align="center",
+                        spacing="2",
+                    ),
+                    rx.text(
+                        "Transforma documentos extensos del cliente en análisis de necesidades, matrices SIPOC duales, manual de procedimientos y diagramas BPMN.",
+                        size="2",
+                        color="#52657a",
+                    ),
+                    spacing="1",
+                    align="start",
+                ),
+                rx.spacer(),
+                align="center",
+                width="100%",
+                padding_bottom="3",
+                border_bottom="1px solid #d9e2ec",
+            ),
+
+            # 2. Sequential Step Progress Bar
+            rx.hstack(
+                step_indicator(1, "1. Carga de Documento", FlowState.narrative_analysis_step),
+                rx.icon("chevron-right", size=16, color="#94a3b8"),
+                step_indicator(2, "2. Revisión con Citas (Human-in-the-Loop)", FlowState.narrative_analysis_step),
+                rx.icon("chevron-right", size=16, color="#94a3b8"),
+                step_indicator(3, "3. Generación de Artefactos", FlowState.narrative_analysis_step),
+                rx.icon("chevron-right", size=16, color="#94a3b8"),
+                step_indicator(4, "4. Manual & Entrega", FlowState.narrative_analysis_step),
+                spacing="4",
+                align="center",
+                padding_y="3",
+                width="100%",
+                overflow_x="auto",
+            ),
+
+            # 3. Step 1: Upload & Document Management
+            rx.cond(
+                FlowState.narrative_analysis_step == 1,
+                rx.vstack(
+                    rx.grid(
+                        # Left: Upload Dropzone
+                        rx.box(
+                            rx.vstack(
+                                rx.upload(
+                                    rx.vstack(
+                                        rx.icon("cloud-upload", size=40, color="#1e5a9a"),
+                                        rx.text("Arrastra o selecciona el documento de narrativa del cliente", size="3", weight="bold", color="#17283c"),
+                                        rx.text("Formatos admitidos: Word (.docx) y PDF (.pdf) con texto seleccionable", size="2", color="#52657a"),
+                                        align="center",
+                                        spacing="2",
+                                        padding="6",
+                                    ),
+                                    id="upload_narrative_doc",
+                                    on_drop=FlowState.handle_narrative_file_upload,
+                                    accept={
+                                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+                                        "application/pdf": [".pdf"],
+                                    },
+                                    max_files=1,
+                                    border="2px dashed #cbd5e1",
+                                    border_radius="xl",
+                                    background_color="#f8fafc",
+                                    width="100%",
+                                    cursor="pointer",
+                                    _hover={"border_color": "#1e5a9a", "background_color": "#f1f5f9"},
+                                ),
+                                spacing="2",
+                                width="100%",
+                            ),
+                            padding="4",
+                            background_color="#ffffff",
+                            border="1px solid #e2e8f0",
+                            border_radius="xl",
+                            box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+                        ),
+
+                        # Right: Active Document Metadata & Execution Action
+                        rx.box(
+                            rx.vstack(
+                                rx.hstack(
+                                    rx.icon("file-check", size=20, color="#10b981"),
+                                    rx.heading("Documento Cargado en Proyecto", size="3", color="#17283c"),
+                                    align="center",
+                                    spacing="2",
+                                ),
+                                rx.cond(
+                                    FlowState.active_narrative_doc_name != "",
+                                    rx.vstack(
+                                        rx.box(
+                                            rx.vstack(
+                                                rx.hstack(
+                                                    rx.badge("DOCX / PDF", color_scheme="blue", variant="solid", size="1"),
+                                                    rx.text(FlowState.active_narrative_doc_name, size="2", weight="bold", color="#17283c"),
+                                                    spacing="2",
+                                                    align="center",
+                                                ),
+                                                rx.text(f"Subido por: {FlowState.user_name} ({FlowState.user_email})", size="1", color="#52657a"),
+                                                rx.text(f"Párrafos/Bloques indexados: {FlowState.narrative_total_blocks}", size="1", color="#52657a"),
+                                                spacing="1",
+                                            ),
+                                            padding="3",
+                                            background_color="#f1f5f9",
+                                            border_radius="md",
+                                            width="100%",
+                                        ),
+                                        rx.button(
+                                            rx.hstack(
+                                                rx.icon("sparkles", size=16),
+                                                rx.text("Analizar con Gemini 2.5 Flash"),
+                                                align="center",
+                                                spacing="2",
+                                            ),
+                                            on_click=FlowState.run_narrative_ai_analysis,
+                                            loading=FlowState.is_analyzing_narrative,
+                                            color_scheme="purple",
+                                            size="3",
+                                            width="100%",
+                                        ),
+                                        spacing="3",
+                                        width="100%",
+                                    ),
+                                    rx.text("Ningún archivo cargado aún. Arrastra un documento para iniciar el análisis.", size="2", color="#64748b", italic=True),
+                                ),
+                                spacing="3",
+                                width="100%",
+                            ),
+                            padding="4",
+                            background_color="#ffffff",
+                            border="1px solid #e2e8f0",
+                            border_radius="xl",
+                            box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+                        ),
+                        columns="2",
+                        spacing="4",
+                        width="100%",
+                    ),
+                    spacing="4",
+                    width="100%",
+                ),
+                rx.box(),
+            ),
+
+            # 4. Step 2: Human-in-the-Loop Review & Citations
+            rx.cond(
+                FlowState.narrative_analysis_step == 2,
+                rx.vstack(
+                    rx.hstack(
+                        rx.vstack(
+                            rx.heading("Revisión de Hallazgos y Citas Textuales", size="4", color="#17283c"),
+                            rx.text("Valida cada afirmación extraída. Cada dato contiene el fragmento textual de respaldo.", size="2", color="#52657a"),
+                            spacing="1",
+                            align="start",
+                        ),
+                        rx.spacer(),
+                        rx.button(
+                            rx.hstack(
+                                rx.icon("arrow-right", size=16),
+                                rx.text("Avanzar a Generación"),
+                                align="center",
+                                spacing="1",
+                            ),
+                            on_click=lambda: FlowState.set_narrative_analysis_step(3),
+                            color_scheme="blue",
+                            size="2",
+                        ),
+                        width="100%",
+                        align="center",
+                    ),
+
+                    # Summary cards: Target & Scope
+                    rx.grid(
+                        rx.box(
+                            rx.vstack(
+                                rx.text("Propósito (Target):", size="1", weight="bold", color="#1e5a9a"),
+                                rx.text(FlowState.narrative_overview_target, size="2", color="#17283c"),
+                                spacing="1",
+                            ),
+                            padding="3",
+                            background_color="#f8fafc",
+                            border="1px solid #e2e8f0",
+                            border_radius="md",
+                        ),
+                        rx.box(
+                            rx.vstack(
+                                rx.text("Alcance (Scope):", size="1", weight="bold", color="#1e5a9a"),
+                                rx.text(FlowState.narrative_overview_scope, size="2", color="#17283c"),
+                                spacing="1",
+                            ),
+                            padding="3",
+                            background_color="#f8fafc",
+                            border="1px solid #e2e8f0",
+                            border_radius="md",
+                        ),
+                        columns="2",
+                        spacing="3",
+                        width="100%",
+                    ),
+
+                    # Findings List
+                    rx.text("Hallazgos Clasificados:", size="3", weight="bold", color="#17283c"),
+                    rx.vstack(
+                        rx.foreach(FlowState.extracted_findings, finding_card),
+                        spacing="3",
+                        width="100%",
+                    ),
+                    spacing="4",
+                    width="100%",
+                ),
+                rx.box(),
+            ),
+
+            # 5. Step 3: Artifacts Generation Action Center
+            rx.cond(
+                FlowState.narrative_analysis_step == 3,
+                rx.vstack(
+                    rx.heading("Centro de Generación de Artefactos de Proceso", size="4", color="#17283c"),
+                    rx.text("Genera los entregables interconectados basados en los hallazgos validados:", size="2", color="#52657a"),
+                    
+                    rx.grid(
+                        # Card 1: Dual SIPOC
+                        rx.box(
+                            rx.vstack(
+                                rx.hstack(
+                                    rx.icon("table-2", size=24, color="#1e5a9a"),
+                                    rx.heading("1. Matrices SIPOC Duales", size="3", color="#17283c"),
+                                    align="center",
+                                    spacing="2",
+                                ),
+                                rx.text(
+                                    "Genera la matriz SIPOC AS-IS (operación actual) y TO-BE (operación optimizada con sistemas y automatizaciones).",
+                                    size="2",
+                                    color="#52657a",
+                                ),
+                                rx.button(
+                                    "Generar SIPOCs AS-IS y TO-BE",
+                                    on_click=FlowState.generate_dual_sipoc_from_analysis,
+                                    color_scheme="blue",
+                                    variant="solid",
+                                    width="100%",
+                                ),
+                                spacing="3",
+                                width="100%",
+                            ),
+                            padding="4",
+                            background_color="#ffffff",
+                            border="1px solid #e2e8f0",
+                            border_radius="xl",
+                            box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+                        ),
+
+                        # Card 2: Dual BPMN Diagrams
+                        rx.box(
+                            rx.vstack(
+                                rx.hstack(
+                                    rx.icon("network", size=24, color="#7c3aed"),
+                                    rx.heading("2. Diagramas BPMN en Lienzo", size="3", color="#17283c"),
+                                    align="center",
+                                    spacing="2",
+                                ),
+                                rx.text(
+                                    "Crea automáticamente dos pestañas en el lienzo de diagramas: 'Flujo AS-IS' y 'Flujo TO-BE' con swimlanes, canales y curvas Bézier.",
+                                    size="2",
+                                    color="#52657a",
+                                ),
+                                rx.button(
+                                    "Generar Diagramas BPMN Duales",
+                                    on_click=FlowState.generate_dual_bpmn_from_analysis,
+                                    color_scheme="purple",
+                                    variant="solid",
+                                    width="100%",
+                                ),
+                                spacing="3",
+                                width="100%",
+                            ),
+                            padding="4",
+                            background_color="#ffffff",
+                            border="1px solid #e2e8f0",
+                            border_radius="xl",
+                            box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+                        ),
+
+                        # Card 3: Narrative 4-Table Manual
+                        rx.box(
+                            rx.vstack(
+                                rx.hstack(
+                                    rx.icon("file-text", size=24, color="#10b981"),
+                                    rx.heading("3. Manual & Plantilla Oficial (4 Tablas)", size="3", color="#17283c"),
+                                    align="center",
+                                    spacing="2",
+                                ),
+                                rx.text(
+                                    "Genera el manual de procedimientos corporativo completo en Word (.docx) con las 4 tablas oficiales y puntos pendientes.",
+                                    size="2",
+                                    color="#52657a",
+                                ),
+                                rx.button(
+                                    "Generar Manual Oficial de Procedimientos",
+                                    on_click=FlowState.generate_narrative_document_from_analysis,
+                                    color_scheme="green",
+                                    variant="solid",
+                                    width="100%",
+                                ),
+                                spacing="3",
+                                width="100%",
+                            ),
+                            padding="4",
+                            background_color="#ffffff",
+                            border="1px solid #e2e8f0",
+                            border_radius="xl",
+                            box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+                        ),
+                        columns="3",
+                        spacing="4",
+                        width="100%",
+                    ),
+                    spacing="4",
+                    width="100%",
+                ),
+                rx.box(),
+            ),
+
+            # 6. Step 4: Official Manual & Delivery Preview
+            rx.cond(
+                FlowState.narrative_analysis_step == 4,
+                rx.vstack(
+                    rx.hstack(
+                        rx.vstack(
+                            rx.heading("Manual de Procedimientos Generado", size="4", color="#17283c"),
+                            rx.text("Entregable listo para revisión, exportación a Word y vinculación con la Fase 1 / 2 de Gobernanza.", size="2", color="#52657a"),
+                            spacing="1",
+                            align="start",
+                        ),
+                        rx.spacer(),
+                        rx.button(
+                            rx.hstack(
+                                rx.icon("download", size=16),
+                                rx.text("Descargar Word Oficial (.docx)"),
+                                align="center",
+                                spacing="1",
+                            ),
+                            on_click=FlowState.export_narrative_word,
+                            color_scheme="blue",
+                            size="2",
+                        ),
+                        width="100%",
+                        align="center",
+                    ),
+
+                    # Markdown Preview Container
+                    rx.box(
+                        rx.markdown(FlowState.generated_narrative_markdown),
+                        padding="5",
+                        background_color="#ffffff",
+                        border="1px solid #e2e8f0",
+                        border_radius="xl",
+                        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+                        width="100%",
+                        max_height="600px",
+                        overflow_y="auto",
+                    ),
+
+                    # Navigation Quick Links
+                    rx.hstack(
+                        rx.button(
+                            rx.hstack(rx.icon("table-2", size=16), rx.text("Ver Matriz SIPOC"), align="center", spacing="1"),
+                            on_click=lambda: FlowState.set_active_view("sipoc"),
+                            color_scheme="gray",
+                            variant="soft",
+                        ),
+                        rx.button(
+                            rx.hstack(rx.icon("network", size=16), rx.text("Ver Diagrama de Flujo (BPMN)"), align="center", spacing="1"),
+                            on_click=lambda: FlowState.set_active_view("flow"),
+                            color_scheme="gray",
+                            variant="soft",
+                        ),
+                        rx.button(
+                            rx.hstack(rx.icon("layers", size=16), rx.text("Ver Gobernanza & Gates"), align="center", spacing="1"),
+                            on_click=lambda: FlowState.set_active_view("governance"),
+                            color_scheme="gray",
+                            variant="soft",
+                        ),
+                        spacing="3",
+                    ),
+                    spacing="4",
+                    width="100%",
+                ),
+                rx.box(),
+            ),
+
+            spacing="4",
+            width="100%",
+            padding="4",
+        ),
+        width="100%",
+        height="100%",
+        overflow_y="auto",
+        background_color="#f8fafc",
+    )

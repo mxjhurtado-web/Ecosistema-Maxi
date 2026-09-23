@@ -282,6 +282,28 @@ def sipoc_matrix() -> rx.Component:
                 wrap="wrap",
             ),
 
+            # Dual SIPOC Mode Selector (AS-IS vs TO-BE)
+            rx.hstack(
+                rx.segmented_control.root(
+                    rx.segmented_control.item("Matriz AS-IS (Proceso Actual)", value="asis"),
+                    rx.segmented_control.item("Matriz TO-BE (Proceso Futuro Optimizado)", value="tobe"),
+                    value=FlowState.sipoc_active_mode,
+                    on_change=FlowState.set_sipoc_active_mode,
+                    radius="medium",
+                    size="2",
+                ),
+                rx.spacer(),
+                rx.badge(
+                    rx.cond(FlowState.sipoc_active_mode == "asis", "Modalidad: Operación Actual (AS-IS)", "Modalidad: Operación Futura (TO-BE)"),
+                    color_scheme=rx.cond(FlowState.sipoc_active_mode == "asis", "gray", "purple"),
+                    variant="surface",
+                    size="2",
+                ),
+                width="100%",
+                align="center",
+                padding_y="2",
+            ),
+
             # Outdated Flow Warning Banner (F06)
             rx.cond(
                 FlowState.is_sipoc_flow_outdated,
@@ -341,7 +363,7 @@ def sipoc_matrix() -> rx.Component:
                             ),
                         ),
                         rx.table.body(
-                            rx.foreach(FlowState.sipoc_rows, render_sipoc_row),
+                            rx.foreach(FlowState.current_sipoc_rows, render_sipoc_row),
                         ),
                         width="100%",
                         min_width="980px",
