@@ -15,7 +15,9 @@ PHASE_LIST = [
         "num": 1,
         "name": "Fase 1: Diagnóstico Estratégico",
         "desc": "Identificación de la oportunidad, análisis de dolor operativo y alineación con objetivos de negocio.",
+        "owner": "Dirección General / Sponsor",
         "deliverables": ["Ficha de Diagnóstico", "Matriz de Interesados", "Justificación de Negocio"],
+        "gate_criteria": "Aprobación de oportunidad y factibilidad inicial.",
         "icon": "search",
         "color": "#3b82f6"
     },
@@ -23,7 +25,9 @@ PHASE_LIST = [
         "num": 2,
         "name": "Fase 2: Inicio del Proyecto",
         "desc": "Definición formal del Project Charter, asignación de PM / Sponsor y delimitación de alcance.",
+        "owner": "Project Manager (PM)",
         "deliverables": ["Project Charter Oficial", "Matriz SIPOC Inicial", "Asignación RACI"],
+        "gate_criteria": "Charter firmado y alcance preliminar delimitado.",
         "icon": "play",
         "color": "#6366f1"
     },
@@ -31,7 +35,9 @@ PHASE_LIST = [
         "num": 3,
         "name": "Fase 3: Planificación Híbrida",
         "desc": "Mapeo de procesos As-Is / To-Be, arquitectura técnica y cronograma Scrum 2026.",
+        "owner": "PM & Analista de Procesos",
         "deliverables": ["Diagrama BPMN Multi-Pestaña", "Backlog Scrum Técnico", "Matriz de Riesgos"],
+        "gate_criteria": "Plan de trabajo desglosado en Sprints y estimación de SP.",
         "icon": "calendar",
         "color": "#8b5cf6"
     },
@@ -39,7 +45,9 @@ PHASE_LIST = [
         "num": 4,
         "name": "Fase 4: Ejecución Iterativa",
         "desc": "Desarrollo de integraciones, sprints técnicos y redacción de procedimientos operativos.",
+        "owner": "Equipo de Desarrollo & Procesos",
         "deliverables": ["Manual de Políticas y Procedimientos", "Servicios Backend / UI", "Daily Logs (EOD)"],
+        "gate_criteria": "Entregables del sprint completados y documentados.",
         "icon": "code",
         "color": "#06b6d4"
     },
@@ -47,7 +55,9 @@ PHASE_LIST = [
         "num": 5,
         "name": "Fase 5: Monitoreo y Control",
         "desc": "Auditoría de calidad Six Sigma, pruebas de extremo a extremo y validación con usuarios.",
+        "owner": "Auditor QA / Six Sigma",
         "deliverables": ["Auditoría IA de Calidad (0-100)", "Reporte de Cumplimiento SLA", "Pruebas UAT"],
+        "gate_criteria": "Score de calidad Six Sigma >= 80 y sin bloqueos P0.",
         "icon": "shield-check",
         "color": "#10b981"
     },
@@ -55,7 +65,9 @@ PHASE_LIST = [
         "num": 6,
         "name": "Fase 6: Mejora Continua",
         "desc": "Optimización post-lanzamiento, retroalimentación operativa y ajustes de automatización.",
+        "owner": "Operaciones & Mejora Continua",
         "deliverables": ["Plan de Ajustes Kaizen", "Encuesta de Satisfacción", "Métricas Operativas"],
+        "gate_criteria": "Retroalimentación recopilada y plan de optimización activo.",
         "icon": "trending-up",
         "color": "#f59e0b"
     },
@@ -63,7 +75,9 @@ PHASE_LIST = [
         "num": 7,
         "name": "Fase 7: Cierre del Proyecto",
         "desc": "Entrega formal de activos, lecciones aprendidas y traspaso a operaciones continuas.",
+        "owner": "PM & Sponsor",
         "deliverables": ["Acta de Cierre Aprobada", "Paquete .temis.json Exportado", "Lecciones Aprendidas"],
+        "gate_criteria": "Acta de cierre firmada y archivo respaldado en Drive.",
         "icon": "circle-check",
         "color": "#ec4899"
     }
@@ -71,37 +85,94 @@ PHASE_LIST = [
 
 
 def render_phase_card(p: dict) -> rx.Component:
-    """Render a single methodology phase card"""
+    """Render a single methodology phase card with operational governance tracking (T16)"""
+    is_active = FlowState.current_phase == p["num"]
+    is_past = FlowState.current_phase > p["num"]
     return rx.box(
         rx.vstack(
             rx.hstack(
-                rx.icon(p["icon"], size=18, color=p["color"]),
-                rx.text(p["name"], size="2", weight="bold", color="#1e293b"),
+                rx.hstack(
+                    rx.icon(p["icon"], size=18, color=p["color"]),
+                    rx.text(p["name"], size="2", weight="bold", color="#1e293b"),
+                    rx.cond(
+                        is_active,
+                        rx.badge("⭐ Fase Activa", color_scheme="green", variant="solid", size="1"),
+                        rx.cond(
+                            is_past,
+                            rx.badge("✓ Completada", color_scheme="blue", variant="soft", size="1"),
+                            rx.badge("⏳ Pendiente", color_scheme="gray", variant="soft", size="1"),
+                        ),
+                    ),
+                    align="center",
+                    spacing="2",
+                ),
                 rx.spacer(),
-                rx.button(
-                    "Activar Fase",
-                    on_click=lambda: FlowState.set_phase(p["num"]),
-                    color_scheme="purple",
-                    variant="soft",
-                    size="1",
-                    radius="small",
+                rx.cond(
+                    is_active,
+                    rx.badge("En Curso", color_scheme="green", variant="surface", size="1"),
+                    rx.button(
+                        "Activar Fase",
+                        on_click=lambda: FlowState.set_phase(p["num"]),
+                        color_scheme="purple",
+                        variant="soft",
+                        size="1",
+                        radius="small",
+                    ),
                 ),
                 width="100%",
                 align="center",
             ),
             rx.text(p["desc"], size="1", color="#64748b"),
-            rx.divider(),
-            rx.text("Entregables Clave:", size="1", weight="bold", color="#475569"),
             rx.hstack(
-                *[rx.badge(d, color_scheme="gray", variant="soft", size="1") for d in p["deliverables"]],
+                rx.hstack(
+                    rx.icon("user-check", size=13, color="#6366f1"),
+                    rx.text("Responsable: ", size="1", weight="bold", color="#475569"),
+                    rx.text(p["owner"], size="1", color="#6366f1", weight="medium"),
+                    spacing="1",
+                    align="center",
+                ),
+                rx.spacer(),
+                rx.hstack(
+                    rx.icon("git-commit", size=13, color="#059669"),
+                    rx.text("Criterio Gate: ", size="1", weight="bold", color="#475569"),
+                    rx.text(p["gate_criteria"], size="1", color="#059669"),
+                    spacing="1",
+                    align="center",
+                ),
+                width="100%",
                 wrap="wrap",
-                spacing="1",
+                spacing="2",
+            ),
+            rx.divider(),
+            rx.hstack(
+                rx.text("Entregables & Evidencia Requerida:", size="1", weight="bold", color="#475569"),
+                rx.spacer(),
+                rx.hstack(
+                    *[
+                        rx.badge(
+                            rx.hstack(
+                                rx.icon("check-circle-2", size=11),
+                                rx.text(d),
+                                align="center",
+                                spacing="1",
+                            ),
+                            color_scheme="gray",
+                            variant="soft",
+                            size="1",
+                        ) for d in p["deliverables"]
+                    ],
+                    wrap="wrap",
+                    spacing="1",
+                ),
+                width="100%",
+                wrap="wrap",
+                align="center",
             ),
             width="100%",
             spacing="2",
         ),
-        background_color="#ffffff",
-        border="1px solid #e2e8f0",
+        background_color=rx.cond(is_active, "#f0fdf4", "#ffffff"),
+        border=rx.cond(is_active, "1px solid #86efac", "1px solid #e2e8f0"),
         border_radius="8px",
         padding="3",
         box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.03)",

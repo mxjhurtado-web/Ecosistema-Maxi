@@ -1261,10 +1261,12 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
     is_generating_ai: bool = False
     status_message: str = "Listo"
 
-    # Set phase handler
+    # Set phase handler (T16 Governance)
     def set_phase(self, phase_num: int):
         self.current_phase = phase_num
         self.phase_name = PHASE_NAMES.get(phase_num, f"Fase {phase_num}")
+        self.save_current_project()
+        self.status_message = f"✓ Fase {phase_num} activada exitosamente para '{self.project_name}' por {self.user_name}"
 
     # Set prompt text handler
     def set_ai_prompt_text(self, val: str):
@@ -1879,9 +1881,11 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     # Hub & Workspace Navigation Handlers
     def open_project_workspace(self, proj_id: str):
-        """Open project in Level 2 Workspace and load full state"""
+        """Open project in Level 2 Workspace and load full state (T15)"""
         self.load_saved_project(proj_id)
         self.active_mode = "workspace"
+        self.active_view = "charter"  # Clear landing on Charter view for consistent onboarding & context
+        self.auto_save_status = "✓ Sincronizado"
         self.status_message = f"Espacio de trabajo abierto: {self.project_name}"
 
     def return_to_hub(self):
