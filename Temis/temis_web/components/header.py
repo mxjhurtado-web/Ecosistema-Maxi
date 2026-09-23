@@ -20,7 +20,7 @@ def header() -> rx.Component:
                 rx.icon("network", size=18, color="#3b82f6"),
                 rx.text("TEMIS", size="2", weight="bold", color="#f8fafc"),
                 align="center",
-                spacing="1.5",
+                spacing="1",
             ),
             rx.divider(orientation="vertical", size="2"),
             rx.badge(FlowState.project_code, color_scheme="indigo", variant="surface", size="1"),

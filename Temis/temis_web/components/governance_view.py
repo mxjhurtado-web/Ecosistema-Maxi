@@ -191,8 +191,8 @@ def phase_gate_approval_modal() -> rx.Component:
                             on_click=lambda: FlowState.toggle_gate_deliverable(item),
                             align="center",
                             width="100%",
-                            padding_y="1.5",
-                            padding_x="2.5",
+                            padding_y="2",
+                            padding_x="3",
                             background_color=rx.cond(
                                 FlowState.phase_gate_checked_deliverables.contains(item),
                                 "#f0fdf4",
@@ -464,7 +464,7 @@ def render_phase_card(p: dict) -> rx.Component:
         background_color=rx.cond(is_active, "#f0fdf4", "#ffffff"),
         border=rx.cond(is_active, "1px solid #86efac", "1px solid #d9e2ec"),
         border_radius="10px",
-        padding="3.5",
+        padding="4",
         box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
         width="100%",
     )
@@ -513,7 +513,7 @@ def render_gate_history_item(log: rx.Var[dict]) -> rx.Component:
                 spacing="2",
             ),
             rx.text(log["notes"], size="1", color="#52657a", font_style="italic"),
-            spacing="1.5",
+            spacing="1",
             width="100%",
         ),
         padding="3",
