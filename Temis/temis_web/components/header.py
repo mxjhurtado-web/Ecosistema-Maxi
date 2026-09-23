@@ -113,7 +113,7 @@ def header() -> rx.Component:
                     rx.menu.separator(),
                     rx.menu.item(
                         rx.hstack(rx.icon("file-check", size=14), rx.text("Ficha Ejecutiva (PDF / HTML)"), align="center", spacing="2"),
-                        on_click=FlowState.export_project_charter_pdf,
+                        on_click=FlowState.export_executive_charter_html,
                     ),
                     rx.menu.item(
                         rx.hstack(rx.icon("upload", size=14), rx.text("Importar Diagrama / PDF..."), align="center", spacing="2"),

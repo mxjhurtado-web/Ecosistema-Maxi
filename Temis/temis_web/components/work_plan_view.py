@@ -118,10 +118,10 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
         rx.table.cell(
             rx.cond(
                 item["priority"] == "Alta",
-                rx.badge(rx.hstack(rx.icon("alert-circle", size=10), rx.text("Alta"), align="center", spacing="1"), color_scheme="ruby", variant="soft", size="1"),
+                rx.badge(rx.hstack(rx.icon("circle-alert", size=10), rx.text("Alta"), align="center", spacing="1"), color_scheme="ruby", variant="soft", size="1"),
                 rx.cond(
                     item["priority"] == "Media",
-                    rx.badge(rx.hstack(rx.icon("alert-triangle", size=10), rx.text("Media"), align="center", spacing="1"), color_scheme="amber", variant="soft", size="1"),
+                    rx.badge(rx.hstack(rx.icon("triangle-alert", size=10), rx.text("Media"), align="center", spacing="1"), color_scheme="amber", variant="soft", size="1"),
                     rx.badge(rx.hstack(rx.icon("circle", size=10), rx.text("Baja"), align="center", spacing="1"), color_scheme="green", variant="soft", size="1"),
                 ),
             ),

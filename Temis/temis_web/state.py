@@ -1451,6 +1451,10 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             filename=f"Ficha_Ejecutiva_{safe_name}.html"
         )
 
+    def export_project_charter_pdf(self):
+        """Export executive project charter HTML/PDF download"""
+        return self.export_executive_charter_html()
+
     
     # List of Nodes on Canvas
     nodes: List[Dict[str, Any]] = [

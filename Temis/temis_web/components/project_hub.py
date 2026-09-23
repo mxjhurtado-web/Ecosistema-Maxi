@@ -91,7 +91,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                     rx.cond(
                         proj["health_status"] == "yellow",
                         rx.badge(
-                            rx.hstack(rx.icon("alert-triangle", size=11), rx.text("En riesgo"), align="center", spacing="1"),
+                            rx.hstack(rx.icon("triangle-alert", size=11), rx.text("En riesgo"), align="center", spacing="1"),
                             color_scheme="amber",
                             variant="soft",
                             size="1",
@@ -99,7 +99,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                         rx.cond(
                             proj["health_status"] == "red",
                             rx.badge(
-                                rx.hstack(rx.icon("alert-circle", size=11), rx.text("Bloqueado"), align="center", spacing="1"),
+                                rx.hstack(rx.icon("circle-alert", size=11), rx.text("Bloqueado"), align="center", spacing="1"),
                                 color_scheme="ruby",
                                 variant="soft",
                                 size="1",
@@ -317,7 +317,7 @@ def delete_project_modal() -> rx.Component:
             rx.vstack(
                 rx.hstack(
                     rx.box(
-                        rx.icon("alert-triangle", size=22, color="#dc2626"),
+                        rx.icon("triangle-alert", size=22, color="#dc2626"),
                         padding="2",
                         background_color="#fee2e2",
                         border_radius="8px",
@@ -901,7 +901,7 @@ def project_hub() -> rx.Component:
                         rx.box(
                             rx.hstack(
                                 rx.box(
-                                    rx.icon("alert-triangle", size=18, color="#b45309"),
+                                    rx.icon("triangle-alert", size=18, color="#b45309"),
                                     padding="2",
                                     background_color="#fde68a",
                                     border_radius="8px",

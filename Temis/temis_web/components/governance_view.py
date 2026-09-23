@@ -133,7 +133,7 @@ def render_phase_card(p: dict) -> rx.Component:
                 ),
                 rx.spacer(),
                 rx.hstack(
-                    rx.icon("git-commit", size=13, color="#059669"),
+                    rx.icon("git-commit-horizontal", size=13, color="#059669"),
                     rx.text("Criterio Gate: ", size="1", weight="bold", color="#59697b"),
                     rx.text(p["gate_criteria"], size="1", color="#059669"),
                     spacing="1",

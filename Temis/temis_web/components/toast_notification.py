@@ -19,8 +19,8 @@ def toast_notification() -> rx.Component:
                 rx.match(
                     FlowState.toast_type,
                     ("success", rx.icon("circle-check", size=18, color="#16a34a")),
-                    ("warning", rx.icon("alert-triangle", size=18, color="#d97706")),
-                    ("error", rx.icon("alert-circle", size=18, color="#dc2626")),
+                    ("warning", rx.icon("triangle-alert", size=18, color="#d97706")),
+                    ("error", rx.icon("circle-alert", size=18, color="#dc2626")),
                     rx.icon("info", size=18, color="#2563eb"),
                 ),
                 rx.text(
