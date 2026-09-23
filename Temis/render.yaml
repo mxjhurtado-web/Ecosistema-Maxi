@@ -26,7 +26,7 @@ services:
     plan: free
     rootDir: Temis
     buildCommand: "pip install -r requirements.txt && python -m reflex init && python -m reflex export --no-zip"
-    startCommand: "python -m reflex run --env prod --frontend-port $PORT"
+    startCommand: "python -m reflex run --env prod --single-port --backend-host 0.0.0.0 --backend-port $PORT"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.8
