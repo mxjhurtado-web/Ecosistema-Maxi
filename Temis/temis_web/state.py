@@ -923,9 +923,20 @@ class FlowState(rx.State):
     ]
     customer_requirements: str = "Tiempos de respuesta (SLA) menores a 5 min, trazabilidad de logs en Chronos y encuesta con satisfacción >= 95%."
     is_completing_sipoc: bool = False
+    show_sipoc_ai_modal: bool = False
+    ai_sipoc_proposal_rows: list[dict] = []
+    sipoc_last_synced_at: str = ""
+    is_sipoc_flow_outdated: bool = False
+    is_inspector_collapsed: bool = False
+
+    def toggle_inspector(self):
+        self.is_inspector_collapsed = not self.is_inspector_collapsed
 
     def set_customer_requirements(self, val: str):
         self.customer_requirements = val
+        if self.sipoc_last_synced_at:
+            self.is_sipoc_flow_outdated = True
+        self.trigger_auto_save()
 
     def add_sipoc_row(self):
         """Add a new empty step row to the SIPOC matrix"""
@@ -941,6 +952,9 @@ class FlowState(rx.State):
             "requirements": ""
         }
         self.sipoc_rows.append(new_row)
+        if self.sipoc_last_synced_at:
+            self.is_sipoc_flow_outdated = True
+        self.trigger_auto_save()
         self.status_message = f"Paso {count}.0 agregado a la Matriz SIPOC"
 
     def remove_sipoc_row(self, row_id: str):
@@ -950,6 +964,9 @@ class FlowState(rx.State):
         for idx, r in enumerate(self.sipoc_rows):
             r["id"] = str(idx + 1)
             r["step_num"] = f"{idx + 1}.0"
+        if self.sipoc_last_synced_at:
+            self.is_sipoc_flow_outdated = True
+        self.trigger_auto_save()
         self.status_message = "Fila eliminada de la Matriz SIPOC"
 
     def update_sipoc_provider(self, row_id: str, val: str):
@@ -957,58 +974,78 @@ class FlowState(rx.State):
             if r.get("id") == row_id:
                 r["provider"] = val
                 break
+        if self.sipoc_last_synced_at:
+            self.is_sipoc_flow_outdated = True
+        self.trigger_auto_save()
 
     def update_sipoc_input(self, row_id: str, val: str):
         for r in self.sipoc_rows:
             if r.get("id") == row_id:
                 r["input"] = val
                 break
+        if self.sipoc_last_synced_at:
+            self.is_sipoc_flow_outdated = True
+        self.trigger_auto_save()
 
     def update_sipoc_step(self, row_id: str, val: str):
         for r in self.sipoc_rows:
             if r.get("id") == row_id:
                 r["step"] = val
                 break
+        if self.sipoc_last_synced_at:
+            self.is_sipoc_flow_outdated = True
+        self.trigger_auto_save()
 
     def update_sipoc_output(self, row_id: str, val: str):
         for r in self.sipoc_rows:
             if r.get("id") == row_id:
                 r["output"] = val
                 break
+        if self.sipoc_last_synced_at:
+            self.is_sipoc_flow_outdated = True
+        self.trigger_auto_save()
 
     def update_sipoc_customer(self, row_id: str, val: str):
         for r in self.sipoc_rows:
             if r.get("id") == row_id:
                 r["customer"] = val
                 break
+        if self.sipoc_last_synced_at:
+            self.is_sipoc_flow_outdated = True
+        self.trigger_auto_save()
 
     def update_sipoc_reqs(self, row_id: str, val: str):
         for r in self.sipoc_rows:
             if r.get("id") == row_id:
                 r["requirements"] = val
                 break
+        if self.sipoc_last_synced_at:
+            self.is_sipoc_flow_outdated = True
+        self.trigger_auto_save()
 
     def sync_sipoc_to_flow(self):
         """
-        Transform SIPOC Table into Flowchart DAG on the Canvas:
-        Generates Start Node, Activities/Decisions with Systems/Channels, End Node and Bézier connections.
+        Transform SIPOC Table into Flowchart DAG on the Canvas in a non-destructive manner:
+        Generates/updates a dedicated 'Flujo SIPOC' tab without overwriting other user pages.
         """
+        import datetime
         if not self.sipoc_rows:
             self.status_message = "La matriz SIPOC está vacía"
+            self.trigger_toast("La matriz SIPOC está vacía", "warning")
             return
 
         new_nodes = []
         new_edges = []
         
         # 1. Start Node
-        first_input = self.sipoc_rows[0].get("input", "Inicio")
+        first_input = self.sipoc_rows[0].get("input", "Inicio") or "Inicio"
         first_provider = self.sipoc_rows[0].get("provider", "Input") or "Input"
         new_nodes.append({
             "id": "node-1",
             "type": "node_start",
             "label": f"Inicio: {first_input[:28]}",
             "swimlane": first_provider,
-            "x": 60,
+            "x": 80,
             "y": 140,
             "activity_number": None,
             "attached_system": "",
@@ -1019,7 +1056,7 @@ class FlowState(rx.State):
         prev_node_id = "node-1"
         for idx, r in enumerate(self.sipoc_rows):
             node_id = f"node-{idx + 2}"
-            step_text = r.get("step", f"Paso {idx+1}.0")
+            step_text = r.get("step", f"Paso {idx+1}.0") or f"Paso {idx+1}.0"
             provider = r.get("provider", "Actor 1") or "Actor 1"
             
             # Detect Decision node type
@@ -1030,11 +1067,11 @@ class FlowState(rx.State):
             attached_sys = ""
             lower_text = (step_text + " " + r.get("input", "") + " " + r.get("output", "")).lower()
             if "chronos" in lower_text:
-                attached_sys = "Chronos"
+                attached_sys = "Chronos ERP"
             elif "freshdesk" in lower_text:
                 attached_sys = "Freshdesk"
             elif "sap" in lower_text or "erp" in lower_text:
-                attached_sys = "SAP"
+                attached_sys = "Chronos ERP"
 
             attached_chan = ""
             if "whatsapp" in lower_text:
@@ -1042,9 +1079,9 @@ class FlowState(rx.State):
             elif "bria" in lower_text or "llamada" in lower_text or "teléfono" in lower_text:
                 attached_chan = "Bria"
             elif "correo" in lower_text or "email" in lower_text:
-                attached_chan = "Email"
+                attached_chan = "Correo / Formulario"
 
-            x_pos = 60 + (idx + 1) * 260
+            x_pos = 80 + (idx + 1) * 260
             y_pos = 140
 
             new_nodes.append({
@@ -1071,9 +1108,9 @@ class FlowState(rx.State):
 
         # 3. End Node
         end_node_id = f"node-{len(self.sipoc_rows) + 2}"
-        last_output = self.sipoc_rows[-1].get("output", "Fin")
+        last_output = self.sipoc_rows[-1].get("output", "Fin") or "Fin"
         last_customer = self.sipoc_rows[-1].get("customer", "Output") or "Output"
-        end_x = 60 + (len(self.sipoc_rows) + 1) * 260
+        end_x = 80 + (len(self.sipoc_rows) + 1) * 260
         
         new_nodes.append({
             "id": end_node_id,
@@ -1101,26 +1138,56 @@ class FlowState(rx.State):
             if lane and lane not in unique_lanes:
                 unique_lanes.append(lane)
         if len(unique_lanes) < 2:
-            unique_lanes = ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"]
+            unique_lanes = ["Input", "Actor 1", "Actor 2", "Output"]
 
-        self.nodes = new_nodes
-        self.edges = new_edges
-        self.swimlanes = unique_lanes
+        # Non-destructive tab handling: Look for "Flujo SIPOC" tab or create it
+        sipoc_tab_idx = -1
+        for idx, p in enumerate(self.project_pages):
+            if p.get("name") in ["Flujo SIPOC", "Flujo SIPOC (Generado)"]:
+                sipoc_tab_idx = idx
+                break
 
-        # Update current page tab
+        # Save current active page before switching
         if 0 <= self.active_page_index < len(self.project_pages):
             self.project_pages[self.active_page_index]["nodes"] = list(self.nodes)
             self.project_pages[self.active_page_index]["edges"] = list(self.edges)
             self.project_pages[self.active_page_index]["swimlanes"] = list(self.swimlanes)
 
-        self.status_message = f"Diagrama de Flujo generado con {len(self.nodes)} símbolos desde la Matriz SIPOC"
-        self.trigger_toast(f"Diagrama sincronizado ({len(self.nodes)} nodos generados)", "success")
+        if sipoc_tab_idx != -1:
+            # Update existing SIPOC tab
+            self.active_page_index = sipoc_tab_idx
+            self.project_pages[sipoc_tab_idx]["nodes"] = list(new_nodes)
+            self.project_pages[sipoc_tab_idx]["edges"] = list(new_edges)
+            self.project_pages[sipoc_tab_idx]["swimlanes"] = list(unique_lanes)
+        else:
+            # Create dedicated SIPOC tab
+            new_tab = {
+                "page_id": f"sipoc-{len(self.project_pages) + 1}",
+                "name": "Flujo SIPOC",
+                "nodes": list(new_nodes),
+                "edges": list(new_edges),
+                "swimlanes": list(unique_lanes)
+            }
+            self.project_pages.append(new_tab)
+            self.active_page_index = len(self.project_pages) - 1
+
+        self.unselect_node()
+        self.nodes = new_nodes
+        self.edges = new_edges
+        self.swimlanes = unique_lanes
+        self.sipoc_last_synced_at = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
+        self.is_sipoc_flow_outdated = False
+
+        self.status_message = f"Diagrama de Flujo generado en pestaña 'Flujo SIPOC' ({len(self.nodes)} nodos)"
+        self.trigger_toast(f"Diagrama sincronizado en pestaña 'Flujo SIPOC' ({len(self.nodes)} nodos)", "success")
         self.active_view = "flow"
 
     def complete_sipoc_with_ai(self):
-        """Auto-complete SIPOC rows using Gemini AI / expert template"""
+        """Auto-complete SIPOC rows using Gemini AI with double-submit guard and preview modal"""
+        if self.is_completing_sipoc:
+            return
         self.is_completing_sipoc = True
-        self.status_message = "Completando Matriz SIPOC con IA..."
+        self.status_message = "Consultando propuesta de Matriz SIPOC con IA..."
         try:
             from backend.routers.diagrams import complete_sipoc_with_ai, SipocAiRequest
             res = complete_sipoc_with_ai(SipocAiRequest(
@@ -1129,17 +1196,56 @@ class FlowState(rx.State):
                 existing_rows=self.sipoc_rows
             ))
             if res.get("rows"):
-                self.sipoc_rows = res["rows"]
-                self.status_message = f"Matriz SIPOC completada con {len(self.sipoc_rows)} pasos sugeridos"
-                self.trigger_toast("Matriz SIPOC completada con Gemini AI", "success")
+                self.ai_sipoc_proposal_rows = res["rows"]
+                self.show_sipoc_ai_modal = True
+                self.status_message = f"Propuesta IA generada con {len(self.ai_sipoc_proposal_rows)} pasos. Esperando confirmación."
+                self.trigger_toast(f"Propuesta IA lista ({len(self.ai_sipoc_proposal_rows)} pasos)", "info")
+            else:
+                self.status_message = "No se recibieron filas sugeridas de la IA"
+                self.trigger_toast("No se obtuvieron resultados de la IA", "warning")
         except Exception as e:
             self.status_message = f"Error al autocompletar SIPOC: {str(e)}"
             self.trigger_toast(f"Error IA: {str(e)}", "error")
         finally:
             self.is_completing_sipoc = False
 
+    def apply_sipoc_ai_proposal(self, mode: str = "replace"):
+        """Apply the AI proposal to the current SIPOC matrix (replace or append)"""
+        if not self.ai_sipoc_proposal_rows:
+            self.show_sipoc_ai_modal = False
+            return
+
+        if mode == "replace":
+            self.sipoc_rows = list(self.ai_sipoc_proposal_rows)
+            for idx, r in enumerate(self.sipoc_rows):
+                r["id"] = str(idx + 1)
+                r["step_num"] = f"{idx + 1}.0"
+        elif mode == "append":
+            current_len = len(self.sipoc_rows)
+            for idx, r in enumerate(self.ai_sipoc_proposal_rows):
+                new_idx = current_len + idx + 1
+                row_copy = dict(r)
+                row_copy["id"] = str(new_idx)
+                row_copy["step_num"] = f"{new_idx}.0"
+                self.sipoc_rows.append(row_copy)
+
+        self.show_sipoc_ai_modal = False
+        self.ai_sipoc_proposal_rows = []
+        if self.sipoc_last_synced_at:
+            self.is_sipoc_flow_outdated = True
+        self.trigger_auto_save()
+        self.status_message = f"Matriz SIPOC actualizada ({len(self.sipoc_rows)} pasos en total)"
+        self.trigger_toast("Matriz SIPOC actualizada con éxito", "success")
+
+    def cancel_sipoc_ai_proposal(self):
+        """Discard the AI proposal without altering manual rows"""
+        self.show_sipoc_ai_modal = False
+        self.ai_sipoc_proposal_rows = []
+        self.status_message = "Propuesta de IA descartada"
+        self.trigger_toast("Propuesta de IA descartada", "info")
+
     def export_sipoc_excel(self):
-        """Download styled Six Sigma SIPOC Excel workbook (.xlsx)"""
+        """Download styled Six Sigma SIPOC Excel workbook (.xlsx) with official MIME type"""
         try:
             from backend.services.sipoc_exporter import export_sipoc_to_excel
             stream = export_sipoc_to_excel(
@@ -1153,11 +1259,85 @@ class FlowState(rx.State):
             self.trigger_toast("Matriz SIPOC (.xlsx) descargada", "success")
             return rx.download(
                 data=stream.getvalue(),
-                filename=f"Matriz_SIPOC_{safe_name}.xlsx"
+                filename=f"Matriz_SIPOC_{safe_name}.xlsx",
+                mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
         except Exception as e:
             self.status_message = f"Error al exportar Excel: {str(e)}"
             self.trigger_toast("Error al exportar Excel", "error")
+
+    def export_diagram_svg(self):
+        """Export current flowchart diagram as a clean SVG vector file"""
+        try:
+            max_x = max([int(n.get("x", 100)) for n in self.nodes], default=600) + 300
+            max_y = max([int(n.get("y", 140)) for n in self.nodes], default=400) + 300
+            width = max(1200, max_x)
+            height = max(800, max_y)
+
+            svg_parts = [
+                f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}" style="background-color: #f8fafc; font-family: Inter, sans-serif;">',
+                '  <defs>',
+                '    <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="3.5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">',
+                '      <polygon points="0 0, 10 3.5, 0 7" fill="#1e5a9a" />',
+                '    </marker>',
+                '  </defs>',
+                f'  <!-- Title: {self.project_name} -->',
+                f'  <text x="30" y="40" font-size="18" font-weight="bold" fill="#17283c">{self.project_name} — Diagrama BPMN</text>',
+                f'  <text x="30" y="62" font-size="12" fill="#52657a">Código: {getattr(self, "project_code", "PRJ")} | Generado por TEMIS Web Flow</text>',
+            ]
+
+            # SVG Edges
+            for edge in self.computed_edges:
+                svg_parts.append(f'  <path d="{edge.get("d", "")}" stroke="#1e5a9a" stroke-width="2.5" fill="none" marker-end="url(#arrow-blue)" />')
+                if edge.get("has_label"):
+                    svg_parts.append(f'  <text x="{edge.get("label_x", 0)}" y="{edge.get("label_y", 0)}" fill="#065f46" font-size="11" font-weight="bold" text-anchor="middle">{edge.get("label", "")}</text>')
+
+            # SVG Nodes
+            for n in self.nodes:
+                x = n.get("x", 80)
+                y = n.get("y", 120)
+                ntype = n.get("type", "node_activity")
+                lbl = n.get("label", "")
+                
+                if ntype == "node_start":
+                    svg_parts.append(f'  <g transform="translate({x},{y})">')
+                    svg_parts.append('    <rect width="130" height="42" rx="21" ry="21" fill="#eff6ff" stroke="#1e5a9a" stroke-width="2" />')
+                    svg_parts.append(f'    <text x="65" y="26" font-size="11" font-weight="bold" fill="#1e5a9a" text-anchor="middle">{lbl[:20]}</text>')
+                    svg_parts.append('  </g>')
+                elif ntype == "node_end":
+                    svg_parts.append(f'  <g transform="translate({x},{y})">')
+                    svg_parts.append('    <rect width="130" height="42" rx="21" ry="21" fill="#f1f5f9" stroke="#64748b" stroke-width="2" />')
+                    svg_parts.append(f'    <text x="65" y="26" font-size="11" font-weight="bold" fill="#334155" text-anchor="middle">{lbl[:20]}</text>')
+                    svg_parts.append('  </g>')
+                elif ntype == "node_decision":
+                    svg_parts.append(f'  <g transform="translate({x},{y})">')
+                    svg_parts.append('    <rect width="160" height="68" rx="8" ry="8" fill="#fffbeb" stroke="#d97706" stroke-width="2" />')
+                    svg_parts.append(f'    <text x="80" y="38" font-size="11" font-weight="bold" fill="#92400e" text-anchor="middle">{lbl[:24]}</text>')
+                    svg_parts.append('  </g>')
+                else:
+                    svg_parts.append(f'  <g transform="translate({x},{y})">')
+                    svg_parts.append('    <rect width="170" height="74" rx="8" ry="8" fill="#ffffff" stroke="#059669" stroke-width="2" />')
+                    act_num = n.get("activity_number")
+                    act_prefix = f"[{act_num}] " if act_num else ""
+                    svg_parts.append(f'    <text x="12" y="28" font-size="11" font-weight="bold" fill="#17283c">{act_prefix}{lbl[:18]}</text>')
+                    lane = n.get("swimlane", "")
+                    if lane:
+                        svg_parts.append(f'    <text x="12" y="52" font-size="10" fill="#52657a">Rol: {lane[:18]}</text>')
+                    svg_parts.append('  </g>')
+
+            svg_parts.append('</svg>')
+            svg_content = "\n".join(svg_parts)
+            safe_name = self.project_name.replace(" ", "_")
+            self.status_message = "Diagrama SVG exportado exitosamente"
+            self.trigger_toast("Diagrama exportado (.svg)", "success")
+            return rx.download(
+                data=svg_content,
+                filename=f"Diagrama_{safe_name}.svg",
+                mime_type="image/svg+xml"
+            )
+        except Exception as e:
+            self.status_message = f"Error al exportar SVG: {str(e)}"
+            self.trigger_toast("Error al exportar SVG", "error")
 
     # Narrative & Policy Manual State
     narrative_text: str = """# Manual de Procedimientos & Narrativa Oficial
@@ -1664,9 +1844,16 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     def unselect_node(self):
         self.selected_node_id = ""
+        self.node_label_edit = ""
+        self.node_swimlane_edit = ""
+        self.selected_node_type = ""
+        self.selected_node_system = ""
+        self.selected_node_channel = ""
 
     def set_selected_node_label(self, val: str):
         self.node_label_edit = val
+        if not self.selected_node_id:
+            return
         for n in self.nodes:
             if n["id"] == self.selected_node_id:
                 n["label"] = val
@@ -1675,6 +1862,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     def set_selected_node_type(self, val: str):
         self.selected_node_type = val
+        if not self.selected_node_id:
+            return
         for n in self.nodes:
             if n["id"] == self.selected_node_id:
                 n["type"] = val
@@ -1683,6 +1872,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     def set_selected_node_swimlane(self, val: str):
         self.node_swimlane_edit = val
+        if not self.selected_node_id:
+            return
         for n in self.nodes:
             if n["id"] == self.selected_node_id:
                 n["swimlane"] = val
@@ -1691,6 +1882,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     def set_selected_node_system(self, val: str):
         self.selected_node_system = val
+        if not self.selected_node_id:
+            return
         for n in self.nodes:
             if n["id"] == self.selected_node_id:
                 n["attached_system"] = val
@@ -1699,6 +1892,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     def set_selected_node_channel(self, val: str):
         self.selected_node_channel = val
+        if not self.selected_node_id:
+            return
         for n in self.nodes:
             if n["id"] == self.selected_node_id:
                 n["attached_channel"] = val
@@ -1721,7 +1916,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
     def set_ai_prompt_text(self, val: str):
         self.ai_prompt_text = val
 
-    # Add Node from Symbology Palette
+    # Add Node from Symbology Palette with smart collision avoidance
     def add_node_by_type(self, node_type: str, label: str):
         count = len(self.nodes) + 1
         new_id = f"node-{count}"
@@ -1733,34 +1928,55 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             activities = [n for n in self.nodes if n.get("type") == "node_activity"]
             activity_num = len(activities) + 1
 
+        # Smart collision positioning
+        if self.selected_node_id and any(n["id"] == self.selected_node_id for n in self.nodes):
+            sel_node = next(n for n in self.nodes if n["id"] == self.selected_node_id)
+            target_x = sel_node.get("x", 80) + 240
+            target_y = sel_node.get("y", 140)
+            swimlane = sel_node.get("swimlane", swimlane)
+            if target_x > 1400:
+                target_x = 80
+                target_y += 150
+        else:
+            if self.nodes:
+                max_x = max(int(n.get("x", 80)) for n in self.nodes)
+                target_x = max_x + 240
+                target_y = 140
+                if target_x > 1400:
+                    target_x = 80
+                    target_y = max(int(n.get("y", 140)) for n in self.nodes) + 150
+            else:
+                target_x = 80
+                target_y = 140
+
         new_node = {
             "id": new_id,
             "type": node_type,
             "label": label,
             "swimlane": swimlane,
-            "x": 100 + (count * 30) % 600,
-            "y": 150 + (count * 40) % 300,
+            "x": target_x,
+            "y": target_y,
             "activity_number": activity_num,
             "attached_system": "",
             "attached_channel": ""
         }
         self.nodes.append(new_node)
+        self.selected_node_id = new_id
+        self.node_label_edit = label
+        self.node_swimlane_edit = swimlane
+        self.selected_node_type = node_type
+        self.selected_node_system = ""
+        self.selected_node_channel = ""
+        self.trigger_auto_save()
         self.status_message = f"Símbolo '{label}' agregado al lienzo"
 
     # Clear diagram canvas
     def clear_canvas(self):
         self.nodes = []
         self.edges = []
+        self.unselect_node()
+        self.trigger_auto_save()
         self.status_message = "Lienzo limpiado"
-
-    # Select Node for Editing
-    def select_node(self, node_id: str):
-        self.selected_node_id = node_id
-        for n in self.nodes:
-            if n["id"] == node_id:
-                self.node_label_edit = n["label"]
-                self.node_swimlane_edit = n["swimlane"]
-                break
 
     # Delete Selected Node
     def delete_selected_node(self):
@@ -1768,7 +1984,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             return
         self.nodes = [n for n in self.nodes if n["id"] != self.selected_node_id]
         self.edges = [e for e in self.edges if e["source"] != self.selected_node_id and e["target"] != self.selected_node_id]
-        self.selected_node_id = ""
+        self.unselect_node()
+        self.trigger_auto_save()
         self.status_message = "Nodo eliminado"
 
     # Move Selected Node
@@ -1778,10 +1995,11 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             return
         for n in self.nodes:
             if n["id"] == self.selected_node_id:
-                n["x"] = max(10, n.get("x", 0) + dx)
-                n["y"] = max(10, n.get("y", 0) + dy)
+                n["x"] = max(10, int(n.get("x", 0)) + dx)
+                n["y"] = max(10, int(n.get("y", 0)) + dy)
                 break
-        self.status_message = f"Nodo {self.selected_node_id} reposicionado"
+        self.trigger_auto_save()
+        self.status_message = f"Nodo {self.selected_node_id} reposicionado ({dx:+d}, {dy:+d})"
 
     # Project Multi-Tab Diagram Pages State
     project_pages: List[Dict[str, Any]] = [
@@ -2646,10 +2864,12 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.status_message = f"Nuevo proceso '{self.project_name}' inicializado"
 
     def select_page_tab(self, index: int):
-        """Save current tab state and switch active page"""
+        """Save current tab state and switch active page with strict deselection"""
+        self.unselect_node()
         if 0 <= self.active_page_index < len(self.project_pages):
             self.project_pages[self.active_page_index]["nodes"] = list(self.nodes)
             self.project_pages[self.active_page_index]["edges"] = list(self.edges)
+            self.project_pages[self.active_page_index]["swimlanes"] = list(self.swimlanes)
 
         if 0 <= index < len(self.project_pages):
             self.active_page_index = index
@@ -2662,10 +2882,12 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     def add_new_tab_page(self):
         """Add a new blank page tab to the current project"""
+        self.unselect_node()
         # Save current active page
         if 0 <= self.active_page_index < len(self.project_pages):
             self.project_pages[self.active_page_index]["nodes"] = list(self.nodes)
             self.project_pages[self.active_page_index]["edges"] = list(self.edges)
+            self.project_pages[self.active_page_index]["swimlanes"] = list(self.swimlanes)
 
         count = len(self.project_pages) + 1
         new_page = {
@@ -2692,7 +2914,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.status_message = f"Pestaña 'Página {count}' creada"
 
     def delete_tab_page(self, index: int):
-        """Delete a diagram page tab from the project"""
+        """Delete a diagram page tab from the project with strict deselection"""
+        self.unselect_node()
         if len(self.project_pages) <= 1:
             self.status_message = "El proyecto debe conservar al menos una pestaña"
             return
@@ -2704,6 +2927,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             page = self.project_pages[new_idx]
             self.nodes = list(page.get("nodes", []))
             self.edges = list(page.get("edges", []))
+            if page.get("swimlanes"):
+                self.swimlanes = list(page["swimlanes"])
             self.status_message = f"Pestaña '{deleted.get('name')}' eliminada"
 
     def save_current_project(self):

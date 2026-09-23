@@ -4,15 +4,111 @@
 """
 SIPOC Matrix Component for TEMIS Web Flow
 Six Sigma Tabular Process Mapping with Bidirectional Synchronization to Flowchart Canvas
-Styled in Executive Light Slate Theme with expansive column widths and smooth horizontal scroll.
+Styled in Executive Light Slate Theme with expansive column widths, AI Proposal Review Modal, and smooth horizontal scroll.
 """
 
 import reflex as rx
 from temis_web.state import FlowState
 
 
+def sipoc_ai_proposal_modal() -> rx.Component:
+    """Modal dialog for reviewing and accepting/discarding AI-generated SIPOC rows"""
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.vstack(
+                rx.hstack(
+                    rx.icon("sparkles", size=20, color="#1e5a9a"),
+                    rx.dialog.title("Propuesta de Matriz SIPOC generada por IA", size="3", weight="bold", color="#17283c"),
+                    align="center",
+                    spacing="2",
+                ),
+                rx.dialog.description(
+                    "La Inteligencia Artificial ha propuesto la siguiente estructura para su proceso. Revise los pasos antes de confirmar la actualización:",
+                    size="2",
+                    color="#52657a",
+                ),
+                # Table Preview of Proposal
+                rx.box(
+                    rx.table.root(
+                        rx.table.header(
+                            rx.table.row(
+                                rx.table.column_header_cell("#", width="45px", align="center"),
+                                rx.table.column_header_cell("S · PROVEEDORES", width="150px"),
+                                rx.table.column_header_cell("I · ENTRADAS", width="150px"),
+                                rx.table.column_header_cell("P · PROCESO", width="240px"),
+                                rx.table.column_header_cell("O · SALIDAS", width="150px"),
+                                rx.table.column_header_cell("C · CLIENTES", width="140px"),
+                            ),
+                        ),
+                        rx.table.body(
+                            rx.foreach(
+                                FlowState.ai_sipoc_proposal_rows,
+                                lambda r: rx.table.row(
+                                    rx.table.cell(rx.badge(r["step_num"], color_scheme="blue", variant="solid", size="1"), align="center"),
+                                    rx.table.cell(rx.text(r["provider"], size="1", color="#17283c")),
+                                    rx.table.cell(rx.text(r["input"], size="1", color="#17283c")),
+                                    rx.table.cell(rx.text(r["step"], size="1", weight="bold", color="#17283c")),
+                                    rx.table.cell(rx.text(r["output"], size="1", color="#17283c")),
+                                    rx.table.cell(rx.text(r["customer"], size="1", color="#17283c")),
+                                ),
+                            ),
+                        ),
+                        width="100%",
+                        variant="surface",
+                        size="1",
+                    ),
+                    max_height="320px",
+                    overflow_y="auto",
+                    overflow_x="auto",
+                    border="1px solid #d9e2ec",
+                    border_radius="md",
+                    width="100%",
+                    background_color="#ffffff",
+                ),
+                # Action Buttons
+                rx.hstack(
+                    rx.button(
+                        "Descartar propuesta",
+                        on_click=FlowState.cancel_sipoc_ai_proposal,
+                        color_scheme="gray",
+                        variant="soft",
+                        size="2",
+                    ),
+                    rx.spacer(),
+                    rx.button(
+                        rx.hstack(rx.icon("plus", size=14), rx.text("Añadir al final")),
+                        on_click=lambda: FlowState.apply_sipoc_ai_proposal("append"),
+                        color_scheme="green",
+                        variant="soft",
+                        size="2",
+                    ),
+                    rx.button(
+                        rx.hstack(rx.icon("check", size=14), rx.text("Reemplazar matriz")),
+                        on_click=lambda: FlowState.apply_sipoc_ai_proposal("replace"),
+                        color_scheme="blue",
+                        variant="solid",
+                        size="2",
+                    ),
+                    width="100%",
+                    spacing="2",
+                    padding_top="3",
+                ),
+                spacing="3",
+                width="100%",
+            ),
+            max_width="850px",
+            background_color="#ffffff",
+            border="1px solid #d9e2ec",
+            border_radius="xl",
+            padding="5",
+            box_shadow="0 20px 25px -5px rgba(0, 0, 0, 0.1)",
+        ),
+        open=FlowState.show_sipoc_ai_modal,
+    )
+
+
 def render_sipoc_row(row: rx.Var[dict]) -> rx.Component:
-    """Render a single interactive SIPOC step row with generous column widths"""
+    """Render a single interactive SIPOC step row with generous column widths and multiline process description"""
     return rx.table.row(
         # Step Number (1.0, 2.0...)
         rx.table.cell(
@@ -48,18 +144,19 @@ def render_sipoc_row(row: rx.Var[dict]) -> rx.Component:
             width="180px",
             min_width="160px",
         ),
-        # P: Process / Proceso (1.0..N)
+        # P: Process / Proceso (1.0..N) - Multiline Text Area to prevent text cutoffs
         rx.table.cell(
-            rx.input(
+            rx.text_area(
                 value=row["step"],
                 on_change=lambda val: FlowState.update_sipoc_step(row["id"], val),
                 size="1",
                 variant="surface",
                 radius="small",
-                placeholder="ej. 1.0 Consulta en Chronos",
+                placeholder="ej. 1.0 Consulta de estatus en base de datos Chronos",
                 width="100%",
+                rows="2",
             ),
-            width="260px",
+            width="280px",
             min_width="220px",
         ),
         # O: Outputs / Salidas
@@ -90,14 +187,18 @@ def render_sipoc_row(row: rx.Var[dict]) -> rx.Component:
             width="160px",
             min_width="140px",
         ),
-        # Actions: Delete row
+        # Actions: Delete row with accessible aria-label and tooltip
         rx.table.cell(
-            rx.icon_button(
-                rx.icon("trash-2", size=13),
-                on_click=lambda: FlowState.remove_sipoc_row(row["id"]),
-                color_scheme="ruby",
-                variant="ghost",
-                size="1",
+            rx.tooltip(
+                rx.icon_button(
+                    rx.icon("trash-2", size=13),
+                    on_click=lambda: FlowState.remove_sipoc_row(row["id"]),
+                    color_scheme="ruby",
+                    variant="ghost",
+                    size="1",
+                    aria_label="Eliminar paso",
+                ),
+                content="Eliminar paso",
             ),
             align="center",
             width="50px",
@@ -106,15 +207,24 @@ def render_sipoc_row(row: rx.Var[dict]) -> rx.Component:
 
 
 def sipoc_matrix() -> rx.Component:
-    """Main SIPOC Matrix Table View with Quick Actions & Flow Generation"""
+    """Main SIPOC Matrix Table View with Quick Actions, AI Proposal Modal & Non-Destructive Flow Sync"""
     return rx.box(
+        sipoc_ai_proposal_modal(),
         rx.vstack(
             # Top Toolbar & Pipeline Dispatches
             rx.hstack(
                 rx.hstack(
                     rx.icon("table-properties", size=24, color="#1e5a9a"),
                     rx.vstack(
-                        rx.text("Matriz SIPOC Six Sigma", size="4", weight="bold", color="#17283c"),
+                        rx.hstack(
+                            rx.text("Matriz SIPOC Six Sigma", size="4", weight="bold", color="#17283c"),
+                            rx.cond(
+                                FlowState.is_sipoc_flow_outdated,
+                                rx.badge("Diagrama desactualizado", color_scheme="amber", variant="soft", size="1"),
+                            ),
+                            align="center",
+                            spacing="2",
+                        ),
                         rx.text("Mapeo estructurado: Proveedores -> Entradas -> Proceso -> Salidas -> Clientes", size="2", color="#52657a"),
                         spacing="0",
                     ),
@@ -130,6 +240,7 @@ def sipoc_matrix() -> rx.Component:
                         color_scheme="blue",
                         size="2",
                         radius="medium",
+                        title="Generar o actualizar diagrama en la pestaña 'Flujo SIPOC'",
                     ),
                     rx.button(
                         rx.icon("sparkles", size=15),
@@ -140,6 +251,7 @@ def sipoc_matrix() -> rx.Component:
                         variant="soft",
                         size="2",
                         radius="medium",
+                        title="Autocompletar pasos sugeridos con Gemini AI",
                     ),
                     rx.button(
                         rx.icon("plus", size=15),
@@ -158,6 +270,7 @@ def sipoc_matrix() -> rx.Component:
                         variant="soft",
                         size="2",
                         radius="medium",
+                        title="Descargar plantilla Excel Six Sigma",
                     ),
                     spacing="2",
                     wrap="wrap",
@@ -169,7 +282,7 @@ def sipoc_matrix() -> rx.Component:
                 wrap="wrap",
             ),
 
-            # SIPOC Interactive Table Container
+            # SIPOC Interactive Table Container (Self-contained horizontal scroll to prevent 1271px mobile blowout)
             rx.box(
                 rx.box(
                     rx.table.root(
@@ -178,7 +291,7 @@ def sipoc_matrix() -> rx.Component:
                                 rx.table.column_header_cell("#", width="50px", align="center"),
                                 rx.table.column_header_cell("S · PROVEEDORES (Suppliers)", width="180px"),
                                 rx.table.column_header_cell("I · ENTRADAS (Inputs)", width="180px"),
-                                rx.table.column_header_cell("P · PROCESO (Process 1.0..N)", width="260px"),
+                                rx.table.column_header_cell("P · PROCESO (Process 1.0..N)", width="280px"),
                                 rx.table.column_header_cell("O · SALIDAS (Outputs)", width="180px"),
                                 rx.table.column_header_cell("C · CLIENTES (Customers)", width="160px"),
                                 rx.table.column_header_cell("", width="50px", align="center"),
@@ -194,8 +307,10 @@ def sipoc_matrix() -> rx.Component:
                     ),
                     overflow_x="auto",
                     width="100%",
+                    max_width="100%",
                 ),
                 width="100%",
+                max_width="100%",
                 background_color="#ffffff",
                 border="1px solid #d9e2ec",
                 border_radius="10px",

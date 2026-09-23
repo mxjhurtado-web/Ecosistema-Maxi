@@ -4,7 +4,7 @@
 """
 Right Property Inspector Component for TEMIS Web Flow
 Contextual side panel for editing selected node properties, routing, and connections
-Styled in Executive Light Slate Theme (WCAG 2.2 AA compliant).
+Styled in Executive Light Slate Theme with 44x44px accessible nudge controls and collapsible layout (WCAG 2.2 AA compliant).
 """
 
 import reflex as rx
@@ -12,21 +12,41 @@ from temis_web.state import FlowState
 
 
 def property_inspector() -> rx.Component:
-    """Right-side property inspector panel"""
-    # Active Node Selected View
+    """Right-side property inspector panel with collapsible mode and accessible 44x44px controls"""
+    # 1. Active Node Selected View
     active_inspector = rx.vstack(
         # Inspector Header
         rx.hstack(
-            rx.icon("sliders-horizontal", size=15, color="#1e5a9a"),
-            rx.text(f"Nodo: ", FlowState.selected_node_id, size="2", weight="bold", color="#17283c"),
+            rx.hstack(
+                rx.icon("sliders-horizontal", size=15, color="#1e5a9a"),
+                rx.text(f"Nodo: ", FlowState.selected_node_id, size="2", weight="bold", color="#17283c"),
+                align="center",
+                spacing="2",
+            ),
             rx.spacer(),
-            rx.button(
-                rx.icon("x", size=13),
-                on_click=FlowState.unselect_node,
-                color_scheme="gray",
-                variant="ghost",
-                size="1",
-                padding="0",
+            rx.tooltip(
+                rx.button(
+                    rx.icon("panel-right-close", size=14, color="#52657a"),
+                    on_click=FlowState.toggle_inspector,
+                    color_scheme="gray",
+                    variant="ghost",
+                    size="1",
+                    padding="1",
+                    aria_label="Ocultar panel de propiedades",
+                ),
+                content="Ocultar panel",
+            ),
+            rx.tooltip(
+                rx.button(
+                    rx.icon("x", size=14, color="#52657a"),
+                    on_click=FlowState.unselect_node,
+                    color_scheme="gray",
+                    variant="ghost",
+                    size="1",
+                    padding="1",
+                    aria_label="Deseleccionar nodo",
+                ),
+                content="Deseleccionar nodo",
             ),
             width="100%",
             align="center",
@@ -105,17 +125,69 @@ def property_inspector() -> rx.Component:
             width="100%",
             margin_top="1",
         ),
-        # Position Nudge Control
+        # Accessible 44x44px Position Nudge Control
         rx.vstack(
             rx.text("Reposicionar en Lienzo:", size="1", weight="bold", color="#52657a"),
             rx.vstack(
-                rx.button(rx.icon("arrow-up", size=13), on_click=lambda: FlowState.move_selected_node(0, -30), size="1", variant="soft", color_scheme="gray"),
+                rx.tooltip(
+                    rx.button(
+                        rx.icon("arrow-up", size=18, color="#17324d"),
+                        on_click=lambda: FlowState.move_selected_node(0, -30),
+                        width="44px",
+                        height="44px",
+                        background_color="#eaf0f6",
+                        border="1px solid #cbd5e1",
+                        border_radius="md",
+                        _hover={"background_color": "#d0e2f2", "border_color": "#1e5a9a"},
+                        aria_label="Mover nodo arriba",
+                    ),
+                    content="Mover nodo arriba",
+                ),
                 rx.hstack(
-                    rx.button(rx.icon("arrow-left", size=13), on_click=lambda: FlowState.move_selected_node(-30, 0), size="1", variant="soft", color_scheme="gray"),
-                    rx.button(rx.icon("arrow-right", size=13), on_click=lambda: FlowState.move_selected_node(30, 0), size="1", variant="soft", color_scheme="gray"),
+                    rx.tooltip(
+                        rx.button(
+                            rx.icon("arrow-left", size=18, color="#17324d"),
+                            on_click=lambda: FlowState.move_selected_node(-30, 0),
+                            width="44px",
+                            height="44px",
+                            background_color="#eaf0f6",
+                            border="1px solid #cbd5e1",
+                            border_radius="md",
+                            _hover={"background_color": "#d0e2f2", "border_color": "#1e5a9a"},
+                            aria_label="Mover nodo a la izquierda",
+                        ),
+                        content="Mover nodo a la izquierda",
+                    ),
+                    rx.tooltip(
+                        rx.button(
+                            rx.icon("arrow-right", size=18, color="#17324d"),
+                            on_click=lambda: FlowState.move_selected_node(30, 0),
+                            width="44px",
+                            height="44px",
+                            background_color="#eaf0f6",
+                            border="1px solid #cbd5e1",
+                            border_radius="md",
+                            _hover={"background_color": "#d0e2f2", "border_color": "#1e5a9a"},
+                            aria_label="Mover nodo a la derecha",
+                        ),
+                        content="Mover nodo a la derecha",
+                    ),
                     spacing="2",
                 ),
-                rx.button(rx.icon("arrow-down", size=13), on_click=lambda: FlowState.move_selected_node(0, 30), size="1", variant="soft", color_scheme="gray"),
+                rx.tooltip(
+                    rx.button(
+                        rx.icon("arrow-down", size=18, color="#17324d"),
+                        on_click=lambda: FlowState.move_selected_node(0, 30),
+                        width="44px",
+                        height="44px",
+                        background_color="#eaf0f6",
+                        border="1px solid #cbd5e1",
+                        border_radius="md",
+                        _hover={"background_color": "#d0e2f2", "border_color": "#1e5a9a"},
+                        aria_label="Mover nodo abajo",
+                    ),
+                    content="Mover nodo abajo",
+                ),
                 align="center",
                 spacing="1",
                 width="100%",
@@ -153,11 +225,24 @@ def property_inspector() -> rx.Component:
         padding="3",
     )
 
-    # Empty State View (When no node is clicked)
+    # 2. Empty State View (When no node is selected)
     empty_inspector = rx.vstack(
         rx.hstack(
             rx.icon("info", size=15, color="#52657a"),
             rx.text("Resumen del Lienzo", size="2", weight="bold", color="#17283c"),
+            rx.spacer(),
+            rx.tooltip(
+                rx.button(
+                    rx.icon("panel-right-close", size=14, color="#52657a"),
+                    on_click=FlowState.toggle_inspector,
+                    color_scheme="gray",
+                    variant="ghost",
+                    size="1",
+                    padding="1",
+                    aria_label="Ocultar panel de propiedades",
+                ),
+                content="Ocultar panel",
+            ),
             align="center",
             spacing="2",
             padding_bottom="2",
@@ -204,7 +289,32 @@ def property_inspector() -> rx.Component:
         padding="3",
     )
 
-    return rx.box(
+    # 3. Collapsed View Strip (For 100% canvas view)
+    collapsed_strip = rx.box(
+        rx.tooltip(
+            rx.button(
+                rx.icon("panel-right-open", size=16, color="#1e5a9a"),
+                on_click=FlowState.toggle_inspector,
+                variant="ghost",
+                color_scheme="gray",
+                size="1",
+                padding="1",
+                aria_label="Expandir panel de propiedades",
+            ),
+            content="Expandir propiedades",
+        ),
+        width="38px",
+        height="100%",
+        background_color="#ffffff",
+        border_left="1px solid #d9e2ec",
+        display="flex",
+        align_items="start",
+        justify_content="center",
+        padding_top="2",
+    )
+
+    # 4. Expanded Full Width View
+    expanded_view = rx.box(
         rx.cond(
             FlowState.selected_node_id != "",
             active_inspector,
@@ -215,4 +325,10 @@ def property_inspector() -> rx.Component:
         background_color="#ffffff",
         border_left="1px solid #d9e2ec",
         overflow_y="auto",
+    )
+
+    return rx.cond(
+        FlowState.is_inspector_collapsed,
+        collapsed_strip,
+        expanded_view,
     )

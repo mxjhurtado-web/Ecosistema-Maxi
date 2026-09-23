@@ -124,6 +124,10 @@ def header() -> rx.Component:
                         on_click=FlowState.export_project_package,
                     ),
                     rx.menu.item(
+                        rx.hstack(rx.icon("image", size=14), rx.text("Exportar Diagrama (.svg)"), align="center", spacing="2"),
+                        on_click=FlowState.export_diagram_svg,
+                    ),
+                    rx.menu.item(
                         rx.hstack(rx.icon("file-spreadsheet", size=14), rx.text("Exportar Excel SIPOC (.xlsx)"), align="center", spacing="2"),
                         on_click=FlowState.export_sipoc_excel,
                     ),
