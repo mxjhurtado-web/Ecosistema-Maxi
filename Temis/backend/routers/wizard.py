@@ -219,18 +219,18 @@ def submit_daily_standup(
         raise HTTPException(status_code=404, detail="Project not found")
     
     # Create chat message with standup summary
-    standup_summary = f"""📅 **Daily Standup - {datetime.now().strftime('%d/%m/%Y')}**
+    standup_summary = f"""**Daily Standup - {datetime.now().strftime('%d/%m/%Y')}**
 
-✅ **Ayer:**
+**Ayer:**
 {request.yesterday}
 
-🎯 **Hoy:**
+**Hoy:**
 {request.today}
 """
     
     if request.blockers:
         standup_summary += f"""
-⚠️ **Bloqueos:**
+**Bloqueos / Impedimentos:**
 {request.blockers}
 """
     

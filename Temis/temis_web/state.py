@@ -497,7 +497,7 @@ class FlowState(rx.State):
             "objective": "Diagnóstico AS-IS y levantamiento de requerimientos con áreas líderes",
             "modules": "Diagnóstico & Arquitectura",
             "milestone": "Charter y Matriz AS-IS Aprobados",
-            "status": "In Progress",
+            "status": "Completado",
             "story_points": 25,
             "hours_estimated": 80
         },
@@ -507,7 +507,7 @@ class FlowState(rx.State):
             "objective": "Mapeo SIPOC Six Sigma y definición de roles, sistemas y canales",
             "modules": "Diseño BPMN & SIPOC",
             "milestone": "SIPOC y Simbología BPMN Homologada",
-            "status": "Planned",
+            "status": "Completado",
             "story_points": 30,
             "hours_estimated": 90
         },
@@ -517,27 +517,27 @@ class FlowState(rx.State):
             "objective": "Construcción del lienzo interactivo y docking de herramientas BPMN",
             "modules": "UI/UX & Espacio de Trabajo",
             "milestone": "Editor Visual Bézier Operativo",
-            "status": "Planned",
+            "status": "Completado",
             "story_points": 35,
             "hours_estimated": 100
         },
         {
             "sprint_id": "Sprint 04",
-            "period": "2026-03-04 al 2026-03-18",
+            "period": "2026-08-15 al 2026-09-30",
             "objective": "Desacoplamiento backend REST e integración con Google Workspace Shared Drive",
             "modules": "Core & Integraciones",
             "milestone": "Service Account y Sync de Carpetas",
-            "status": "Planned",
+            "status": "En Progreso",
             "story_points": 40,
             "hours_estimated": 110
         },
         {
             "sprint_id": "Sprint 05",
-            "period": "2026-03-19 al 2026-04-02",
+            "period": "2026-10-01 al 2026-11-15",
             "objective": "Motor de Auditoría Six Sigma con Gemini 2.5 Flash y reglas de calidad 0-100",
             "modules": "Gobernanza & Auditoría IA",
             "milestone": "Auditor IA y Daily Logs Activos",
-            "status": "Planned",
+            "status": "Planificado",
             "story_points": 35,
             "hours_estimated": 95
         }
@@ -584,7 +584,7 @@ class FlowState(rx.State):
             "role": "Analista Six Sigma",
             "priority": "Alta",
             "deliverable": "Matriz SIPOC Tabular",
-            "status": "En Progreso"
+            "status": "Completado"
         },
         {
             "item_id": "4",
@@ -598,7 +598,7 @@ class FlowState(rx.State):
             "role": "QA Lead",
             "priority": "Media",
             "deliverable": "Matriz de Calidad y SLA",
-            "status": "Planificado"
+            "status": "Completado"
         },
         {
             "item_id": "5",
@@ -612,7 +612,7 @@ class FlowState(rx.State):
             "role": "Frontend Dev (Reflex)",
             "priority": "Alta",
             "deliverable": "Lienzo SVG Interactivo",
-            "status": "Planificado"
+            "status": "Completado"
         },
         {
             "item_id": "6",
@@ -621,12 +621,12 @@ class FlowState(rx.State):
             "sprint": "Sprint 04",
             "story_points": 8,
             "hours_estimated": 35,
-            "start_date": "2026-03-04",
-            "end_date": "2026-03-12",
+            "start_date": "2026-08-15",
+            "end_date": "2026-09-20",
             "role": "Backend Dev (FastAPI)",
             "priority": "Alta",
             "deliverable": "Drive Service & Sheets API",
-            "status": "Planificado"
+            "status": "En Progreso"
         },
         {
             "item_id": "7",
@@ -635,8 +635,8 @@ class FlowState(rx.State):
             "sprint": "Sprint 05",
             "story_points": 8,
             "hours_estimated": 30,
-            "start_date": "2026-03-19",
-            "end_date": "2026-03-27",
+            "start_date": "2026-10-01",
+            "end_date": "2026-10-15",
             "role": "AI Engineer",
             "priority": "Alta",
             "deliverable": "Auditor IA con Gemini 2.5 Flash",
@@ -1548,15 +1548,15 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "drive_folder_url": "https://drive.google.com/drive/folders/1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI",
             "sheet_id": "1GxiIwR2rUMkZKHu00JYzlQrs6EsyXO5VqUL6qpl_MBs",
             "sheet_url": "https://docs.google.com/spreadsheets/d/1GxiIwR2rUMkZKHu00JYzlQrs6EsyXO5VqUL6qpl_MBs/edit",
-            "current_sprint": "Sprint 01",
-            "current_sprint_name": "Diagnóstico & Arquitectura Core",
-            "progress_percentage": 23.6,
-            "completed_sp": 13,
+            "current_sprint": "Sprint 04",
+            "current_sprint_name": "Integración Google Workspace Shared Drive SA",
+            "progress_percentage": 85.5,
+            "completed_sp": 47,
             "total_sp": 55,
-            "completed_tasks": 2,
+            "completed_tasks": 5,
             "total_tasks": 7,
             "health_status": "green",
-            "audit_score": 98,
+            "audit_score": 95,
             "nodes_count": 6,
             "steps_count": 3,
             "plan_start_date": "2026-01-16",
@@ -1565,20 +1565,20 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "plan_work_days_mode": "mon_fri",
             "plan_activities_description": "Desarrollar la suite SaaS TEMIS con editor BPMN Bézier, matriz SIPOC, auditoría Six Sigma y persistencia en Google Drive.",
             "plan_sprints": [
-                {"sprint_id": "Sprint 01", "period": "2026-01-16 al 2026-01-30", "objective": "Diagnóstico AS-IS y levantamiento de requerimientos", "modules": "Diagnóstico & Arquitectura", "milestone": "Charter y Matriz AS-IS", "status": "In Progress", "story_points": 13, "hours_estimated": 50},
-                {"sprint_id": "Sprint 02", "period": "2026-02-02 al 2026-02-16", "objective": "Mapeo SIPOC Six Sigma y roles", "modules": "Diseño BPMN & SIPOC", "milestone": "SIPOC Homologada", "status": "Planned", "story_points": 13, "hours_estimated": 55},
-                {"sprint_id": "Sprint 03", "period": "2026-02-17 al 2026-03-03", "objective": "Lienzo interactivo y herramientas BPMN", "modules": "UI/UX & Espacio", "milestone": "Editor Visual Bézier", "status": "Planned", "story_points": 13, "hours_estimated": 50},
-                {"sprint_id": "Sprint 04", "period": "2026-03-04 al 2026-03-18", "objective": "Integración Google Workspace Shared Drive SA", "modules": "Core & Integraciones", "milestone": "Service Account y Sync", "status": "Planned", "story_points": 8, "hours_estimated": 35},
-                {"sprint_id": "Sprint 05", "period": "2026-03-19 al 2026-04-02", "objective": "Motor de Auditoría Six Sigma con Gemini", "modules": "Gobernanza & IA", "milestone": "Auditor IA Activo", "status": "Planned", "story_points": 8, "hours_estimated": 30}
+                {"sprint_id": "Sprint 01", "period": "2026-01-16 al 2026-01-30", "objective": "Diagnóstico AS-IS y levantamiento de requerimientos", "modules": "Diagnóstico & Arquitectura", "milestone": "Charter y Matriz AS-IS", "status": "Completado", "story_points": 13, "hours_estimated": 50},
+                {"sprint_id": "Sprint 02", "period": "2026-02-02 al 2026-02-16", "objective": "Mapeo SIPOC Six Sigma y roles", "modules": "Diseño BPMN & SIPOC", "milestone": "SIPOC Homologada", "status": "Completado", "story_points": 13, "hours_estimated": 55},
+                {"sprint_id": "Sprint 03", "period": "2026-02-17 al 2026-03-03", "objective": "Lienzo interactivo y herramientas BPMN", "modules": "UI/UX & Espacio", "milestone": "Editor Visual Bézier", "status": "Completado", "story_points": 13, "hours_estimated": 50},
+                {"sprint_id": "Sprint 04", "period": "2026-08-15 al 2026-09-30", "objective": "Integración Google Workspace Shared Drive SA", "modules": "Core & Integraciones", "milestone": "Service Account y Sync", "status": "En Progreso", "story_points": 8, "hours_estimated": 35},
+                {"sprint_id": "Sprint 05", "period": "2026-10-01 al 2026-11-15", "objective": "Motor de Auditoría Six Sigma con Gemini", "modules": "Gobernanza & IA", "milestone": "Auditor IA Activo", "status": "Planificado", "story_points": 8, "hours_estimated": 30}
             ],
             "plan_backlog_items": [
                 {"item_id": "1", "module": "Diagnóstico & Arquitectura", "user_story": "Como PM, quiero formalizar el Project Charter.", "sprint": "Sprint 01", "story_points": 5, "hours_estimated": 20, "start_date": "2026-01-16", "end_date": "2026-01-20", "role": "Project Manager", "priority": "Alta", "deliverable": "Project Charter", "status": "Completado"},
                 {"item_id": "2", "module": "Diagnóstico & Arquitectura", "user_story": "Como Analista, quiero estructurar la arquitectura del flujo.", "sprint": "Sprint 01", "story_points": 8, "hours_estimated": 30, "start_date": "2026-01-21", "end_date": "2026-01-26", "role": "Analista de Procesos", "priority": "Alta", "deliverable": "Arquitectura Base", "status": "Completado"},
-                {"item_id": "3", "module": "Diseño BPMN & SIPOC", "user_story": "Como Operador, quiero capturar la matriz SIPOC.", "sprint": "Sprint 02", "story_points": 8, "hours_estimated": 35, "start_date": "2026-02-02", "end_date": "2026-02-08", "role": "Analista Six Sigma", "priority": "Alta", "deliverable": "Matriz SIPOC", "status": "En Progreso"},
-                {"item_id": "4", "module": "Diseño BPMN & SIPOC", "user_story": "Como Auditor, quiero validar requisitos de calidad.", "sprint": "Sprint 02", "story_points": 5, "hours_estimated": 20, "start_date": "2026-02-09", "end_date": "2026-02-16", "role": "QA Lead", "priority": "Media", "deliverable": "Matriz SLA", "status": "Planificado"},
-                {"item_id": "5", "module": "UI/UX & Espacio", "user_story": "Como Usuario, quiero un lienzo vectorial responsivo con Bézier.", "sprint": "Sprint 03", "story_points": 13, "hours_estimated": 50, "start_date": "2026-02-17", "end_date": "2026-02-28", "role": "Frontend Dev", "priority": "Alta", "deliverable": "Lienzo SVG", "status": "Planificado"},
-                {"item_id": "6", "module": "Core & Integraciones", "user_story": "Como Sistema, quiero respaldar versiones en Google Drive.", "sprint": "Sprint 04", "story_points": 8, "hours_estimated": 35, "start_date": "2026-03-04", "end_date": "2026-03-12", "role": "Backend Dev", "priority": "Alta", "deliverable": "Drive Service SA", "status": "Planificado"},
-                {"item_id": "7", "module": "Gobernanza & IA", "user_story": "Como Líder de Calidad, quiero que Gemini audite el flujo 0-100.", "sprint": "Sprint 05", "story_points": 8, "hours_estimated": 30, "start_date": "2026-03-19", "end_date": "2026-03-27", "role": "AI Engineer", "priority": "Alta", "deliverable": "Auditor IA", "status": "Planificado"}
+                {"item_id": "3", "module": "Diseño BPMN & SIPOC", "user_story": "Como Operador, quiero capturar la matriz SIPOC.", "sprint": "Sprint 02", "story_points": 8, "hours_estimated": 35, "start_date": "2026-02-02", "end_date": "2026-02-08", "role": "Analista Six Sigma", "priority": "Alta", "deliverable": "Matriz SIPOC", "status": "Completado"},
+                {"item_id": "4", "module": "Diseño BPMN & SIPOC", "user_story": "Como Auditor, quiero validar requisitos de calidad.", "sprint": "Sprint 02", "story_points": 5, "hours_estimated": 20, "start_date": "2026-02-09", "end_date": "2026-02-16", "role": "QA Lead", "priority": "Media", "deliverable": "Matriz SLA", "status": "Completado"},
+                {"item_id": "5", "module": "UI/UX & Espacio", "user_story": "Como Usuario, quiero un lienzo vectorial responsivo con Bézier.", "sprint": "Sprint 03", "story_points": 13, "hours_estimated": 50, "start_date": "2026-02-17", "end_date": "2026-02-28", "role": "Frontend Dev", "priority": "Alta", "deliverable": "Lienzo SVG", "status": "Completado"},
+                {"item_id": "6", "module": "Core & Integraciones", "user_story": "Como Sistema, quiero respaldar versiones en Google Drive.", "sprint": "Sprint 04", "story_points": 8, "hours_estimated": 35, "start_date": "2026-08-15", "end_date": "2026-09-20", "role": "Backend Dev", "priority": "Alta", "deliverable": "Drive Service SA", "status": "En Progreso"},
+                {"item_id": "7", "module": "Gobernanza & IA", "user_story": "Como Líder de Calidad, quiero que Gemini audite el flujo 0-100.", "sprint": "Sprint 05", "story_points": 8, "hours_estimated": 30, "start_date": "2026-10-01", "end_date": "2026-10-15", "role": "AI Engineer", "priority": "Alta", "deliverable": "Auditor IA", "status": "Planificado"}
             ],
             "sipoc_rows": [
                 {
@@ -1994,7 +1994,15 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     @rx.var
     def active_sprints_count(self) -> int:
-        return sum(1 for p in self.saved_projects if p.get("current_sprint"))
+        count = 0
+        for p in self.saved_projects:
+            sprints = p.get("plan_sprints", [])
+            has_active = any(s.get("status") in ["In Progress", "En Progreso", "Activo"] for s in sprints)
+            if has_active:
+                count += 1
+            elif p.get("current_sprint") and p.get("health_status") not in ["unrated", "completed"]:
+                count += 1
+        return count
 
     @rx.var
     def projects_needing_attention(self) -> List[Dict[str, Any]]:
@@ -2521,6 +2529,11 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         if selected.get("narrative_text"):
             self.narrative_text = selected["narrative_text"]
 
+        if selected.get("audit_score"):
+            self.audit_score = int(selected.get("audit_score", 95))
+        else:
+            self.audit_score = 95 if selected.get("health_status") != "unrated" else 0
+
         self.show_recent_modal = False
         self.status_message = f"Flujo '{self.project_name}' cargado con éxito en todas las vistas"
 
@@ -2564,7 +2577,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
     # AI Process Auditor State
     show_audit_modal: bool = False
     is_auditing_ai: bool = False
-    audit_score: int = 100
+    audit_score: int = 95
     audit_findings: List[Dict[str, Any]] = []
 
     def set_connect_target_id(self, val: str):

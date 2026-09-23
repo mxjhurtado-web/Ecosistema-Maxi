@@ -44,10 +44,16 @@ def nav_item(label: str, icon_name: str, view_value: str, badge_text: str = "") 
         background_color=rx.cond(is_active, "#eff6ff", "transparent"),
         border=rx.cond(is_active, "1px solid #bfdbfe", "1px solid transparent"),
         cursor="pointer",
+        role="button",
+        tab_index=0,
         width="100%",
         _hover={
             "background_color": rx.cond(is_active, "#eff6ff", "#f8fafc"),
             "border_color": rx.cond(is_active, "#bfdbfe", "#e2e8f0"),
+        },
+        _focus_visible={
+            "outline": "2px solid #2563eb",
+            "outline_offset": "2px",
         },
         transition="all 0.15s ease",
     )
@@ -181,41 +187,37 @@ def workspace_sidebar() -> rx.Component:
                 rx.hstack(
                     rx.cond(
                         FlowState.drive_folder_url != "",
-                        rx.link(
-                            rx.button(
-                                rx.hstack(
-                                    rx.icon("folder-open", size=13),
-                                    rx.text("Drive", size="1"),
-                                    align="center",
-                                    spacing="1",
-                                ),
-                                color_scheme="gray",
-                                variant="soft",
-                                size="1",
-                                radius="medium",
+                        rx.button(
+                            rx.hstack(
+                                rx.icon("folder-open", size=13),
+                                rx.text("Drive", size="1"),
+                                align="center",
+                                spacing="1",
                             ),
-                            href=FlowState.drive_folder_url,
-                            is_external=True,
+                            on_click=rx.redirect(FlowState.drive_folder_url, is_external=True),
+                            color_scheme="gray",
+                            variant="soft",
+                            size="1",
+                            radius="medium",
+                            title="Abrir carpeta en Google Drive",
                         ),
                         rx.box(),
                     ),
                     rx.cond(
                         FlowState.sheet_url != "",
-                        rx.link(
-                            rx.button(
-                                rx.hstack(
-                                    rx.icon("file-spreadsheet", size=13),
-                                    rx.text("Sheet", size="1"),
-                                    align="center",
-                                    spacing="1",
-                                ),
-                                color_scheme="green",
-                                variant="soft",
-                                size="1",
-                                radius="medium",
+                        rx.button(
+                            rx.hstack(
+                                rx.icon("file-spreadsheet", size=13),
+                                rx.text("Sheet", size="1"),
+                                align="center",
+                                spacing="1",
                             ),
-                            href=FlowState.sheet_url,
-                            is_external=True,
+                            on_click=rx.redirect(FlowState.sheet_url, is_external=True),
+                            color_scheme="green",
+                            variant="soft",
+                            size="1",
+                            radius="medium",
+                            title="Abrir hoja de cálculo en Google Sheets",
                         ),
                         rx.box(),
                     ),
@@ -231,6 +233,7 @@ def workspace_sidebar() -> rx.Component:
                         variant="soft",
                         size="1",
                         radius="medium",
+                        title="Guardar estado del proyecto",
                     ),
                     width="100%",
                     align="center",

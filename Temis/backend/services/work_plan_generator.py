@@ -293,7 +293,7 @@ def sync_plan_to_google_sheet(
 ) -> Tuple[bool, str]:
     """
     Write sprints and backlog items to the project's Google Sheet using Service Account credentials.
-    Updates '📅 Agenda Ejecutiva' and 'Backlog Scrum Técnico TEMIS' tabs.
+    Updates 'Agenda Ejecutiva' and 'Backlog Scrum Técnico TEMIS' tabs.
     """
     try:
         import base64
@@ -308,7 +308,7 @@ def sync_plan_to_google_sheet(
         )
         service = build("sheets", "v4", credentials=creds)
 
-        # 1. Update 📅 Agenda Ejecutiva
+        # 1. Update Agenda Ejecutiva
         agenda_rows = [
             ["ID Sprint", "Periodo Estimado", "Objetivo Principal del Sprint", "Módulos / Épicas Involucradas", "Hito de Entrega", "Estado", "Story Points Estimados", "Horas Estimadas"]
         ]
@@ -324,10 +324,17 @@ def sync_plan_to_google_sheet(
                 s.get("hours_estimated", 0)
             ])
 
+        # Get existing sheet tab titles
+        meta = service.spreadsheets().get(spreadsheetId=sheet_id).execute()
+        sheet_titles = [sheet["properties"]["title"] for sheet in meta.get("sheets", [])]
+        
+        agenda_tab = next((t for t in sheet_titles if "Agenda" in t), "Agenda Ejecutiva")
+        backlog_tab = next((t for t in sheet_titles if "Backlog" in t), "Backlog Scrum Técnico TEMIS")
+
         # Write to Agenda tab
         service.spreadsheets().values().update(
             spreadsheetId=sheet_id,
-            range="'📅 Agenda Ejecutiva'!A4:H" + str(len(agenda_rows) + 4),
+            range=f"'{agenda_tab}'!A4:H" + str(len(agenda_rows) + 4),
             valueInputOption="USER_ENTERED",
             body={"values": agenda_rows}
         ).execute()

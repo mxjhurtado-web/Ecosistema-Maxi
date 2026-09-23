@@ -153,7 +153,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
             rx.hstack(
                 rx.hstack(
                     rx.icon("layers", size=14, color="#7c3aed"),
-                    rx.text("Fase ", proj["current_phase"].to_string(), ": ", proj["phase_name"], size="1", weight="medium", color="#6b21a8"),
+                    rx.text(proj["phase_name"], size="1", weight="medium", color="#6b21a8"),
                     align="center",
                     spacing="1",
                     padding_x="2",
@@ -202,7 +202,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
 
             rx.divider(color_scheme="gray", opacity=0.3),
 
-            # Bottom Row: Manager Avatar, Quick Links & Workspace Button
+            # Bottom Row: Manager Avatar, Quick Links & Primary Workspace Button
             rx.hstack(
                 # Manager & Date
                 rx.hstack(
@@ -226,53 +226,49 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                     spacing="2",
                 ),
                 rx.spacer(),
-                # External Links (Google Drive & Google Sheet)
+                # Actions Row
                 rx.hstack(
                     rx.cond(
                         proj["drive_folder_url"] != "",
-                        rx.link(
-                            rx.button(
-                                rx.hstack(
-                                    rx.icon("folder-open", size=13),
-                                    rx.text("Drive"),
-                                    align="center",
-                                    spacing="1",
-                                ),
-                                color_scheme="gray",
-                                variant="soft",
-                                size="1",
-                                radius="medium",
+                        rx.button(
+                            rx.hstack(
+                                rx.icon("folder-open", size=13),
+                                rx.text("Drive"),
+                                align="center",
+                                spacing="1",
                             ),
-                            href=proj["drive_folder_url"],
-                            is_external=True,
+                            on_click=rx.redirect(proj["drive_folder_url"], is_external=True),
+                            color_scheme="gray",
+                            variant="soft",
+                            size="1",
+                            radius="medium",
+                            title="Abrir carpeta oficial en Google Drive",
                         ),
                         rx.box(),
                     ),
                     rx.cond(
                         proj["sheet_url"] != "",
-                        rx.link(
-                            rx.button(
-                                rx.hstack(
-                                    rx.icon("file-spreadsheet", size=13),
-                                    rx.text("Plan de Trabajo"),
-                                    align="center",
-                                    spacing="1",
-                                ),
-                                color_scheme="green",
-                                variant="soft",
-                                size="1",
-                                radius="medium",
+                        rx.button(
+                            rx.hstack(
+                                rx.icon("file-spreadsheet", size=13),
+                                rx.text("Plan de Trabajo"),
+                                align="center",
+                                spacing="1",
                             ),
-                            href=proj["sheet_url"],
-                            is_external=True,
+                            on_click=rx.redirect(proj["sheet_url"], is_external=True),
+                            color_scheme="green",
+                            variant="soft",
+                            size="1",
+                            radius="medium",
+                            title="Abrir hoja de cálculo oficial en Google Sheets",
                         ),
                         rx.box(),
                     ),
-                    # Primary Open Workspace Button
+                    # Primary Open Workspace Button (Dominant visual hierarchy)
                     rx.button(
                         rx.hstack(
                             rx.icon("arrow-right", size=14),
-                            rx.text("Abrir Espacio de Trabajo", weight="medium"),
+                            rx.text("Abrir Espacio de Trabajo", weight="bold"),
                             align="center",
                             spacing="1",
                         ),
@@ -281,7 +277,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                         size="1",
                         radius="medium",
                     ),
-                    # Delete Project Button
+                    # Delete Project Button (Secondary action)
                     rx.button(
                         rx.icon("trash-2", size=13),
                         on_click=lambda: FlowState.prompt_delete_project(proj["id"], proj["name"], proj["code"]),
@@ -293,6 +289,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                     ),
                     align="center",
                     spacing="2",
+                    wrap="wrap",
                 ),
                 width="100%",
                 align="center",
@@ -859,8 +856,8 @@ def project_hub() -> rx.Component:
             # 2. Main Content Container
             rx.box(
                 rx.vstack(
-                    # Executive KPIs Row (Pure Lucide Icons)
-                    rx.hstack(
+                    # Executive KPIs Grid (Responsive 1/2/4 cols, Pure Lucide Icons)
+                    rx.grid(
                         kpi_card(
                             "Proyectos en Portafolio",
                             FlowState.total_hub_projects_count.to_string(),
@@ -893,9 +890,9 @@ def project_hub() -> rx.Component:
                             "#ea580c",
                             badge_text="En Curso",
                         ),
-                        width="100%",
+                        columns={"initial": "1", "sm": "2", "md": "4"},
                         spacing="4",
-                        wrap="wrap",
+                        width="100%",
                     ),
 
                     # Executive Attention Banner (Action-Driven Section)
@@ -912,7 +909,11 @@ def project_hub() -> rx.Component:
                                 rx.vstack(
                                     rx.hstack(
                                         rx.text("Requieren Atención:", size="2", weight="bold", color="#92400e"),
-                                        rx.text(FlowState.projects_needing_attention.length().to_string(), " proyectos en riesgo o con entregables pendientes.", size="2", color="#92400e"),
+                                        rx.cond(
+                                            FlowState.projects_needing_attention.length() == 1,
+                                            rx.text("1 proyecto en riesgo o con entregables pendientes.", size="2", color="#92400e"),
+                                            rx.text(FlowState.projects_needing_attention.length().to_string(), " proyectos en riesgo o con entregables pendientes.", size="2", color="#92400e"),
+                                        ),
                                         spacing="1",
                                     ),
                                     rx.text("Revisa los sprints y cuellos de botella para mitigar retrasos operativos.", size="1", color="#b45309"),

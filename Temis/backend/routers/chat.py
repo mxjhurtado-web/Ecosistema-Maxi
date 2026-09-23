@@ -222,13 +222,13 @@ SOBRE EL PROYECTO:
 ESTADO ACTUAL DE LAS FASES:
 """
         for phase in phases:
-            status_emoji = {
-                "not_started": "⏳",
-                "in_progress": "🔄",
-                "completed": "✅"
-            }.get(phase.status.value, "❓")
+            status_text = {
+                "not_started": "[Pendiente]",
+                "in_progress": "[En Progreso]",
+                "completed": "[Completado]"
+            }.get(phase.status.value, "[Desconocido]")
             
-            prompt += f"- {phase.name} (Fase {phase.phase_number}): {status_emoji} {phase.status.value.upper()}\n"
+            prompt += f"- {phase.name} (Fase {phase.phase_number}): {status_text} {phase.status.value.upper()}\n"
             if phase.description:
                 prompt += f"  Detalle: {phase.description[:200]}\n"
 
@@ -239,17 +239,17 @@ TAREA:
 3. Da una recomendación de "Acción del Día" para el usuario para mover el proyecto hacia adelante.
 
 ESTRICTO FORMATO DE RESPUESTA:
-### 📊 Informe de Situación
+### Informe de Situación
 [Resumen de 2 líneas]
 
-### 🚦 Semáforo de Fases
-[Lista con emojis]
+### Estatus de Fases
+[Lista de fases con su estatus]
 
-### 🔍 Detección de Faltantes (GAPS)
+### Detección de Faltantes (GAPS)
 - [ ] Elemento 1: Por qué es importante...
 - [ ] Elemento 2: ...
 
-### 💡 Sugerencias de Acción
+### Sugerencias de Acción
 1. **Acción 1**: ...
 2. **Acción 2**: ...
 """

@@ -67,7 +67,7 @@ class ProjectSuggestionsService:
             "action": "start_phase",
             "action_label": "Comenzar Fase",
             "details": f"Necesitarás preparar: {', '.join(deliverables[:3])}",
-            "icon": "🚀"
+            "icon": "play"
         }
     
     def _suggest_complete_phase(self, phase: Phase) -> Dict[str, Any]:
@@ -86,12 +86,12 @@ class ProjectSuggestionsService:
             "priority": "high",
             "phase_number": phase.phase_number,
             "phase_name": phase.name,
-            "title": f"¡Casi terminas {phase.name}!",
+            "title": f"Fase {phase.name} próxima a completarse",
             "message": f"Llevas {phase.progress}% de avance. Te falta poco para completar esta fase.",
             "action": "upload_document",
             "action_label": "Subir Documento",
             "details": f"Pendientes: {', '.join(missing[:3]) if missing else 'Actualiza el progreso'}",
-            "icon": "⚡"
+            "icon": "zap"
         }
     
     def _suggest_next_phase(self, completed_phase: Phase, next_phase: Phase) -> Dict[str, Any]:
@@ -101,12 +101,12 @@ class ProjectSuggestionsService:
             "priority": "high",
             "phase_number": next_phase.phase_number,
             "phase_name": next_phase.name,
-            "title": f"¡Completaste {completed_phase.name}!",
+            "title": f"Completaste {completed_phase.name}",
             "message": f"Excelente trabajo. Es momento de avanzar a {next_phase.name}.",
             "action": "start_phase",
             "action_label": f"Ir a {next_phase.name}",
             "details": f"Siguiente paso: {self.PHASE_DELIVERABLES.get(next_phase.phase_number, ['Revisar checklist'])[0]}",
-            "icon": "🎉"
+            "icon": "award"
         }
     
     def _check_stale_project(self, project: Any, phases: List[Phase]) -> List[Dict[str, Any]]:
@@ -128,12 +128,12 @@ class ProjectSuggestionsService:
                     "priority": "urgent",
                     "phase_number": current_phase.phase_number if current_phase else 1,
                     "phase_name": current_phase.name if current_phase else "Diagnóstico",
-                    "title": "⚠️ Proyecto sin actividad",
+                    "title": "Proyecto sin actividad reciente",
                     "message": f"Han pasado {days_since_update} días sin actualizaciones. ¿Necesitas ayuda para retomar el momentum?",
                     "action": "daily_standup",
                     "action_label": "Hacer Daily Standup",
                     "details": "Un Daily Standup te ayudará a identificar bloqueos y próximos pasos",
-                    "icon": "⏰"
+                    "icon": "clock"
                 })
         
         return suggestions

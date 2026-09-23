@@ -699,7 +699,7 @@ def user_management_view() -> rx.Component:
                             border_radius="12px",
                             box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.02)"
                         ),
-                        columns="4",
+                        columns={"initial": "1", "sm": "2", "md": "4"},
                         spacing="4",
                         width="100%",
                     ),
@@ -711,12 +711,13 @@ def user_management_view() -> rx.Component:
                             placeholder="Buscar por nombre, correo o departamento...",
                             value=FlowState.user_search_query,
                             on_change=FlowState.set_user_search_query,
-                            width="340px",
+                            min_width="220px",
+                            flex="1",
                             size="2",
                             radius="medium"
                         ),
                         rx.select.root(
-                            rx.select.trigger(width="180px", size="2"),
+                            rx.select.trigger(min_width="160px", size="2"),
                             rx.select.content(
                                 rx.select.item("Todos los perfiles", value="all"),
                                 rx.select.item("Super Admin", value="super_admin"),
@@ -729,7 +730,7 @@ def user_management_view() -> rx.Component:
                             on_change=FlowState.set_user_filter_role,
                         ),
                         rx.select.root(
-                            rx.select.trigger(width="150px", size="2"),
+                            rx.select.trigger(min_width="140px", size="2"),
                             rx.select.content(
                                 rx.select.item("Todos los estados", value="all"),
                                 rx.select.item("Activos", value="active"),
@@ -748,31 +749,37 @@ def user_management_view() -> rx.Component:
                         ),
                         width="100%",
                         align="center",
-                        spacing="3"
+                        spacing="3",
+                        wrap="wrap",
                     ),
 
                     # Users Table Card
                     rx.box(
-                        rx.table.root(
-                            rx.table.header(
-                                rx.table.row(
-                                    rx.table.column_header_cell("Usuario & Correo"),
-                                    rx.table.column_header_cell("Perfil / Rol RBAC"),
-                                    rx.table.column_header_cell("Departamento"),
-                                    rx.table.column_header_cell("Proyectos Asignados"),
-                                    rx.table.column_header_cell("Estado"),
-                                    rx.table.column_header_cell("Último Acceso"),
-                                    rx.table.column_header_cell("Acciones"),
-                                )
+                        rx.box(
+                            rx.table.root(
+                                rx.table.header(
+                                    rx.table.row(
+                                        rx.table.column_header_cell("Usuario & Correo"),
+                                        rx.table.column_header_cell("Perfil / Rol RBAC"),
+                                        rx.table.column_header_cell("Departamento"),
+                                        rx.table.column_header_cell("Proyectos Asignados"),
+                                        rx.table.column_header_cell("Estado"),
+                                        rx.table.column_header_cell("Último Acceso"),
+                                        rx.table.column_header_cell("Acciones"),
+                                    )
+                                ),
+                                rx.table.body(
+                                    rx.foreach(
+                                        FlowState.filtered_users_list,
+                                        user_row
+                                    )
+                                ),
+                                width="100%",
+                                min_width="860px",
+                                variant="surface"
                             ),
-                            rx.table.body(
-                                rx.foreach(
-                                    FlowState.filtered_users_list,
-                                    user_row
-                                )
-                            ),
+                            overflow_x="auto",
                             width="100%",
-                            variant="surface"
                         ),
                         background_color="#ffffff",
                         border="1px solid #e2e8f0",
@@ -852,7 +859,7 @@ def user_management_view() -> rx.Component:
                                     border_radius="8px",
                                     border="1px solid #e2e8f0"
                                 ),
-                                columns="4",
+                                columns={"initial": "1", "sm": "2", "md": "4"},
                                 spacing="3",
                                 width="100%"
                             ),
