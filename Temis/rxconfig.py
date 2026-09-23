@@ -14,6 +14,15 @@ config = rx.Config(
     db_url=db_url,
     telemetry_enabled=False,
     show_built_with_reflex=False,
-    plugins=[RadixThemesPlugin()],
+    plugins=[
+        RadixThemesPlugin(
+            theme=rx.theme(
+                appearance="light",
+                accent_color="blue",
+                gray_color="slate",
+                radius="medium",
+            )
+        )
+    ],
     disable_plugins=[SitemapPlugin],
 )

@@ -25,7 +25,7 @@ services:
     region: oregon
     plan: free
     rootDir: Temis
-    buildCommand: "pip install -r requirements.txt && python -m reflex init"
+    buildCommand: "pip install -r requirements.txt && python -m reflex init && python -m reflex export --no-zip"
     startCommand: "python -m reflex run --env prod --frontend-port $PORT"
     envVars:
       - key: PYTHON_VERSION

@@ -24,8 +24,9 @@ RUN pip install --no-cache-dir reflex
 # Copy application source code
 COPY . .
 
-# Initialize Reflex app
+# Initialize and compile Reflex app
 RUN python -m reflex init
+RUN python -m reflex export --no-zip
 
 # Expose web port
 EXPOSE 3000
