@@ -102,23 +102,38 @@ def user_row(u: dict) -> rx.Component:
                         rx.menu.item("👥 Colaborador (Invitado)", on_click=lambda: FlowState.update_user_role_action(u["email"], "collaborator")),
                     )
                 ),
-                rx.button(
-                    rx.icon("power", size=13),
-                    on_click=lambda: FlowState.toggle_user_status_action(u["email"]),
-                    variant="soft",
-                    color_scheme="amber",
-                    size="1",
-                    radius="medium",
-                    title="Activar / Desactivar acceso"
-                ),
-                rx.button(
-                    rx.icon("trash-2", size=13),
-                    on_click=lambda: FlowState.delete_user_action(u["email"]),
-                    variant="soft",
-                    color_scheme="ruby",
-                    size="1",
-                    radius="medium",
-                    title="Eliminar usuario"
+                rx.cond(
+                    u["email"] == FlowState.user_email,
+                    rx.badge(
+                        "Sesión Actual",
+                        color_scheme="indigo",
+                        variant="soft",
+                        size="1",
+                        radius="medium",
+                        title="Tu cuenta actual no puede ser desactivada ni eliminada"
+                    ),
+                    rx.hstack(
+                        rx.button(
+                            rx.icon("power", size=13),
+                            on_click=lambda: FlowState.toggle_user_status_action(u["email"]),
+                            variant="soft",
+                            color_scheme="amber",
+                            size="1",
+                            radius="medium",
+                            title="Activar / Desactivar acceso"
+                        ),
+                        rx.button(
+                            rx.icon("trash-2", size=13),
+                            on_click=lambda: FlowState.delete_user_action(u["email"]),
+                            variant="soft",
+                            color_scheme="ruby",
+                            size="1",
+                            radius="medium",
+                            title="Eliminar usuario"
+                        ),
+                        spacing="1",
+                        align="center"
+                    )
                 ),
                 align="center",
                 spacing="1"
@@ -149,7 +164,7 @@ def new_user_modal() -> rx.Component:
             rx.vstack(
                 # Name Field
                 rx.vstack(
-                    rx.text("Nombre Completo y Título", size="1", weight="bold", color="#334155"),
+                    rx.text("Nombre Completo y Título *", size="1", weight="bold", color="#334155"),
                     rx.input(
                         placeholder="ej. Lic. Ana Martínez o Ing. Juan Pérez",
                         value=FlowState.new_user_name,
@@ -164,7 +179,7 @@ def new_user_modal() -> rx.Component:
                 ),
                 # Email Field
                 rx.vstack(
-                    rx.text("Correo Electrónico Institucional", size="1", weight="bold", color="#334155"),
+                    rx.text("Correo Electrónico Institucional *", size="1", weight="bold", color="#334155"),
                     rx.input(
                         placeholder="usuario@maxillc.com",
                         value=FlowState.new_user_email,
@@ -212,17 +227,23 @@ def new_user_modal() -> rx.Component:
                     width="100%",
                     spacing="1"
                 ),
-                # Password Field (Pre-filled)
+                # Password Field (Masked & Security Guidance - T01)
                 rx.vstack(
-                    rx.text("Contraseña Inicial", size="1", weight="bold", color="#334155"),
+                    rx.text("Contraseña Temporal de Primer Acceso", size="1", weight="bold", color="#334155"),
                     rx.input(
+                        placeholder="••••••••••••",
+                        type="password",
                         value=FlowState.new_user_password,
                         on_change=FlowState.set_new_user_password,
                         width="100%",
                         size="2",
                         radius="medium"
                     ),
-                    rx.text("Por defecto preconfigurada con: Temis123456*", size="1", color="#94a3b8"),
+                    rx.text(
+                        "Se asignará una contraseña temporal de primer acceso (mínimo 8 caracteres). El usuario deberá actualizarla en su primer inicio de sesión.",
+                        size="1",
+                        color="#64748b"
+                    ),
                     align_items="start",
                     width="100%",
                     spacing="1"

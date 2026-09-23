@@ -11,7 +11,7 @@ import reflex as rx
 from temis_web.state import FlowState
 
 
-def kpi_card(title: str, value: rx.Var[str] | str, subtitle: str, icon_name: str, color_hex: str, badge_text: str = "") -> rx.Component:
+def kpi_card(title: str, value: rx.Var[str] | str, subtitle: rx.Var[str] | str | None, icon_name: str, color_hex: str, badge_text: str = "") -> rx.Component:
     """Render a single executive KPI metric card"""
     return rx.box(
         rx.vstack(
@@ -75,27 +75,35 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                     spacing="2",
                 ),
                 rx.spacer(),
-                # Health Semaphore Badge
+                # Health Semaphore Badge (T05)
                 rx.cond(
                     proj["health_status"] == "green",
                     rx.badge("🟢 Al día", color_scheme="green", variant="soft", size="1"),
                     rx.cond(
                         proj["health_status"] == "yellow",
                         rx.badge("🟡 En riesgo", color_scheme="amber", variant="soft", size="1"),
-                        rx.badge("🔴 Bloqueado", color_scheme="ruby", variant="soft", size="1"),
+                        rx.cond(
+                            proj["health_status"] == "red",
+                            rx.badge("🔴 Bloqueado", color_scheme="ruby", variant="soft", size="1"),
+                            rx.badge("⚪ Sin evaluar", color_scheme="gray", variant="soft", size="1"),
+                        ),
                     ),
                 ),
-                # Six Sigma Audit Score
-                rx.badge(
-                    rx.hstack(
-                        rx.icon("shield-check", size=12),
-                        rx.text(proj["audit_score"], "/100"),
-                        align="center",
-                        spacing="1",
+                # Six Sigma Audit Score (T05)
+                rx.cond(
+                    (proj["health_status"] == "unrated") | (proj["audit_score"] == 0),
+                    rx.badge("🛡️ Sin evaluar", color_scheme="gray", variant="soft", size="1"),
+                    rx.badge(
+                        rx.hstack(
+                            rx.icon("shield-check", size=12),
+                            rx.text(proj["audit_score"], "/100"),
+                            align="center",
+                            spacing="1",
+                        ),
+                        color_scheme="indigo",
+                        variant="soft",
+                        size="1",
                     ),
-                    color_scheme="indigo",
-                    variant="soft",
-                    size="1",
                 ),
                 width="100%",
                 align="center",
@@ -333,7 +341,7 @@ def new_project_modal() -> rx.Component:
                         rx.vstack(
                             rx.text("Project Manager / Responsable", size="1", weight="bold", color="#334155"),
                             rx.input(
-                                placeholder="Ing. Mario Hurtado",
+                                placeholder="Ing. José Antonio Hurtado",
                                 value=FlowState.new_proj_manager,
                                 on_change=FlowState.set_new_proj_manager,
                                 width="100%",
@@ -534,7 +542,7 @@ def project_hub() -> rx.Component:
                         kpi_card(
                             "Proyectos en Portafolio",
                             FlowState.total_hub_projects_count.to_string(),
-                            "100% integrados con Google Drive",
+                            FlowState.hub_drive_status_summary,
                             "folder-kanban",
                             "#2563eb",
                             badge_text="Activos",
@@ -607,7 +615,7 @@ def project_hub() -> rx.Component:
                             align="center",
                             spacing="2",
                         ),
-                        # Status Filter
+                        # Status Filter (T05)
                         rx.hstack(
                             rx.text("Salud:", size="1", color="#64748b", weight="medium"),
                             rx.select.root(
@@ -617,6 +625,7 @@ def project_hub() -> rx.Component:
                                     rx.select.item("🟢 Al día", value="green"),
                                     rx.select.item("🟡 En riesgo", value="yellow"),
                                     rx.select.item("🔴 Bloqueado", value="red"),
+                                    rx.select.item("⚪ Sin evaluar", value="unrated"),
                                 ),
                                 value=FlowState.filter_hub_status,
                                 on_change=FlowState.set_filter_hub_status,
@@ -645,13 +654,35 @@ def project_hub() -> rx.Component:
                                 rx.icon("folder-open", size=48, color="#94a3b8"),
                                 rx.text("No se encontraron proyectos con los filtros seleccionados.", size="3", weight="medium", color="#475569"),
                                 rx.text("Intenta cambiar el criterio de búsqueda o crea un nuevo proyecto.", size="2", color="#94a3b8"),
-                                rx.button(
-                                    rx.icon("plus", size=14),
-                                    " Crear Primer Proyecto",
-                                    on_click=FlowState.open_new_project_modal,
-                                    color_scheme="blue",
-                                    size="2",
-                                    margin_top="2",
+                                rx.cond(
+                                    (FlowState.search_hub_query != "") | (FlowState.filter_hub_phase != "all") | (FlowState.filter_hub_status != "all"),
+                                    rx.hstack(
+                                        rx.button(
+                                            rx.icon("rotate-ccw", size=14),
+                                            " Limpiar Filtros",
+                                            on_click=FlowState.clear_hub_filters,
+                                            color_scheme="gray",
+                                            variant="soft",
+                                            size="2",
+                                        ),
+                                        rx.button(
+                                            rx.icon("plus", size=14),
+                                            " Crear Nuevo Proyecto",
+                                            on_click=FlowState.open_new_project_modal,
+                                            color_scheme="blue",
+                                            size="2",
+                                        ),
+                                        spacing="2",
+                                        margin_top="2",
+                                    ),
+                                    rx.button(
+                                        rx.icon("plus", size=14),
+                                        " Crear Primer Proyecto",
+                                        on_click=FlowState.open_new_project_modal,
+                                        color_scheme="blue",
+                                        size="2",
+                                        margin_top="2",
+                                    ),
                                 ),
                                 align="center",
                                 spacing="2",

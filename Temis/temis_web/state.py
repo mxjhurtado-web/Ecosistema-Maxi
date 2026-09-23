@@ -79,7 +79,7 @@ class FlowState(rx.State):
     new_user_email: str = ""
     new_user_role: str = "collaborator"
     new_user_department: str = ""
-    new_user_password: str = "Temis123456*"
+    new_user_password: str = ""
     user_search_query: str = ""
     user_filter_role: str = "all"
     user_filter_status: str = "all"
@@ -173,7 +173,7 @@ class FlowState(rx.State):
         self.new_user_email = ""
         self.new_user_role = "collaborator"
         self.new_user_department = ""
-        self.new_user_password = "Temis123456*"
+        self.new_user_password = ""
         self.show_new_user_modal = True
 
     def set_new_user_name(self, val: str):
@@ -213,6 +213,7 @@ class FlowState(rx.State):
             if ok:
                 self.users_list = load_users()
                 self.show_new_user_modal = False
+                self.new_user_password = ""
                 self.status_message = f"✓ {msg}"
             else:
                 self.status_message = f"Error: {msg}"
@@ -232,6 +233,9 @@ class FlowState(rx.State):
             self.status_message = f"Error al actualizar rol: {str(e)}"
 
     def toggle_user_status_action(self, email: str):
+        if email.strip().lower() == self.user_email.strip().lower():
+            self.status_message = "No es posible desactivar tu propia cuenta Super Admin en sesión."
+            return
         try:
             from backend.services.user_service import toggle_user_status, load_users
             ok, msg = toggle_user_status(email)
@@ -244,6 +248,9 @@ class FlowState(rx.State):
             self.status_message = f"Error: {str(e)}"
 
     def delete_user_action(self, email: str):
+        if email.strip().lower() == self.user_email.strip().lower():
+            self.status_message = "No es posible eliminar tu propia cuenta Super Admin en sesión."
+            return
         try:
             from backend.services.user_service import delete_user, load_users
             ok, msg = delete_user(email)
@@ -286,6 +293,13 @@ class FlowState(rx.State):
     def set_filter_hub_status(self, val: str):
         self.filter_hub_status = str(val)
 
+    def clear_hub_filters(self):
+        """Reset search and filter criteria in Hub view"""
+        self.search_hub_query = ""
+        self.filter_hub_phase = "all"
+        self.filter_hub_status = "all"
+        self.status_message = "Filtros del portafolio restablecidos"
+
     # Modal Create New Project State & Drive Pipeline
     show_new_project_modal: bool = False
     new_proj_name: str = ""
@@ -293,8 +307,8 @@ class FlowState(rx.State):
     new_proj_purpose: str = ""
     new_proj_manager: str = "Ing. José Antonio Hurtado"
     new_proj_sponsor: str = "Dirección de Operaciones & Tecnología"
-    new_proj_start_date: str = "2026-01-16"
-    new_proj_end_date: str = "2026-12-04"
+    new_proj_start_date: str = "2026-09-22"
+    new_proj_end_date: str = "2026-12-22"
     is_creating_project_drive: bool = False
     creation_progress_status: str = ""
 
@@ -598,6 +612,7 @@ class FlowState(rx.State):
                 self.plan_sprints = result["sprints"]
             if result.get("backlog_items"):
                 self.plan_backlog_items = result["backlog_items"]
+            self.save_current_project()
             self.status_message = f"✓ Plan de Trabajo generado con IA: {len(self.plan_sprints)} Sprints y {len(self.plan_backlog_items)} tareas"
         except Exception as e:
             self.status_message = f"Error al generar plan con IA: {str(e)}"
@@ -620,6 +635,7 @@ class FlowState(rx.State):
                 backlog_items=self.plan_backlog_items
             )
             if ok:
+                self.save_current_project()
                 self.status_message = "✓ ¡Plan de Trabajo sincronizado con éxito en Google Sheets!"
             else:
                 self.status_message = f"Error al sincronizar con Google Sheets: {msg}"
@@ -646,11 +662,13 @@ class FlowState(rx.State):
             "status": "Planificado"
         }
         self.plan_backlog_items.append(new_item)
+        self.save_current_project()
         self.status_message = f"Tarea #{count} agregada al Backlog"
 
     def delete_backlog_item(self, item_id: str):
         """Remove a task row from the Backlog"""
         self.plan_backlog_items = [i for i in self.plan_backlog_items if i.get("item_id") != str(item_id)]
+        self.save_current_project()
         self.status_message = "Tarea eliminada del Backlog"
 
     # Project Charter & Master Metadata State
@@ -1397,17 +1415,38 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "drive_folder_url": "https://drive.google.com/drive/folders/1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI",
             "sheet_id": "1GxiIwR2rUMkZKHu00JYzlQrs6EsyXO5VqUL6qpl_MBs",
             "sheet_url": "https://docs.google.com/spreadsheets/d/1GxiIwR2rUMkZKHu00JYzlQrs6EsyXO5VqUL6qpl_MBs/edit",
-            "current_sprint": "Sprint 07",
-            "current_sprint_name": "Persistencia Híbrida & Exportador Gráfico",
-            "progress_percentage": 68.5,
-            "completed_sp": 218,
-            "total_sp": 318,
-            "completed_tasks": 32,
-            "total_tasks": 47,
+            "current_sprint": "Sprint 01",
+            "current_sprint_name": "Diagnóstico & Arquitectura Core",
+            "progress_percentage": 23.6,
+            "completed_sp": 13,
+            "total_sp": 55,
+            "completed_tasks": 2,
+            "total_tasks": 7,
             "health_status": "green",
             "audit_score": 98,
-            "nodes_count": 8,
-            "steps_count": 4,
+            "nodes_count": 6,
+            "steps_count": 3,
+            "plan_start_date": "2026-01-16",
+            "plan_end_date": "2026-12-04",
+            "plan_daily_hours": 8,
+            "plan_work_days_mode": "mon_fri",
+            "plan_activities_description": "Desarrollar la suite SaaS TEMIS con editor BPMN Bézier, matriz SIPOC, auditoría Six Sigma y persistencia en Google Drive.",
+            "plan_sprints": [
+                {"sprint_id": "Sprint 01", "period": "2026-01-16 al 2026-01-30", "objective": "Diagnóstico AS-IS y levantamiento de requerimientos", "modules": "Diagnóstico & Arquitectura", "milestone": "Charter y Matriz AS-IS", "status": "In Progress", "story_points": 13, "hours_estimated": 50},
+                {"sprint_id": "Sprint 02", "period": "2026-02-02 al 2026-02-16", "objective": "Mapeo SIPOC Six Sigma y roles", "modules": "Diseño BPMN & SIPOC", "milestone": "SIPOC Homologada", "status": "Planned", "story_points": 13, "hours_estimated": 55},
+                {"sprint_id": "Sprint 03", "period": "2026-02-17 al 2026-03-03", "objective": "Lienzo interactivo y herramientas BPMN", "modules": "UI/UX & Espacio", "milestone": "Editor Visual Bézier", "status": "Planned", "story_points": 13, "hours_estimated": 50},
+                {"sprint_id": "Sprint 04", "period": "2026-03-04 al 2026-03-18", "objective": "Integración Google Workspace Shared Drive SA", "modules": "Core & Integraciones", "milestone": "Service Account y Sync", "status": "Planned", "story_points": 8, "hours_estimated": 35},
+                {"sprint_id": "Sprint 05", "period": "2026-03-19 al 2026-04-02", "objective": "Motor de Auditoría Six Sigma con Gemini", "modules": "Gobernanza & IA", "milestone": "Auditor IA Activo", "status": "Planned", "story_points": 8, "hours_estimated": 30}
+            ],
+            "plan_backlog_items": [
+                {"item_id": "1", "module": "Diagnóstico & Arquitectura", "user_story": "Como PM, quiero formalizar el Project Charter.", "sprint": "Sprint 01", "story_points": 5, "hours_estimated": 20, "start_date": "2026-01-16", "end_date": "2026-01-20", "role": "Project Manager", "priority": "Alta", "deliverable": "Project Charter", "status": "Completado"},
+                {"item_id": "2", "module": "Diagnóstico & Arquitectura", "user_story": "Como Analista, quiero estructurar la arquitectura del flujo.", "sprint": "Sprint 01", "story_points": 8, "hours_estimated": 30, "start_date": "2026-01-21", "end_date": "2026-01-26", "role": "Analista de Procesos", "priority": "Alta", "deliverable": "Arquitectura Base", "status": "Completado"},
+                {"item_id": "3", "module": "Diseño BPMN & SIPOC", "user_story": "Como Operador, quiero capturar la matriz SIPOC.", "sprint": "Sprint 02", "story_points": 8, "hours_estimated": 35, "start_date": "2026-02-02", "end_date": "2026-02-08", "role": "Analista Six Sigma", "priority": "Alta", "deliverable": "Matriz SIPOC", "status": "En Progreso"},
+                {"item_id": "4", "module": "Diseño BPMN & SIPOC", "user_story": "Como Auditor, quiero validar requisitos de calidad.", "sprint": "Sprint 02", "story_points": 5, "hours_estimated": 20, "start_date": "2026-02-09", "end_date": "2026-02-16", "role": "QA Lead", "priority": "Media", "deliverable": "Matriz SLA", "status": "Planificado"},
+                {"item_id": "5", "module": "UI/UX & Espacio", "user_story": "Como Usuario, quiero un lienzo vectorial responsivo con Bézier.", "sprint": "Sprint 03", "story_points": 13, "hours_estimated": 50, "start_date": "2026-02-17", "end_date": "2026-02-28", "role": "Frontend Dev", "priority": "Alta", "deliverable": "Lienzo SVG", "status": "Planificado"},
+                {"item_id": "6", "module": "Core & Integraciones", "user_story": "Como Sistema, quiero respaldar versiones en Google Drive.", "sprint": "Sprint 04", "story_points": 8, "hours_estimated": 35, "start_date": "2026-03-04", "end_date": "2026-03-12", "role": "Backend Dev", "priority": "Alta", "deliverable": "Drive Service SA", "status": "Planificado"},
+                {"item_id": "7", "module": "Gobernanza & IA", "user_story": "Como Líder de Calidad, quiero que Gemini audite el flujo 0-100.", "sprint": "Sprint 05", "story_points": 8, "hours_estimated": 30, "start_date": "2026-03-19", "end_date": "2026-03-27", "role": "AI Engineer", "priority": "Alta", "deliverable": "Auditor IA", "status": "Planificado"}
+            ],
             "sipoc_rows": [
                 {
                     "id": "1",
@@ -1506,13 +1545,25 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "current_sprint_name": "Diagnóstico y Mapeo AS-IS",
             "progress_percentage": 0.0,
             "completed_sp": 0,
-            "total_sp": 30,
+            "total_sp": 10,
             "completed_tasks": 0,
-            "total_tasks": 6,
-            "health_status": "green",
-            "audit_score": 100,
+            "total_tasks": 2,
+            "health_status": "unrated",
+            "audit_score": 0,
             "nodes_count": 2,
-            "steps_count": 2,
+            "steps_count": 1,
+            "plan_start_date": "2026-09-18",
+            "plan_end_date": "2026-12-18",
+            "plan_daily_hours": 8,
+            "plan_work_days_mode": "mon_fri",
+            "plan_activities_description": "Proyecto piloto para verificación y despliegue del framework de 7 fases y sincronización en Google Drive.",
+            "plan_sprints": [
+                {"sprint_id": "Sprint 01", "period": "2026-09-18 al 2026-10-02", "objective": "Levantamiento de información AS-IS", "modules": "Diagnóstico", "milestone": "Entrevistas completadas", "status": "Planned", "story_points": 10, "hours_estimated": 40}
+            ],
+            "plan_backlog_items": [
+                {"item_id": "1", "module": "Diagnóstico", "user_story": "Como analista, quiero entrevistar al líder del proceso.", "sprint": "Sprint 01", "story_points": 5, "hours_estimated": 20, "start_date": "2026-09-18", "end_date": "2026-09-25", "role": "Analista", "priority": "Alta", "deliverable": "Minuta de entrevista", "status": "Planificado"},
+                {"item_id": "2", "module": "Diagnóstico", "user_story": "Como PM, quiero formalizar el alcance del Proyecto X.", "sprint": "Sprint 01", "story_points": 5, "hours_estimated": 20, "start_date": "2026-09-26", "end_date": "2026-10-02", "role": "PM", "priority": "Alta", "deliverable": "Project Charter", "status": "Planificado"}
+            ],
             "sipoc_rows": [
                 {
                     "id": "1",
@@ -1569,17 +1620,31 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "drive_folder_url": "",
             "sheet_id": "",
             "sheet_url": "",
-            "current_sprint": "Sprint 04",
-            "current_sprint_name": "Reglas de Enrutamiento Freshdesk & WhatsApp",
-            "progress_percentage": 82.0,
-            "completed_sp": 120,
-            "total_sp": 146,
-            "completed_tasks": 18,
-            "total_tasks": 22,
+            "current_sprint": "Sprint 01",
+            "current_sprint_name": "Recepción Freshdesk & WhatsApp",
+            "progress_percentage": 71.4,
+            "completed_sp": 20,
+            "total_sp": 28,
+            "completed_tasks": 2,
+            "total_tasks": 3,
             "health_status": "green",
             "audit_score": 95,
             "nodes_count": 4,
-            "steps_count": 4,
+            "steps_count": 2,
+            "plan_start_date": "2026-01-16",
+            "plan_end_date": "2026-12-04",
+            "plan_daily_hours": 8,
+            "plan_work_days_mode": "mon_fri",
+            "plan_activities_description": "Automatizar el ciclo integral de aclaraciones de clientes vía WhatsApp con integración a Freshdesk y Chronos.",
+            "plan_sprints": [
+                {"sprint_id": "Sprint 01", "period": "2026-01-16 al 2026-01-30", "objective": "Recepción de folios y flujo Freshdesk", "modules": "Integración Freshdesk", "milestone": "Webhooks activos", "status": "In Progress", "story_points": 20, "hours_estimated": 70},
+                {"sprint_id": "Sprint 02", "period": "2026-02-02 al 2026-02-16", "objective": "Validación en Chronos y encuestas", "modules": "Integración Chronos", "milestone": "Consultas automáticas", "status": "Planned", "story_points": 8, "hours_estimated": 30}
+            ],
+            "plan_backlog_items": [
+                {"item_id": "1", "module": "Integración Freshdesk", "user_story": "Como cliente, quiero enviar mi aclaración vía WhatsApp.", "sprint": "Sprint 01", "story_points": 8, "hours_estimated": 30, "start_date": "2026-01-16", "end_date": "2026-01-22", "role": "Backend", "priority": "Alta", "deliverable": "Bot WhatsApp", "status": "Completado"},
+                {"item_id": "2", "module": "Integración Freshdesk", "user_story": "Como operador, quiero recibir el ticket categorizado.", "sprint": "Sprint 01", "story_points": 12, "hours_estimated": 40, "start_date": "2026-01-23", "end_date": "2026-01-30", "role": "Analista", "priority": "Alta", "deliverable": "Tickets Freshdesk", "status": "Completado"},
+                {"item_id": "3", "module": "Integración Chronos", "user_story": "Como sistema, quiero consultar el estatus en Chronos.", "sprint": "Sprint 02", "story_points": 8, "hours_estimated": 30, "start_date": "2026-02-02", "end_date": "2026-02-16", "role": "Backend", "priority": "Alta", "deliverable": "API Chronos", "status": "Planificado"}
+            ],
             "sipoc_rows": [
                 {
                     "id": "1",
@@ -1640,8 +1705,8 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "code": "PRJ-CHRONOS",
             "name": "Consulta y Validación de Pólizas Chronos",
             "purpose": "Validar en tiempo real el estatus y cobertura de pólizas financieras en el core Chronos.",
-            "manager": "Equipo Operaciones",
-            "manager_initials": "EO",
+            "manager": "Ing. José Antonio Hurtado",
+            "manager_initials": "JH",
             "sponsor": "Subdirección de Finanzas & Riesgos",
             "start_date": "2026-02-01",
             "end_date": "2026-11-15",
@@ -1654,17 +1719,29 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "drive_folder_url": "",
             "sheet_id": "",
             "sheet_url": "",
-            "current_sprint": "Sprint 02",
+            "current_sprint": "Sprint 01",
             "current_sprint_name": "Especificación de API & SLA",
-            "progress_percentage": 45.0,
-            "completed_sp": 45,
-            "total_sp": 100,
-            "completed_tasks": 5,
-            "total_tasks": 11,
+            "progress_percentage": 44.4,
+            "completed_sp": 8,
+            "total_sp": 18,
+            "completed_tasks": 1,
+            "total_tasks": 2,
             "health_status": "yellow",
             "audit_score": 92,
             "nodes_count": 3,
-            "steps_count": 3,
+            "steps_count": 2,
+            "plan_start_date": "2026-02-01",
+            "plan_end_date": "2026-11-15",
+            "plan_daily_hours": 8,
+            "plan_work_days_mode": "mon_fri",
+            "plan_activities_description": "Validar en tiempo real el estatus y cobertura de pólizas financieras en el core Chronos.",
+            "plan_sprints": [
+                {"sprint_id": "Sprint 01", "period": "2026-02-01 al 2026-02-15", "objective": "Consulta API y respuesta < 2s", "modules": "Core Chronos", "milestone": "Endpoints listos", "status": "In Progress", "story_points": 18, "hours_estimated": 60}
+            ],
+            "plan_backlog_items": [
+                {"item_id": "1", "module": "Core Chronos", "user_story": "Como agente, quiero consultar pólizas en Chronos.", "sprint": "Sprint 01", "story_points": 8, "hours_estimated": 25, "start_date": "2026-02-01", "end_date": "2026-02-08", "role": "Backend", "priority": "Alta", "deliverable": "Servicio de consulta", "status": "Completado"},
+                {"item_id": "2", "module": "Core Chronos", "user_story": "Como sistema, quiero registrar el log de consulta.", "sprint": "Sprint 01", "story_points": 10, "hours_estimated": 35, "start_date": "2026-02-09", "end_date": "2026-02-15", "role": "QA", "priority": "Media", "deliverable": "Bitácora de auditoría", "status": "Planificado"}
+            ],
             "sipoc_rows": [
                 {"id": "1", "step_num": "1.0", "provider": "Agente", "input": "Número de Póliza", "step": "1.0 Consulta en Chronos", "output": "Datos de Póliza", "customer": "Chronos", "requirements": "Folio numérico"},
                 {"id": "2", "step_num": "2.0", "provider": "Chronos", "input": "Datos de Póliza", "step": "2.0 ¿Póliza Vigente?", "output": "Dictamen", "customer": "Agente", "requirements": "Respuesta < 2s"}
@@ -1762,14 +1839,29 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     @rx.var
     def average_audit_score(self) -> int:
-        if not self.saved_projects:
+        evaluated = [int(p.get("audit_score", 0)) for p in self.saved_projects if p.get("health_status") != "unrated" and int(p.get("audit_score", 0)) > 0]
+        if not evaluated:
             return 100
-        scores = [int(p.get("audit_score", 100)) for p in self.saved_projects]
-        return int(sum(scores) / len(scores))
+        return int(sum(evaluated) / len(evaluated))
+
+    @rx.var
+    def hub_drive_synced_count(self) -> int:
+        return sum(1 for p in self.saved_projects if p.get("drive_folder_url"))
+
+    @rx.var
+    def hub_drive_synced_pct(self) -> int:
+        total = len(self.saved_projects)
+        if total == 0:
+            return 0
+        return int((self.hub_drive_synced_count / total) * 100)
+
+    @rx.var
+    def hub_drive_status_summary(self) -> str:
+        return f"{self.hub_drive_synced_count} de {len(self.saved_projects)} integrados con Drive ({self.hub_drive_synced_pct}%)"
 
     @rx.var
     def active_sprints_count(self) -> int:
-        return len(self.saved_projects)
+        return sum(1 for p in self.saved_projects if p.get("current_sprint"))
 
     def set_search_saved_query(self, val: str):
         self.search_saved_query = val
@@ -1821,9 +1913,16 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.new_proj_end_date = val
 
     def open_new_project_modal(self):
+        import datetime
+        today_str = datetime.date.today().strftime("%Y-%m-%d")
+        default_end = (datetime.date.today() + datetime.timedelta(days=90)).strftime("%Y-%m-%d")
         self.new_proj_name = ""
-        self.new_proj_code = f"PRJ-00{len(self.saved_projects) + 1}"
+        self.new_proj_code = f"PRJ-{len(self.saved_projects) + 1:03d}"
         self.new_proj_purpose = ""
+        self.new_proj_manager = self.user_name
+        self.new_proj_sponsor = "Dirección de Operaciones & Tecnología"
+        self.new_proj_start_date = today_str
+        self.new_proj_end_date = default_end
         self.creation_progress_status = ""
         self.is_creating_project_drive = False
         self.show_new_project_modal = True
@@ -1837,14 +1936,25 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
     def create_project_with_drive(self):
         """Create new project in Drive via SA, replicate sheet and open workspace"""
-        if not self.new_proj_name.strip():
-            self.status_message = "Ingresa un nombre para el proyecto"
+        if self.is_creating_project_drive:
             return
-        if not self.new_proj_code.strip():
-            self.new_proj_code = f"PRJ-00{len(self.saved_projects) + 1}"
+
+        name_clean = self.new_proj_name.strip()
+        if not name_clean:
+            self.status_message = "Por favor ingresa un nombre para el proyecto."
+            return
+
+        code_clean = self.new_proj_code.strip().upper()
+        if not code_clean:
+            code_clean = f"PRJ-{len(self.saved_projects) + 1:03d}"
+
+        # T03: Validate unique project code before triggering backend/Drive
+        if any(p.get("code", "").strip().upper() == code_clean for p in self.saved_projects):
+            self.status_message = f"Error: Ya existe un proyecto con el código '{code_clean}'. Ingresa un código único."
+            return
 
         self.is_creating_project_drive = True
-        self.creation_progress_status = "Inicializando carpetas en Google Drive..."
+        self.creation_progress_status = "1/4 Conectando con Google Drive Service Account..."
 
         drive_folder_id = ""
         drive_folder_url = ""
@@ -1855,42 +1965,48 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             from backend.services.drive_service import DriveService
             ds = DriveService()
 
-            clean_name = self.new_proj_name.strip().replace(" ", "_")
-            clean_code = self.new_proj_code.strip()
+            clean_folder_name = name_clean.replace(" ", "_")
+            self.creation_progress_status = "2/4 Creando estructura de 11 carpetas oficiales en Drive..."
 
             # 1. Create project folder + 11 subfolders
-            ok_folder, folder_res = ds.create_project_folder(clean_name, clean_code)
+            ok_folder, folder_res = ds.create_project_folder(clean_folder_name, code_clean)
             if ok_folder:
                 drive_folder_id = folder_res
                 drive_folder_url = f"https://drive.google.com/drive/folders/{drive_folder_id}"
-                self.creation_progress_status = "Replicando Plantilla Oficial de Google Sheets..."
+                self.creation_progress_status = "3/4 Replicando plantilla oficial de Google Sheets..."
 
                 # 2. Replicate master Google Sheet
-                ok_sheet, sheet_res = ds.replicate_master_sheet_template(drive_folder_id, clean_name)
+                ok_sheet, sheet_res = ds.replicate_master_sheet_template(drive_folder_id, clean_folder_name)
                 if ok_sheet:
                     sheet_id = sheet_res
                     sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit"
         except Exception as e:
             print(f"Drive creation notice: {e}")
 
-        # Build project dictionary
+        self.creation_progress_status = "4/4 Inicializando proyecto y plan de trabajo..."
+
+        # Build project dictionary with exact form dates and unrated health status
         import datetime
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        new_id = f"proj-{len(self.saved_projects) + 1}"
+        new_id = f"proj-{int(datetime.datetime.now().timestamp())}"
 
         manager_name = self.new_proj_manager.strip() or self.user_name
-        initials = "".join([part[0].upper() for part in manager_name.split() if part])[:2] or "US"
+        initials = "".join([part[0].upper() for part in manager_name.split() if part])[:2] or "JH"
+
+        start_d = self.new_proj_start_date or datetime.date.today().strftime("%Y-%m-%d")
+        end_d = self.new_proj_end_date or (datetime.date.today() + datetime.timedelta(days=90)).strftime("%Y-%m-%d")
+        purpose_str = self.new_proj_purpose.strip() or "Definir el alcance y objetivos operativos."
 
         new_proj_dict = {
             "id": new_id,
-            "code": self.new_proj_code.strip(),
-            "name": self.new_proj_name.strip(),
-            "purpose": self.new_proj_purpose.strip() or "Definir el alcance y objetivos operativos.",
+            "code": code_clean,
+            "name": name_clean,
+            "purpose": purpose_str,
             "manager": manager_name,
             "manager_initials": initials,
-            "sponsor": self.new_proj_sponsor.strip() or "Dirección General",
-            "start_date": self.new_proj_start_date or "2026-01-16",
-            "end_date": self.new_proj_end_date or "2026-12-04",
+            "sponsor": self.new_proj_sponsor.strip() or "Dirección de Operaciones & Tecnología",
+            "start_date": start_d,
+            "end_date": end_d,
             "scope_in": "Mapeo SIPOC, diagrama BPMN multi-pestaña, gobernanza y bitácoras.",
             "scope_out": "Desarrollos fuera de alcance.",
             "current_phase": 1,
@@ -1904,13 +2020,20 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "current_sprint_name": "Diagnóstico y Mapeo AS-IS",
             "progress_percentage": 0.0,
             "completed_sp": 0,
-            "total_sp": 30,
+            "total_sp": 0,
             "completed_tasks": 0,
-            "total_tasks": 5,
-            "health_status": "green",
-            "audit_score": 100,
+            "total_tasks": 0,
+            "health_status": "unrated",
+            "audit_score": 0,
             "nodes_count": 1,
             "steps_count": 1,
+            "plan_start_date": start_d,
+            "plan_end_date": end_d,
+            "plan_daily_hours": 8,
+            "plan_work_days_mode": "mon_fri",
+            "plan_activities_description": purpose_str,
+            "plan_sprints": [],
+            "plan_backlog_items": [],
             "sipoc_rows": [
                 {
                     "id": "1",
@@ -1960,14 +2083,14 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
                     "swimlanes": ["Input", "Actor 1 (ej. Operador)", "Output"]
                 }
             ],
-            "narrative_text": f"# 📘 Manual de Procedimientos\n# {self.new_proj_name.strip()}\n\n## 🎯 1. Objetivo\n{self.new_proj_purpose.strip()}\n"
+            "narrative_text": f"# 📘 Manual de Procedimientos\n# {name_clean}\n\n## 🎯 1. Objetivo\n{purpose_str}\n"
         }
 
         self.saved_projects.insert(0, new_proj_dict)
         self.is_creating_project_drive = False
         self.show_new_project_modal = False
         self.open_project_workspace(new_id)
-        self.status_message = f"✓ ¡Proyecto '{self.new_proj_name.strip()}' creado y desplegado con éxito!"
+        self.status_message = f"✓ ¡Proyecto '{name_clean}' ({code_clean}) creado con éxito!"
 
     def set_project_name(self, name: str):
         """Set project title"""
@@ -2100,13 +2223,20 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         # Retain existing metadata if available
         existing = next((p for p in self.saved_projects if p.get("id") == self.project_id), {})
 
+        # Dynamic metrics derived directly from backlog and structure
+        total_sp = sum(int(item.get("story_points", 0)) for item in self.plan_backlog_items)
+        completed_sp = sum(int(item.get("story_points", 0)) for item in self.plan_backlog_items if item.get("status") in ["Completado", "Done", "Finalizado"])
+        prog_pct = round((completed_sp / max(1, total_sp)) * 100, 1) if total_sp > 0 else 0.0
+        total_tasks = len(self.plan_backlog_items)
+        completed_tasks = sum(1 for item in self.plan_backlog_items if item.get("status") in ["Completado", "Done", "Finalizado"])
+
         current_dict = {
             "id": self.project_id or f"proj-{len(self.saved_projects) + 1}",
             "code": getattr(self, "project_code", existing.get("code", "PRJ")),
             "name": self.project_name,
             "purpose": self.project_purpose,
             "manager": self.project_manager,
-            "manager_initials": existing.get("manager_initials", "MH"),
+            "manager_initials": existing.get("manager_initials", "JH"),
             "sponsor": self.project_sponsor,
             "start_date": self.start_date,
             "end_date": self.end_date,
@@ -2119,17 +2249,24 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "drive_folder_url": self.drive_folder_url or existing.get("drive_folder_url", ""),
             "sheet_id": self.sheet_id or existing.get("sheet_id", ""),
             "sheet_url": self.sheet_url or existing.get("sheet_url", ""),
-            "current_sprint": existing.get("current_sprint", "Sprint 01"),
-            "current_sprint_name": existing.get("current_sprint_name", "Operaciones"),
-            "progress_percentage": existing.get("progress_percentage", 50.0),
-            "completed_sp": existing.get("completed_sp", 10),
-            "total_sp": existing.get("total_sp", 20),
-            "completed_tasks": existing.get("completed_tasks", 5),
-            "total_tasks": existing.get("total_tasks", 10),
-            "health_status": existing.get("health_status", "green"),
-            "audit_score": existing.get("audit_score", 95),
+            "current_sprint": self.plan_sprints[0]["sprint_id"] if self.plan_sprints else existing.get("current_sprint", "Sprint 01"),
+            "current_sprint_name": self.plan_sprints[0].get("modules", "General") if self.plan_sprints else existing.get("current_sprint_name", "Operaciones"),
+            "progress_percentage": prog_pct,
+            "completed_sp": completed_sp,
+            "total_sp": total_sp,
+            "completed_tasks": completed_tasks,
+            "total_tasks": total_tasks,
+            "health_status": existing.get("health_status", "unrated"),
+            "audit_score": existing.get("audit_score", 0),
             "nodes_count": len(self.nodes),
             "steps_count": len(self.sipoc_rows),
+            "plan_start_date": self.plan_start_date,
+            "plan_end_date": self.plan_end_date,
+            "plan_daily_hours": self.plan_daily_hours,
+            "plan_work_days_mode": self.plan_work_days_mode,
+            "plan_activities_description": self.plan_activities_description,
+            "plan_sprints": list(self.plan_sprints),
+            "plan_backlog_items": list(self.plan_backlog_items),
             "sipoc_rows": list(self.sipoc_rows),
             "customer_requirements": self.customer_requirements,
             "nodes": list(self.nodes),
@@ -2154,7 +2291,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
 
         self.saved_projects = new_list
         self.auto_save_status = "✓ Cambios Guardados"
-        self.status_message = f"✓ Proceso '{self.project_name}' guardado exitosamente en el Catálogo de Flujos"
+        self.status_message = f"✓ Proceso '{self.project_name}' guardado exitosamente ({now_str})"
 
     def save_diagram(self):
         """Alias for save_current_project called from menu"""
@@ -2184,6 +2321,15 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.drive_folder_url = selected.get("drive_folder_url", "")
         self.sheet_id = selected.get("sheet_id", "")
         self.sheet_url = selected.get("sheet_url", "")
+
+        # T04 & T02: Work plan & Backlog isolation per project
+        self.plan_start_date = selected.get("plan_start_date", selected.get("start_date", "2026-01-16"))
+        self.plan_end_date = selected.get("plan_end_date", selected.get("end_date", "2026-12-04"))
+        self.plan_daily_hours = selected.get("plan_daily_hours", 8)
+        self.plan_work_days_mode = selected.get("plan_work_days_mode", "mon_fri")
+        self.plan_activities_description = selected.get("plan_activities_description", selected.get("purpose", ""))
+        self.plan_sprints = list(selected.get("plan_sprints", []))
+        self.plan_backlog_items = list(selected.get("plan_backlog_items", []))
 
         if selected.get("sipoc_rows"):
             self.sipoc_rows = list(selected["sipoc_rows"])
