@@ -330,8 +330,8 @@ def work_plan_view() -> rx.Component:
                         align="end",
                     ),
 
-                    # Capacity KPI Badges Row
-                    rx.hstack(
+                    # Capacity KPI Badges Grid (Responsive 1/2/4 cols)
+                    rx.grid(
                         capacity_stat(
                             "Días Hábiles Reales",
                             FlowState.plan_working_days_count.to_string() + " días",
@@ -360,8 +360,9 @@ def work_plan_view() -> rx.Component:
                             "circle-check",
                             "#8b5cf6",
                         ),
-                        width="100%",
+                        columns={"initial": "1", "sm": "2", "md": "4"},
                         spacing="3",
+                        width="100%",
                     ),
 
                     # Description Text Area for Gemini Scope Prompt
@@ -437,12 +438,14 @@ def work_plan_view() -> rx.Component:
                         ),
                         align="center",
                         spacing="2",
+                        wrap="wrap",
                     ),
                     rx.box(),
                 ),
                 width="100%",
                 align="center",
                 padding_y="1",
+                wrap="wrap",
             ),
 
             # 3. Main Body: Backlog Table vs Sprints Cards
@@ -450,29 +453,34 @@ def work_plan_view() -> rx.Component:
                 FlowState.plan_active_subtab == "backlog",
                 # Subtab 1: Backlog Scrum Table
                 rx.box(
-                    rx.table.root(
-                        rx.table.header(
-                            rx.table.row(
-                                rx.table.column_header_cell("ID", width="50px"),
-                                rx.table.column_header_cell("Módulo / Épica", width="150px"),
-                                rx.table.column_header_cell("Historia de Usuario / Tarea Técnica", min_width="320px"),
-                                rx.table.column_header_cell("Sprint", width="110px"),
-                                rx.table.column_header_cell("Story Points", width="90px"),
-                                rx.table.column_header_cell("Horas", width="80px"),
-                                rx.table.column_header_cell("Fechas", width="120px"),
-                                rx.table.column_header_cell("Rol Asignado", width="130px"),
-                                rx.table.column_header_cell("Prioridad", width="90px"),
-                                rx.table.column_header_cell("Acciones", width="60px"),
+                    rx.box(
+                        rx.table.root(
+                            rx.table.header(
+                                rx.table.row(
+                                    rx.table.column_header_cell("ID", width="50px"),
+                                    rx.table.column_header_cell("Módulo / Épica", width="150px"),
+                                    rx.table.column_header_cell("Historia de Usuario / Tarea Técnica", min_width="320px"),
+                                    rx.table.column_header_cell("Sprint", width="110px"),
+                                    rx.table.column_header_cell("Story Points", width="90px"),
+                                    rx.table.column_header_cell("Horas", width="80px"),
+                                    rx.table.column_header_cell("Fechas", width="120px"),
+                                    rx.table.column_header_cell("Rol Asignado", width="130px"),
+                                    rx.table.column_header_cell("Prioridad", width="90px"),
+                                    rx.table.column_header_cell("Acciones", width="60px"),
+                                ),
                             ),
-                        ),
-                        rx.table.body(
-                            rx.foreach(
-                                FlowState.plan_filtered_backlog,
-                                render_backlog_row,
+                            rx.table.body(
+                                rx.foreach(
+                                    FlowState.plan_filtered_backlog,
+                                    render_backlog_row,
+                                ),
                             ),
+                            variant="surface",
+                            size="1",
+                            width="100%",
+                            min_width="940px",
                         ),
-                        variant="surface",
-                        size="1",
+                        overflow_x="auto",
                         width="100%",
                     ),
                     background_color="#ffffff",

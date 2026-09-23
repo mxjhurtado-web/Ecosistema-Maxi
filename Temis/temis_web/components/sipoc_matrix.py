@@ -154,33 +154,40 @@ def sipoc_matrix() -> rx.Component:
                         radius="medium",
                     ),
                     spacing="2",
+                    wrap="wrap",
                 ),
                 width="100%",
                 padding_y="3",
                 border_bottom="1px solid #e2e8f0",
                 align="center",
+                wrap="wrap",
             ),
 
             # SIPOC Interactive Table Container
             rx.box(
-                rx.table.root(
-                    rx.table.header(
-                        rx.table.row(
-                            rx.table.column_header_cell("#", width="60px", align="center"),
-                            rx.table.column_header_cell("S · PROVEEDORES (Suppliers)", width="17%"),
-                            rx.table.column_header_cell("I · ENTRADAS (Inputs)", width="17%"),
-                            rx.table.column_header_cell("P · PROCESO (Process 1.0..N)", width="22%"),
-                            rx.table.column_header_cell("O · SALIDAS (Outputs)", width="17%"),
-                            rx.table.column_header_cell("C · CLIENTES (Customers)", width="14%"),
-                            rx.table.column_header_cell("", width="50px", align="center"),
+                rx.box(
+                    rx.table.root(
+                        rx.table.header(
+                            rx.table.row(
+                                rx.table.column_header_cell("#", width="60px", align="center"),
+                                rx.table.column_header_cell("S · PROVEEDORES (Suppliers)", width="17%"),
+                                rx.table.column_header_cell("I · ENTRADAS (Inputs)", width="17%"),
+                                rx.table.column_header_cell("P · PROCESO (Process 1.0..N)", width="22%"),
+                                rx.table.column_header_cell("O · SALIDAS (Outputs)", width="17%"),
+                                rx.table.column_header_cell("C · CLIENTES (Customers)", width="14%"),
+                                rx.table.column_header_cell("", width="50px", align="center"),
+                            ),
                         ),
+                        rx.table.body(
+                            rx.foreach(FlowState.sipoc_rows, render_sipoc_row),
+                        ),
+                        width="100%",
+                        min_width="760px",
+                        variant="surface",
+                        size="2",
                     ),
-                    rx.table.body(
-                        rx.foreach(FlowState.sipoc_rows, render_sipoc_row),
-                    ),
+                    overflow_x="auto",
                     width="100%",
-                    variant="surface",
-                    size="2",
                 ),
                 width="100%",
                 background_color="#ffffff",
