@@ -11,15 +11,15 @@ from temis_web.state import FlowState
 
 
 def edit_node_modal() -> rx.Component:
-    """Dialog modal for editing node details"""
+    """Dialog modal for editing node details in dark executive slate"""
     return rx.dialog.root(
         rx.dialog.content(
-            rx.dialog.title("Propiedades del Nodo", size="4", weight="bold"),
-            rx.dialog.description("Edita la información y símbolos del nodo ", FlowState.modal_node_id, ":", size="2", color="#64748b"),
+            rx.dialog.title("Propiedades del Nodo", size="4", weight="bold", color="#f8fafc"),
+            rx.dialog.description("Edita la información y símbolos del nodo ", FlowState.modal_node_id, ":", size="2", color="#94a3b8"),
             rx.vstack(
                 # Label field
                 rx.vstack(
-                    rx.text("Texto / Verbo en Infinitivo:", size="2", weight="bold", color="#334155"),
+                    rx.text("Texto / Verbo en Infinitivo:", size="2", weight="bold", color="#94a3b8"),
                     rx.input(
                         value=FlowState.modal_label,
                         on_change=FlowState.set_modal_label,
@@ -31,7 +31,7 @@ def edit_node_modal() -> rx.Component:
                 ),
                 # System field
                 rx.vstack(
-                    rx.text("Sistema Involucrado (ej: Chronos, Freshdesk, SAP):", size="2", weight="bold", color="#334155"),
+                    rx.text("Sistema Involucrado (ej: Chronos, Freshdesk, SAP):", size="2", weight="bold", color="#94a3b8"),
                     rx.input(
                         value=FlowState.modal_system,
                         on_change=FlowState.set_modal_system,
@@ -43,7 +43,7 @@ def edit_node_modal() -> rx.Component:
                 ),
                 # Channel field
                 rx.vstack(
-                    rx.text("Canal de Comunicación (ej: WhatsApp, Freshdesk, Bria):", size="2", weight="bold", color="#334155"),
+                    rx.text("Canal de Comunicación (ej: WhatsApp, Freshdesk, Bria):", size="2", weight="bold", color="#94a3b8"),
                     rx.input(
                         value=FlowState.modal_channel,
                         on_change=FlowState.set_modal_channel,
@@ -55,7 +55,7 @@ def edit_node_modal() -> rx.Component:
                 ),
                 # Activity number field
                 rx.vstack(
-                    rx.text("Número de Actividad (Happy Path):", size="2", weight="bold", color="#334155"),
+                    rx.text("Número de Actividad (Happy Path):", size="2", weight="bold", color="#94a3b8"),
                     rx.input(
                         value=FlowState.modal_activity_num,
                         on_change=FlowState.set_modal_activity_num,
@@ -84,6 +84,8 @@ def edit_node_modal() -> rx.Component:
             width="460px",
             border_radius="xl",
             padding="5",
+            background_color="#0f172a",
+            border="1px solid #1e293b",
         ),
         open=FlowState.show_modal,
         on_open_change=FlowState.close_node_edit_modal,

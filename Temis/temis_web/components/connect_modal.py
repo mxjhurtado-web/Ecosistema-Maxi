@@ -11,13 +11,13 @@ from temis_web.state import FlowState
 
 
 def connect_modal() -> rx.Component:
-    """Dialog modal to interactively connect selected node to a target node"""
+    """Dialog modal to interactively connect selected node to a target node in dark executive slate"""
     return rx.dialog.root(
         rx.dialog.content(
             rx.dialog.title(
                 rx.hstack(
-                    rx.icon("link", size=20, color="#2563eb"),
-                    rx.text("Conectar Nodo a Destino", size="4", weight="bold"),
+                    rx.icon("link", size=20, color="#38bdf8"),
+                    rx.text("Conectar Nodo a Destino", size="4", weight="bold", color="#f8fafc"),
                     align="center",
                     spacing="2",
                 ),
@@ -25,17 +25,17 @@ def connect_modal() -> rx.Component:
             rx.dialog.description(
                 "Establece una línea de conexión Bézier y una etiqueta de decisión:",
                 size="2",
-                color="#64748b",
+                color="#94a3b8",
             ),
             rx.vstack(
                 rx.vstack(
-                    rx.text("Nodo de Origen:", size="2", weight="bold", color="#334155"),
+                    rx.text("Nodo de Origen:", size="2", weight="bold", color="#94a3b8"),
                     rx.badge(FlowState.selected_node_id, color_scheme="blue", variant="soft", size="2"),
                     align="start",
                     spacing="1",
                 ),
                 rx.vstack(
-                    rx.text("Selecciona el Nodo Destino:", size="2", weight="bold", color="#334155"),
+                    rx.text("Selecciona el Nodo Destino:", size="2", weight="bold", color="#94a3b8"),
                     rx.select(
                         FlowState.target_node_options,
                         placeholder="Elegir nodo destino...",
@@ -47,7 +47,7 @@ def connect_modal() -> rx.Component:
                     width="100%",
                 ),
                 rx.vstack(
-                    rx.text("Etiqueta del Conector (Opcional):", size="2", weight="bold", color="#334155"),
+                    rx.text("Etiqueta del Conector (Opcional):", size="2", weight="bold", color="#94a3b8"),
                     rx.input(
                         placeholder="ej: Sí, No, Válido, Aprobado, Reintentar...",
                         value=FlowState.connect_label,
@@ -82,6 +82,8 @@ def connect_modal() -> rx.Component:
             width="460px",
             border_radius="xl",
             padding="5",
+            background_color="#0f172a",
+            border="1px solid #1e293b",
         ),
         open=FlowState.show_connect_modal,
         on_open_change=FlowState.close_connect_modal,

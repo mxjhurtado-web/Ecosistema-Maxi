@@ -11,21 +11,21 @@ from temis_web.state import FlowState
 
 
 def render_saved_project_card(proj: rx.Var[dict]) -> rx.Component:
-    """Render a single saved flow/project card in the catalog"""
+    """Render a single saved flow/project card in the catalog in dark theme"""
     return rx.box(
         rx.vstack(
             rx.hstack(
                 rx.vstack(
                     rx.hstack(
-                        rx.icon("network", size=16, color="#2563eb"),
-                        rx.text(proj["name"], size="3", weight="bold", color="#1e293b"),
+                        rx.icon("network", size=16, color="#38bdf8"),
+                        rx.text(proj["name"], size="3", weight="bold", color="#f8fafc"),
                         align="center",
                         spacing="2",
                     ),
                     rx.text(
                         proj["purpose"],
                         size="1",
-                        color="#64748b",
+                        color="#94a3b8",
                         max_width="440px",
                         overflow="hidden",
                         text_overflow="ellipsis",
@@ -100,31 +100,31 @@ def render_saved_project_card(proj: rx.Var[dict]) -> rx.Component:
             width="100%",
         ),
         padding="3",
-        background_color="#ffffff",
-        border="1px solid #e2e8f0",
+        background_color="#131b2e",
+        border="1px solid #1e293b",
         border_radius="8px",
         width="100%",
         _hover={
-            "border_color": "#93c5fd",
-            "box_shadow": "0 2px 4px 0 rgba(0, 0, 0, 0.04)",
+            "border_color": "#3b82f6",
+            "box_shadow": "0 4px 12px 0 rgba(0, 0, 0, 0.4)",
         },
     )
 
 
 def recent_projects_modal() -> rx.Component:
-    """Dialog modal to browse and manage saved projects catalog"""
+    """Dialog modal to browse and manage saved projects catalog in dark executive slate"""
     return rx.dialog.root(
         rx.dialog.content(
             rx.vstack(
                 # Modal Header
                 rx.hstack(
-                    rx.icon("folder-git-2", size=22, color="#2563eb"),
+                    rx.icon("folder-git-2", size=22, color="#38bdf8"),
                     rx.vstack(
-                        rx.dialog.title("Catálogo de Flujos & Proyectos Guardados", size="4", weight="bold", color="#0f172a"),
+                        rx.dialog.title("Catálogo de Flujos & Proyectos Guardados", size="4", weight="bold", color="#f8fafc"),
                         rx.dialog.description(
                             "Explora, abre y gestiona los procesos documentados en TEMIS",
                             size="2",
-                            color="#64748b",
+                            color="#94a3b8",
                         ),
                         spacing="0",
                     ),
@@ -161,8 +161,8 @@ def recent_projects_modal() -> rx.Component:
                         ),
                         rx.box(
                             rx.vstack(
-                                rx.icon("folder-open", size=32, color="#94a3b8"),
-                                rx.text("No se encontraron flujos guardados con ese criterio.", size="2", color="#64748b"),
+                                rx.icon("folder-open", size=32, color="#64748b"),
+                                rx.text("No se encontraron flujos guardados con ese criterio.", size="2", color="#94a3b8"),
                                 align="center",
                                 spacing="2",
                             ),
@@ -183,8 +183,8 @@ def recent_projects_modal() -> rx.Component:
                         rx.icon("plus", size=15),
                         " Nuevo Flujo en Blanco",
                         on_click=FlowState.create_new_project,
-                        color_scheme="green",
-                        variant="soft",
+                        color_scheme="blue",
+                        variant="solid",
                         size="2",
                         radius="medium",
                     ),
@@ -203,7 +203,8 @@ def recent_projects_modal() -> rx.Component:
             max_width="95vw",
             border_radius="xl",
             padding="5",
-            background_color="#f8fafc",
+            background_color="#0f172a",
+            border="1px solid #1e293b",
         ),
         open=FlowState.show_recent_modal,
         on_open_change=FlowState.close_recent_modal,

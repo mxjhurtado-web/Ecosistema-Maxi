@@ -67,8 +67,8 @@ def user_row(u: dict) -> rx.Component:
                     variant="soft"
                 ),
                 rx.vstack(
-                    rx.text(u["name"], size="2", weight="bold", color="#17283c"),
-                    rx.text(u["email"], size="1", color="#59697b"),
+                    rx.text(u["name"], size="2", weight="bold", color="#f8fafc"),
+                    rx.text(u["email"], size="1", color="#94a3b8"),
                     spacing="0",
                     align_items="start"
                 ),
@@ -82,7 +82,7 @@ def user_row(u: dict) -> rx.Component:
         rx.table.cell(
             rx.hstack(
                 rx.icon("building", size=13, color="#94a3b8"),
-                rx.text(u["department"], size="1", color="#59697b"),
+                rx.text(u["department"], size="1", color="#94a3b8"),
                 align="center",
                 spacing="1"
             )
@@ -94,10 +94,10 @@ def user_row(u: dict) -> rx.Component:
         # Last Login & Created
         rx.table.cell(
             rx.vstack(
-                rx.text(u["last_login"], size="1", weight="medium", color="#17283c"),
+                rx.text(u["last_login"], size="1", weight="medium", color="#f8fafc"),
                 rx.hstack(
-                    rx.text("Registrado:", size="1", color="#8b9bae"),
-                    rx.text(u["created_at"], size="1", color="#8b9bae"),
+                    rx.text("Registrado:", size="1", color="#64748b"),
+                    rx.text(u["created_at"], size="1", color="#64748b"),
                     spacing="1"
                 ),
                 spacing="0",
@@ -540,15 +540,15 @@ def user_management_view() -> rx.Component:
             # Top Navigation Bar
             rx.hstack(
                 rx.hstack(
-                    rx.icon("network", size=24, color="#1d4ed8"),
+                    rx.icon("network", size=24, color="#3b82f6"),
                     rx.vstack(
                         rx.hstack(
-                            rx.text("TEMIS", size="4", weight="bold", color="#0f172a"),
+                            rx.text("TEMIS", size="4", weight="bold", color="#f8fafc"),
                             rx.badge("Work OS Enterprise", color_scheme="indigo", variant="surface", size="1"),
                             align="center",
                             spacing="2",
                         ),
-                        rx.text("Control y Administración de Accesos & Perfiles", size="1", color="#64748b"),
+                        rx.text("Control y Administración de Accesos & Perfiles", size="1", color="#94a3b8"),
                         spacing="0",
                     ),
                     align="center",
@@ -575,7 +575,7 @@ def user_management_view() -> rx.Component:
                         variant="soft"
                     ),
                     rx.vstack(
-                        rx.text(FlowState.user_name, size="1", weight="bold", color="#0f172a"),
+                        rx.text(FlowState.user_name, size="1", weight="bold", color="#f8fafc"),
                         rx.badge("Super Admin", color_scheme="purple", variant="soft", size="1"),
                         spacing="0",
                         align_items="start"
@@ -596,10 +596,10 @@ def user_management_view() -> rx.Component:
                 width="100%",
                 height="60px",
                 padding_x="6",
-                background_color="#ffffff",
-                border_bottom="1px solid #e2e8f0",
+                background_color="#0f172a",
+                border_bottom="1px solid #1e293b",
                 align="center",
-                box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.02)",
+                box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.4)",
             ),
 
             # Main Body Container
@@ -611,93 +611,93 @@ def user_management_view() -> rx.Component:
                         rx.box(
                             rx.hstack(
                                 rx.vstack(
-                                    rx.text("Total Usuarios", size="1", weight="medium", color="#59697b"),
-                                    rx.text(FlowState.users_total_count, size="6", weight="bold", color="#17283c"),
+                                    rx.text("Total Usuarios", size="1", weight="medium", color="#94a3b8"),
+                                    rx.text(FlowState.users_total_count, size="6", weight="bold", color="#f8fafc"),
                                     spacing="0"
                                 ),
                                 rx.spacer(),
                                 rx.box(
-                                    rx.icon("users", size=20, color="#1d4ed8"),
+                                    rx.icon("users", size=20, color="#3b82f6"),
                                     padding="3",
-                                    background_color="#eff6ff",
+                                    background_color="rgba(59, 130, 246, 0.15)",
                                     border_radius="12px"
                                 ),
                                 align="center"
                             ),
                             padding="4",
-                            background_color="#ffffff",
-                            border="1px solid #d7e0ea",
+                            background_color="#131b2e",
+                            border="1px solid #1e293b",
                             border_radius="12px",
-                            box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)"
+                            box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)"
                         ),
                         # Card 2: Super Admins
                         rx.box(
                             rx.hstack(
                                 rx.vstack(
-                                    rx.text("Super Administradores", size="1", weight="medium", color="#59697b"),
-                                    rx.text(FlowState.users_super_admin_count, size="6", weight="bold", color="#7c3aed"),
+                                    rx.text("Super Administradores", size="1", weight="medium", color="#94a3b8"),
+                                    rx.text(FlowState.users_super_admin_count, size="6", weight="bold", color="#a855f7"),
                                     spacing="0"
                                 ),
                                 rx.spacer(),
                                 rx.box(
-                                    rx.icon("shield", size=20, color="#7c3aed"),
+                                    rx.icon("shield", size=20, color="#a855f7"),
                                     padding="3",
-                                    background_color="#ede9fe",
+                                    background_color="rgba(168, 85, 247, 0.15)",
                                     border_radius="12px"
                                 ),
                                 align="center"
                             ),
                             padding="4",
-                            background_color="#ffffff",
-                            border="1px solid #d7e0ea",
+                            background_color="#131b2e",
+                            border="1px solid #1e293b",
                             border_radius="12px",
-                            box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)"
+                            box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)"
                         ),
                         # Card 3: Project Managers
                         rx.box(
                             rx.hstack(
                                 rx.vstack(
-                                    rx.text("Dueños de Proyecto (PM)", size="1", weight="medium", color="#59697b"),
-                                    rx.text(FlowState.users_pm_count, size="6", weight="bold", color="#2563eb"),
+                                    rx.text("Dueños de Proyecto (PM)", size="1", weight="medium", color="#94a3b8"),
+                                    rx.text(FlowState.users_pm_count, size="6", weight="bold", color="#3b82f6"),
                                     spacing="0"
                                 ),
                                 rx.spacer(),
                                 rx.box(
-                                    rx.icon("briefcase", size=20, color="#2563eb"),
+                                    rx.icon("briefcase", size=20, color="#3b82f6"),
                                     padding="3",
-                                    background_color="#dbeafe",
+                                    background_color="rgba(59, 130, 246, 0.15)",
                                     border_radius="12px"
                                 ),
                                 align="center"
                             ),
                             padding="4",
-                            background_color="#ffffff",
-                            border="1px solid #d7e0ea",
+                            background_color="#131b2e",
+                            border="1px solid #1e293b",
                             border_radius="12px",
-                            box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)"
+                            box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)"
                         ),
                         # Card 4: Analysts & Collaborators
                         rx.box(
                             rx.hstack(
                                 rx.vstack(
-                                    rx.text("Analistas & Calidad", size="1", weight="medium", color="#59697b"),
-                                    rx.text(FlowState.users_analyst_qa_count, size="6", weight="bold", color="#0d9488"),
+                                    rx.text("Analistas & Calidad", size="1", weight="medium", color="#94a3b8"),
+                                    rx.text(FlowState.users_analyst_qa_count, size="6", weight="bold", color="#14b8a6"),
                                     spacing="0"
                                 ),
                                 rx.spacer(),
                                 rx.box(
-                                    rx.icon("circle-check", size=20, color="#0d9488"),
+                                    rx.icon("circle-check", size=20, color="#14b8a6"),
                                     padding="3",
-                                    background_color="#ccfbf1",
+                                    background_color="rgba(20, 184, 166, 0.15)",
                                     border_radius="12px"
                                 ),
                                 align="center"
                             ),
                             padding="4",
-                            background_color="#ffffff",
-                            border="1px solid #d7e0ea",
+                            background_color="#131b2e",
+                            border="1px solid #1e293b",
                             border_radius="12px",
-                            box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)"
+                            box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)"
                         ),
                         columns={"initial": "1", "sm": "2", "md": "4"},
                         spacing="4",
@@ -781,20 +781,20 @@ def user_management_view() -> rx.Component:
                             overflow_x="auto",
                             width="100%",
                         ),
-                        background_color="#ffffff",
-                        border="1px solid #d7e0ea",
+                        background_color="#131b2e",
+                        border="1px solid #1e293b",
                         border_radius="12px",
                         width="100%",
                         overflow="hidden",
-                        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)"
+                        box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)"
                     ),
 
                     # RBAC Privilege Matrix Card
                     rx.box(
                         rx.vstack(
                             rx.hstack(
-                                rx.icon("shield-check", size=18, color="#1d4ed8"),
-                                rx.text("Matriz de Privilegios & Permisos por Rol en TEMIS", size="2", weight="bold", color="#17283c"),
+                                rx.icon("shield-check", size=18, color="#3b82f6"),
+                                rx.text("Matriz de Privilegios & Permisos por Rol en TEMIS", size="2", weight="bold", color="#f8fafc"),
                                 align="center",
                                 spacing="2"
                             ),
@@ -802,62 +802,62 @@ def user_management_view() -> rx.Component:
                                 rx.box(
                                     rx.vstack(
                                         rx.badge(rx.hstack(rx.icon("shield", size=11), rx.text("Super Admin"), align="center", spacing="1"), color_scheme="purple", variant="soft", size="1"),
-                                        rx.text("• Acceso total al Portafolio", size="1", color="#59697b"),
-                                        rx.text("• Gestión de usuarios y perfiles", size="1", color="#59697b"),
-                                        rx.text("• Sync con Google Drive y Sheets", size="1", color="#59697b"),
-                                        rx.text("• Auditoría IA y control de 7 fases", size="1", color="#59697b"),
+                                        rx.text("• Acceso total al Portafolio", size="1", color="#94a3b8"),
+                                        rx.text("• Gestión de usuarios y perfiles", size="1", color="#94a3b8"),
+                                        rx.text("• Sync con Google Drive y Sheets", size="1", color="#94a3b8"),
+                                        rx.text("• Auditoría IA y control de 7 fases", size="1", color="#94a3b8"),
                                         spacing="1",
                                         align_items="start"
                                     ),
                                     padding="3",
-                                    background_color="#f8fafc",
+                                    background_color="#0f172a",
                                     border_radius="8px",
-                                    border="1px solid #d7e0ea"
+                                    border="1px solid #1e293b"
                                 ),
                                 rx.box(
                                     rx.vstack(
                                         rx.badge(rx.hstack(rx.icon("briefcase", size=11), rx.text("Dueño de Proyecto"), align="center", spacing="1"), color_scheme="blue", variant="soft", size="1"),
-                                        rx.text("• Creación de nuevos proyectos", size="1", color="#59697b"),
-                                        rx.text("• Plan de trabajo y Sprints IA", size="1", color="#59697b"),
-                                        rx.text("• Edición de Ficha Charter", size="1", color="#59697b"),
-                                        rx.text("• Exportación de paquetes .temis", size="1", color="#59697b"),
+                                        rx.text("• Creación de nuevos proyectos", size="1", color="#94a3b8"),
+                                        rx.text("• Plan de trabajo y Sprints IA", size="1", color="#94a3b8"),
+                                        rx.text("• Edición de Ficha Charter", size="1", color="#94a3b8"),
+                                        rx.text("• Exportación de paquetes .temis", size="1", color="#94a3b8"),
                                         spacing="1",
                                         align_items="start"
                                     ),
                                     padding="3",
-                                    background_color="#f8fafc",
+                                    background_color="#0f172a",
                                     border_radius="8px",
-                                    border="1px solid #d7e0ea"
+                                    border="1px solid #1e293b"
                                 ),
                                 rx.box(
                                     rx.vstack(
                                         rx.badge(rx.hstack(rx.icon("bar-chart-3", size=11), rx.text("Analista de Procesos"), align="center", spacing="1"), color_scheme="teal", variant="soft", size="1"),
-                                        rx.text("• Modelado de diagramas Bézier", size="1", color="#59697b"),
-                                        rx.text("• Edición de Matriz SIPOC", size="1", color="#59697b"),
-                                        rx.text("• Generación con Gemini AI", size="1", color="#59697b"),
-                                        rx.text("• Registro de Daily Logs", size="1", color="#59697b"),
+                                        rx.text("• Modelado de diagramas Bézier", size="1", color="#94a3b8"),
+                                        rx.text("• Edición de Matriz SIPOC", size="1", color="#94a3b8"),
+                                        rx.text("• Generación con Gemini AI", size="1", color="#94a3b8"),
+                                        rx.text("• Registro de Daily Logs", size="1", color="#94a3b8"),
                                         spacing="1",
                                         align_items="start"
                                     ),
                                     padding="3",
-                                    background_color="#f8fafc",
+                                    background_color="#0f172a",
                                     border_radius="8px",
-                                    border="1px solid #d7e0ea"
+                                    border="1px solid #1e293b"
                                 ),
                                 rx.box(
                                     rx.vstack(
                                         rx.badge(rx.hstack(rx.icon("circle-check", size=11), rx.text("Auditor QA / Six Sigma"), align="center", spacing="1"), color_scheme="amber", variant="soft", size="1"),
-                                        rx.text("• Ejecución de Auditorías IA", size="1", color="#59697b"),
-                                        rx.text("• Validación de reglas Six Sigma", size="1", color="#59697b"),
-                                        rx.text("• Aprobación de entregables", size="1", color="#59697b"),
-                                        rx.text("• Consulta de bitácora y avance", size="1", color="#59697b"),
+                                        rx.text("• Ejecución de Auditorías IA", size="1", color="#94a3b8"),
+                                        rx.text("• Validación de reglas Six Sigma", size="1", color="#94a3b8"),
+                                        rx.text("• Aprobación de entregables", size="1", color="#94a3b8"),
+                                        rx.text("• Consulta de bitácora y avance", size="1", color="#94a3b8"),
                                         spacing="1",
                                         align_items="start"
                                     ),
                                     padding="3",
-                                    background_color="#f8fafc",
+                                    background_color="#0f172a",
                                     border_radius="8px",
-                                    border="1px solid #d7e0ea"
+                                    border="1px solid #1e293b"
                                 ),
                                 columns={"initial": "1", "sm": "2", "md": "4"},
                                 spacing="3",
@@ -867,11 +867,11 @@ def user_management_view() -> rx.Component:
                             width="100%"
                         ),
                         padding="4",
-                        background_color="#ffffff",
-                        border="1px solid #d7e0ea",
+                        background_color="#131b2e",
+                        border="1px solid #1e293b",
                         border_radius="12px",
                         width="100%",
-                        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)"
+                        box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)"
                     ),
 
                     spacing="5",
@@ -888,7 +888,7 @@ def user_management_view() -> rx.Component:
             height="100vh",
             spacing="0",
         ),
-        background_color="#f3f6fa",
+        background_color="#0b0f17",
         width="100%",
         height="100vh",
         font_family="Inter, sans-serif",

@@ -93,7 +93,7 @@ def render_phase_card(p: dict) -> rx.Component:
             rx.hstack(
                 rx.hstack(
                     rx.icon(p["icon"], size=18, color=p["color"]),
-                    rx.text(p["name"], size="2", weight="bold", color="#17283c"),
+                    rx.text(p["name"], size="2", weight="bold", color="#f8fafc"),
                     rx.cond(
                         is_active,
                         rx.badge(rx.hstack(rx.icon("star", size=10), rx.text("Fase Activa"), align="center", spacing="1"), color_scheme="green", variant="solid", size="1"),
@@ -122,20 +122,20 @@ def render_phase_card(p: dict) -> rx.Component:
                 width="100%",
                 align="center",
             ),
-            rx.text(p["desc"], size="1", color="#59697b"),
+            rx.text(p["desc"], size="1", color="#94a3b8"),
             rx.hstack(
                 rx.hstack(
-                    rx.icon("user-check", size=13, color="#6366f1"),
-                    rx.text("Responsable: ", size="1", weight="bold", color="#59697b"),
-                    rx.text(p["owner"], size="1", color="#6366f1", weight="medium"),
+                    rx.icon("user-check", size=13, color="#818cf8"),
+                    rx.text("Responsable: ", size="1", weight="bold", color="#94a3b8"),
+                    rx.text(p["owner"], size="1", color="#818cf8", weight="medium"),
                     spacing="1",
                     align="center",
                 ),
                 rx.spacer(),
                 rx.hstack(
-                    rx.icon("git-commit-horizontal", size=13, color="#059669"),
-                    rx.text("Criterio Gate: ", size="1", weight="bold", color="#59697b"),
-                    rx.text(p["gate_criteria"], size="1", color="#059669"),
+                    rx.icon("git-commit-horizontal", size=13, color="#34d399"),
+                    rx.text("Criterio Gate: ", size="1", weight="bold", color="#94a3b8"),
+                    rx.text(p["gate_criteria"], size="1", color="#34d399"),
                     spacing="1",
                     align="center",
                 ),
@@ -143,9 +143,9 @@ def render_phase_card(p: dict) -> rx.Component:
                 wrap="wrap",
                 spacing="2",
             ),
-            rx.divider(),
+            rx.divider(color_scheme="gray", opacity=0.15),
             rx.hstack(
-                rx.text("Entregables & Evidencia Requerida:", size="1", weight="bold", color="#59697b"),
+                rx.text("Entregables & Evidencia Requerida:", size="1", weight="bold", color="#94a3b8"),
                 rx.spacer(),
                 rx.hstack(
                     *[
@@ -171,11 +171,11 @@ def render_phase_card(p: dict) -> rx.Component:
             width="100%",
             spacing="2",
         ),
-        background_color=rx.cond(is_active, "#f0fdf4", "#ffffff"),
-        border=rx.cond(is_active, "1px solid #86efac", "1px solid #d7e0ea"),
+        background_color=rx.cond(is_active, "rgba(16, 185, 129, 0.12)", "#131b2e"),
+        border=rx.cond(is_active, "1px solid rgba(16, 185, 129, 0.4)", "1px solid #1e293b"),
         border_radius="10px",
         padding="3.5",
-        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)",
+        box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)",
         width="100%",
     )
 
@@ -187,10 +187,10 @@ def governance_view() -> rx.Component:
             # Header
             rx.hstack(
                 rx.hstack(
-                    rx.icon("layers", size=24, color="#7c3aed"),
+                    rx.icon("layers", size=24, color="#a855f7"),
                     rx.vstack(
-                        rx.text("Gobernanza & Metodología de 7 Fases", size="4", weight="bold", color="#17283c"),
-                        rx.text("Ciclo de vida corporativo de procesos, control de entregables y auditoría de calidad", size="2", color="#59697b"),
+                        rx.text("Gobernanza & Metodología de 7 Fases", size="4", weight="bold", color="#f8fafc"),
+                        rx.text("Ciclo de vida corporativo de procesos, control de entregables y auditoría de calidad", size="2", color="#94a3b8"),
                         spacing="0",
                     ),
                     align="center",
@@ -217,7 +217,7 @@ def governance_view() -> rx.Component:
                 ),
                 width="100%",
                 padding_y="3",
-                border_bottom="1px solid #d7e0ea",
+                border_bottom="1px solid #1e293b",
                 align="center",
             ),
 
@@ -241,5 +241,5 @@ def governance_view() -> rx.Component:
         width="100%",
         height="100%",
         overflow="hidden",
-        background_color="#f3f6fa",
+        background_color="#0b0f17",
     )

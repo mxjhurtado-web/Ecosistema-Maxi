@@ -11,20 +11,20 @@ from temis_web.state import FlowState
 
 
 def import_modal() -> rx.Component:
-    """Dialog modal for uploading and importing JSON diagrams"""
+    """Dialog modal for uploading and importing JSON diagrams in dark executive slate"""
     return rx.dialog.root(
         rx.dialog.content(
-            rx.dialog.title("Importar Diagrama o Proyecto", size="4", weight="bold"),
+            rx.dialog.title("Importar Diagrama o Proyecto", size="4", weight="bold", color="#f8fafc"),
             rx.dialog.description(
                 "Selecciona o arrastra un archivo en formato PDF, JSON, CSV o paquete .temis.json:",
                 size="2",
-                color="#64748b",
+                color="#94a3b8",
             ),
             rx.vstack(
                 rx.upload(
                     rx.vstack(
-                        rx.icon("cloud-upload", size=36, color="#3b82f6"),
-                        rx.text("Haz clic o arrastra tu archivo PDF, JSON o CSV aquí", size="2", weight="bold", color="#334155"),
+                        rx.icon("cloud-upload", size=36, color="#38bdf8"),
+                        rx.text("Haz clic o arrastra tu archivo PDF, JSON o CSV aquí", size="2", weight="bold", color="#f8fafc"),
                         rx.text("Formatos permitidos: .pdf, .json, .csv, .temis.json", size="1", color="#94a3b8"),
                         align="center",
                         spacing="2",
@@ -38,9 +38,9 @@ def import_modal() -> rx.Component:
                         "text/csv": [".csv"],
                     },
                     max_files=1,
-                    border="2px dashed #cbd5e1",
+                    border="2px dashed #334155",
                     border_radius="xl",
-                    background_color="#f8fafc",
+                    background_color="#131b2e",
                     width="100%",
                     cursor="pointer",
                 ),
@@ -58,6 +58,8 @@ def import_modal() -> rx.Component:
             width="460px",
             border_radius="xl",
             padding="5",
+            background_color="#0f172a",
+            border="1px solid #1e293b",
         ),
         open=FlowState.show_import_modal,
         on_open_change=FlowState.close_import_modal,

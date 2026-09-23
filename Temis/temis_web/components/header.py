@@ -17,8 +17,8 @@ def header() -> rx.Component:
         # Left Section: Active Project Title & Phase Context
         rx.hstack(
             rx.hstack(
-                rx.icon("network", size=20, color="#1d4ed8"),
-                rx.text("TEMIS", size="3", weight="bold", color="#17283c"),
+                rx.icon("network", size=20, color="#3b82f6"),
+                rx.text("TEMIS", size="3", weight="bold", color="#f8fafc"),
                 align="center",
                 spacing="2",
             ),
@@ -156,8 +156,8 @@ def header() -> rx.Component:
         width="100%",
         height="54px",
         padding_x="4",
-        background_color="#ffffff",
-        border_bottom="1px solid #d7e0ea",
+        background_color="#0f172a",
+        border_bottom="1px solid #1e293b",
         align="center",
-        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.03)",
+        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.4)",
     )

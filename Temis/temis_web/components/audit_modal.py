@@ -11,14 +11,14 @@ from temis_web.state import FlowState
 
 
 def audit_modal() -> rx.Component:
-    """Dialog modal presenting AI Process Audit results and recommendations"""
+    """Dialog modal presenting AI Process Audit results and recommendations in dark executive slate"""
     return rx.dialog.root(
         rx.dialog.content(
             rx.hstack(
-                rx.icon("shield-check", size=24, color="#4f46e5"),
+                rx.icon("shield-check", size=24, color="#38bdf8"),
                 rx.vstack(
-                    rx.dialog.title("Auditoría de Gobierno de Procesos (IA TEMIS)", size="4", weight="bold"),
-                    rx.dialog.description("Análisis de calidad, completitud y cumplimiento de las reglas del flujo.", size="2", color="#64748b"),
+                    rx.dialog.title("Auditoría de Gobierno de Procesos (IA TEMIS)", size="4", weight="bold", color="#f8fafc"),
+                    rx.dialog.description("Análisis de calidad, completitud y cumplimiento de las reglas del flujo.", size="2", color="#94a3b8"),
                     spacing="0",
                 ),
                 align="center",
@@ -36,7 +36,7 @@ def audit_modal() -> rx.Component:
                         ),
                         rx.badge(
                             rx.hstack(
-                                rx.icon("trending-up", size=12, color="#16a34a"),
+                                rx.icon("trending-up", size=12, color="#10b981"),
                                 rx.text(FlowState.audit_score_delta_label, " vs anterior"),
                                 align="center",
                                 spacing="1",
@@ -52,7 +52,7 @@ def audit_modal() -> rx.Component:
                             on_click=FlowState.run_ai_process_audit,
                             loading=FlowState.is_auditing_ai,
                             size="1",
-                            color_scheme="indigo",
+                            color_scheme="blue",
                             variant="soft",
                         ),
                         width="100%",
@@ -60,15 +60,15 @@ def audit_modal() -> rx.Component:
                     ),
                     rx.hstack(
                         rx.hstack(
-                            rx.icon("calendar", size=12, color="#64748b"),
-                            rx.text("Evaluación: ", FlowState.last_audit_date, size="1", color="#64748b"),
+                            rx.icon("calendar", size=12, color="#94a3b8"),
+                            rx.text("Evaluación: ", FlowState.last_audit_date, size="1", color="#94a3b8"),
                             align="center",
                             spacing="1",
                         ),
-                        rx.text("·", size="1", color="#94a3b8"),
+                        rx.text("·", size="1", color="#64748b"),
                         rx.hstack(
-                            rx.icon("shield", size=12, color="#64748b"),
-                            rx.text("Reglas: ", FlowState.audit_rules_version, size="1", color="#64748b"),
+                            rx.icon("shield", size=12, color="#94a3b8"),
+                            rx.text("Reglas: ", FlowState.audit_rules_version, size="1", color="#94a3b8"),
                             align="center",
                             spacing="1",
                         ),
@@ -87,19 +87,20 @@ def audit_modal() -> rx.Component:
                             rx.vstack(
                                 rx.hstack(
                                     rx.badge(item["severity"], color_scheme=rx.cond(item["severity"] == "Alta", "red", rx.cond(item["severity"] == "Media", "amber", "green")), variant="solid", size="1"),
-                                    rx.text(item["title"], size="2", weight="bold", color="#1e293b"),
+                                    rx.text(item["title"], size="2", weight="bold", color="#f8fafc"),
                                     align="center",
                                     spacing="2",
                                 ),
-                                rx.text(item["description"], size="2", color="#475569"),
+                                rx.text(item["description"], size="2", color="#94a3b8"),
                                 rx.box(
                                     rx.hstack(
-                                        rx.icon("lightbulb", size=14, color="#d97706"),
-                                        rx.text("Recomendación: ", item["recommendation"], size="2", weight="medium", color="#92400e"),
+                                        rx.icon("lightbulb", size=14, color="#f59e0b"),
+                                        rx.text("Recomendación: ", item["recommendation"], size="2", weight="medium", color="#fde68a"),
                                         align="center",
                                         spacing="2",
                                     ),
-                                    background_color="#fef3c7",
+                                    background_color="rgba(245, 158, 11, 0.12)",
+                                    border="1px solid rgba(245, 158, 11, 0.25)",
                                     padding="2.5",
                                     border_radius="md",
                                     width="100%",
@@ -109,9 +110,9 @@ def audit_modal() -> rx.Component:
                                 width="100%",
                             ),
                             padding="3",
-                            border="1px solid #e2e8f0",
+                            border="1px solid #1e293b",
                             border_radius="lg",
-                            background_color="#ffffff",
+                            background_color="#131b2e",
                             width="100%",
                         ),
                     ),
@@ -134,6 +135,8 @@ def audit_modal() -> rx.Component:
             width="560px",
             border_radius="xl",
             padding="5",
+            background_color="#0f172a",
+            border="1px solid #1e293b",
         ),
         open=FlowState.show_audit_modal,
         on_open_change=FlowState.close_audit_modal,

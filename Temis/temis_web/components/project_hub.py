@@ -23,7 +23,7 @@ def kpi_card(title: str, value: rx.Var[str] | str, subtitle: rx.Var[str] | str |
                 rx.box(
                     rx.icon(icon_name, size=18, color=color_hex),
                     padding="2",
-                    background_color=f"{color_hex}15",
+                    background_color=f"{color_hex}25",
                     border_radius="8px",
                 ),
                 rx.spacer(),
@@ -35,23 +35,23 @@ def kpi_card(title: str, value: rx.Var[str] | str, subtitle: rx.Var[str] | str |
                 width="100%",
                 align="center",
             ),
-            rx.text(title, size="1", color="#59697b", weight="medium"),
-            rx.text(value, size="6", weight="bold", color="#17283c"),
-            rx.text(subtitle, size="1", color="#8b9bae"),
+            rx.text(title, size="1", color="#94a3b8", weight="medium"),
+            rx.text(value, size="6", weight="bold", color="#f8fafc"),
+            rx.text(subtitle, size="1", color="#64748b"),
             spacing="1",
             align="start",
             width="100%",
         ),
         padding="4",
-        background_color="#ffffff",
-        border="1px solid #d7e0ea",
+        background_color="#131b2e",
+        border="1px solid #1e293b",
         border_radius="12px",
-        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)",
+        box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)",
         flex="1",
         min_width="220px",
         _hover={
-            "box_shadow": "0 4px 12px 0 rgba(0, 0, 0, 0.06)",
-            "border_color": "#b4c6d8",
+            "box_shadow": "0 4px 12px 0 rgba(0, 0, 0, 0.6)",
+            "border_color": "#334155",
         },
     )
 
@@ -73,7 +73,7 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                         proj["name"],
                         size="3",
                         weight="bold",
-                        color="#17283c",
+                        color="#f8fafc",
                     ),
                     align="center",
                     spacing="2",
@@ -142,33 +142,33 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
             rx.text(
                 proj["purpose"],
                 size="2",
-                color="#59697b",
+                color="#94a3b8",
                 max_width="100%",
                 line_clamp=2,
             ),
 
-            rx.divider(color_scheme="gray", opacity=0.3),
+            rx.divider(color_scheme="gray", opacity=0.15),
 
             # Middle Row: Governance Phase & Active Sprint
             rx.hstack(
                 rx.hstack(
-                    rx.icon("layers", size=14, color="#7c3aed"),
-                    rx.text(proj["phase_name"], size="1", weight="medium", color="#6b21a8"),
+                    rx.icon("layers", size=14, color="#a855f7"),
+                    rx.text(proj["phase_name"], size="1", weight="medium", color="#c084fc"),
                     align="center",
                     spacing="1",
                     padding_x="2",
                     padding_y="1",
-                    background_color="#f3e8ff",
+                    background_color="rgba(139, 92, 246, 0.15)",
                     border_radius="6px",
                 ),
                 rx.hstack(
-                    rx.icon("flame", size=14, color="#c2410c"),
-                    rx.text(proj["current_sprint"], " • ", proj["current_sprint_name"], size="1", weight="medium", color="#9a3412"),
+                    rx.icon("flame", size=14, color="#f97316"),
+                    rx.text(proj["current_sprint"], " • ", proj["current_sprint_name"], size="1", weight="medium", color="#fdba74"),
                     align="center",
                     spacing="1",
                     padding_x="2",
                     padding_y="1",
-                    background_color="#ffedd5",
+                    background_color="rgba(249, 115, 22, 0.15)",
                     border_radius="6px",
                 ),
                 wrap="wrap",
@@ -180,10 +180,10 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
             # Progress Bar (% Avance Backlog)
             rx.vstack(
                 rx.hstack(
-                    rx.text("Avance del Backlog Scrum:", size="1", color="#59697b", weight="medium"),
+                    rx.text("Avance del Backlog Scrum:", size="1", color="#94a3b8", weight="medium"),
                     rx.spacer(),
                     rx.hstack(
-                        rx.text(proj["progress_percentage"].to_string(), "% (", proj["completed_sp"].to_string(), "/", proj["total_sp"].to_string(), " SP)", size="1", weight="bold", color="#17283c"),
+                        rx.text(proj["progress_percentage"].to_string(), "% (", proj["completed_sp"].to_string(), "/", proj["total_sp"].to_string(), " SP)", size="1", weight="bold", color="#f8fafc"),
                         spacing="0",
                     ),
                     width="100%",
@@ -194,13 +194,13 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                     width="100%",
                     height="6px",
                     radius="full",
-                    color_scheme="indigo",
+                    color_scheme="blue",
                 ),
                 spacing="1",
                 width="100%",
             ),
 
-            rx.divider(color_scheme="gray", opacity=0.3),
+            rx.divider(color_scheme="gray", opacity=0.15),
 
             # Bottom Row: Manager Avatar, Quick Links & Primary Workspace Button
             rx.hstack(
@@ -213,10 +213,10 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                         color_scheme="blue",
                     ),
                     rx.vstack(
-                        rx.text(proj["manager"], size="1", weight="medium", color="#17283c"),
+                        rx.text(proj["manager"], size="1", weight="medium", color="#f8fafc"),
                         rx.hstack(
-                            rx.text("Sponsor:", size="1", color="#59697b"),
-                            rx.text(proj["sponsor"], size="1", color="#59697b"),
+                            rx.text("Sponsor:", size="1", color="#64748b"),
+                            rx.text(proj["sponsor"], size="1", color="#94a3b8"),
                             spacing="1",
                         ),
                         spacing="0",
@@ -298,14 +298,14 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
             width="100%",
         ),
         padding="4",
-        background_color="#ffffff",
-        border="1px solid #d7e0ea",
+        background_color="#131b2e",
+        border="1px solid #1e293b",
         border_radius="12px",
-        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)",
+        box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)",
         width="100%",
         _hover={
-            "border_color": "#93c5fd",
-            "box_shadow": "0 6px 16px 0 rgba(37, 99, 235, 0.08)",
+            "border_color": "#3b82f6",
+            "box_shadow": "0 6px 20px 0 rgba(59, 130, 246, 0.15)",
         },
     )
 
@@ -771,15 +771,15 @@ def project_hub() -> rx.Component:
             # 1. Top App Header for Hub
             rx.hstack(
                 rx.hstack(
-                    rx.icon("network", size=24, color="#1d4ed8"),
+                    rx.icon("network", size=24, color="#3b82f6"),
                     rx.vstack(
                         rx.hstack(
-                            rx.text("TEMIS", size="4", weight="bold", color="#0f172a"),
+                            rx.text("TEMIS", size="4", weight="bold", color="#f8fafc"),
                             rx.badge("Work OS Enterprise", color_scheme="indigo", variant="surface", size="1"),
                             align="center",
                             spacing="2",
                         ),
-                        rx.text("Hub de Portafolio & Gobernanza de Procesos", size="1", color="#64748b"),
+                        rx.text("Hub de Portafolio & Gobernanza de Procesos", size="1", color="#94a3b8"),
                         spacing="0",
                     ),
                     align="center",
@@ -806,7 +806,7 @@ def project_hub() -> rx.Component:
                             color_scheme="indigo",
                         ),
                         rx.vstack(
-                            rx.text(FlowState.user_name, size="1", weight="bold", color="#0f172a"),
+                            rx.text(FlowState.user_name, size="1", weight="bold", color="#f8fafc"),
                             rx.text(FlowState.user_email, size="1", color="#94a3b8"),
                             spacing="0",
                             align="start",
@@ -848,9 +848,9 @@ def project_hub() -> rx.Component:
                 height="60px",
                 align="center",
                 padding_x="6",
-                background_color="#ffffff",
-                border_bottom="1px solid #d7e0ea",
-                box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.03)",
+                background_color="#0f172a",
+                border_bottom="1px solid #1e293b",
+                box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.4)",
             ),
 
             # 2. Main Content Container
@@ -863,7 +863,7 @@ def project_hub() -> rx.Component:
                             FlowState.total_hub_projects_count.to_string(),
                             FlowState.hub_drive_status_summary,
                             "folder-kanban",
-                            "#1d4ed8",
+                            "#3b82f6",
                             badge_text="Activos",
                         ),
                         kpi_card(
@@ -871,7 +871,7 @@ def project_hub() -> rx.Component:
                             FlowState.total_completed_sp_count.to_string() + " / " + FlowState.total_sp_count.to_string() + " SP",
                             FlowState.global_progress_pct.to_string() + "% de avance global",
                             "circle-check",
-                            "#16a34a",
+                            "#10b981",
                             badge_text="Scrum",
                         ),
                         kpi_card(
@@ -879,7 +879,7 @@ def project_hub() -> rx.Component:
                             FlowState.average_audit_score.to_string() + " / 100",
                             "Auditoría con IA Gemini 2.5",
                             "shield-check",
-                            "#7c3aed",
+                            "#8b5cf6",
                             badge_text="IA",
                         ),
                         kpi_card(
@@ -887,7 +887,7 @@ def project_hub() -> rx.Component:
                             FlowState.active_sprints_count.to_string() + " Sprints",
                             "Calendario Técnico 2026",
                             "flame",
-                            "#ea580c",
+                            "#f97316",
                             badge_text="En Curso",
                         ),
                         columns={"initial": "1", "sm": "2", "md": "4"},
@@ -901,22 +901,22 @@ def project_hub() -> rx.Component:
                         rx.box(
                             rx.hstack(
                                 rx.box(
-                                    rx.icon("triangle-alert", size=18, color="#b45309"),
+                                    rx.icon("triangle-alert", size=18, color="#f59e0b"),
                                     padding="2",
-                                    background_color="#fde68a",
+                                    background_color="rgba(245, 158, 11, 0.2)",
                                     border_radius="8px",
                                 ),
                                 rx.vstack(
                                     rx.hstack(
-                                        rx.text("Requieren Atención:", size="2", weight="bold", color="#92400e"),
+                                        rx.text("Requieren Atención:", size="2", weight="bold", color="#fcd34d"),
                                         rx.cond(
                                             FlowState.projects_needing_attention.length() == 1,
-                                            rx.text("1 proyecto en riesgo o con entregables pendientes.", size="2", color="#92400e"),
-                                            rx.text(FlowState.projects_needing_attention.length().to_string(), " proyectos en riesgo o con entregables pendientes.", size="2", color="#92400e"),
+                                            rx.text("1 proyecto en riesgo o con entregables pendientes.", size="2", color="#fde68a"),
+                                            rx.text(FlowState.projects_needing_attention.length().to_string(), " proyectos en riesgo o con entregables pendientes.", size="2", color="#fde68a"),
                                         ),
                                         spacing="1",
                                     ),
-                                    rx.text("Revisa los sprints y cuellos de botella para mitigar retrasos operativos.", size="1", color="#b45309"),
+                                    rx.text("Revisa los sprints y cuellos de botella para mitigar retrasos operativos.", size="1", color="#fcd34d"),
                                     spacing="0",
                                 ),
                                 rx.spacer(),
@@ -933,15 +933,15 @@ def project_hub() -> rx.Component:
                                 spacing="3",
                             ),
                             padding="3",
-                            background_color="#fef3c7",
-                            border="1px solid #fde68a",
+                            background_color="rgba(245, 158, 11, 0.12)",
+                            border="1px solid rgba(245, 158, 11, 0.3)",
                             border_radius="10px",
                             width="100%",
                         ),
                         rx.box(),
                     ),
 
-                    # Filter and Search Bar (Polished White Card with Slate Border)
+                    # Filter and Search Bar (Polished Dark Card with Slate Border)
                     rx.hstack(
                         # Search Input
                         rx.hstack(
@@ -959,14 +959,14 @@ def project_hub() -> rx.Component:
                             spacing="2",
                             padding_x="2",
                             padding_y="1",
-                            background_color="#ffffff",
-                            border="1px solid #d7e0ea",
+                            background_color="#131b2e",
+                            border="1px solid #1e293b",
                             border_radius="8px",
                         ),
                         rx.spacer(),
                         # Phase Filter
                         rx.hstack(
-                            rx.text("Fase:", size="1", color="#59697b", weight="medium"),
+                            rx.text("Fase:", size="1", color="#94a3b8", weight="medium"),
                             rx.select.root(
                                 rx.select.trigger(placeholder="Todas las Fases", size="1"),
                                 rx.select.content(
@@ -987,7 +987,7 @@ def project_hub() -> rx.Component:
                         ),
                         # Status Filter (Clean, No Emojis)
                         rx.hstack(
-                            rx.text("Salud:", size="1", color="#59697b", weight="medium"),
+                            rx.text("Salud:", size="1", color="#94a3b8", weight="medium"),
                             rx.select.root(
                                 rx.select.trigger(placeholder="Todos", size="1"),
                                 rx.select.content(
@@ -1021,9 +1021,9 @@ def project_hub() -> rx.Component:
                         ),
                         rx.box(
                             rx.vstack(
-                                rx.icon("folder-open", size=48, color="#94a3b8"),
-                                rx.text("No se encontraron proyectos con los filtros seleccionados.", size="3", weight="medium", color="#17283c"),
-                                rx.text("Intenta cambiar el criterio de búsqueda o crea un nuevo proyecto.", size="2", color="#8b9bae"),
+                                rx.icon("folder-open", size=48, color="#64748b"),
+                                rx.text("No se encontraron proyectos con los filtros seleccionados.", size="3", weight="medium", color="#f8fafc"),
+                                rx.text("Intenta cambiar el criterio de búsqueda o crea un nuevo proyecto.", size="2", color="#94a3b8"),
                                 rx.cond(
                                     (FlowState.search_hub_query != "") | (FlowState.filter_hub_phase != "all") | (FlowState.filter_hub_status != "all"),
                                     rx.hstack(
@@ -1055,8 +1055,8 @@ def project_hub() -> rx.Component:
                                 spacing="2",
                             ),
                             padding="12",
-                            background_color="#ffffff",
-                            border="1px dashed #d7e0ea",
+                            background_color="#131b2e",
+                            border="1px dashed #1e293b",
                             border_radius="12px",
                             text_align="center",
                             width="100%",
@@ -1076,7 +1076,7 @@ def project_hub() -> rx.Component:
             height="100vh",
             spacing="0",
         ),
-        background_color="#f3f6fa",
+        background_color="#0b0f17",
         font_family="Inter, sans-serif",
         width="100%",
         height="100vh",

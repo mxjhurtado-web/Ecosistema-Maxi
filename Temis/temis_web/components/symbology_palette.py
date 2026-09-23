@@ -44,40 +44,40 @@ SYMBOLS_CATALOG = [
 
 
 def palette_button(item: dict) -> rx.Component:
-    """Button for dragging or adding a symbol to canvas"""
+    """Button for dragging or adding a symbol to canvas in dark theme"""
     return rx.box(
         rx.hstack(
             rx.box(
                 rx.icon(item["icon"], size=16, color=item["color"]),
-                background_color=item["bg"],
+                background_color="rgba(15, 23, 42, 0.6)",
                 padding="2",
                 border_radius="md",
             ),
-            rx.text(item["label"], size="2", weight="medium", color="#334155"),
+            rx.text(item["label"], size="2", weight="medium", color="#f8fafc"),
             spacing="2",
             align="center",
         ),
         padding="2",
         border_radius="lg",
-        border="1px solid #e2e8f0",
-        background_color="#ffffff",
+        border="1px solid #1e293b",
+        background_color="#131b2e",
         cursor="pointer",
         on_click=lambda: FlowState.add_node_by_type(item["type"], item["label"]),
-        _hover={"border_color": item["color"], "box_shadow": "0 2px 4px rgba(0,0,0,0.05)"},
+        _hover={"border_color": item["color"], "box_shadow": "0 2px 8px rgba(0,0,0,0.3)"},
         width="100%",
     )
 
 
 def symbology_palette() -> rx.Component:
-    """Right palette bar containing official PDF symbols"""
+    """Right palette bar containing official PDF symbols in dark theme"""
     return rx.vstack(
         rx.hstack(
-            rx.icon("shapes", size=18, color="#3b82f6"),
-            rx.heading("SIMBOLOGÍA OFICIAL", size="3", weight="bold", color="#1e293b"),
+            rx.icon("shapes", size=18, color="#38bdf8"),
+            rx.heading("SIMBOLOGÍA OFICIAL", size="3", weight="bold", color="#f8fafc"),
             spacing="2",
             align="center",
         ),
-        rx.text("Haz clic en cualquier símbolo para agregarlo al lienzo de flujo:", size="1", color="#64748b"),
+        rx.text("Haz clic en cualquier símbolo para agregarlo al lienzo de flujo:", size="1", color="#94a3b8"),
         rx.scroll_area(
             rx.vstack(
                 *[palette_button(sym) for sym in SYMBOLS_CATALOG],
@@ -90,8 +90,8 @@ def symbology_palette() -> rx.Component:
         ),
         width="260px",
         height="calc(100vh - 65px)",
-        background_color="#ffffff",
-        border_left="1px solid #e2e8f0",
+        background_color="#0f172a",
+        border_left="1px solid #1e293b",
         padding="3",
         spacing="3",
     )

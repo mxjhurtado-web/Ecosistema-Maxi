@@ -1,38 +1,48 @@
 /* ==========================================================================
-   TEMIS Web Flow - Executive Design System & Stylesheet
-   Paleta Corporativa: Linear / Notion / Stripe / Monday.com Style
+   TEMIS Web Flow - Executive Dark Slate Design System & Stylesheet
+   Modern High-End SaaS: Linear / Supabase / Vercel / GitHub Dark Style
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --temis-bg: #F3F6FA;
-  --temis-surface: #FFFFFF;
-  --temis-sidebar-bg: #F8FAFC;
-  --temis-border: #D7E0EA;
-  --temis-border-subtle: #E2E8F0;
+  --temis-bg: #0B0F17;
+  --temis-surface: #131B2E;
+  --temis-surface-subtle: #0F172A;
+  --temis-sidebar-bg: #0F172A;
+  --temis-border: #1E293B;
+  --temis-border-subtle: #334155;
+  --temis-border-hover: #475569;
   
-  --temis-text-primary: #17283C;
-  --temis-text-secondary: #59697B;
-  --temis-text-muted: #8B9BAE;
+  --temis-text-primary: #F8FAFC;
+  --temis-text-secondary: #94A3B8;
+  --temis-text-muted: #64748B;
   
-  --temis-accent-primary: #2563EB;
-  --temis-accent-primary-hover: #1D4ED8;
-  --temis-accent-soft: #EFF6FF;
+  --temis-accent-primary: #3B82F6;
+  --temis-accent-primary-hover: #2563EB;
+  --temis-accent-soft: rgba(59, 130, 246, 0.15);
+  --temis-accent-border: rgba(59, 130, 246, 0.35);
   
-  --temis-success: #059669;
-  --temis-success-bg: #ECFDF5;
-  --temis-warning: #D97706;
-  --temis-warning-bg: #FEF3C7;
-  --temis-danger: #DC2626;
-  --temis-danger-bg: #FEE2E2;
-  --temis-purple: #7C3AED;
-  --temis-purple-bg: #F3E8FF;
+  --temis-success: #10B981;
+  --temis-success-bg: rgba(16, 185, 129, 0.15);
+  --temis-success-border: rgba(16, 185, 129, 0.3);
   
-  --temis-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-  --temis-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02);
-  --temis-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  --temis-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --temis-warning: #F59E0B;
+  --temis-warning-bg: rgba(245, 158, 11, 0.15);
+  --temis-warning-border: rgba(245, 158, 11, 0.3);
+  
+  --temis-danger: #EF4444;
+  --temis-danger-bg: rgba(239, 68, 68, 0.15);
+  --temis-danger-border: rgba(239, 68, 68, 0.3);
+  
+  --temis-purple: #8B5CF6;
+  --temis-purple-bg: rgba(139, 92, 246, 0.15);
+  --temis-purple-border: rgba(139, 92, 246, 0.3);
+  
+  --temis-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --temis-shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.4);
+  --temis-shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.6);
+  --temis-shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.7);
 }
 
 /* Global Reset & Base Typography */
@@ -44,34 +54,40 @@ body, html {
   margin: 0;
   padding: 0;
   background-color: var(--temis-bg) !important;
-  color: var(--temis-text-primary);
+  color: var(--temis-text-primary) !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Executive Scrollbars */
+/* Radix Theme Overrides for Dark Mode Elegance */
+.radix-themes {
+  background-color: var(--temis-bg) !important;
+  color: var(--temis-text-primary) !important;
+}
+
+/* Custom Executive Dark Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0B0F17;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #1E293B;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #334155;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #CBD5E1 transparent;
+  scrollbar-color: #1E293B #0B0F17;
 }
 
 /* Card Transitions & Elevations */
@@ -84,8 +100,20 @@ body, html {
 }
 
 .temis-card:hover {
-  border-color: #B4C6D8;
+  border-color: var(--temis-border-subtle);
   box-shadow: var(--temis-shadow-md);
+}
+
+/* Linear-style inputs */
+input, textarea, select {
+  background-color: var(--temis-surface-subtle) !important;
+  border-color: var(--temis-border) !important;
+  color: var(--temis-text-primary) !important;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--temis-accent-primary) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
 }
 
 /* Hide "Built with Reflex" badge */

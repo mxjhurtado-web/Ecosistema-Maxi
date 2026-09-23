@@ -11,27 +11,27 @@ from temis_web.state import FlowState
 
 
 def toast_notification() -> rx.Component:
-    """Render a floating toast notification banner in the top-right corner"""
+    """Render a floating toast notification banner in the top-right corner in dark executive slate"""
     return rx.cond(
         FlowState.show_toast,
         rx.box(
             rx.hstack(
                 rx.match(
                     FlowState.toast_type,
-                    ("success", rx.icon("circle-check", size=18, color="#16a34a")),
-                    ("warning", rx.icon("triangle-alert", size=18, color="#d97706")),
-                    ("error", rx.icon("circle-alert", size=18, color="#dc2626")),
-                    rx.icon("info", size=18, color="#2563eb"),
+                    ("success", rx.icon("circle-check", size=18, color="#10b981")),
+                    ("warning", rx.icon("triangle-alert", size=18, color="#f59e0b")),
+                    ("error", rx.icon("circle-alert", size=18, color="#ef4444")),
+                    rx.icon("info", size=18, color="#38bdf8"),
                 ),
                 rx.text(
                     FlowState.toast_message,
                     size="2",
                     weight="medium",
-                    color="#0f172a",
+                    color="#f8fafc",
                 ),
                 rx.spacer(),
                 rx.button(
-                    rx.icon("x", size=14, color="#64748b"),
+                    rx.icon("x", size=14, color="#94a3b8"),
                     on_click=FlowState.dismiss_toast,
                     variant="ghost",
                     size="1",
@@ -47,12 +47,12 @@ def toast_notification() -> rx.Component:
             top="20px",
             right="24px",
             z_index="9999",
-            background_color="#ffffff",
-            border="1px solid #e2e8f0",
+            background_color="#131b2e",
+            border="1px solid #1e293b",
             border_radius="10px",
             padding_x="4",
             padding_y="3",
-            box_shadow="0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
+            box_shadow="0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)",
             max_width="420px",
             min_width="300px",
             transition="all 0.2s ease-in-out",

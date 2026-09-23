@@ -16,8 +16,8 @@ def property_inspector() -> rx.Component:
     active_inspector = rx.vstack(
         # Inspector Header
         rx.hstack(
-            rx.icon("sliders-horizontal", size=15, color="#2563eb"),
-            rx.text(f"Nodo: ", FlowState.selected_node_id, size="2", weight="bold", color="#17283c"),
+            rx.icon("sliders-horizontal", size=15, color="#3b82f6"),
+            rx.text(f"Nodo: ", FlowState.selected_node_id, size="2", weight="bold", color="#f8fafc"),
             rx.spacer(),
             rx.button(
                 rx.icon("x", size=13),
@@ -30,11 +30,11 @@ def property_inspector() -> rx.Component:
             width="100%",
             align="center",
             padding_bottom="2",
-            border_bottom="1px solid #d7e0ea",
+            border_bottom="1px solid #1e293b",
         ),
         # Label / Text Field
         rx.vstack(
-            rx.text("Texto del Nodo:", size="1", weight="bold", color="#59697b"),
+            rx.text("Texto del Nodo:", size="1", weight="bold", color="#94a3b8"),
             rx.text_area(
                 value=FlowState.node_label_edit,
                 on_change=FlowState.set_selected_node_label,
@@ -48,7 +48,7 @@ def property_inspector() -> rx.Component:
         ),
         # Swimlane / Carril
         rx.vstack(
-            rx.text("Carril / Actor (Swimlane):", size="1", weight="bold", color="#59697b"),
+            rx.text("Carril / Actor (Swimlane):", size="1", weight="bold", color="#94a3b8"),
             rx.input(
                 value=FlowState.node_swimlane_edit,
                 on_change=FlowState.set_selected_node_swimlane,
@@ -62,7 +62,7 @@ def property_inspector() -> rx.Component:
         ),
         # Attached System
         rx.vstack(
-            rx.text("Sistema Asignado:", size="1", weight="bold", color="#475569"),
+            rx.text("Sistema Asignado:", size="1", weight="bold", color="#94a3b8"),
             rx.select(
                 ["", "Chronos ERP", "Freshdesk", "Base de Datos", "Servicio Web"],
                 value=FlowState.selected_node_system,
@@ -76,7 +76,7 @@ def property_inspector() -> rx.Component:
         ),
         # Attached Channel
         rx.vstack(
-            rx.text("Canal de Comunicación:", size="1", weight="bold", color="#475569"),
+            rx.text("Canal de Comunicación:", size="1", weight="bold", color="#94a3b8"),
             rx.select(
                 ["", "WhatsApp", "Bria", "Correo / Formulario", "Presencial"],
                 value=FlowState.selected_node_channel,
@@ -105,7 +105,7 @@ def property_inspector() -> rx.Component:
         ),
         # Position Nudge Control
         rx.vstack(
-            rx.text("Reposicionar en Lienzo:", size="1", weight="bold", color="#475569"),
+            rx.text("Reposicionar en Lienzo:", size="1", weight="bold", color="#94a3b8"),
             rx.vstack(
                 rx.button(rx.icon("arrow-up", size=13), on_click=lambda: FlowState.move_selected_node(0, -30), size="1", variant="soft", color_scheme="gray"),
                 rx.hstack(
@@ -122,7 +122,7 @@ def property_inspector() -> rx.Component:
             spacing="1",
             width="100%",
         ),
-        rx.divider(color="#e2e8f0"),
+        rx.divider(color_scheme="gray", opacity=0.15),
         # Secondary Node Actions (Duplicate & Delete)
         rx.hstack(
             rx.button(
@@ -154,23 +154,23 @@ def property_inspector() -> rx.Component:
     # Empty State View (When no node is clicked)
     empty_inspector = rx.vstack(
         rx.hstack(
-            rx.icon("info", size=15, color="#64748b"),
-            rx.text("Resumen del Lienzo", size="2", weight="bold", color="#475569"),
+            rx.icon("info", size=15, color="#94a3b8"),
+            rx.text("Resumen del Lienzo", size="2", weight="bold", color="#f8fafc"),
             align="center",
             spacing="2",
             padding_bottom="2",
-            border_bottom="1px solid #e2e8f0",
+            border_bottom="1px solid #1e293b",
             width="100%",
         ),
         rx.vstack(
             rx.hstack(
-                rx.text("Nodos en hoja:", size="1", color="#64748b"),
+                rx.text("Nodos en hoja:", size="1", color="#94a3b8"),
                 rx.spacer(),
                 rx.badge(FlowState.nodes.length().to(str), color_scheme="blue", variant="soft", size="1"),
                 width="100%",
             ),
             rx.hstack(
-                rx.text("Conectores:", size="1", color="#64748b"),
+                rx.text("Conectores:", size="1", color="#94a3b8"),
                 rx.spacer(),
                 rx.badge(FlowState.edges.length().to(str), color_scheme="indigo", variant="soft", size="1"),
                 width="100%",
@@ -181,18 +181,18 @@ def property_inspector() -> rx.Component:
         ),
         rx.box(
             rx.hstack(
-                rx.icon("info", size=13, color="#64748b"),
+                rx.icon("info", size=13, color="#94a3b8"),
                 rx.text(
                     "Haz clic en cualquier símbolo del lienzo para editar sus propiedades, sistemas o conectores.",
                     size="1",
-                    color="#64748b",
+                    color="#94a3b8",
                     line_height="1.4",
                 ),
                 align="start",
                 spacing="2",
             ),
-            background_color="#f8fafc",
-            border="1px dashed #cbd5e1",
+            background_color="#131b2e",
+            border="1px dashed #1e293b",
             border_radius="md",
             padding="2.5",
             width="100%",
@@ -210,7 +210,7 @@ def property_inspector() -> rx.Component:
         ),
         width="260px",
         height="100%",
-        background_color="#ffffff",
-        border_left="1px solid #d7e0ea",
+        background_color="#0f172a",
+        border_left="1px solid #1e293b",
         overflow_y="auto",
     )

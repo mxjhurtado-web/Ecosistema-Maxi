@@ -17,14 +17,14 @@ def capacity_stat(title: str, value: rx.Var[str] | str, subtitle: str, icon_name
         rx.box(
             rx.icon(icon_name, size=18, color=color_hex),
             padding="2",
-            background_color=f"{color_hex}15",
+            background_color=f"{color_hex}25",
             border_radius="6px",
         ),
         rx.vstack(
-            rx.text(title, size="1", color="#59697b", weight="medium"),
+            rx.text(title, size="1", color="#94a3b8", weight="medium"),
             rx.hstack(
-                rx.text(value, size="3", weight="bold", color="#17283c"),
-                rx.text(subtitle, size="1", color="#8b9bae"),
+                rx.text(value, size="3", weight="bold", color="#f8fafc"),
+                rx.text(subtitle, size="1", color="#64748b"),
                 align="baseline",
                 spacing="1",
             ),
@@ -32,10 +32,10 @@ def capacity_stat(title: str, value: rx.Var[str] | str, subtitle: str, icon_name
             align="start",
         ),
         padding="2",
-        background_color="#ffffff",
-        border="1px solid #d7e0ea",
+        background_color="#0f172a",
+        border="1px solid #1e293b",
         border_radius="8px",
-        box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.02)",
+        box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.4)",
         align="center",
         spacing="2",
         flex="1",
@@ -47,7 +47,7 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
     """Render a single task/user story row in the Scrum Backlog Table"""
     return rx.table.row(
         rx.table.cell(
-            rx.text(item["item_id"], size="1", weight="bold", color="#64748b"),
+            rx.text(item["item_id"], size="1", weight="bold", color="#94a3b8"),
             align="center",
         ),
         rx.table.cell(
@@ -56,14 +56,14 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
         ),
         rx.table.cell(
             rx.vstack(
-                rx.text(item["user_story"], size="2", weight="medium", color="#17283c"),
+                rx.text(item["user_story"], size="2", weight="medium", color="#f8fafc"),
                 rx.cond(
                     item["deliverable"] != "",
                     rx.hstack(
-                        rx.icon("package", size=12, color="#059669"),
+                        rx.icon("package", size=12, color="#10b981"),
                         rx.hstack(
-                            rx.text("Entregable:", size="1", color="#059669"),
-                            rx.text(item["deliverable"], size="1", color="#059669"),
+                            rx.text("Entregable:", size="1", color="#10b981"),
+                            rx.text(item["deliverable"], size="1", color="#10b981"),
                             spacing="1",
                         ),
                         align="center",
@@ -100,10 +100,10 @@ def render_backlog_row(item: rx.Var[dict]) -> rx.Component:
         ),
         rx.table.cell(
             rx.vstack(
-                rx.text(item["start_date"], size="1", color="#475569"),
+                rx.text(item["start_date"], size="1", color="#94a3b8"),
                 rx.hstack(
-                    rx.text("al", size="1", color="#94a3b8"),
-                    rx.text(item["end_date"], size="1", color="#94a3b8"),
+                    rx.text("al", size="1", color="#64748b"),
+                    rx.text(item["end_date"], size="1", color="#64748b"),
                     spacing="1",
                 ),
                 spacing="0",
@@ -147,7 +147,7 @@ def render_sprint_card(sprint: rx.Var[dict]) -> rx.Component:
             rx.hstack(
                 rx.hstack(
                     rx.icon("flame", size=18, color="#ea580c"),
-                    rx.text(sprint["sprint_id"], size="3", weight="bold", color="#0f172a"),
+                    rx.text(sprint["sprint_id"], size="3", weight="bold", color="#f8fafc"),
                     align="center",
                     spacing="2",
                 ),
@@ -161,15 +161,15 @@ def render_sprint_card(sprint: rx.Var[dict]) -> rx.Component:
                 align="center",
             ),
             rx.hstack(
-                rx.icon("calendar", size=13, color="#64748b"),
-                rx.text(sprint["period"], size="1", weight="medium", color="#475569"),
+                rx.icon("calendar", size=13, color="#94a3b8"),
+                rx.text(sprint["period"], size="1", weight="medium", color="#94a3b8"),
                 align="center",
                 spacing="1",
             ),
-            rx.divider(color_scheme="gray", opacity=0.3),
+            rx.divider(color_scheme="gray", opacity=0.15),
             rx.vstack(
-                rx.text("Objetivo Central:", size="1", weight="bold", color="#334155"),
-                rx.text(sprint["objective"], size="2", color="#64748b"),
+                rx.text("Objetivo Central:", size="1", weight="bold", color="#f8fafc"),
+                rx.text(sprint["objective"], size="2", color="#94a3b8"),
                 spacing="1",
                 align="start",
             ),
@@ -179,7 +179,7 @@ def render_sprint_card(sprint: rx.Var[dict]) -> rx.Component:
                 wrap="wrap",
                 spacing="1",
             ),
-            rx.divider(color_scheme="gray", opacity=0.3),
+            rx.divider(color_scheme="gray", opacity=0.15),
             rx.hstack(
                 rx.badge(sprint["story_points"].to_string(), " Story Points", color_scheme="blue", variant="surface", size="1"),
                 rx.badge(sprint["hours_estimated"].to_string(), " Horas Estimadas", color_scheme="gray", variant="soft", size="1"),
@@ -190,16 +190,16 @@ def render_sprint_card(sprint: rx.Var[dict]) -> rx.Component:
             width="100%",
         ),
         padding="4",
-        background_color="#ffffff",
-        border="1px solid #e2e8f0",
+        background_color="#131b2e",
+        border="1px solid #1e293b",
         border_radius="10px",
-        box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.02)",
+        box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)",
         flex="1",
         min_width="320px",
         max_width="400px",
         _hover={
-            "border_color": "#cbd5e1",
-            "box_shadow": "0 4px 10px 0 rgba(0, 0, 0, 0.04)",
+            "border_color": "#3b82f6",
+            "box_shadow": "0 4px 12px 0 rgba(59, 130, 246, 0.15)",
         },
     )
 
@@ -214,10 +214,10 @@ def work_plan_view() -> rx.Component:
                     # Header Banner
                     rx.hstack(
                         rx.hstack(
-                            rx.icon("calendar-clock", size=22, color="#2563eb"),
+                            rx.icon("calendar-clock", size=22, color="#3b82f6"),
                             rx.vstack(
-                                rx.text("Plan de Trabajo & Planificador Inteligente de Sprints", size="4", weight="bold", color="#17283c"),
-                                rx.text("Configura la capacidad laboral y genera la distribución automática de Sprints y Backlog con Gemini 2.5 Flash", size="2", color="#59697b"),
+                                rx.text("Plan de Trabajo & Planificador Inteligente de Sprints", size="4", weight="bold", color="#f8fafc"),
+                                rx.text("Configura la capacidad laboral y genera la distribución automática de Sprints y Backlog con Gemini 2.5 Flash", size="2", color="#94a3b8"),
                                 spacing="0",
                             ),
                             align="center",
@@ -267,12 +267,12 @@ def work_plan_view() -> rx.Component:
                         align="center",
                     ),
 
-                    rx.divider(color_scheme="gray", opacity=0.3),
+                    rx.divider(color_scheme="gray", opacity=0.15),
 
                     # Inputs Row: Dates, Hours/Day, Work Days Scheme
                     rx.hstack(
                         rx.vstack(
-                            rx.text("Fecha Inicio:", size="1", weight="bold", color="#475569"),
+                            rx.text("Fecha Inicio:", size="1", weight="bold", color="#94a3b8"),
                             rx.input(
                                 type="date",
                                 value=FlowState.plan_start_date,
@@ -284,7 +284,7 @@ def work_plan_view() -> rx.Component:
                             spacing="1",
                         ),
                         rx.vstack(
-                            rx.text("Fecha Término:", size="1", weight="bold", color="#475569"),
+                            rx.text("Fecha Término:", size="1", weight="bold", color="#94a3b8"),
                             rx.input(
                                 type="date",
                                 value=FlowState.plan_end_date,
@@ -296,7 +296,7 @@ def work_plan_view() -> rx.Component:
                             spacing="1",
                         ),
                         rx.vstack(
-                            rx.text("Jornada Diaria:", size="1", weight="bold", color="#475569"),
+                            rx.text("Jornada Diaria:", size="1", weight="bold", color="#94a3b8"),
                             rx.select.root(
                                 rx.select.trigger(size="1"),
                                 rx.select.content(
@@ -312,7 +312,7 @@ def work_plan_view() -> rx.Component:
                             spacing="1",
                         ),
                         rx.vstack(
-                            rx.text("Régimen Semanal:", size="1", weight="bold", color="#475569"),
+                            rx.text("Régimen Semanal:", size="1", weight="bold", color="#94a3b8"),
                             rx.select.root(
                                 rx.select.trigger(size="1"),
                                 rx.select.content(
@@ -338,21 +338,21 @@ def work_plan_view() -> rx.Component:
                             FlowState.plan_working_days_count.to_string() + " días",
                             "en calendario",
                             "calendar",
-                            "#2563eb",
+                            "#3b82f6",
                         ),
                         capacity_stat(
                             "Capacidad Total Disponible",
                             FlowState.plan_total_capacity_hours.to_string() + " hrs",
                             "productivas",
                             "clock",
-                            "#16a34a",
+                            "#10b981",
                         ),
                         capacity_stat(
                             "Sprints Recomendados",
                             FlowState.plan_suggested_sprints_count.to_string() + " Sprints",
                             "de 2 semanas",
                             "flame",
-                            "#ea580c",
+                            "#f97316",
                         ),
                         capacity_stat(
                             "Horas Planificadas",
@@ -368,7 +368,7 @@ def work_plan_view() -> rx.Component:
 
                     # Description Text Area for Gemini Scope Prompt
                     rx.vstack(
-                        rx.text("Descripción de Actividades & Alcance del Proyecto (Prompt para IA):", size="1", weight="bold", color="#475569"),
+                        rx.text("Descripción de Actividades & Alcance del Proyecto (Prompt para IA):", size="1", weight="bold", color="#94a3b8"),
                         rx.text_area(
                             placeholder="Describe qué actividades, módulos, integraciones, pruebas y entregables se realizarán (ej: 'Automatizar atención de aclaraciones por WhatsApp con conexión a Chronos y Freshdesk, incluyendo manuales, capacitación y auditoría Six Sigma')...",
                             value=FlowState.plan_activities_description,
@@ -385,10 +385,10 @@ def work_plan_view() -> rx.Component:
                     width="100%",
                 ),
                 padding="4",
-                background_color="#ffffff",
-                border="1px solid #e2e8f0",
+                background_color="#131b2e",
+                border="1px solid #1e293b",
                 border_radius="10px",
-                box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.02)",
+                box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)",
                 width="100%",
             ),
 
@@ -484,14 +484,14 @@ def work_plan_view() -> rx.Component:
                         overflow_x="auto",
                         width="100%",
                     ),
-                    background_color="#ffffff",
-                    border="1px solid #d7e0ea",
+                    background_color="#131b2e",
+                    border="1px solid #1e293b",
                     border_radius="10px",
                     overflow="hidden",
                     width="100%",
                     max_height="calc(100vh - 420px)",
                     overflow_y="auto",
-                    box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)",
+                    box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)",
                 ),
                 # Subtab 2: Sprints Agenda Cards
                 rx.box(
@@ -519,5 +519,5 @@ def work_plan_view() -> rx.Component:
         width="100%",
         height="100%",
         overflow="hidden",
-        background_color="#f3f6fa",
+        background_color="#0b0f17",
     )

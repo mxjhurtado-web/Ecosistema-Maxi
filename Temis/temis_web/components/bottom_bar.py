@@ -11,18 +11,18 @@ from temis_web.state import FlowState
 
 
 def bottom_bar() -> rx.Component:
-    """Bottom bar with page tabs and zoom controls"""
+    """Bottom bar with page tabs and zoom controls in dark executive slate"""
     return rx.hstack(
         # Left: Multi-Tab Page Switcher
         rx.hstack(
-            rx.icon("layers", size=14, color="#4f46e5"),
+            rx.icon("layers", size=14, color="#38bdf8"),
             rx.foreach(
                 FlowState.project_pages,
                 lambda page, idx: rx.hstack(
                     rx.button(
                         page["name"],
                         on_click=lambda: FlowState.select_page_tab(idx),
-                        color_scheme=rx.cond(FlowState.active_page_index == idx, "indigo", "gray"),
+                        color_scheme=rx.cond(FlowState.active_page_index == idx, "blue", "gray"),
                         variant=rx.cond(FlowState.active_page_index == idx, "solid", "ghost"),
                         size="1",
                         radius="medium",
@@ -41,7 +41,8 @@ def bottom_bar() -> rx.Component:
                     ),
                     align="center",
                     spacing="1",
-                    background_color=rx.cond(FlowState.active_page_index == idx, "#ede9fe", "transparent"),
+                    background_color=rx.cond(FlowState.active_page_index == idx, "rgba(59, 130, 246, 0.2)", "transparent"),
+                    border=rx.cond(FlowState.active_page_index == idx, "1px solid rgba(59, 130, 246, 0.4)", "1px solid transparent"),
                     border_radius="md",
                     padding_x="1",
                 ),
@@ -50,7 +51,7 @@ def bottom_bar() -> rx.Component:
             rx.button(
                 rx.icon("plus", size=13),
                 on_click=FlowState.add_new_tab_page,
-                color_scheme="indigo",
+                color_scheme="blue",
                 variant="ghost",
                 size="1",
                 radius="medium",
@@ -78,7 +79,7 @@ def bottom_bar() -> rx.Component:
                 variant="ghost",
                 size="1",
             ),
-            rx.text(FlowState.zoom_percent, size="1", weight="bold", color="#475569", min_width="42px", text_align="center"),
+            rx.text(FlowState.zoom_percent, size="1", weight="bold", color="#f8fafc", min_width="42px", text_align="center"),
             rx.button(
                 rx.icon("plus", size=12),
                 on_click=FlowState.zoom_in,
@@ -95,7 +96,8 @@ def bottom_bar() -> rx.Component:
             ),
             align="center",
             spacing="1",
-            background_color="#f1f5f9",
+            background_color="#131b2e",
+            border="1px solid #1e293b",
             border_radius="md",
             padding_x="2",
             padding_y="1",
@@ -104,7 +106,7 @@ def bottom_bar() -> rx.Component:
         height="38px",
         align="center",
         padding_x="3",
-        background_color="#ffffff",
-        border_top="1px solid #d7e0ea",
+        background_color="#0f172a",
+        border_top="1px solid #1e293b",
         z_index="10",
     )

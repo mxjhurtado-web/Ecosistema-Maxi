@@ -21,14 +21,14 @@ PHASES_DATA = [
 
 
 def phase_item(phase: dict) -> rx.Component:
-    """Single phase sidebar item"""
+    """Single phase sidebar item in dark theme"""
     is_active = FlowState.current_phase == phase["num"]
     return rx.box(
         rx.hstack(
-            rx.icon(phase["icon"], size=18, color=rx.cond(is_active, "#2563eb", "#64748b")),
+            rx.icon(phase["icon"], size=18, color=rx.cond(is_active, "#38bdf8", "#94a3b8")),
             rx.vstack(
-                rx.text(f"Fase {phase['num']}", size="1", weight="bold", color=rx.cond(is_active, "#2563eb", "#94a3b8")),
-                rx.text(phase["name"], size="2", weight="medium", color=rx.cond(is_active, "#1e293b", "#334155")),
+                rx.text(f"Fase {phase['num']}", size="1", weight="bold", color=rx.cond(is_active, "#38bdf8", "#94a3b8")),
+                rx.text(phase["name"], size="2", weight="medium", color=rx.cond(is_active, "#f8fafc", "#cbd5e1")),
                 spacing="0",
             ),
             spacing="3",
@@ -37,17 +37,17 @@ def phase_item(phase: dict) -> rx.Component:
         padding_x="3",
         padding_y="2.5",
         border_radius="md",
-        background_color=rx.cond(is_active, "#eff6ff", "transparent"),
-        border_left=rx.cond(is_active, "3px solid #2563eb", "3px solid transparent"),
+        background_color=rx.cond(is_active, "rgba(59, 130, 246, 0.15)", "transparent"),
+        border_left=rx.cond(is_active, "3px solid #3b82f6", "3px solid transparent"),
         cursor="pointer",
         on_click=lambda: FlowState.set_phase(phase["num"]),
-        _hover={"background_color": "#f1f5f9"},
+        _hover={"background_color": "#1e293b"},
         width="100%",
     )
 
 
 def sidebar() -> rx.Component:
-    """Left sidebar component"""
+    """Left sidebar component in dark theme"""
     return rx.vstack(
         rx.text("MARCO DE GOBERNANZA", size="1", weight="bold", color="#94a3b8", padding_x="3", padding_top="2"),
         rx.vstack(
@@ -62,7 +62,7 @@ def sidebar() -> rx.Component:
                 rx.icon("trash-2", size=16),
                 " Limpiar Lienzo",
                 on_click=FlowState.clear_canvas,
-                color_scheme="red",
+                color_scheme="ruby",
                 variant="soft",
                 width="100%",
                 size="2",
@@ -73,8 +73,8 @@ def sidebar() -> rx.Component:
         ),
         width="240px",
         height="calc(100vh - 65px)",
-        background_color="#ffffff",
-        border_right="1px solid #e2e8f0",
+        background_color="#0f172a",
+        border_right="1px solid #1e293b",
         padding="3",
         spacing="3",
     )

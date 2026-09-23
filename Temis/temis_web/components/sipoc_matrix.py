@@ -106,10 +106,10 @@ def sipoc_matrix() -> rx.Component:
             # Top Toolbar & Pipeline Dispatches
             rx.hstack(
                 rx.hstack(
-                    rx.icon("table-properties", size=24, color="#0284c7"),
+                    rx.icon("table-properties", size=24, color="#38bdf8"),
                     rx.vstack(
-                        rx.text("Matriz SIPOC Six Sigma", size="4", weight="bold", color="#17283c"),
-                        rx.text("Mapeo estructurado: Proveedores -> Entradas -> Proceso -> Salidas -> Clientes", size="2", color="#59697b"),
+                        rx.text("Matriz SIPOC Six Sigma", size="4", weight="bold", color="#f8fafc"),
+                        rx.text("Mapeo estructurado: Proveedores -> Entradas -> Proceso -> Salidas -> Clientes", size="2", color="#94a3b8"),
                         spacing="0",
                     ),
                     align="center",
@@ -158,7 +158,7 @@ def sipoc_matrix() -> rx.Component:
                 ),
                 width="100%",
                 padding_y="3",
-                border_bottom="1px solid #d7e0ea",
+                border_bottom="1px solid #1e293b",
                 align="center",
                 wrap="wrap",
             ),
@@ -190,11 +190,11 @@ def sipoc_matrix() -> rx.Component:
                     width="100%",
                 ),
                 width="100%",
-                background_color="#ffffff",
-                border="1px solid #d7e0ea",
+                background_color="#131b2e",
+                border="1px solid #1e293b",
                 border_radius="10px",
                 padding="3",
-                box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02)",
+                box_shadow="0 2px 4px 0 rgba(0, 0, 0, 0.4)",
                 max_height="calc(100vh - 290px)",
                 overflow_y="auto",
             ),
@@ -203,8 +203,8 @@ def sipoc_matrix() -> rx.Component:
             rx.box(
                 rx.vstack(
                     rx.hstack(
-                        rx.icon("circle-check", size=16, color="#d97706"),
-                        rx.text("Requisitos del Cliente & Notas de Calidad (Customer Requirements)", size="2", weight="bold", color="#92400e"),
+                        rx.icon("circle-check", size=16, color="#f59e0b"),
+                        rx.text("Requisitos del Cliente & Notas de Calidad (Customer Requirements)", size="2", weight="bold", color="#fcd34d"),
                         align="center",
                         spacing="2",
                     ),
@@ -221,8 +221,8 @@ def sipoc_matrix() -> rx.Component:
                     spacing="1",
                 ),
                 width="100%",
-                background_color="#fffbeb",
-                border="1px solid #fde68a",
+                background_color="rgba(245, 158, 11, 0.12)",
+                border="1px solid rgba(245, 158, 11, 0.3)",
                 border_radius="8px",
                 padding="3",
             ),
@@ -235,5 +235,5 @@ def sipoc_matrix() -> rx.Component:
         width="100%",
         height="100%",
         overflow="hidden",
-        background_color="#f3f6fa",
+        background_color="#0b0f17",
     )
