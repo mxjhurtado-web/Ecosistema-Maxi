@@ -1869,6 +1869,11 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
     def active_sprints_count(self) -> int:
         return sum(1 for p in self.saved_projects if p.get("current_sprint"))
 
+    @rx.var
+    def projects_needing_attention(self) -> List[Dict[str, Any]]:
+        """Return projects in yellow or red status requiring executive attention"""
+        return [p for p in self.saved_projects if p.get("health_status") in ["yellow", "red"]]
+
     def set_search_saved_query(self, val: str):
         self.search_saved_query = val
 

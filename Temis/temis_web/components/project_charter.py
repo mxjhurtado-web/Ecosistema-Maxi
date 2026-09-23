@@ -66,6 +66,67 @@ def project_charter() -> rx.Component:
                 border_bottom="1px solid #e2e8f0",
                 align="center",
             ),
+
+            # 4-Step Operational Workflow Roadmap (P21)
+            rx.box(
+                rx.hstack(
+                    rx.hstack(
+                        rx.box(
+                            rx.text("1", size="1", weight="bold", color="#ffffff"),
+                            width="20px", height="20px", border_radius="full", background_color="#1d4ed8",
+                            display="flex", align_items="center", justify_content="center",
+                        ),
+                        rx.text("1. Ficha Charter (Actual)", size="1", weight="bold", color="#1d4ed8"),
+                        align="center", spacing="1",
+                    ),
+                    rx.icon("chevron-right", size=14, color="#cbd5e1"),
+                    rx.hstack(
+                        rx.box(
+                            rx.text("2", size="1", weight="bold", color="#475569"),
+                            width="20px", height="20px", border_radius="full", background_color="#f1f5f9",
+                            display="flex", align_items="center", justify_content="center",
+                        ),
+                        rx.text("2. Plan & Sprints", size="1", weight="medium", color="#475569"),
+                        on_click=lambda: FlowState.set_active_view("plan"),
+                        cursor="pointer",
+                        align="center", spacing="1",
+                    ),
+                    rx.icon("chevron-right", size=14, color="#cbd5e1"),
+                    rx.hstack(
+                        rx.box(
+                            rx.text("3", size="1", weight="bold", color="#475569"),
+                            width="20px", height="20px", border_radius="full", background_color="#f1f5f9",
+                            display="flex", align_items="center", justify_content="center",
+                        ),
+                        rx.text("3. Modelado BPMN / SIPOC", size="1", weight="medium", color="#475569"),
+                        on_click=lambda: FlowState.set_active_view("flow"),
+                        cursor="pointer",
+                        align="center", spacing="1",
+                    ),
+                    rx.icon("chevron-right", size=14, color="#cbd5e1"),
+                    rx.hstack(
+                        rx.box(
+                            rx.text("4", size="1", weight="bold", color="#475569"),
+                            width="20px", height="20px", border_radius="full", background_color="#f1f5f9",
+                            display="flex", align_items="center", justify_content="center",
+                        ),
+                        rx.text("4. Gobernanza & Calidad", size="1", weight="medium", color="#475569"),
+                        on_click=lambda: FlowState.set_active_view("governance"),
+                        cursor="pointer",
+                        align="center", spacing="1",
+                    ),
+                    width="100%",
+                    align="center",
+                    spacing="3",
+                    wrap="wrap",
+                ),
+                padding_x="4",
+                padding_y="2.5",
+                background_color="#ffffff",
+                border="1px solid #e2e8f0",
+                border_radius="8px",
+                width="100%",
+            ),
             
             # Content Grid: Left Form (Charter) & Right Editor (Narrative)
             rx.hstack(

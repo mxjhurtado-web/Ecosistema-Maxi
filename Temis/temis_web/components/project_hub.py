@@ -796,6 +796,48 @@ def project_hub() -> rx.Component:
                         wrap="wrap",
                     ),
 
+                    # Executive Attention Banner (Action-Driven Section)
+                    rx.cond(
+                        FlowState.projects_needing_attention.length() > 0,
+                        rx.box(
+                            rx.hstack(
+                                rx.box(
+                                    rx.icon("alert-triangle", size=18, color="#b45309"),
+                                    padding="2",
+                                    background_color="#fde68a",
+                                    border_radius="8px",
+                                ),
+                                rx.vstack(
+                                    rx.hstack(
+                                        rx.text("Requieren Atención:", size="2", weight="bold", color="#92400e"),
+                                        rx.text(FlowState.projects_needing_attention.length().to_string(), " proyectos en riesgo o con entregables pendientes.", size="2", color="#92400e"),
+                                        spacing="1",
+                                    ),
+                                    rx.text("Revisa los sprints y cuellos de botella para mitigar retrasos operativos.", size="1", color="#b45309"),
+                                    spacing="0",
+                                ),
+                                rx.spacer(),
+                                rx.button(
+                                    rx.hstack(rx.icon("filter", size=12), rx.text("Filtrar en Riesgo"), align="center", spacing="1"),
+                                    on_click=lambda: FlowState.set_filter_hub_status("yellow"),
+                                    color_scheme="amber",
+                                    variant="solid",
+                                    size="1",
+                                    radius="medium",
+                                ),
+                                width="100%",
+                                align="center",
+                                spacing="3",
+                            ),
+                            padding="3",
+                            background_color="#fef3c7",
+                            border="1px solid #fde68a",
+                            border_radius="10px",
+                            width="100%",
+                        ),
+                        rx.box(),
+                    ),
+
                     # Filter and Search Bar
                     rx.hstack(
                         # Search Input
