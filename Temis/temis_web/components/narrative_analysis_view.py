@@ -240,7 +240,7 @@ def narrative_analysis_view() -> rx.Component:
                             rx.vstack(
                                 rx.hstack(
                                     rx.icon("file-check", size=20, color="#10b981"),
-                                    rx.heading("Documento Cargado en Proyecto", size="3", color="#17283c"),
+                                    rx.heading("Documento Activo en Proyecto", size="3", color="#17283c"),
                                     align="center",
                                     spacing="2",
                                 ),
@@ -264,18 +264,53 @@ def narrative_analysis_view() -> rx.Component:
                                             border_radius="md",
                                             width="100%",
                                         ),
-                                        rx.button(
-                                            rx.hstack(
-                                                rx.icon("sparkles", size=16),
-                                                rx.text("Analizar con Gemini 2.5 Flash"),
-                                                align="center",
+                                        # If existing process findings exist, show Enrich vs Re-analyze options
+                                        rx.cond(
+                                            FlowState.extracted_findings,
+                                            rx.vstack(
+                                                rx.button(
+                                                    rx.hstack(
+                                                        rx.icon("sparkles", size=16),
+                                                        rx.text("Enriquecer Proceso Existente (Incremental)"),
+                                                        align="center",
+                                                        spacing="2",
+                                                    ),
+                                                    on_click=FlowState.enrich_narrative_with_new_doc,
+                                                    loading=FlowState.is_analyzing_narrative,
+                                                    color_scheme="purple",
+                                                    size="3",
+                                                    width="100%",
+                                                ),
+                                                rx.button(
+                                                    rx.hstack(
+                                                        rx.icon("refresh-cw", size=14),
+                                                        rx.text("Reemplazar y Re-analizar todo desde cero", size="2"),
+                                                        align="center",
+                                                        spacing="2",
+                                                    ),
+                                                    on_click=FlowState.run_narrative_ai_analysis,
+                                                    loading=FlowState.is_analyzing_narrative,
+                                                    color_scheme="gray",
+                                                    variant="soft",
+                                                    size="2",
+                                                    width="100%",
+                                                ),
                                                 spacing="2",
+                                                width="100%",
                                             ),
-                                            on_click=FlowState.run_narrative_ai_analysis,
-                                            loading=FlowState.is_analyzing_narrative,
-                                            color_scheme="purple",
-                                            size="3",
-                                            width="100%",
+                                            rx.button(
+                                                rx.hstack(
+                                                    rx.icon("sparkles", size=16),
+                                                    rx.text("Analizar con Gemini 2.5 Flash"),
+                                                    align="center",
+                                                    spacing="2",
+                                                ),
+                                                on_click=FlowState.run_narrative_ai_analysis,
+                                                loading=FlowState.is_analyzing_narrative,
+                                                color_scheme="purple",
+                                                size="3",
+                                                width="100%",
+                                            ),
                                         ),
                                         spacing="3",
                                         width="100%",
@@ -294,6 +329,56 @@ def narrative_analysis_view() -> rx.Component:
                         columns="2",
                         spacing="4",
                         width="100%",
+                    ),
+                    
+                    # Project Document History / Multi-Document Library
+                    rx.cond(
+                        FlowState.narrative_documents,
+                        rx.vstack(
+                            rx.hstack(
+                                rx.icon("folder-archive", size=18, color="#1e5a9a"),
+                                rx.heading("Biblioteca de Documentos del Proyecto (Ingesta Multi-Documento)", size="3", color="#17283c"),
+                                align="center",
+                                spacing="2",
+                            ),
+                            rx.text("Documentos cargados que nutren la base de conocimiento y trazabilidad de este proceso.", size="2", color="#52657a"),
+                            rx.vstack(
+                                rx.foreach(
+                                    FlowState.narrative_documents,
+                                    lambda doc: rx.hstack(
+                                        rx.icon("file-text", size=18, color="#1e5a9a"),
+                                        rx.vstack(
+                                            rx.text(doc["filename"], size="2", weight="bold", color="#17283c"),
+                                            rx.text(
+                                                f"Subido por: {doc['uploaded_by']} | {doc['uploaded_at']} | {doc['total_paragraphs']} bloques indexados",
+                                                size="1",
+                                                color="#64748b",
+                                            ),
+                                            spacing="1",
+                                            align="start",
+                                        ),
+                                        rx.spacer(),
+                                        rx.badge("Indexado", color_scheme="green", variant="soft", size="1"),
+                                        align="center",
+                                        padding="3",
+                                        background_color="#ffffff",
+                                        border="1px solid #e2e8f0",
+                                        border_radius="md",
+                                        width="100%",
+                                    )
+                                ),
+                                spacing="2",
+                                width="100%",
+                            ),
+                            spacing="3",
+                            width="100%",
+                            padding="4",
+                            background_color="#ffffff",
+                            border="1px solid #e2e8f0",
+                            border_radius="xl",
+                            box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+                        ),
+                        rx.box(),
                     ),
                     spacing="4",
                     width="100%",

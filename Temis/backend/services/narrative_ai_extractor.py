@@ -81,6 +81,125 @@ class NarrativeAiExtractor:
             logger.error(f"[NarrativeAiExtractor] Gemini extraction error: {e}, using local parser fallback")
             return self._extract_deterministic_local(project_id, document_id, blocks, formatted_content)
 
+    def enrich_existing_process(
+        self,
+        project_id: str,
+        document_id: str,
+        document_name: str,
+        blocks: List[ParagraphBlock],
+        existing_result: NarrativeAnalysisResult
+    ) -> NarrativeAnalysisResult:
+        """
+        Incrementally merge, enrich and resolve clarification points in an existing process
+        using a new complementary document (e.g., addendum, exceptions policy, minuta).
+        """
+        formatted_content = "\n".join([f"[{b.index}] ({b.source_type}) {b.text}" for b in blocks])
+
+        if not self.gemini or not self.api_key:
+            logger.info("[NarrativeAiExtractor] Gemini offline, running local incremental merge")
+            return self._merge_locally(project_id, document_id, blocks, formatted_content, existing_result)
+
+        prompt = self._build_enrichment_prompt(document_name, formatted_content, existing_result)
+
+        try:
+            response = self.gemini.get_structured_response(prompt, max_tokens=8192)
+            clean_resp = response.strip()
+            start_idx = clean_resp.find('{')
+            end_idx = clean_resp.rfind('}')
+            if start_idx != -1 and end_idx != -1:
+                json_part = clean_resp[start_idx:end_idx+1]
+                data = json.loads(json_part)
+                return self._parse_gemini_json_to_model(project_id, document_id, data, blocks)
+            else:
+                logger.warning("[NarrativeAiExtractor] JSON boundaries not found in Gemini response, fallback to local merge")
+                return self._merge_locally(project_id, document_id, blocks, formatted_content, existing_result)
+        except Exception as e:
+            logger.error(f"[NarrativeAiExtractor] Enrichment error: {e}, fallback to local merge")
+            return self._merge_locally(project_id, document_id, blocks, formatted_content, existing_result)
+
+    def _merge_locally(
+        self,
+        project_id: str,
+        document_id: str,
+        blocks: List[ParagraphBlock],
+        formatted_content: str,
+        existing_result: NarrativeAnalysisResult
+    ) -> NarrativeAnalysisResult:
+        """Local deterministic fallback for incremental merge"""
+        new_res = self._extract_deterministic_local(project_id, document_id, blocks, formatted_content)
+        # Merge findings
+        merged_findings = list(existing_result.findings)
+        for f in new_res.findings:
+            f_copy = f.model_copy()
+            f_copy.id = f"find-{len(merged_findings) + 1}"
+            merged_findings.append(f_copy)
+
+        # Merge steps
+        merged_asis = list(existing_result.asis_steps)
+        for s in new_res.asis_steps:
+            s_copy = s.model_copy()
+            s_copy.step_number = len(merged_asis) + 1
+            merged_asis.append(s_copy)
+        tobe_derived = self._derive_tobe_proposal_from_asis(merged_asis)
+
+        return NarrativeAnalysisResult(
+            project_id=project_id,
+            document_id=document_id,
+            project_name_suggestion=existing_result.project_name_suggestion,
+            project_purpose=existing_result.project_purpose,
+            scope_in=existing_result.scope_in,
+            scope_out=existing_result.scope_out,
+            findings=merged_findings,
+            clarification_points=existing_result.clarification_points,
+            overview=existing_result.overview,
+            legal_framework=existing_result.legal_framework,
+            asis_steps=merged_asis,
+            tobe_steps=tobe_derived,
+            validity_control=existing_result.validity_control,
+            has_sufficient_asis=True,
+            has_sufficient_tobe=True
+        )
+
+    def _build_enrichment_prompt(self, doc_name: str, formatted_content: str, existing: NarrativeAnalysisResult) -> str:
+        """Prompt to merge a new complementary document into an existing process"""
+        existing_overview_json = json.dumps(existing.overview.model_dump(), ensure_ascii=False, indent=2)
+        existing_findings_json = json.dumps([f.model_dump() for f in existing.findings], ensure_ascii=False, indent=2)
+        existing_clarifs_json = json.dumps([c.model_dump() for c in existing.clarification_points], ensure_ascii=False, indent=2)
+        existing_asis_json = json.dumps([s.model_dump() for s in existing.asis_steps], ensure_ascii=False, indent=2)
+
+        return f"""Eres un Consultor Senior de Procesos y Gobernanza Empresarial.
+El usuario ya cuenta con un proceso documentado y validado en TEMIS. 
+Acaba de subir un NUEVO DOCUMENTO COMPLEMENTARIO ('{doc_name}') con información adicional (ej. excepciones, anexo de sistemas, respuestas a dudas).
+
+Tu objetivo es FUSIONAR Y ENRIQUECER el proceso existente con la nueva información:
+1. **Nuevos Hallazgos:** Agrega nuevos requerimientos, reglas, sistemas o excepciones extraídos del nuevo archivo.
+2. **Resolución de Dudas Previas:** Si el nuevo archivo resuelve alguna de las dudas previas ('clarification_points'), intégrala como hallazgo confirmado.
+3. **Pasos y Actividades:** Si el nuevo documento agrega pasos (ej. flujo de excepciones), insértalos en 'asis_steps' y 'tobe_steps' de forma ordenada.
+4. **Trazabilidad:** Indica en cada nuevo hallazgo y paso la cita textual del nuevo documento `[N]`.
+
+---
+PROCESO ACTUALMENTE VIGENTE:
+- Visión General:
+{existing_overview_json}
+
+- Hallazgos Previos ({len(existing.findings)} items):
+{existing_findings_json[:4000]}
+
+- Dudas Previas Pendientes ({len(existing.clarification_points)} items):
+{existing_clarifs_json[:2000]}
+
+- Pasos Actuales ({len(existing.asis_steps)} actividades):
+{existing_asis_json[:5000]}
+
+---
+NUEVO DOCUMENTO COMPLEMENTARIO ({doc_name}):
+{formatted_content[:25000]}
+
+---
+FORMATO DE RESPUESTA:
+Devuelve el JSON unificado y consolidado que combina el proceso previo con las incorporaciones del nuevo documento, usando la misma estructura JSON estándar con project_name_suggestion, project_purpose, overview, legal_framework, findings, clarification_points, asis_steps, tobe_steps, validity_control.
+"""
+
     def _build_extraction_prompt(self, formatted_content: str) -> str:
         """Construct ultra-rigorous JSON extraction prompt with citation requirements"""
         return f"""Eres un Consultor y Auditor Senior de Procesos y Gobernanza Empresarial (Six Sigma / BPMN / ISO 9001).

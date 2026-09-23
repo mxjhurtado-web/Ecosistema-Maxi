@@ -1516,6 +1516,84 @@ class FlowState(rx.State):
         finally:
             self.is_analyzing_narrative = False
 
+    def enrich_narrative_with_new_doc(self):
+        """Incrementally enrich and merge current process with the newly uploaded document"""
+        import datetime
+        if not hasattr(self, "_cached_narrative_blocks") or not self._cached_narrative_blocks:
+            self.status_message = "Cargue un documento complementario antes de fusionar."
+            self.trigger_toast("Cargue un documento primero", "warning")
+            return
+
+        self.is_analyzing_narrative = True
+        self.status_message = f"Gemini 2.5 Flash enriqueciendo proceso con '{self.active_narrative_doc_name}'..."
+        try:
+            from backend.models.narrative_source_model import (
+                NarrativeAnalysisResult, ExtractedFinding, ProcessOverviewData, 
+                LegalFrameworkData, ActivityStepData, ValidityControlData
+            )
+            from backend.services.narrative_ai_extractor import NarrativeAiExtractor
+
+            # Reconstruct current result
+            existing_findings = [ExtractedFinding(**f) for f in self.extracted_findings]
+            existing_clarifs = [ExtractedFinding(**c) for c in self.clarification_points]
+            existing_overview = ProcessOverviewData(
+                target=self.narrative_overview_target,
+                scope=self.narrative_overview_scope,
+                process_input=self.narrative_overview_input,
+                process_output=self.narrative_overview_output,
+                frequency=self.narrative_overview_frequency
+            )
+            existing_legal = LegalFrameworkData(regulations=self.narrative_legal_framework)
+            existing_asis = [ActivityStepData(**s) for s in self.narrative_asis_steps_data]
+            existing_tobe = [ActivityStepData(**s) for s in self.narrative_tobe_steps_data]
+            existing_validity = ValidityControlData(**(self.narrative_validity_control or {}))
+
+            existing_result = NarrativeAnalysisResult(
+                project_id=self.project_id,
+                document_id=self.active_narrative_doc_id,
+                project_purpose=self.narrative_overview_target,
+                scope_in=self.narrative_overview_scope,
+                findings=existing_findings,
+                clarification_points=existing_clarifs,
+                overview=existing_overview,
+                legal_framework=existing_legal,
+                asis_steps=existing_asis,
+                tobe_steps=existing_tobe,
+                validity_control=existing_validity
+            )
+
+            extractor = NarrativeAiExtractor()
+            merged_result = extractor.enrich_existing_process(
+                project_id=self.project_id,
+                document_id=self.active_narrative_doc_id,
+                document_name=self.active_narrative_doc_name,
+                blocks=self._cached_narrative_blocks,
+                existing_result=existing_result
+            )
+
+            # Store updated merged data
+            self.extracted_findings = [f.model_dump() for f in merged_result.findings]
+            self.clarification_points = [c.model_dump() for c in merged_result.clarification_points]
+            self.narrative_overview_target = merged_result.overview.target
+            self.narrative_overview_scope = merged_result.overview.scope
+            self.narrative_overview_input = merged_result.overview.process_input
+            self.narrative_overview_output = merged_result.overview.process_output
+            self.narrative_overview_frequency = merged_result.overview.frequency
+            self.narrative_legal_framework = list(merged_result.legal_framework.regulations)
+            self.narrative_validity_control = merged_result.validity_control.model_dump()
+            self.narrative_asis_steps_data = [s.model_dump() for s in merged_result.asis_steps]
+            self.narrative_tobe_steps_data = [s.model_dump() for s in merged_result.tobe_steps]
+
+            self.narrative_analysis_step = 2
+            self.status_message = f"Proceso enriquecido con éxito: {len(self.extracted_findings)} hallazgos totales y {len(merged_result.asis_steps)} actividades."
+            self.trigger_toast(f"Proceso enriquecido con {self.active_narrative_doc_name}", "success")
+            self.trigger_auto_save()
+        except Exception as e:
+            self.status_message = f"Error al enriquecer proceso: {str(e)}"
+            self.trigger_toast(f"Error al enriquecer: {str(e)}", "error")
+        finally:
+            self.is_analyzing_narrative = False
+
     def update_finding_status(self, finding_id: str, new_status: str):
         """Update curation status of a finding in Human-in-the-Loop review"""
         import datetime
