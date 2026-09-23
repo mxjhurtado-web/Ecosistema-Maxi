@@ -114,30 +114,30 @@ def generate_local_narrative(
             i = r.get("input") or "-"
             o = r.get("output") or "-"
             c = r.get("customer") or "-"
-            sipoc_lines.append(f"- **{p}**: Proveedor: *{s}* | Entrada: *{i}* ➔ Salida: *{o}* | Cliente: *{c}*")
-        sipoc_summary = f"\n\n## 📋 Matriz de Transformación SIPOC\n" + "\n".join(sipoc_lines)
+            sipoc_lines.append(f"- **{p}**: Proveedor: *{s}* | Entrada: *{i}* hacia Salida: *{o}* | Cliente: *{c}*")
+        sipoc_summary = f"\n\n## Matriz de Transformación SIPOC\n" + "\n".join(sipoc_lines)
 
-    narrative = f"""# 📘 Manual de Procedimientos & Narrativa Oficial
+    narrative = f"""# Manual de Procedimientos & Narrativa Oficial
 # {title}
 
-## 🎯 1. Objetivo y Propósito del Proceso
+## 1. Objetivo y Propósito del Proceso
 {purpose}
 
-## 👥 2. Matriz de Roles y Responsabilidades
+## 2. Matriz de Roles y Responsabilidades
 - **Actores y Participantes:** {actors_str}
 - **Sistemas y Plataformas:** {systems_str}
 - **Canales de Interacción:** {channels_str}
 
 ---
 
-## 📝 3. Narrativa Operativa Secuencial (Paso a Paso)
+## 3. Narrativa Operativa Secuencial (Paso a Paso)
 
 {steps_text}
 {sipoc_summary}
 
 ---
 
-## ⚖️ 4. Políticas y Reglas de Negocio Clave
+## 4. Políticas y Reglas de Negocio Clave
 1. **Trazabilidad Absoluta:** Toda interacción por canal digital o sistema debe quedar registrada con marca de tiempo y folio.
 2. **Control de Calidad:** Las compuertas de decisión deben validar que la totalidad de requisitos previos se cumplan antes de pasar a la siguiente fase.
 3. **Escalamiento:** En caso de excepción no contemplada en las reglas estándar, el caso se turna al líder del proceso para dictamen.

@@ -3,7 +3,7 @@
 
 """
 User Management View for TEMIS Web Flow
-RBAC User Directory, Role Assignment, Status Management and Privilege Matrix.
+RBAC User Directory, Role Assignment, Project Assignment, Status Management and Privilege Matrix.
 All emojis removed and replaced with professional Lucide SVG icons (WCAG 2.2 AA compliant).
 """
 
@@ -32,6 +32,39 @@ def status_badge(status: str) -> rx.Component:
     )
 
 
+def user_assigned_projects_cell(u: dict) -> rx.Component:
+    """Helper to render assigned projects column badges"""
+    return rx.cond(
+        (u["role"] == "super_admin") | u["assigned_projects"].contains("all"),
+        rx.badge(
+            rx.hstack(rx.icon("globe", size=11), rx.text("Acceso Global (Todos)"), align="center", spacing="1"),
+            color_scheme="indigo",
+            variant="surface",
+            size="1",
+            radius="medium",
+        ),
+        rx.cond(
+            u["assigned_projects"].length() > 0,
+            rx.hstack(
+                rx.foreach(
+                    u["assigned_projects"],
+                    lambda p_code: rx.badge(
+                        rx.hstack(rx.icon("folder", size=10), rx.text(p_code), align="center", spacing="1"),
+                        color_scheme="blue",
+                        variant="soft",
+                        size="1",
+                        radius="medium",
+                    ),
+                ),
+                wrap="wrap",
+                spacing="1",
+                align="center",
+            ),
+            rx.badge("Sin proyectos", color_scheme="gray", variant="soft", size="1", radius="medium"),
+        ),
+    )
+
+
 def user_row(u: dict) -> rx.Component:
     """Single row in the user management table"""
     return rx.table.row(
@@ -39,7 +72,7 @@ def user_row(u: dict) -> rx.Component:
         rx.table.cell(
             rx.hstack(
                 rx.avatar(
-                    fallback="US",
+                    fallback=rx.cond(u["initials"] != "", u["initials"], "US"),
                     size="2",
                     radius="full",
                     color_scheme="indigo",
@@ -66,6 +99,8 @@ def user_row(u: dict) -> rx.Component:
                 spacing="1"
             )
         ),
+        # Assigned Projects
+        rx.table.cell(user_assigned_projects_cell(u)),
         # Status
         rx.table.cell(status_badge(u["status"])),
         # Last Login & Created
@@ -84,6 +119,7 @@ def user_row(u: dict) -> rx.Component:
         # Actions
         rx.table.cell(
             rx.hstack(
+                # Role Menu
                 rx.menu.root(
                     rx.menu.trigger(
                         rx.button(
@@ -107,6 +143,21 @@ def user_row(u: dict) -> rx.Component:
                         rx.menu.item("Auditor QA / Six Sigma", on_click=lambda: FlowState.update_user_role_action(u["email"], "qa_auditor")),
                         rx.menu.item("Colaborador (Invitado)", on_click=lambda: FlowState.update_user_role_action(u["email"], "collaborator")),
                     )
+                ),
+                # Assign Projects Button
+                rx.button(
+                    rx.hstack(
+                        rx.icon("folder-git-2", size=13),
+                        rx.text("Proyectos"),
+                        align="center",
+                        spacing="1",
+                    ),
+                    on_click=lambda: FlowState.open_assign_projects_modal(u["email"]),
+                    variant="soft",
+                    color_scheme="blue",
+                    size="1",
+                    radius="medium",
+                    title="Asignar proyectos al usuario",
                 ),
                 rx.cond(
                     u["email"] == FlowState.user_email,
@@ -149,8 +200,167 @@ def user_row(u: dict) -> rx.Component:
     )
 
 
+def assign_projects_modal() -> rx.Component:
+    """Modal dialog to assign specific projects or global access to a user"""
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.vstack(
+                rx.hstack(
+                    rx.box(
+                        rx.icon("folder-git-2", size=22, color="#1d4ed8"),
+                        padding="2",
+                        background_color="#eff6ff",
+                        border_radius="8px",
+                    ),
+                    rx.vstack(
+                        rx.dialog.title("Asignar Proyectos al Usuario", size="4", weight="bold", color="#0f172a"),
+                        rx.dialog.description(
+                            "Selecciona a qué proyectos del portafolio tiene acceso este usuario.",
+                            size="2",
+                            color="#64748b",
+                        ),
+                        spacing="0",
+                    ),
+                    align="center",
+                    spacing="3",
+                ),
+                rx.divider(),
+
+                # Target User Summary Card
+                rx.box(
+                    rx.hstack(
+                        rx.avatar(
+                            fallback="US",
+                            size="2",
+                            radius="full",
+                            color_scheme="indigo",
+                        ),
+                        rx.vstack(
+                            rx.text(FlowState.assign_user_name, size="2", weight="bold", color="#0f172a"),
+                            rx.text(FlowState.assign_user_email, size="1", color="#64748b"),
+                            spacing="0",
+                        ),
+                        rx.spacer(),
+                        rx.badge(FlowState.assign_user_role, color_scheme="blue", variant="soft", size="1"),
+                        align="center",
+                        spacing="2",
+                        width="100%",
+                    ),
+                    padding="3",
+                    background_color="#f8fafc",
+                    border="1px solid #e2e8f0",
+                    border_radius="8px",
+                    width="100%",
+                ),
+
+                # Global Access Option
+                rx.box(
+                    rx.hstack(
+                        rx.checkbox(
+                            checked=FlowState.assign_user_projects.contains("all"),
+                            on_change=lambda: FlowState.toggle_assign_project("all"),
+                        ),
+                        rx.vstack(
+                            rx.text("Acceso Global a Todos los Proyectos", size="2", weight="bold", color="#0f172a"),
+                            rx.text("El usuario tendrá visibilidad y acceso a todos los proyectos actuales y futuros.", size="1", color="#64748b"),
+                            spacing="0",
+                            align_items="start",
+                        ),
+                        align="center",
+                        spacing="3",
+                        width="100%",
+                    ),
+                    padding="3",
+                    background_color=rx.cond(FlowState.assign_user_projects.contains("all"), "#eff6ff", "#ffffff"),
+                    border=rx.cond(FlowState.assign_user_projects.contains("all"), "1px solid #bfdbfe", "1px solid #e2e8f0"),
+                    border_radius="8px",
+                    width="100%",
+                ),
+
+                # Individual Projects List
+                rx.cond(
+                    ~FlowState.assign_user_projects.contains("all"),
+                    rx.vstack(
+                        rx.text("Seleccionar Proyectos Específicos:", size="1", weight="bold", color="#334155"),
+                        rx.box(
+                            rx.vstack(
+                                rx.foreach(
+                                    FlowState.available_project_options,
+                                    lambda opt: rx.box(
+                                        rx.hstack(
+                                            rx.checkbox(
+                                                checked=FlowState.assign_user_projects.contains(opt["code"]),
+                                                on_change=lambda: FlowState.toggle_assign_project(opt["code"]),
+                                            ),
+                                            rx.badge(opt["code"], color_scheme="indigo", variant="surface", size="1"),
+                                            rx.text(opt["name"], size="2", weight="medium", color="#1e293b", line_clamp=1),
+                                            align="center",
+                                            spacing="2",
+                                            width="100%",
+                                        ),
+                                        padding="2",
+                                        border_bottom="1px solid #f1f5f9",
+                                        width="100%",
+                                    )
+                                ),
+                                spacing="1",
+                                width="100%",
+                            ),
+                            max_height="220px",
+                            overflow_y="auto",
+                            background_color="#ffffff",
+                            border="1px solid #e2e8f0",
+                            border_radius="8px",
+                            padding="2",
+                            width="100%",
+                        ),
+                        spacing="2",
+                        width="100%",
+                    ),
+                    rx.box(),
+                ),
+
+                # Modal Actions
+                rx.hstack(
+                    rx.button(
+                        "Cancelar",
+                        color_scheme="gray",
+                        variant="soft",
+                        size="2",
+                        on_click=FlowState.close_assign_projects_modal,
+                    ),
+                    rx.spacer(),
+                    rx.button(
+                        rx.hstack(
+                            rx.icon("check", size=14),
+                            rx.text("Guardar Asignación"),
+                            align="center",
+                            spacing="1",
+                        ),
+                        on_click=FlowState.save_user_projects_assignment,
+                        color_scheme="indigo",
+                        size="2",
+                        radius="medium",
+                    ),
+                    width="100%",
+                    align="center",
+                ),
+                spacing="4",
+                width="100%",
+            ),
+            width="500px",
+            max_width="95vw",
+            border_radius="xl",
+            padding="5",
+            background_color="#ffffff",
+        ),
+        open=FlowState.show_assign_projects_modal,
+        on_open_change=FlowState.set_show_assign_projects_modal,
+    )
+
+
 def new_user_modal() -> rx.Component:
-    """Modal to register a new user in TEMIS"""
+    """Modal to register a new user in TEMIS with role & project assignment"""
     return rx.dialog.root(
         rx.dialog.content(
             rx.dialog.title(
@@ -162,7 +372,7 @@ def new_user_modal() -> rx.Component:
                 )
             ),
             rx.dialog.description(
-                "Ingresa el correo corporativo y asigna el perfil de acceso y permisos en la plataforma.",
+                "Ingresa los datos del colaborador y asigna su perfil de acceso y proyectos autorizados.",
                 size="2",
                 color="#64748b",
                 margin_bottom="16px"
@@ -233,7 +443,58 @@ def new_user_modal() -> rx.Component:
                     width="100%",
                     spacing="1"
                 ),
-                # Password Field (Masked & Security Guidance - T01)
+
+                # Assigned Projects Selection Section
+                rx.vstack(
+                    rx.text("Asignación de Proyectos Inicial", size="1", weight="bold", color="#334155"),
+                    rx.box(
+                        rx.vstack(
+                            rx.hstack(
+                                rx.checkbox(
+                                    checked=FlowState.new_user_assigned_projects.contains("all"),
+                                    on_change=lambda: FlowState.toggle_new_user_project("all"),
+                                ),
+                                rx.text("Acceso Global (Todos los Proyectos)", size="2", weight="medium", color="#1e293b"),
+                                align="center",
+                                spacing="2",
+                            ),
+                            rx.cond(
+                                ~FlowState.new_user_assigned_projects.contains("all"),
+                                rx.vstack(
+                                    rx.foreach(
+                                        FlowState.available_project_options,
+                                        lambda opt: rx.hstack(
+                                            rx.checkbox(
+                                                checked=FlowState.new_user_assigned_projects.contains(opt["code"]),
+                                                on_change=lambda: FlowState.toggle_new_user_project(opt["code"]),
+                                            ),
+                                            rx.badge(opt["code"], color_scheme="indigo", size="1"),
+                                            rx.text(opt["name"], size="1", color="#334155", line_clamp=1),
+                                            align="center",
+                                            spacing="2",
+                                        )
+                                    ),
+                                    spacing="1",
+                                    padding_left="4",
+                                    width="100%",
+                                ),
+                                rx.box(),
+                            ),
+                            spacing="2",
+                            width="100%",
+                        ),
+                        padding="3",
+                        background_color="#f8fafc",
+                        border="1px solid #e2e8f0",
+                        border_radius="8px",
+                        width="100%",
+                    ),
+                    align_items="start",
+                    width="100%",
+                    spacing="1"
+                ),
+
+                # Password Field (Masked & Security Guidance)
                 rx.vstack(
                     rx.text("Contraseña Temporal de Primer Acceso", size="1", weight="bold", color="#334155"),
                     rx.input(
@@ -273,7 +534,7 @@ def new_user_modal() -> rx.Component:
                 spacing="2",
                 width="100%"
             ),
-            max_width="480px",
+            max_width="520px",
             border_radius="16px",
             padding="24px"
         ),
@@ -286,6 +547,7 @@ def user_management_view() -> rx.Component:
     """Main view for User Control & RBAC in TEMIS (Level 1 Subview)"""
     return rx.box(
         new_user_modal(),
+        assign_projects_modal(),
         rx.vstack(
             # Top Navigation Bar
             rx.hstack(
@@ -509,6 +771,7 @@ def user_management_view() -> rx.Component:
                                     rx.table.column_header_cell("Usuario & Correo"),
                                     rx.table.column_header_cell("Perfil / Rol RBAC"),
                                     rx.table.column_header_cell("Departamento"),
+                                    rx.table.column_header_cell("Proyectos Asignados"),
                                     rx.table.column_header_cell("Estado"),
                                     rx.table.column_header_cell("Último Acceso"),
                                     rx.table.column_header_cell("Acciones"),

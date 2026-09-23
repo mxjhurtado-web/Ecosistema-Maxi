@@ -168,12 +168,128 @@ class FlowState(rx.State):
     def set_show_new_user_modal(self, val: bool):
         self.show_new_user_modal = val
 
+    # User Project Assignment & Deletion Modals State
+    show_assign_projects_modal: bool = False
+    assign_user_email: str = ""
+    assign_user_name: str = ""
+    assign_user_role: str = ""
+    assign_user_projects: List[str] = []
+    new_user_assigned_projects: List[str] = ["all"]
+
+    show_delete_project_modal: bool = False
+    project_to_delete_id: str = ""
+    project_to_delete_name: str = ""
+    project_to_delete_code: str = ""
+
+    @rx.var
+    def available_project_options(self) -> List[Dict[str, str]]:
+        """List of available projects in portfolio for assignment"""
+        return [{"code": str(p.get("code", "PRJ")), "name": str(p.get("name", "Proyecto"))} for p in self.saved_projects]
+
+    def set_show_assign_projects_modal(self, val: bool):
+        self.show_assign_projects_modal = val
+
+    def open_assign_projects_modal(self, email: str):
+        """Open modal to configure project access for a user"""
+        user = next((u for u in self.users_list if u.get("email", "").strip().lower() == email.strip().lower()), None)
+        if not user:
+            self.status_message = f"No se encontró el usuario '{email}'"
+            return
+        self.assign_user_email = user.get("email", "")
+        self.assign_user_name = user.get("name", "")
+        self.assign_user_role = user.get("role", "collaborator")
+        assigned = user.get("assigned_projects", [])
+        if not assigned:
+            if user.get("role") == "super_admin":
+                assigned = ["all"]
+            else:
+                assigned = ["PRJ-TEMIS"]
+        self.assign_user_projects = list(assigned)
+        self.show_assign_projects_modal = True
+
+    def close_assign_projects_modal(self):
+        self.show_assign_projects_modal = False
+
+    def toggle_assign_project(self, project_code: str):
+        """Toggle project assignment in modal"""
+        if project_code == "all":
+            if "all" in self.assign_user_projects:
+                self.assign_user_projects = []
+            else:
+                self.assign_user_projects = ["all"]
+        else:
+            current = [p for p in self.assign_user_projects if p != "all"]
+            if project_code in current:
+                current.remove(project_code)
+            else:
+                current.append(project_code)
+            self.assign_user_projects = current
+
+    def toggle_new_user_project(self, project_code: str):
+        """Toggle project assignment in new user registration modal"""
+        if project_code == "all":
+            if "all" in self.new_user_assigned_projects:
+                self.new_user_assigned_projects = []
+            else:
+                self.new_user_assigned_projects = ["all"]
+        else:
+            current = [p for p in self.new_user_assigned_projects if p != "all"]
+            if project_code in current:
+                current.remove(project_code)
+            else:
+                current.append(project_code)
+            self.new_user_assigned_projects = current
+
+    def save_user_projects_assignment(self):
+        """Save project assignments for user"""
+        try:
+            from backend.services.user_service import update_user_projects, load_users
+            ok, msg = update_user_projects(self.assign_user_email, self.assign_user_projects)
+            if ok:
+                self.users_list = load_users()
+                self.show_assign_projects_modal = False
+                self.status_message = f"{msg}"
+            else:
+                self.status_message = f"Error: {msg}"
+        except Exception as e:
+            self.status_message = f"Error al guardar asignación: {str(e)}"
+
+    def prompt_delete_project(self, proj_id: str, proj_name: str, proj_code: str):
+        """Open confirmation dialog to delete a project"""
+        self.project_to_delete_id = proj_id
+        self.project_to_delete_name = proj_name
+        self.project_to_delete_code = proj_code
+        self.show_delete_project_modal = True
+
+    def close_delete_project_modal(self):
+        self.show_delete_project_modal = False
+        self.project_to_delete_id = ""
+        self.project_to_delete_name = ""
+        self.project_to_delete_code = ""
+
+    def set_show_delete_project_modal(self, val: bool):
+        self.show_delete_project_modal = val
+
+    def confirm_delete_project(self):
+        """Confirm and permanently remove project from catalog"""
+        if not self.project_to_delete_id:
+            return
+        name = self.project_to_delete_name
+        code = self.project_to_delete_code
+        self.saved_projects = [p for p in self.saved_projects if p.get("id") != self.project_to_delete_id]
+        self.show_delete_project_modal = False
+        self.project_to_delete_id = ""
+        self.project_to_delete_name = ""
+        self.project_to_delete_code = ""
+        self.status_message = f"Proyecto '{name}' ({code}) eliminado correctamente del portafolio"
+
     def open_new_user_modal(self):
         self.new_user_name = ""
         self.new_user_email = ""
         self.new_user_role = "collaborator"
         self.new_user_department = ""
         self.new_user_password = ""
+        self.new_user_assigned_projects = ["all"] if self.new_user_role == "super_admin" else ["PRJ-TEMIS"]
         self.show_new_user_modal = True
 
     def set_new_user_name(self, val: str):
@@ -184,6 +300,8 @@ class FlowState(rx.State):
 
     def set_new_user_role(self, val: str):
         self.new_user_role = str(val)
+        if str(val) == "super_admin":
+            self.new_user_assigned_projects = ["all"]
 
     def set_new_user_department(self, val: str):
         self.new_user_department = val
@@ -208,7 +326,8 @@ class FlowState(rx.State):
                 name=self.new_user_name,
                 role=self.new_user_role,
                 department=self.new_user_department,
-                password=self.new_user_password or "Temis123456*"
+                password=self.new_user_password or "Temis123456*",
+                assigned_projects=self.new_user_assigned_projects or ["all"]
             )
             if ok:
                 self.users_list = load_users()

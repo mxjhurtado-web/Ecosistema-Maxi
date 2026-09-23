@@ -281,6 +281,16 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
                         size="1",
                         radius="medium",
                     ),
+                    # Delete Project Button
+                    rx.button(
+                        rx.icon("trash-2", size=13),
+                        on_click=lambda: FlowState.prompt_delete_project(proj["id"], proj["name"], proj["code"]),
+                        color_scheme="ruby",
+                        variant="soft",
+                        size="1",
+                        radius="medium",
+                        title="Eliminar Proyecto",
+                    ),
                     align="center",
                     spacing="2",
                 ),
@@ -300,6 +310,97 @@ def project_card(proj: rx.Var[dict]) -> rx.Component:
             "border_color": "#93c5fd",
             "box_shadow": "0 4px 12px 0 rgba(37, 99, 235, 0.06)",
         },
+    )
+
+
+def delete_project_modal() -> rx.Component:
+    """Confirmation modal before deleting a project permanently"""
+    return rx.dialog.root(
+        rx.dialog.content(
+            rx.vstack(
+                rx.hstack(
+                    rx.box(
+                        rx.icon("alert-triangle", size=22, color="#dc2626"),
+                        padding="2",
+                        background_color="#fee2e2",
+                        border_radius="8px",
+                    ),
+                    rx.vstack(
+                        rx.dialog.title("¿Eliminar Proyecto del Portafolio?", size="4", weight="bold", color="#991b1b"),
+                        rx.dialog.description(
+                            "Esta acción eliminará el proyecto y su configuración activa.",
+                            size="2",
+                            color="#64748b",
+                        ),
+                        spacing="0",
+                    ),
+                    align="center",
+                    spacing="3",
+                ),
+                rx.divider(),
+                rx.box(
+                    rx.vstack(
+                        rx.hstack(
+                            rx.text("Proyecto:", size="1", weight="bold", color="#64748b", width="80px"),
+                            rx.text(FlowState.project_to_delete_name, size="2", weight="bold", color="#0f172a"),
+                            align="center",
+                        ),
+                        rx.hstack(
+                            rx.text("Código:", size="1", weight="bold", color="#64748b", width="80px"),
+                            rx.badge(FlowState.project_to_delete_code, color_scheme="indigo", variant="surface", size="1"),
+                            align="center",
+                        ),
+                        spacing="2",
+                        width="100%",
+                    ),
+                    padding="3",
+                    background_color="#f8fafc",
+                    border="1px solid #e2e8f0",
+                    border_radius="8px",
+                    width="100%",
+                ),
+                rx.callout(
+                    "Se removerán los diagramas Bézier, matriz SIPOC, sprints y registros de gobernanza. Las carpetas en Google Drive permanecerán en la nube para auditoría.",
+                    icon="info",
+                    color_scheme="amber",
+                    size="1",
+                    width="100%",
+                ),
+                rx.hstack(
+                    rx.button(
+                        "Cancelar",
+                        color_scheme="gray",
+                        variant="soft",
+                        size="2",
+                        on_click=FlowState.close_delete_project_modal,
+                    ),
+                    rx.spacer(),
+                    rx.button(
+                        rx.hstack(
+                            rx.icon("trash-2", size=14),
+                            rx.text("Sí, Eliminar Proyecto"),
+                            align="center",
+                            spacing="1",
+                        ),
+                        on_click=FlowState.confirm_delete_project,
+                        color_scheme="ruby",
+                        size="2",
+                        radius="medium",
+                    ),
+                    width="100%",
+                    align="center",
+                ),
+                spacing="4",
+                width="100%",
+            ),
+            width="460px",
+            max_width="95vw",
+            border_radius="xl",
+            padding="5",
+            background_color="#ffffff",
+        ),
+        open=FlowState.show_delete_project_modal,
+        on_open_change=FlowState.set_show_delete_project_modal,
     )
 
 
@@ -668,6 +769,7 @@ def project_hub() -> rx.Component:
     """Main Project Hub View (Level 1 Portafolio)"""
     return rx.box(
         new_project_modal(),
+        delete_project_modal(),
         rx.vstack(
             # 1. Top App Header for Hub
             rx.hstack(

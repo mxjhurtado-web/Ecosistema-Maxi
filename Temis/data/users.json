@@ -2,21 +2,25 @@
   {
     "email": "mxjhurtado@maxillc.com",
     "name": "Ing. José Antonio Hurtado",
+    "initials": "JH",
     "password": "Temis123456*",
     "role": "super_admin",
-    "role_label": "👑 Super Admin",
+    "role_label": "Super Admin",
     "department": "Dirección General & Tecnología",
+    "assigned_projects": ["all"],
     "status": "active",
     "created_at": "2026-01-16",
-    "last_login": "2026-09-18 13:13"
+    "last_login": "2026-09-23 01:12"
   },
   {
     "email": "ana.martinez@maxillc.com",
     "name": "Lic. Ana Martínez",
+    "initials": "AM",
     "password": "Temis123456*",
     "role": "project_manager",
-    "role_label": "👔 Dueño de Proyecto (PM)",
+    "role_label": "Dueño de Proyecto (PM)",
     "department": "Operaciones & Procesos",
+    "assigned_projects": ["PRJ-TEMIS", "PRJ-X"],
     "status": "active",
     "created_at": "2026-02-01",
     "last_login": "2026-09-17 10:30"
@@ -24,10 +28,12 @@
   {
     "email": "carlos.lopez@maxillc.com",
     "name": "Ing. Carlos López",
+    "initials": "CL",
     "password": "Temis123456*",
     "role": "analyst",
-    "role_label": "📊 Analista de Procesos",
+    "role_label": "Analista de Procesos",
     "department": "Ingeniería de Software",
+    "assigned_projects": ["PRJ-TEMIS"],
     "status": "active",
     "created_at": "2026-02-15",
     "last_login": "2026-09-18 09:15"
@@ -35,10 +41,12 @@
   {
     "email": "laura.torres@maxillc.com",
     "name": "Mtra. Laura Torres",
+    "initials": "LT",
     "password": "Temis123456*",
     "role": "qa_auditor",
-    "role_label": "🛡️ Auditor QA / Six Sigma",
+    "role_label": "Auditor QA / Six Sigma",
     "department": "Calidad & Gobernanza",
+    "assigned_projects": ["PRJ-TEMIS", "PRJ-X"],
     "status": "active",
     "created_at": "2026-03-01",
     "last_login": "2026-09-16 16:45"

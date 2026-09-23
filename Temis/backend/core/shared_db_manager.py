@@ -111,7 +111,7 @@ class SharedDBManager:
                     f.write(content)
                 
                 self.last_sync = datetime.now()
-                print("[SharedDB] ✓ Synced from Drive successfully")
+                print("[SharedDB] [OK] Synced from Drive successfully")
                 return True
             
             return False
@@ -153,7 +153,7 @@ class SharedDBManager:
             })
             
             self.last_sync = datetime.now()
-            print("[SharedDB] ✓ Synced to Drive successfully")
+            print("[SharedDB] [OK] Synced to Drive successfully")
             return True
         except Exception as e:
             print(f"[SharedDB] Error syncing to Drive: {e}")
@@ -177,7 +177,7 @@ class SharedDBManager:
                     "application/x-sqlite3"
                 )
             
-            print(f"[SharedDB] ✓ Backup created: {backup_name}")
+            print(f"[SharedDB] [OK] Backup created: {backup_name}")
             return backup_id
         except Exception as e:
             print(f"[SharedDB] Error creating backup: {e}")
@@ -222,7 +222,7 @@ class SharedDBManager:
                 # Sync to Drive
                 self.sync_to_drive("restore_operation")
                 
-                print("[SharedDB] ✓ Backup restored successfully")
+                print("[SharedDB] [OK] Backup restored successfully")
                 return True
             
             return False

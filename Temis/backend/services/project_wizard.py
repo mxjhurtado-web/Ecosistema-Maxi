@@ -17,70 +17,70 @@ class ProjectWizardService:
     # Wizard flow definition
     WIZARD_STEPS = {
         "welcome": {
-            "message": "¡Hola! 👋 Soy tu asistente de TEMIS. Voy a ayudarte a crear tu proyecto paso a paso siguiendo nuestra metodología híbrida.\n\n¿Estás listo para empezar?",
+            "message": "¡Hola! Soy tu asistente de TEMIS. Voy a ayudarte a crear tu proyecto paso a paso siguiendo nuestra metodología híbrida.\n\n¿Estás listo para empezar?",
             "type": "confirmation",
             "options": ["Sí, empecemos", "Necesito más información"],
             "next_yes": "step_1_name",
             "next_no": "explain_methodology"
         },
         "explain_methodology": {
-            "message": "TEMIS usa una metodología híbrida que combina SCRUM, PMBOK y UX en 7 fases:\n\n1️⃣ Diagnóstico Estratégico\n2️⃣ Inicio del Proyecto\n3️⃣ Planificación Híbrida\n4️⃣ Ejecución Iterativa\n5️⃣ Monitoreo y Control\n6️⃣ Mejora Continua\n7️⃣ Cierre del Proyecto\n\nTe guiaré para que no te pierdas ningún paso importante. ¿Listo ahora?",
+            "message": "TEMIS usa una metodología híbrida que combina SCRUM, PMBOK y UX en 7 fases:\n\n1. Diagnóstico Estratégico\n2. Inicio del Proyecto\n3. Planificación Híbrida\n4. Ejecución Iterativa\n5. Monitoreo y Control\n6. Mejora Continua\n7. Cierre del Proyecto\n\nTe guiaré para que no te pierdas ningún paso importante. ¿Listo ahora?",
             "type": "confirmation",
             "options": ["Sí, empecemos", "Volver al inicio"],
             "next_yes": "step_1_name",
             "next_no": "welcome"
         },
         "step_1_name": {
-            "message": "Perfecto. Empecemos con lo básico:\n\n📝 **¿Cuál es el nombre de tu proyecto?**\n\nEj: 'Sistema de Gestión de Inventarios', 'App Móvil de Ventas'",
+            "message": "Perfecto. Empecemos con lo básico:\n\n**¿Cuál es el nombre de tu proyecto?**\n\nEj: 'Sistema de Gestión de Inventarios', 'App Móvil de Ventas'",
             "type": "text",
             "field": "project_name",
             "validation": {"required": True, "min_length": 3},
             "next": "step_2_objective"
         },
         "step_2_objective": {
-            "message": "Excelente nombre: **{project_name}**\n\n🎯 **¿Cuál es el objetivo principal o problema que resuelve este proyecto?**\n\nSé específico. Esto será tu norte durante todo el proyecto.",
+            "message": "Excelente nombre: **{project_name}**\n\n**¿Cuál es el objetivo principal o problema que resuelve este proyecto?**\n\nSé específico. Esto será tu norte durante todo el proyecto.",
             "type": "textarea",
             "field": "objective",
             "validation": {"required": True, "min_length": 20},
             "next": "step_3_sponsor"
         },
         "step_3_sponsor": {
-            "message": "Perfecto. Ahora hablemos del equipo:\n\n👔 **¿Quién es el Sponsor o patrocinador ejecutivo del proyecto?**\n\n(La persona que autoriza y respalda el proyecto a nivel directivo)",
+            "message": "Perfecto. Ahora hablemos del equipo:\n\n**¿Quién es el Sponsor o patrocinador ejecutivo del proyecto?**\n\n(La persona que autoriza y respalda el proyecto a nivel directivo)",
             "type": "text",
             "field": "sponsor_name",
             "validation": {"required": True},
             "next": "step_4_lead"
         },
         "step_4_lead": {
-            "message": "👨‍💼 **¿Quién será el Project Lead?**\n\n(Responsable de la gestión integral del proyecto)",
+            "message": "**¿Quién será el Project Lead?**\n\n(Responsable de la gestión integral del proyecto)",
             "type": "text",
             "field": "project_lead",
             "validation": {"required": True},
             "next": "step_5_deadline"
         },
         "step_5_deadline": {
-            "message": "📅 **¿Cuál es la fecha objetivo de entrega?**\n\n(Formato: DD/MM/YYYY)",
+            "message": "**¿Cuál es la fecha objetivo de entrega?**\n\n(Formato: DD/MM/YYYY)",
             "type": "date",
             "field": "target_date",
             "validation": {"required": False},
             "next": "step_6_document"
         },
         "step_6_document": {
-            "message": "📄 **¿Tienes algún documento inicial?**\n\n(Charter, propuesta, diagnóstico, etc.)\n\nPuedes subirlo ahora o hacerlo después.",
+            "message": "**¿Tienes algún documento inicial?**\n\n(Charter, propuesta, diagnóstico, etc.)\n\nPuedes subirlo ahora o hacerlo después.",
             "type": "file_optional",
             "field": "initial_document",
             "validation": {"required": False},
             "next": "step_7_confirm"
         },
         "step_7_confirm": {
-            "message": "✅ **Resumen de tu proyecto:**\n\n📌 **Nombre:** {project_name}\n🎯 **Objetivo:** {objective}\n👔 **Sponsor:** {sponsor_name}\n👨‍💼 **Project Lead:** {project_lead}\n📅 **Fecha objetivo:** {target_date}\n\n¿Todo correcto?",
+            "message": "**Resumen de tu proyecto:**\n\n- **Nombre:** {project_name}\n- **Objetivo:** {objective}\n- **Sponsor:** {sponsor_name}\n- **Project Lead:** {project_lead}\n- **Fecha objetivo:** {target_date}\n\n¿Todo correcto?",
             "type": "confirmation",
             "options": ["Sí, crear proyecto", "Necesito corregir algo"],
             "next_yes": "create_project",
             "next_no": "step_1_name"
         },
         "create_project": {
-            "message": "🎉 **¡Proyecto creado exitosamente!**\n\nHe configurado las 7 fases de la metodología híbrida.\n\n📋 **Siguiente paso recomendado:**\nComienza con el Diagnóstico Estratégico (Fase 1). Necesitarás:\n- Análisis AS-IS de procesos actuales\n- Mapa de Personas (arquetipos de usuario)\n- Customer Journey Map\n\n¿Quieres que te ayude con alguno de estos entregables?",
+            "message": "**¡Proyecto creado exitosamente!**\n\nHe configurado las 7 fases de la metodología híbrida.\n\n**Siguiente paso recomendado:**\nComienza con el Diagnóstico Estratégico (Fase 1). Necesitarás:\n- Análisis AS-IS de procesos actuales\n- Mapa de Personas (arquetipos de usuario)\n- Customer Journey Map\n\n¿Quieres que te ayude con alguno de estos entregables?",
             "type": "final",
             "action": "create_project"
         }
