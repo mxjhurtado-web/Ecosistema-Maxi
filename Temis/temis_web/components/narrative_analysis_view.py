@@ -276,7 +276,7 @@ def narrative_analysis_view() -> rx.Component:
                                         padding="6",
                                     ),
                                     id="upload_narrative_doc",
-                                    on_drop=FlowState.handle_narrative_file_upload,
+                                    on_drop=FlowState.handle_narrative_file_upload(rx.upload_files(upload_id="upload_narrative_doc")),
                                     accept={
                                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
                                         "application/pdf": [".pdf"],
@@ -299,7 +299,52 @@ def narrative_analysis_view() -> rx.Component:
                                     cursor="pointer",
                                     _hover={"border_color": "#1e5a9a", "background_color": "#f1f5f9"},
                                 ),
-                                spacing="2",
+                                
+                                # Selected file action container (when file selected via click dialog)
+                                rx.cond(
+                                    rx.selected_files("upload_narrative_doc"),
+                                    rx.box(
+                                        rx.vstack(
+                                            rx.hstack(
+                                                rx.icon("file-check", size=18, color="#10b981"),
+                                                rx.text("Archivo listo para procesar:", size="2", weight="bold", color="#17283c"),
+                                                rx.foreach(rx.selected_files("upload_narrative_doc"), lambda f: rx.badge(f, color_scheme="blue", variant="solid", size="1")),
+                                                rx.spacer(),
+                                                rx.button(
+                                                    "Limpiar",
+                                                    on_click=rx.clear_selected_files("upload_narrative_doc"),
+                                                    color_scheme="gray",
+                                                    variant="ghost",
+                                                    size="1",
+                                                ),
+                                                align="center",
+                                                spacing="2",
+                                                width="100%",
+                                            ),
+                                            rx.button(
+                                                rx.hstack(
+                                                    rx.icon("sparkles", size=16),
+                                                    rx.text("Cargar y Procesar Archivo Ahora"),
+                                                    align="center",
+                                                    spacing="2",
+                                                ),
+                                                on_click=FlowState.handle_narrative_file_upload(rx.upload_files(upload_id="upload_narrative_doc")),
+                                                color_scheme="blue",
+                                                size="3",
+                                                width="100%",
+                                            ),
+                                            spacing="2",
+                                            width="100%",
+                                        ),
+                                        padding="3",
+                                        background_color="#e0f2fe",
+                                        border="1px solid #7dd3fc",
+                                        border_radius="lg",
+                                        width="100%",
+                                    ),
+                                    rx.box(),
+                                ),
+                                spacing="3",
                                 width="100%",
                             ),
                             padding="4",
