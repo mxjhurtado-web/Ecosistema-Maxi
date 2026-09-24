@@ -119,7 +119,7 @@ def finding_card(finding: rx.Var[dict]) -> rx.Component:
                     size="1",
                 ),
                 rx.button(
-                    rx.hstack(rx.icon("help-circle", size=12), rx.text("Duda", size="1"), align="center", spacing="1"),
+                    rx.hstack(rx.icon("circle-help", size=12), rx.text("Duda", size="1"), align="center", spacing="1"),
                     on_click=lambda: FlowState.update_finding_status(finding["id"], "pending_clarification"),
                     color_scheme="amber",
                     variant="soft",
@@ -145,6 +145,63 @@ def finding_card(finding: rx.Var[dict]) -> rx.Component:
         border="1px solid #e2e8f0",
         border_radius="8px",
         box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+        width="100%",
+    )
+
+
+def document_library_item(doc: rx.Var[dict]) -> rx.Component:
+    """Render a single document or media file in the project library"""
+    is_media = doc["is_media"].to(bool)
+    media_type = doc["media_type"].to(str)
+    duration = doc["duration_formatted"].to(str)
+    filename = doc["filename"].to(str)
+    uploaded_by = doc["uploaded_by"].to(str)
+    uploaded_at = doc["uploaded_at"].to(str)
+    total_blocks = doc["total_paragraphs"].to(str)
+    
+    return rx.hstack(
+        rx.cond(
+            is_media,
+            rx.icon("file-audio", size=18, color="#7c3aed"),
+            rx.icon("file-text", size=18, color="#1e5a9a")
+        ),
+        rx.vstack(
+            rx.hstack(
+                rx.text(filename, size="2", weight="bold", color="#17283c"),
+                rx.cond(
+                    is_media,
+                    rx.badge(media_type, color_scheme="purple", variant="soft", size="1", text_transform="uppercase"),
+                    rx.badge("DOC", color_scheme="blue", variant="soft", size="1")
+                ),
+                rx.cond(
+                    duration != "N/A",
+                    rx.badge(duration, color_scheme="gray", variant="surface", size="1"),
+                    rx.box()
+                ),
+                spacing="2",
+                align="center",
+            ),
+            rx.hstack(
+                rx.text("Subido por: ", size="1", color="#64748b"),
+                rx.text(uploaded_by, size="1", color="#64748b", weight="medium"),
+                rx.text(" | ", size="1", color="#94a3b8"),
+                rx.text(uploaded_at, size="1", color="#64748b"),
+                rx.text(" | ", size="1", color="#94a3b8"),
+                rx.text(total_blocks, size="1", color="#64748b"),
+                rx.text(" bloques indexados", size="1", color="#64748b"),
+                spacing="1",
+                align="center",
+            ),
+            spacing="1",
+            align="start",
+        ),
+        rx.spacer(),
+        rx.badge("Indexado", color_scheme="green", variant="soft", size="1"),
+        align="center",
+        padding="3",
+        background_color="#ffffff",
+        border="1px solid #e2e8f0",
+        border_radius="md",
         width="100%",
     )
 
@@ -419,45 +476,7 @@ def narrative_analysis_view() -> rx.Component:
                             rx.vstack(
                                 rx.foreach(
                                     FlowState.narrative_documents,
-                                    lambda doc: rx.hstack(
-                                        rx.cond(
-                                            doc["is_media"],
-                                            rx.icon("file-audio", size=18, color="#7c3aed"),
-                                            rx.icon("file-text", size=18, color="#1e5a9a")
-                                        ),
-                                        rx.vstack(
-                                            rx.hstack(
-                                                rx.text(doc["filename"], size="2", weight="bold", color="#17283c"),
-                                                rx.cond(
-                                                    doc["is_media"],
-                                                    rx.badge(doc["media_type"].upper(), color_scheme="purple", variant="soft", size="1"),
-                                                    rx.badge("DOC", color_scheme="blue", variant="soft", size="1")
-                                                ),
-                                                rx.cond(
-                                                    doc["duration_formatted"] != "N/A",
-                                                    rx.badge(doc["duration_formatted"], color_scheme="gray", variant="surface", size="1"),
-                                                    rx.box()
-                                                ),
-                                                spacing="2",
-                                                align="center",
-                                            ),
-                                            rx.text(
-                                                f"Subido por: {doc['uploaded_by']} | {doc['uploaded_at']} | {doc['total_paragraphs']} bloques indexados",
-                                                size="1",
-                                                color="#64748b",
-                                            ),
-                                            spacing="1",
-                                            align="start",
-                                        ),
-                                        rx.spacer(),
-                                        rx.badge("Indexado", color_scheme="green", variant="soft", size="1"),
-                                        align="center",
-                                        padding="3",
-                                        background_color="#ffffff",
-                                        border="1px solid #e2e8f0",
-                                        border_radius="md",
-                                        width="100%",
-                                    )
+                                    document_library_item
                                 ),
                                 spacing="2",
                                 width="100%",
