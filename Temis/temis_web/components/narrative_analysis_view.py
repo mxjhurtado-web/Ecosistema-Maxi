@@ -276,7 +276,6 @@ def narrative_analysis_view() -> rx.Component:
                                         padding="6",
                                     ),
                                     id="upload_narrative_doc",
-                                    on_drop=FlowState.handle_narrative_file_upload(rx.upload_files(upload_id="upload_narrative_doc")),
                                     accept={
                                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
                                         "application/pdf": [".pdf"],
