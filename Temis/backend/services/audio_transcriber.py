@@ -53,7 +53,7 @@ class AudioTranscriber:
         ext = os.path.splitext(filename)[1].lower()
         duration_formatted = MediaProcessor.format_duration(duration_seconds)
 
-        if self.gemini_available and len(file_bytes) < 20 * 1024 * 1024:  # Under 20MB direct
+        if self.gemini_available:
             try:
                 blocks = self._transcribe_with_gemini(file_bytes, filename, ext)
                 if blocks:
@@ -64,8 +64,24 @@ class AudioTranscriber:
         return self._generate_structured_media_blocks(filename, duration_formatted, duration_seconds)
 
     def _transcribe_with_gemini(self, file_bytes: bytes, filename: str, ext: str) -> List[ParagraphBlock]:
-        """Call Gemini 2.5 Flash to transcribe and diarize audio/video"""
-        mime_type = "audio/mp3" if ext == ".mp3" else ("video/mp4" if ext == ".mp4" else "audio/wav")
+        """Call Gemini 2.5 Flash to transcribe and diarize audio/video (inline or via File API for large files)"""
+        import time
+        import tempfile
+
+        mime_map = {
+            ".mp3": "audio/mp3",
+            ".m4a": "audio/mp4",
+            ".wav": "audio/wav",
+            ".ogg": "audio/ogg",
+            ".flac": "audio/flac",
+            ".opus": "audio/opus",
+            ".mp4": "video/mp4",
+            ".mov": "video/quicktime",
+            ".webm": "video/webm",
+            ".mkv": "video/x-matroska",
+            ".avi": "video/x-msvideo"
+        }
+        mime_type = mime_map.get(ext, "video/mp4" if ext.startswith(".m") else "audio/mp3")
         model = genai.GenerativeModel("gemini-2.5-flash")
 
         prompt = """Eres un experto transcriptor y auditor de procesos empresariales.
@@ -85,10 +101,35 @@ Devuelve EXCLUSIVAMENTE un JSON válido con esta estructura:
   ]
 }
 """
-        response = model.generate_content(
-            [prompt, {"mime_type": mime_type, "data": file_bytes}],
-            generation_config={"response_mime_type": "application/json"}
-        )
+        # For large files (>20MB), use Google File API
+        uploaded_file_ref = None
+        tmp_path = None
+        try:
+            if len(file_bytes) > 20 * 1024 * 1024:
+                with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+                    tmp.write(file_bytes)
+                    tmp_path = tmp.name
+                
+                uploaded_file_ref = genai.upload_file(path=tmp_path, display_name=filename, mime_type=mime_type)
+                # Wait if video is being processed
+                while uploaded_file_ref.state.name == "PROCESSING":
+                    time.sleep(2)
+                    uploaded_file_ref = genai.get_file(uploaded_file_ref.name)
+                
+                content_payload = [uploaded_file_ref, prompt]
+            else:
+                content_payload = [prompt, {"mime_type": mime_type, "data": file_bytes}]
+
+            response = model.generate_content(
+                content_payload,
+                generation_config={"response_mime_type": "application/json"}
+            )
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
 
         resp_text = getattr(response, "text", "") or ""
         clean = resp_text.strip()
