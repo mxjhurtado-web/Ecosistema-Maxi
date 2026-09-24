@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual Env
+venv/
+.venv/
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec.bak
+
+# Large binary models and executables (>100MB, kept locally)
+*.pt
+resources/models/*.pt
+resources/ffmpeg/ffmpeg.exe
+*.exe
+
+# Exports
+exports/*
+!exports/.gitkeep
