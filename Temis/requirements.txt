@@ -58,3 +58,6 @@ openpyxl==3.1.5
 
 # Images
 pillow==12.3.0
+
+# Audio & Video Metadata (Render Safe <5MB RAM)
+mutagen==1.47.0

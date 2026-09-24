@@ -13,18 +13,21 @@ import datetime
 
 
 class ParagraphBlock(BaseModel):
-    """Indexed paragraph or table row block for exact citation matching"""
+    """Indexed paragraph, table row, or audio/video transcript block for exact citation matching"""
     index: int
-    source_type: str = "paragraph"  # "paragraph" or "table_row"
+    source_type: str = "paragraph"  # "paragraph", "table_row", "audio_transcript"
     heading_level: Optional[int] = None
     text: str
     page_number: Optional[int] = None
     table_index: Optional[int] = None
     row_index: Optional[int] = None
+    timestamp_start: Optional[str] = None  # e.g., "00:03:15"
+    timestamp_end: Optional[str] = None    # e.g., "00:03:48"
+    speaker: Optional[str] = None          # e.g., "Analista", "SME", "Cliente"
 
 
 class SourceDocumentMetadata(BaseModel):
-    """Metadata for uploaded source narrative document (DOCX / PDF)"""
+    """Metadata for uploaded source narrative document, audio interview or video session"""
     id: str
     filename: str
     extension: str
@@ -37,6 +40,16 @@ class SourceDocumentMetadata(BaseModel):
     total_tables: int = 0
     version_label: str = "v1.0"
     is_active_version: bool = True
+    
+    # Multimedia Metadata
+    is_media: bool = False
+    media_type: str = "document"  # "document", "audio", "video"
+    duration_seconds: Optional[float] = None
+    duration_formatted: str = ""   # e.g., "14m 32s"
+    bitrate: Optional[int] = None
+    has_transcript_backup: bool = False
+    transcript_txt_content: str = ""
+    transcript_docx_filename: str = ""
 
 
 class ExtractedFinding(BaseModel):

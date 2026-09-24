@@ -1071,6 +1071,13 @@ class FlowState(rx.State):
     generated_narrative_markdown: str = ""
     show_narrative_diff_modal: bool = False
     diff_proposal_data: Dict[str, Any] = {}
+    
+    # Multimedia & Transcript State
+    active_narrative_is_media: bool = False
+    active_narrative_media_type: str = "document"  # "document", "audio", "video"
+    active_narrative_duration: str = ""
+    has_active_transcript_backup: bool = False
+    active_transcript_text: str = ""
 
     customer_requirements: str = "Tiempos de respuesta (SLA) menores a 5 min, trazabilidad de logs en Chronos y encuesta con satisfacción >= 95%."
     is_completing_sipoc: bool = False
@@ -1436,16 +1443,37 @@ class FlowState(rx.State):
         self.narrative_analysis_step = step
 
     async def handle_narrative_file_upload(self, files: List[rx.UploadFile]):
-        """Handle upload of DOCX or PDF narrative document for AI analysis"""
+        """Handle upload of DOCX, PDF, Audio (MP3/M4A/WAV) or Video (MP4/MOV/WebM) files with Mutagen metadata"""
         import datetime
+        from backend.services.document_parser import DocumentParser
+        from backend.services.media_processor import MediaProcessor
+        from backend.services.transcript_exporter import TranscriptExporter
+
         for file in files:
             upload_data = await file.read()
             ext = "." + file.filename.split(".")[-1].lower()
-            from backend.services.document_parser import DocumentParser
+            is_media = MediaProcessor.is_media_file(file.filename)
+            media_cat = MediaProcessor.get_media_category(file.filename)
             
-            blocks = DocumentParser.extract_blocks(upload_data, ext)
+            # Extract metadata and blocks
+            meta = MediaProcessor.extract_metadata(upload_data, file.filename) if is_media else {
+                "is_media": False, "media_type": "document", "duration_formatted": "N/A", "duration_seconds": None
+            }
+            blocks = DocumentParser.extract_blocks(upload_data, ext, file.filename)
             doc_hash = DocumentParser.compute_file_hash(upload_data)
             
+            # Generate transcript backup text if audio/video or subtitles
+            txt_backup = ""
+            if is_media or ext in [".vtt", ".srt"]:
+                blocks_dicts = [b.model_dump() for b in blocks]
+                txt_backup = TranscriptExporter.export_to_txt(
+                    project_name=self.project_name,
+                    source_filename=file.filename,
+                    duration_str=meta.get("duration_formatted", "N/A"),
+                    uploaded_by=f"{self.user_name} ({self.user_email})",
+                    blocks=blocks_dicts
+                )
+
             doc_entry = {
                 "id": f"doc-{len(self.narrative_documents)+1}",
                 "filename": file.filename,
@@ -1453,19 +1481,31 @@ class FlowState(rx.State):
                 "file_hash": doc_hash,
                 "file_size_bytes": len(upload_data),
                 "total_paragraphs": len(blocks),
+                "is_media": is_media,
+                "media_type": media_cat,
+                "duration_formatted": meta.get("duration_formatted", "N/A"),
+                "has_transcript_backup": bool(txt_backup),
+                "transcript_txt_content": txt_backup,
                 "uploaded_by": self.user_email,
                 "uploaded_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             self.narrative_documents.append(doc_entry)
             self.active_narrative_doc_id = doc_entry["id"]
             self.active_narrative_doc_name = file.filename
+            self.active_narrative_is_media = is_media
+            self.active_narrative_media_type = media_cat
+            self.active_narrative_duration = meta.get("duration_formatted", "N/A")
+            self.has_active_transcript_backup = bool(txt_backup)
+            self.active_transcript_text = txt_backup
             self.narrative_total_blocks = len(blocks)
             self._cached_narrative_blocks = blocks
             self._cached_narrative_bytes = upload_data
             self._cached_narrative_ext = ext
             
-            self.status_message = f"Documento '{file.filename}' cargado ({len(blocks)} párrafos indexados)."
-            self.trigger_toast(f"Documento cargado con éxito ({len(blocks)} bloques)", "success")
+            label_type = "Grabación Multimedia" if is_media else "Documento"
+            dur_info = f" ({meta.get('duration_formatted')})" if is_media and meta.get('duration_formatted') != 'N/A' else ""
+            self.status_message = f"{label_type} '{file.filename}'{dur_info} cargado ({len(blocks)} bloques indexados)."
+            self.trigger_toast(f"{label_type} procesado con éxito", "success")
             self.trigger_auto_save()
 
     def run_narrative_ai_analysis(self):
@@ -1722,6 +1762,54 @@ class FlowState(rx.State):
         except Exception as e:
             self.status_message = f"Error al exportar Word: {str(e)}"
             self.trigger_toast(f"Error al exportar Word: {str(e)}", "error")
+
+    def export_transcript_docx(self):
+        """Export interview audio/video transcript backup as Word (.docx)"""
+        try:
+            from backend.services.transcript_exporter import TranscriptExporter
+            blocks_dicts = [b.model_dump() if hasattr(b, "model_dump") else b for b in (getattr(self, "_cached_narrative_blocks", []) or [])]
+            buf = TranscriptExporter.export_to_docx(
+                project_name=self.project_name,
+                source_filename=self.active_narrative_doc_name or "Entrevista",
+                duration_str=self.active_narrative_duration or "N/A",
+                uploaded_by=f"{self.user_name} ({self.user_email})",
+                blocks=blocks_dicts
+            )
+            safe_name = (self.active_narrative_doc_name or "Entrevista").rsplit(".", 1)[0].replace(" ", "_")
+            self.status_message = "Minuta y Transcripción Word descargada exitosamente"
+            self.trigger_toast("Minuta de transcripción descargada (.docx)", "success")
+            return rx.download(
+                data=buf.getvalue(),
+                filename=f"Transcripcion_{safe_name}.docx",
+                mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+        except Exception as e:
+            self.status_message = f"Error al exportar transcripción: {str(e)}"
+            self.trigger_toast(f"Error al exportar: {str(e)}", "error")
+
+    def export_transcript_txt(self):
+        """Export interview audio/video transcript backup as plain text (.txt)"""
+        try:
+            from backend.services.transcript_exporter import TranscriptExporter
+            blocks_dicts = [b.model_dump() if hasattr(b, "model_dump") else b for b in (getattr(self, "_cached_narrative_blocks", []) or [])]
+            txt_str = TranscriptExporter.export_to_txt(
+                project_name=self.project_name,
+                source_filename=self.active_narrative_doc_name or "Entrevista",
+                duration_str=self.active_narrative_duration or "N/A",
+                uploaded_by=f"{self.user_name} ({self.user_email})",
+                blocks=blocks_dicts
+            )
+            safe_name = (self.active_narrative_doc_name or "Entrevista").rsplit(".", 1)[0].replace(" ", "_")
+            self.status_message = "Transcripción (.txt) descargada exitosamente"
+            self.trigger_toast("Archivo TXT de transcripción descargado", "success")
+            return rx.download(
+                data=txt_str,
+                filename=f"Transcripcion_{safe_name}.txt",
+                mime_type="text/plain"
+            )
+        except Exception as e:
+            self.status_message = f"Error al exportar TXT: {str(e)}"
+            self.trigger_toast(f"Error al exportar: {str(e)}", "error")
 
     def open_narrative_diff_modal(self):
         self.show_narrative_diff_modal = True

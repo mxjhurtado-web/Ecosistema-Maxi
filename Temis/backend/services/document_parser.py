@@ -30,9 +30,9 @@ class DocumentParser:
         return "\n\n".join([f"[{b.index}] {b.text}" for b in blocks])
 
     @staticmethod
-    def extract_blocks(file_content: bytes, file_extension: str) -> List[ParagraphBlock]:
+    def extract_blocks(file_content: bytes, file_extension: str, filename: str = "document") -> List[ParagraphBlock]:
         """
-        Extract list of sequentially indexed paragraph and table blocks
+        Extract list of sequentially indexed paragraph, table, or audio/video transcript blocks
         """
         ext = file_extension.lower().strip()
         try:
@@ -40,6 +40,16 @@ class DocumentParser:
                 return DocumentParser._extract_blocks_from_docx(file_content)
             elif ext == '.pdf':
                 return DocumentParser._extract_blocks_from_pdf(file_content)
+            elif ext in ['.vtt', '.srt']:
+                from backend.services.audio_transcriber import AudioTranscriber
+                text_content = file_content.decode("utf-8", errors="replace")
+                return AudioTranscriber.parse_subtitle_file(text_content, filename)
+            elif ext in ['.mp3', '.mp4', '.m4a', '.wav', '.ogg', '.flac', '.webm', '.mov', '.avi', '.opus', '.wma', '.mkv']:
+                from backend.services.media_processor import MediaProcessor
+                from backend.services.audio_transcriber import AudioTranscriber
+                meta = MediaProcessor.extract_metadata(file_content, filename)
+                transcriber = AudioTranscriber()
+                return transcriber.transcribe_media(file_content, filename, meta.get("duration_seconds"))
             elif ext in ['.txt', '.md', '.csv']:
                 return DocumentParser._extract_blocks_from_plain_text(file_content)
             else:

@@ -512,6 +512,20 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON válido sin texto adicional."""
             elif any(k in t_lower for k in ["bsa", "aml", "bank secrecy", "compliance", "ley", "norma"]):
                 regulations.append(t.replace("Legal Framework", "").replace("|", "").strip())
 
+            # Audio/Video Transcript Block handling
+            elif b.source_type == "audio_transcript" or getattr(b, "timestamp_start", None):
+                spk = getattr(b, "speaker", None) or "Participante"
+                ts = f" [{b.timestamp_start}]" if getattr(b, "timestamp_start", None) else ""
+                findings.append(ExtractedFinding(
+                    id=f"find-{len(findings)+1}",
+                    category="asis_activity" if "paso" in t_lower or "ingresa" in t_lower or "consulta" in t_lower else "context",
+                    title=f"Entrevista: {spk}{ts}",
+                    content=t,
+                    source_paragraph_index=b.index,
+                    source_quote=t[:100],
+                    confidence_score=0.95
+                ))
+
             # Activity Steps detection in Table 3
             elif b.table_index == 3 and b.row_index and b.row_index > 1:
                 parts = t.split(" | ") if " | " in t else [t]
@@ -578,16 +592,31 @@ IMPORTANTE: Responde ÚNICAMENTE con el JSON válido sin texto adicional."""
         # If no steps extracted from table 3, extract from raw paragraphs
         if not asis_steps:
             for b in blocks:
-                if len(b.text) > 30 and not any(k in b.text.lower() for k in ["overview", "target", "scope"]):
+                if len(b.text) > 20 and not any(k in b.text.lower() for k in ["overview", "target", "scope"]):
+                    spk = getattr(b, "speaker", None) or "Operación / Analista"
                     asis_steps.append(ActivityStepData(
                         step_number=len(asis_steps) + 1,
-                        responsible="Operación / Analista",
+                        responsible=spk,
                         activity_name=f"Paso {len(asis_steps) + 1}: {b.text[:40]}...",
                         activity_description=b.text,
                         attached_system="Chronos" if "chronos" in b.text.lower() else "",
                         attached_channel="WhatsApp" if "whatsapp" in b.text.lower() else "",
                         source_citation=f"Bloque {b.index}"
                     ))
+
+        # If no explicit target/scope findings found, create from initial blocks
+        if not findings and blocks:
+            for b in blocks[:3]:
+                ts_str = f" [{b.timestamp_start}]" if getattr(b, "timestamp_start", None) else ""
+                findings.append(ExtractedFinding(
+                    id=f"find-{len(findings)+1}",
+                    category="context",
+                    title=f"Levantamiento de Proceso{ts_str}",
+                    content=b.text,
+                    source_paragraph_index=b.index,
+                    source_quote=b.text[:100],
+                    confidence_score=0.9
+                ))
 
         tobe_steps = self._derive_tobe_proposal_from_asis(asis_steps)
 

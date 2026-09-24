@@ -39,7 +39,7 @@ def header() -> rx.Component:
                     rx.select.trigger(placeholder="Vista", size="1"),
                     rx.select.content(
                         rx.select.item("Ficha Proyecto", value="charter"),
-                        rx.select.item("Análisis Narrativa", value="narrative"),
+                        rx.select.item("Narrativa & Multimedia", value="narrative"),
                         rx.select.item("Plan & Backlog", value="plan"),
                         rx.select.item("Diagrama BPMN", value="flow"),
                         rx.select.item("Matriz SIPOC", value="sipoc"),

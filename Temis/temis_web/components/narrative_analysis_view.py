@@ -158,13 +158,14 @@ def narrative_analysis_view() -> rx.Component:
                 rx.vstack(
                     rx.hstack(
                         rx.icon("file-search", size=22, color="#1e5a9a"),
-                        rx.heading("Análisis de Narrativa & Generación de Procesos", size="5", weight="bold", color="#17283c"),
+                        rx.heading("Análisis de Narrativa & Ingesta Multimedia", size="5", weight="bold", color="#17283c"),
                         rx.badge("Gemini 2.5", color_scheme="purple", variant="soft", size="1"),
+                        rx.badge("Audio / Video", color_scheme="blue", variant="surface", size="1"),
                         align="center",
                         spacing="2",
                     ),
                     rx.text(
-                        "Transforma documentos extensos del cliente en análisis de necesidades, matrices SIPOC duales, manual de procedimientos y diagramas BPMN.",
+                        "Ingesta integral de documentos (.docx, .pdf), grabaciones de entrevistas (.mp3, .m4a, .wav) y videos (.mp4, .mov, .webm) para generar SIPOCs, manuales y diagramas BPMN.",
                         size="2",
                         color="#52657a",
                     ),
@@ -180,9 +181,9 @@ def narrative_analysis_view() -> rx.Component:
 
             # 2. Sequential Step Progress Bar
             rx.hstack(
-                step_indicator(1, "1. Carga de Documento", FlowState.narrative_analysis_step),
+                step_indicator(1, "1. Ingesta Multimedia & Documentos", FlowState.narrative_analysis_step),
                 rx.icon("chevron-right", size=16, color="#94a3b8"),
-                step_indicator(2, "2. Revisión con Citas (Human-in-the-Loop)", FlowState.narrative_analysis_step),
+                step_indicator(2, "2. Revisión con Citas / Minutaje (Human-in-the-Loop)", FlowState.narrative_analysis_step),
                 rx.icon("chevron-right", size=16, color="#94a3b8"),
                 step_indicator(3, "3. Generación de Artefactos", FlowState.narrative_analysis_step),
                 rx.icon("chevron-right", size=16, color="#94a3b8"),
@@ -199,14 +200,20 @@ def narrative_analysis_view() -> rx.Component:
                 FlowState.narrative_analysis_step == 1,
                 rx.vstack(
                     rx.grid(
-                        # Left: Upload Dropzone
+                        # Left: Universal Upload Dropzone
                         rx.box(
                             rx.vstack(
                                 rx.upload(
                                     rx.vstack(
-                                        rx.icon("cloud-upload", size=40, color="#1e5a9a"),
-                                        rx.text("Arrastra o selecciona el documento de narrativa del cliente", size="3", weight="bold", color="#17283c"),
-                                        rx.text("Formatos admitidos: Word (.docx) y PDF (.pdf) con texto seleccionable", size="2", color="#52657a"),
+                                        rx.hstack(
+                                            rx.icon("file-text", size=28, color="#1e5a9a"),
+                                            rx.icon("mic", size=28, color="#7c3aed"),
+                                            rx.icon("video", size=28, color="#0891b2"),
+                                            spacing="3",
+                                            align="center",
+                                        ),
+                                        rx.text("Arrastra o selecciona documento, audio o video de entrevista", size="3", weight="bold", color="#17283c", text_align="center"),
+                                        rx.text("Documentos: Word (.docx), PDF (.pdf) | Audio: .mp3, .m4a, .wav, .ogg, .flac | Video: .mp4, .mov, .webm, .mkv", size="2", color="#52657a", text_align="center"),
                                         align="center",
                                         spacing="2",
                                         padding="6",
@@ -216,6 +223,16 @@ def narrative_analysis_view() -> rx.Component:
                                     accept={
                                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
                                         "application/pdf": [".pdf"],
+                                        "audio/mpeg": [".mp3"],
+                                        "audio/mp4": [".m4a"],
+                                        "audio/wav": [".wav"],
+                                        "audio/ogg": [".ogg"],
+                                        "audio/flac": [".flac"],
+                                        "video/mp4": [".mp4"],
+                                        "video/quicktime": [".mov"],
+                                        "video/webm": [".webm"],
+                                        "text/vtt": [".vtt"],
+                                        "text/plain": [".srt", ".txt"]
                                     },
                                     max_files=1,
                                     border="2px dashed #cbd5e1",
@@ -235,12 +252,12 @@ def narrative_analysis_view() -> rx.Component:
                             box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
                         ),
 
-                        # Right: Active Document Metadata & Execution Action
+                        # Right: Active Document/Media Metadata & Execution Action
                         rx.box(
                             rx.vstack(
                                 rx.hstack(
                                     rx.icon("file-check", size=20, color="#10b981"),
-                                    rx.heading("Documento Activo en Proyecto", size="3", color="#17283c"),
+                                    rx.heading("Archivo Activo en Proyecto", size="3", color="#17283c"),
                                     align="center",
                                     spacing="2",
                                 ),
@@ -250,10 +267,24 @@ def narrative_analysis_view() -> rx.Component:
                                         rx.box(
                                             rx.vstack(
                                                 rx.hstack(
-                                                    rx.badge("DOCX / PDF", color_scheme="blue", variant="solid", size="1"),
+                                                    rx.cond(
+                                                        FlowState.active_narrative_is_media,
+                                                        rx.badge(FlowState.active_narrative_media_type.upper(), color_scheme="purple", variant="solid", size="1"),
+                                                        rx.badge("DOCX / PDF", color_scheme="blue", variant="solid", size="1"),
+                                                    ),
                                                     rx.text(FlowState.active_narrative_doc_name, size="2", weight="bold", color="#17283c"),
                                                     spacing="2",
                                                     align="center",
+                                                ),
+                                                rx.cond(
+                                                    FlowState.active_narrative_is_media,
+                                                    rx.hstack(
+                                                        rx.icon("clock", size=14, color="#7c3aed"),
+                                                        rx.text(f"Duración: {FlowState.active_narrative_duration}", size="1", weight="bold", color="#7c3aed"),
+                                                        spacing="1",
+                                                        align="center",
+                                                    ),
+                                                    rx.box(),
                                                 ),
                                                 rx.text(f"Subido por: {FlowState.user_name} ({FlowState.user_email})", size="1", color="#52657a"),
                                                 rx.text(f"Párrafos/Bloques indexados: {FlowState.narrative_total_blocks}", size="1", color="#52657a"),
@@ -264,6 +295,49 @@ def narrative_analysis_view() -> rx.Component:
                                             border_radius="md",
                                             width="100%",
                                         ),
+
+                                        # Transcript Backup Download Box (if media or subtitles)
+                                        rx.cond(
+                                            FlowState.has_active_transcript_backup,
+                                            rx.box(
+                                                rx.vstack(
+                                                    rx.hstack(
+                                                        rx.icon("file-text", size=16, color="#1e5a9a"),
+                                                        rx.text("Minuta & Transcripción de Respaldo", size="2", weight="bold", color="#17283c"),
+                                                        align="center",
+                                                        spacing="2",
+                                                    ),
+                                                    rx.text("Guarda una copia de auditoría con minutaje y diálogo literal.", size="1", color="#64748b"),
+                                                    rx.hstack(
+                                                        rx.button(
+                                                            rx.hstack(rx.icon("download", size=14), rx.text("Descargar Word (.docx)", size="1"), align="center", spacing="1"),
+                                                            on_click=FlowState.export_transcript_docx,
+                                                            color_scheme="blue",
+                                                            variant="soft",
+                                                            size="1",
+                                                        ),
+                                                        rx.button(
+                                                            rx.hstack(rx.icon("file-code", size=14), rx.text("Descargar (.txt)", size="1"), align="center", spacing="1"),
+                                                            on_click=FlowState.export_transcript_txt,
+                                                            color_scheme="gray",
+                                                            variant="soft",
+                                                            size="1",
+                                                        ),
+                                                        spacing="2",
+                                                        width="100%",
+                                                    ),
+                                                    spacing="2",
+                                                    width="100%",
+                                                ),
+                                                padding="3",
+                                                background_color="#f8fafc",
+                                                border="1px solid #e2e8f0",
+                                                border_radius="md",
+                                                width="100%",
+                                            ),
+                                            rx.box(),
+                                        ),
+
                                         # If existing process findings exist, show Enrich vs Re-analyze options
                                         rx.cond(
                                             FlowState.extracted_findings,
@@ -315,7 +389,7 @@ def narrative_analysis_view() -> rx.Component:
                                         spacing="3",
                                         width="100%",
                                     ),
-                                    rx.text("Ningún archivo cargado aún. Arrastra un documento para iniciar el análisis.", size="2", color="#64748b", italic=True),
+                                    rx.text("Ningún archivo cargado aún. Arrastra un documento, audio o video para iniciar el análisis.", size="2", color="#64748b", italic=True),
                                 ),
                                 spacing="3",
                                 width="100%",
@@ -331,24 +405,42 @@ def narrative_analysis_view() -> rx.Component:
                         width="100%",
                     ),
                     
-                    # Project Document History / Multi-Document Library
+                    # Project Document & Media History / Multi-Document Library
                     rx.cond(
                         FlowState.narrative_documents,
                         rx.vstack(
                             rx.hstack(
                                 rx.icon("folder-archive", size=18, color="#1e5a9a"),
-                                rx.heading("Biblioteca de Documentos del Proyecto (Ingesta Multi-Documento)", size="3", color="#17283c"),
+                                rx.heading("Biblioteca de Documentos & Medios del Proyecto", size="3", color="#17283c"),
                                 align="center",
                                 spacing="2",
                             ),
-                            rx.text("Documentos cargados que nutren la base de conocimiento y trazabilidad de este proceso.", size="2", color="#52657a"),
+                            rx.text("Historial de archivos, grabaciones de entrevistas y minutas que nutren este proceso.", size="2", color="#52657a"),
                             rx.vstack(
                                 rx.foreach(
                                     FlowState.narrative_documents,
                                     lambda doc: rx.hstack(
-                                        rx.icon("file-text", size=18, color="#1e5a9a"),
+                                        rx.cond(
+                                            doc["is_media"],
+                                            rx.icon("file-audio", size=18, color="#7c3aed"),
+                                            rx.icon("file-text", size=18, color="#1e5a9a")
+                                        ),
                                         rx.vstack(
-                                            rx.text(doc["filename"], size="2", weight="bold", color="#17283c"),
+                                            rx.hstack(
+                                                rx.text(doc["filename"], size="2", weight="bold", color="#17283c"),
+                                                rx.cond(
+                                                    doc["is_media"],
+                                                    rx.badge(doc["media_type"].upper(), color_scheme="purple", variant="soft", size="1"),
+                                                    rx.badge("DOC", color_scheme="blue", variant="soft", size="1")
+                                                ),
+                                                rx.cond(
+                                                    doc["duration_formatted"] != "N/A",
+                                                    rx.badge(doc["duration_formatted"], color_scheme="gray", variant="surface", size="1"),
+                                                    rx.box()
+                                                ),
+                                                spacing="2",
+                                                align="center",
+                                            ),
                                             rx.text(
                                                 f"Subido por: {doc['uploaded_by']} | {doc['uploaded_at']} | {doc['total_paragraphs']} bloques indexados",
                                                 size="1",
