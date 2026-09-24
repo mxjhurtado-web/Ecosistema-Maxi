@@ -1054,6 +1054,7 @@ class FlowState(rx.State):
     active_narrative_doc_id: str = ""
     active_narrative_doc_name: str = ""
     narrative_total_blocks: int = 0
+    is_uploading_narrative: bool = False
     is_analyzing_narrative: bool = False
     is_generating_narrative: bool = False
     narrative_analysis_step: int = 1  # 1: Carga, 2: Revisión, 3: Generación, 4: Resultados
@@ -1444,69 +1445,76 @@ class FlowState(rx.State):
 
     async def handle_narrative_file_upload(self, files: List[rx.UploadFile]):
         """Handle upload of DOCX, PDF, Audio (MP3/M4A/WAV) or Video (MP4/MOV/WebM) files with Mutagen metadata"""
-        import datetime
-        from backend.services.document_parser import DocumentParser
-        from backend.services.media_processor import MediaProcessor
-        from backend.services.transcript_exporter import TranscriptExporter
+        if not files:
+            return
+        self.is_uploading_narrative = True
+        self.status_message = "Procesando e indexando archivo..."
+        try:
+            import datetime
+            from backend.services.document_parser import DocumentParser
+            from backend.services.media_processor import MediaProcessor
+            from backend.services.transcript_exporter import TranscriptExporter
 
-        for file in files:
-            upload_data = await file.read()
-            ext = "." + file.filename.split(".")[-1].lower()
-            is_media = MediaProcessor.is_media_file(file.filename)
-            media_cat = MediaProcessor.get_media_category(file.filename)
-            
-            # Extract metadata and blocks
-            meta = MediaProcessor.extract_metadata(upload_data, file.filename) if is_media else {
-                "is_media": False, "media_type": "document", "duration_formatted": "N/A", "duration_seconds": None
-            }
-            blocks = DocumentParser.extract_blocks(upload_data, ext, file.filename)
-            doc_hash = DocumentParser.compute_file_hash(upload_data)
-            
-            # Generate transcript backup text if audio/video or subtitles
-            txt_backup = ""
-            if is_media or ext in [".vtt", ".srt"]:
-                blocks_dicts = [b.model_dump() for b in blocks]
-                txt_backup = TranscriptExporter.export_to_txt(
-                    project_name=self.project_name,
-                    source_filename=file.filename,
-                    duration_str=meta.get("duration_formatted", "N/A"),
-                    uploaded_by=f"{self.user_name} ({self.user_email})",
-                    blocks=blocks_dicts
-                )
+            for file in files:
+                upload_data = await file.read()
+                ext = "." + file.filename.split(".")[-1].lower()
+                is_media = MediaProcessor.is_media_file(file.filename)
+                media_cat = MediaProcessor.get_media_category(file.filename)
+                
+                # Extract metadata and blocks
+                meta = MediaProcessor.extract_metadata(upload_data, file.filename) if is_media else {
+                    "is_media": False, "media_type": "document", "duration_formatted": "N/A", "duration_seconds": None
+                }
+                blocks = DocumentParser.extract_blocks(upload_data, ext, file.filename)
+                doc_hash = DocumentParser.compute_file_hash(upload_data)
+                
+                # Generate transcript backup text if audio/video or subtitles
+                txt_backup = ""
+                if is_media or ext in [".vtt", ".srt"]:
+                    blocks_dicts = [b.model_dump() for b in blocks]
+                    txt_backup = TranscriptExporter.export_to_txt(
+                        project_name=self.project_name,
+                        source_filename=file.filename,
+                        duration_str=meta.get("duration_formatted", "N/A"),
+                        uploaded_by=f"{self.user_name} ({self.user_email})",
+                        blocks=blocks_dicts
+                    )
 
-            doc_entry = {
-                "id": f"doc-{len(self.narrative_documents)+1}",
-                "filename": file.filename,
-                "extension": ext,
-                "file_hash": doc_hash,
-                "file_size_bytes": len(upload_data),
-                "total_paragraphs": len(blocks),
-                "is_media": is_media,
-                "media_type": media_cat,
-                "duration_formatted": meta.get("duration_formatted", "N/A"),
-                "has_transcript_backup": bool(txt_backup),
-                "transcript_txt_content": txt_backup,
-                "uploaded_by": self.user_email,
-                "uploaded_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            self.narrative_documents.append(doc_entry)
-            self.active_narrative_doc_id = doc_entry["id"]
-            self.active_narrative_doc_name = file.filename
-            self.active_narrative_is_media = is_media
-            self.active_narrative_media_type = media_cat
-            self.active_narrative_duration = meta.get("duration_formatted", "N/A")
-            self.has_active_transcript_backup = bool(txt_backup)
-            self.active_transcript_text = txt_backup
-            self.narrative_total_blocks = len(blocks)
-            self._cached_narrative_blocks = blocks
-            self._cached_narrative_bytes = upload_data
-            self._cached_narrative_ext = ext
-            
-            label_type = "Grabación Multimedia" if is_media else "Documento"
-            dur_info = f" ({meta.get('duration_formatted')})" if is_media and meta.get('duration_formatted') != 'N/A' else ""
-            self.status_message = f"{label_type} '{file.filename}'{dur_info} cargado ({len(blocks)} bloques indexados)."
-            self.trigger_toast(f"{label_type} procesado con éxito", "success")
-            self.trigger_auto_save()
+                doc_entry = {
+                    "id": f"doc-{len(self.narrative_documents)+1}",
+                    "filename": file.filename,
+                    "extension": ext,
+                    "file_hash": doc_hash,
+                    "file_size_bytes": len(upload_data),
+                    "total_paragraphs": len(blocks),
+                    "is_media": is_media,
+                    "media_type": media_cat,
+                    "duration_formatted": meta.get("duration_formatted", "N/A"),
+                    "has_transcript_backup": bool(txt_backup),
+                    "transcript_txt_content": txt_backup,
+                    "uploaded_by": self.user_email,
+                    "uploaded_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                self.narrative_documents.append(doc_entry)
+                self.active_narrative_doc_id = doc_entry["id"]
+                self.active_narrative_doc_name = file.filename
+                self.active_narrative_is_media = is_media
+                self.active_narrative_media_type = media_cat
+                self.active_narrative_duration = meta.get("duration_formatted", "N/A")
+                self.has_active_transcript_backup = bool(txt_backup)
+                self.active_transcript_text = txt_backup
+                self.narrative_total_blocks = len(blocks)
+                self._cached_narrative_blocks = blocks
+                self._cached_narrative_bytes = upload_data
+                self._cached_narrative_ext = ext
+                
+                label_type = "Grabación Multimedia" if is_media else "Documento"
+                dur_info = f" ({meta.get('duration_formatted')})" if is_media and meta.get('duration_formatted') != 'N/A' else ""
+                self.status_message = f"{label_type} '{file.filename}'{dur_info} cargado ({len(blocks)} bloques indexados)."
+                self.trigger_toast(f"{label_type} procesado con éxito", "success")
+                self.trigger_auto_save()
+        finally:
+            self.is_uploading_narrative = False
 
     def run_narrative_ai_analysis(self):
         """Execute Gemini AI extraction on the uploaded narrative document"""
