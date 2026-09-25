@@ -1037,6 +1037,9 @@ class FlowState(rx.State):
     active_is_media_studio_package: bool = False
     narrative_keyframes_gallery: List[Dict[str, str]] = []
     has_keyframes_gallery: bool = False
+    _cached_narrative_blocks: List[Any] = []
+    _cached_narrative_bytes: bytes = b""
+    _cached_narrative_ext: str = ""
 
     customer_requirements: str = "Tiempos de respuesta (SLA) menores a 5 min, trazabilidad de logs en Chronos y encuesta con satisfacción >= 95%."
     is_completing_sipoc: bool = False
@@ -1446,7 +1449,7 @@ class FlowState(rx.State):
                         if charter.get("project_name"):
                             self.project_name = charter["project_name"]
                         if charter.get("scope"):
-                            self.project_scope = charter["scope"]
+                            self.scope_in = charter["scope"]
                             self.narrative_overview_scope = charter["scope"]
                         if charter.get("purpose"):
                             self.project_purpose = charter["purpose"]
