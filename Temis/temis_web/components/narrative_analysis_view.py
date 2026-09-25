@@ -351,7 +351,9 @@ def narrative_analysis_view() -> rx.Component:
                                     id="upload_narrative_doc",
                                     accept={
                                         "application/zip": [".zip"],
+                                        "application/x-zip": [".zip"],
                                         "application/x-zip-compressed": [".zip"],
+                                        "application/octet-stream": [".zip", ".temis.json", ".docx"],
                                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
                                         "application/pdf": [".pdf"],
                                         "text/vtt": [".vtt"],

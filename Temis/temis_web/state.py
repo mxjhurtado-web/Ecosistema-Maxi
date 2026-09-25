@@ -1403,12 +1403,15 @@ class FlowState(rx.State):
 
     async def handle_narrative_file_upload(self, files: List[rx.UploadFile]):
         """Handle upload of DOCX, PDF, Subtitles or ZIP packages from TEMIS Media Studio"""
+        print(f"[NarrativeUpload] Handler invoked with {len(files) if files else 0} files")
         if not files:
+            self.trigger_toast("No se detectó ningún archivo en el paquete. Por favor selecciona el archivo nuevamente.", "warning")
             return
         self.is_uploading_narrative = True
         self.status_message = "Procesando e indexando paquete/documento..."
         self.trigger_toast("Procesando archivo subido...", "info")
         yield
+
 
         try:
             import datetime
