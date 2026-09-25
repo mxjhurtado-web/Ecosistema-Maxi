@@ -1402,23 +1402,24 @@ class FlowState(rx.State):
         self.narrative_analysis_step = step
 
     async def handle_narrative_file_upload(self, files: List[rx.UploadFile]):
-        """Handle upload of DOCX, PDF, Audio (MP3/M4A/WAV) or Video (MP4/MOV/WebM) files with Mutagen metadata"""
+        """Handle upload of DOCX, PDF, Subtitles or ZIP packages from TEMIS Media Studio"""
         if not files:
             return
         self.is_uploading_narrative = True
-        self.status_message = "Procesando e indexando archivo..."
+        self.status_message = "Procesando e indexando paquete/documento..."
+        self.trigger_toast("Procesando archivo subido...", "info")
+        yield
+
         try:
             import datetime
             from backend.services.document_parser import DocumentParser
-            from backend.services.media_processor import MediaProcessor
             from backend.services.transcript_exporter import TranscriptExporter
 
             for file in files:
                 upload_data = await file.read()
-                ext = "." + file.filename.split(".")[-1].lower()
+                ext = "." + file.filename.split(".")[-1].lower() if "." in file.filename else ""
                 
                 is_zip = (ext == ".zip")
-                zip_meta = {}
                 keyframes_list = []
                 
                 if is_zip:
@@ -1443,12 +1444,15 @@ class FlowState(rx.State):
                             self.project_name = charter["project_name"]
                         if charter.get("scope"):
                             self.project_scope = charter["scope"]
+                            self.narrative_overview_scope = charter["scope"]
                         if charter.get("purpose"):
-                            self.project_description = charter["purpose"]
+                            self.project_purpose = charter["purpose"]
+                            self.narrative_overview_target = charter["purpose"]
 
                     # Pre-load SIPOC if present
                     if zip_res.get("sipoc_rows"):
                         self.sipoc_rows_asis = list(zip_res["sipoc_rows"])
+                        self.sipoc_rows = list(zip_res["sipoc_rows"])
 
                     # Pre-load BPMN diagram if present
                     diagram = zip_res.get("diagram", {})
@@ -1456,6 +1460,10 @@ class FlowState(rx.State):
                         self.nodes = list(diagram["nodes"])
                     if diagram.get("edges"):
                         self.edges = list(diagram["edges"])
+
+                    # Pre-load process steps if present
+                    if zip_res.get("process_steps"):
+                        self.narrative_asis_steps_data = list(zip_res["process_steps"])
 
                     media_cat = "zip_package"
                     is_media = False
@@ -1534,8 +1542,14 @@ class FlowState(rx.State):
                 self.status_message = f"{label_type} '{file.filename}'{info_extra} cargado ({len(blocks)} bloques indexados)."
                 self.trigger_toast(f"{label_type} procesado con éxito", "success")
                 self.trigger_auto_save()
+                yield rx.clear_selected_files("upload_narrative_doc")
+        except Exception as e:
+            self.status_message = f"Error al procesar archivo: {str(e)}"
+            self.trigger_toast(f"Error al procesar archivo: {str(e)}", "error")
         finally:
             self.is_uploading_narrative = False
+            yield
+
 
     def run_narrative_ai_analysis(self):
         """Execute Gemini AI extraction on the uploaded narrative document"""

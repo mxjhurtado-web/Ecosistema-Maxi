@@ -412,10 +412,27 @@ def narrative_analysis_view() -> rx.Component:
                                     ),
                                     rx.box(),
                                 ),
+                                rx.cond(
+                                    FlowState.is_uploading_narrative,
+                                    rx.box(
+                                        rx.hstack(
+                                            rx.spinner(size="2", color="#0284c7"),
+                                            rx.text("Procesando paquete e indexando evidencias visuales...", size="2", weight="medium", color="#0284c7"),
+                                            align="center",
+                                            spacing="2",
+                                        ),
+                                        padding="3",
+                                        background_color="#f0f9ff",
+                                        border="1px solid #bae6fd",
+                                        border_radius="md",
+                                        width="100%",
+                                    ),
+                                    rx.box(),
+                                ),
                                 rx.hstack(
                                     rx.icon("info", size=14, color="#0284c7"),
                                     rx.text(
-                                        "💡 Flujo de Video Óptimo: Procese grabaciones extensas de Teams o Zoom con TEMIS Media Studio en su equipo para extraer fotos en cambios de escena y generar el archivo ZIP ligero (~3 MB) listo para sintetizar en la nube.",
+                                        "💡 Flujo Óptimo: Arrastra el archivo 'Paquete_TEMIS_...zip' (~1 MB) generado por TEMIS Media Studio. Contiene las capturas y bitácora estructuradas sin el archivo de audio pesado para sincronización inmediata.",
                                         size="1",
                                         color="#0369a1",
                                     ),

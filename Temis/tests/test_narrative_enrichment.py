@@ -100,3 +100,43 @@ def test_narrative_extractor_and_enrichment():
     )
     docx_bytes = docx_io.getvalue()
     assert len(docx_bytes) > 1000  # Valid binary DOCX generated
+
+
+def test_document_parser_zip_package():
+    """Test in-memory creation and parsing of a TEMIS Media Studio ZIP package"""
+    import zipfile
+    import io
+    import json
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        # Mock .temis.json
+        pkg = {
+            "project_name": "Proceso de Pruebas ZIP",
+            "charter": {
+                "project_name": "Proceso de Pruebas ZIP",
+                "purpose": "Validar subida de paquetes ZIP",
+                "scope": "Nivel nacional"
+            },
+            "sipoc": [
+                {"id": "1.0", "supplier": "Cliente", "input": "Folio", "process": "Validar Folio", "output": "Recibo", "customer": "Agente"}
+            ],
+            "transcript_segments": [
+                {"index": 1, "timestamp_start": "00:00:05", "timestamp_end": "00:00:15", "speaker": "Operador", "text": "Iniciamos la revisión del sistema."}
+            ]
+        }
+        z.writestr("Proyecto_Test.temis.json", json.dumps(pkg))
+        z.writestr("capturas/frame_001.jpg", b"\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00\xFF\xDB")
+        z.writestr("Subtitulos_Test.vtt", "WEBVTT\n\n1\n00:00:05.000 --> 00:00:15.000\nIniciamos la revisión del sistema.\n")
+
+    zip_bytes = buf.getvalue()
+    parsed = DocumentParser.parse_zip_package(zip_bytes, "test_package.zip")
+
+    assert parsed["is_zip"] is True
+    assert len(parsed["blocks"]) >= 1
+    assert len(parsed["keyframes"]) == 1
+    assert parsed["keyframes"][0]["filename"] == "frame_001.jpg"
+    assert parsed["keyframes"][0]["data_uri"].startswith("data:image/jpeg;base64,")
+    assert parsed["charter"]["project_name"] == "Proceso de Pruebas ZIP"
+    assert len(parsed["sipoc_rows"]) == 1
+
