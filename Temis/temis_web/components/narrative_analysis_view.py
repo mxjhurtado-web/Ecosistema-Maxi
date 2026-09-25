@@ -149,6 +149,79 @@ def finding_card(finding: rx.Var[dict]) -> rx.Component:
     )
 
 
+def keyframe_thumbnail_card(item: rx.Var[dict]) -> rx.Component:
+    """Render a single keyframe screenshot thumbnail card"""
+    filename = item["filename"].to(str)
+    timestamp = item["timestamp_formatted"].to(str)
+    data_uri = item["data_uri"].to(str)
+
+    return rx.box(
+        rx.vstack(
+            rx.image(
+                src=data_uri,
+                width="100%",
+                height="110px",
+                object_fit="cover",
+                border_radius="md",
+                border="1px solid #cbd5e1",
+            ),
+            rx.hstack(
+                rx.icon("camera", size=12, color="#0284c7"),
+                rx.text(filename, size="1", weight="bold", color="#17283c", truncate=True),
+                rx.spacer(),
+                rx.badge(timestamp, color_scheme="blue", variant="surface", size="1"),
+                align="center",
+                width="100%",
+            ),
+            spacing="1",
+            width="100%",
+        ),
+        padding="2",
+        background_color="#ffffff",
+        border="1px solid #e2e8f0",
+        border_radius="lg",
+        box_shadow="0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+    )
+
+
+def keyframes_gallery_section() -> rx.Component:
+    """Gallery showing extracted screenshots from TEMIS Media Studio"""
+    return rx.cond(
+        FlowState.has_keyframes_gallery,
+        rx.box(
+            rx.vstack(
+                rx.hstack(
+                    rx.icon("camera", size=20, color="#0284c7"),
+                    rx.heading("Capturas de Pantalla Clave (TEMIS Media Studio)", size="3", color="#17283c"),
+                    rx.spacer(),
+                    rx.badge("Extracción Automática HD", color_scheme="blue", variant="surface", size="1"),
+                    align="center",
+                    width="100%",
+                ),
+                rx.text("Evidencias visuales de la sesión capturadas en cambios de escena (listas para integrarse al Manual y Diagrama):", size="2", color="#52657a"),
+                rx.grid(
+                    rx.foreach(
+                        FlowState.narrative_keyframes_gallery,
+                        keyframe_thumbnail_card
+                    ),
+                    columns="4",
+                    spacing="3",
+                    width="100%",
+                ),
+                spacing="3",
+                width="100%",
+            ),
+            padding="4",
+            background_color="#f0fdf4",
+            border="1px solid #bbf7d0",
+            border_radius="xl",
+            box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.05)",
+            width="100%",
+        ),
+        rx.box(),
+    )
+
+
 def document_library_item(doc: rx.Var[dict]) -> rx.Component:
     """Render a single document or media file in the project library"""
     is_media = doc["is_media"].to(bool)
@@ -216,13 +289,13 @@ def narrative_analysis_view() -> rx.Component:
                     rx.hstack(
                         rx.icon("file-search", size=22, color="#1e5a9a"),
                         rx.heading("Análisis de Narrativa & Ingesta Multimedia", size="5", weight="bold", color="#17283c"),
-                        rx.badge("Gemini 2.5", color_scheme="purple", variant="soft", size="1"),
-                        rx.badge("Audio / Video", color_scheme="blue", variant="surface", size="1"),
+                        rx.badge("Gemini 2.5 Flash", color_scheme="purple", variant="soft", size="1"),
+                        rx.badge("ZIP Media Studio / Documentos", color_scheme="blue", variant="surface", size="1"),
                         align="center",
                         spacing="2",
                     ),
                     rx.text(
-                        "Ingesta integral de documentos (.docx, .pdf), grabaciones de entrevistas (.mp3, .m4a, .wav) y videos (.mp4, .mov, .webm) para generar SIPOCs, manuales y diagramas BPMN.",
+                        "Ingesta integral de paquetes ZIP generados por TEMIS Media Studio (con capturas visuales HD de la sesión) y documentos corporativos (.docx, .pdf) para generar SIPOCs duales, diagramas BPMN y manuales de procedimientos.",
                         size="2",
                         color="#52657a",
                     ),
@@ -263,32 +336,27 @@ def narrative_analysis_view() -> rx.Component:
                                 rx.upload(
                                     rx.vstack(
                                         rx.hstack(
+                                            rx.icon("archive", size=28, color="#0284c7"),
                                             rx.icon("file-text", size=28, color="#1e5a9a"),
-                                            rx.icon("mic", size=28, color="#7c3aed"),
-                                            rx.icon("video", size=28, color="#0891b2"),
+                                            rx.icon("file-badge", size=28, color="#7c3aed"),
                                             spacing="3",
                                             align="center",
                                         ),
-                                        rx.text("Arrastra o selecciona documento, audio o video de entrevista", size="3", weight="bold", color="#17283c", text_align="center"),
-                                        rx.text("Documentos: Word (.docx), PDF (.pdf) | Audio: .mp3, .m4a, .wav, .ogg, .flac | Video: .mp4, .mov, .webm, .mkv", size="2", color="#52657a", text_align="center"),
+                                        rx.text("Arrastra o selecciona Paquete ZIP de TEMIS Media Studio o Documento", size="3", weight="bold", color="#17283c", text_align="center"),
+                                        rx.text("Paquetes: ZIP (.zip) de Media Studio con capturas | Documentos: Word (.docx), PDF (.pdf), Subtítulos (.vtt, .srt) | Proyectos: TEMIS (.json)", size="2", color="#52657a", text_align="center"),
                                         align="center",
                                         spacing="2",
                                         padding="6",
                                     ),
                                     id="upload_narrative_doc",
                                     accept={
+                                        "application/zip": [".zip"],
+                                        "application/x-zip-compressed": [".zip"],
                                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
                                         "application/pdf": [".pdf"],
-                                        "audio/mpeg": [".mp3"],
-                                        "audio/mp4": [".m4a"],
-                                        "audio/wav": [".wav"],
-                                        "audio/ogg": [".ogg"],
-                                        "audio/flac": [".flac"],
-                                        "video/mp4": [".mp4"],
-                                        "video/quicktime": [".mov"],
-                                        "video/webm": [".webm"],
                                         "text/vtt": [".vtt"],
-                                        "text/plain": [".srt", ".txt"]
+                                        "text/plain": [".srt", ".txt"],
+                                        "application/json": [".json", ".temis.json"],
                                     },
                                     max_files=1,
                                     border="2px dashed #cbd5e1",
@@ -323,7 +391,7 @@ def narrative_analysis_view() -> rx.Component:
                                             rx.button(
                                                 rx.hstack(
                                                     rx.icon("sparkles", size=16),
-                                                    rx.text("Cargar y Procesar Archivo Ahora"),
+                                                    rx.text("Cargar y Procesar Paquete / Documento"),
                                                     align="center",
                                                     spacing="2",
                                                 ),
@@ -345,11 +413,11 @@ def narrative_analysis_view() -> rx.Component:
                                     rx.box(),
                                 ),
                                 rx.hstack(
-                                    rx.icon("info", size=14, color="#64748b"),
+                                    rx.icon("info", size=14, color="#0284c7"),
                                     rx.text(
-                                        "Límite web recomendado: máx 100 MB. Para grabaciones de Teams o Zoom de más de 100 MB, suba el audio extraído (.mp3 / .m4a) o el archivo de transcripción (.vtt / .srt) para un procesamiento ultrarrápido.",
+                                        "💡 Flujo de Video Óptimo: Procese grabaciones extensas de Teams o Zoom con TEMIS Media Studio en su equipo para extraer fotos en cambios de escena y generar el archivo ZIP ligero (~3 MB) listo para sintetizar en la nube.",
                                         size="1",
-                                        color="#64748b",
+                                        color="#0369a1",
                                     ),
                                     align="center",
                                     spacing="1",
@@ -381,9 +449,13 @@ def narrative_analysis_view() -> rx.Component:
                                             rx.vstack(
                                                 rx.hstack(
                                                     rx.cond(
-                                                        FlowState.active_narrative_is_media,
-                                                        rx.badge(FlowState.active_narrative_media_type.upper(), color_scheme="purple", variant="solid", size="1"),
-                                                        rx.badge("DOCX / PDF", color_scheme="blue", variant="solid", size="1"),
+                                                        FlowState.active_is_media_studio_package,
+                                                        rx.badge("PAQUETE ZIP MEDIA STUDIO", color_scheme="cyan", variant="solid", size="1"),
+                                                        rx.cond(
+                                                            FlowState.active_narrative_is_media,
+                                                            rx.badge(FlowState.active_narrative_media_type.upper(), color_scheme="purple", variant="solid", size="1"),
+                                                            rx.badge("DOCX / PDF", color_scheme="blue", variant="solid", size="1"),
+                                                        ),
                                                     ),
                                                     rx.text(FlowState.active_narrative_doc_name, size="2", weight="bold", color="#17283c"),
                                                     spacing="2",
@@ -518,6 +590,9 @@ def narrative_analysis_view() -> rx.Component:
                         width="100%",
                     ),
                     
+                    # Keyframe Screenshots Gallery from Media Studio ZIP
+                    keyframes_gallery_section(),
+
                     # Project Document & Media History / Multi-Document Library
                     rx.cond(
                         FlowState.narrative_documents,
@@ -608,6 +683,9 @@ def narrative_analysis_view() -> rx.Component:
                         spacing="3",
                         width="100%",
                     ),
+
+                    # Keyframe Screenshots in Review
+                    keyframes_gallery_section(),
 
                     # Findings List
                     rx.text("Hallazgos Clasificados:", size="3", weight="bold", color="#17283c"),

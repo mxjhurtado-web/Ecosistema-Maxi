@@ -1075,10 +1075,13 @@ class FlowState(rx.State):
     
     # Multimedia & Transcript State
     active_narrative_is_media: bool = False
-    active_narrative_media_type: str = "document"  # "document", "audio", "video"
+    active_narrative_media_type: str = "document"  # "document", "audio", "video", "zip_package"
     active_narrative_duration: str = ""
     has_active_transcript_backup: bool = False
     active_transcript_text: str = ""
+    active_is_media_studio_package: bool = False
+    narrative_keyframes_gallery: List[Dict[str, str]] = []
+    has_keyframes_gallery: bool = False
 
     customer_requirements: str = "Tiempos de respuesta (SLA) menores a 5 min, trazabilidad de logs en Chronos y encuesta con satisfacción >= 95%."
     is_completing_sipoc: bool = False
@@ -1458,19 +1461,74 @@ class FlowState(rx.State):
             for file in files:
                 upload_data = await file.read()
                 ext = "." + file.filename.split(".")[-1].lower()
-                is_media = MediaProcessor.is_media_file(file.filename)
-                media_cat = MediaProcessor.get_media_category(file.filename)
                 
-                # Extract metadata and blocks
-                meta = MediaProcessor.extract_metadata(upload_data, file.filename) if is_media else {
-                    "is_media": False, "media_type": "document", "duration_formatted": "N/A", "duration_seconds": None
-                }
-                blocks = DocumentParser.extract_blocks(upload_data, ext, file.filename)
+                is_zip = (ext == ".zip")
+                zip_meta = {}
+                keyframes_list = []
+                
+                if is_zip:
+                    zip_res = DocumentParser.parse_zip_package(upload_data, file.filename)
+                    blocks = zip_res.get("blocks", [])
+                    keyframes_list = zip_res.get("keyframes", [])
+                    self.narrative_keyframes_gallery = [
+                        {
+                            "filename": str(k.get("filename", "")),
+                            "data_uri": str(k.get("data_uri", "")),
+                            "timestamp_formatted": str(k.get("timestamp_formatted", ""))
+                        }
+                        for k in keyframes_list
+                    ]
+                    self.has_keyframes_gallery = bool(keyframes_list)
+                    self.active_is_media_studio_package = True
+
+                    # Pre-load charter if present
+                    charter = zip_res.get("charter", {})
+                    if charter:
+                        if charter.get("project_name"):
+                            self.project_name = charter["project_name"]
+                        if charter.get("scope"):
+                            self.project_scope = charter["scope"]
+                        if charter.get("purpose"):
+                            self.project_description = charter["purpose"]
+
+                    # Pre-load SIPOC if present
+                    if zip_res.get("sipoc_rows"):
+                        self.sipoc_rows_asis = list(zip_res["sipoc_rows"])
+
+                    # Pre-load BPMN diagram if present
+                    diagram = zip_res.get("diagram", {})
+                    if diagram.get("nodes"):
+                        self.nodes = list(diagram["nodes"])
+                    if diagram.get("edges"):
+                        self.edges = list(diagram["edges"])
+
+                    media_cat = "zip_package"
+                    is_media = False
+                    meta = {
+                        "is_media": False,
+                        "media_type": "zip_package",
+                        "duration_formatted": f"{len(keyframes_list)} capturas",
+                        "duration_seconds": None
+                    }
+                else:
+                    self.active_is_media_studio_package = False
+                    self.has_keyframes_gallery = False
+                    self.narrative_keyframes_gallery = []
+                    is_media = False
+                    media_cat = "document"
+                    meta = {
+                        "is_media": False,
+                        "media_type": "document",
+                        "duration_formatted": "N/A",
+                        "duration_seconds": None
+                    }
+                    blocks = DocumentParser.extract_blocks(upload_data, ext, file.filename)
+
                 doc_hash = DocumentParser.compute_file_hash(upload_data)
                 
-                # Generate transcript backup text if audio/video or subtitles
+                # Generate transcript backup text if subtitles or zip transcript
                 txt_backup = ""
-                if is_media or ext in [".vtt", ".srt"]:
+                if is_zip or ext in [".vtt", ".srt"]:
                     blocks_dicts = [b.model_dump() for b in blocks]
                     txt_backup = TranscriptExporter.export_to_txt(
                         project_name=self.project_name,
@@ -1508,9 +1566,17 @@ class FlowState(rx.State):
                 self._cached_narrative_bytes = upload_data
                 self._cached_narrative_ext = ext
                 
-                label_type = "Grabación Multimedia" if is_media else "Documento"
-                dur_info = f" ({meta.get('duration_formatted')})" if is_media and meta.get('duration_formatted') != 'N/A' else ""
-                self.status_message = f"{label_type} '{file.filename}'{dur_info} cargado ({len(blocks)} bloques indexados)."
+                if is_zip:
+                    label_type = "Paquete TEMIS Media Studio"
+                    info_extra = f" ({len(keyframes_list)} capturas de pantalla)"
+                elif ext in [".vtt", ".srt"]:
+                    label_type = "Transcripción Subtítulos"
+                    info_extra = ""
+                else:
+                    label_type = "Documento"
+                    info_extra = ""
+
+                self.status_message = f"{label_type} '{file.filename}'{info_extra} cargado ({len(blocks)} bloques indexados)."
                 self.trigger_toast(f"{label_type} procesado con éxito", "success")
                 self.trigger_auto_save()
         finally:

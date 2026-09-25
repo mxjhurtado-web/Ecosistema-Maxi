@@ -93,10 +93,40 @@ def test_transcript_exporter_txt_and_docx():
 
 
 def test_end_to_end_media_to_process_pipeline():
-    """Test complete flow: Media file -> Transcribe -> AI Process Extraction -> Dual SIPOC -> BPMN -> Word Manual"""
-    # 1. Simulate media file blocks
-    raw_media_bytes = b"MOCK_MP4_AUDIO_DATA_FOR_TESTING"
-    blocks = DocumentParser.extract_blocks(raw_media_bytes, ".mp4", "Entrevista_Reimpresiones_iCertify.mp4")
+    """Test complete flow: Media Studio ZIP package -> Ingest Base64 Keyframes -> AI Process Extraction -> Dual SIPOC -> BPMN -> Word Manual"""
+    import io
+    import zipfile
+    import json
+
+    # 1. Create a simulated TEMIS Media Studio ZIP package in memory
+    zip_bio = io.BytesIO()
+    with zipfile.ZipFile(zip_bio, "w") as z:
+        # Dummy keyframe image
+        z.writestr("capturas/keyframe_001_00_00_15.jpg", b"\xff\xd8\xff\xe0" + b"\x00" * 100)
+        # Subtitles VTT
+        vtt_text = """WEBVTT
+
+1
+00:00:10.000 --> 00:00:35.000
+<v Juan Pérez>El cliente solicita el trámite de reimpresión de recibo.
+
+2
+00:00:36.000 --> 00:01:15.000
+<v Ana Martínez>El operador valida el número de folio en el sistema Chronos.
+
+3
+00:01:16.000 --> 00:02:00.000
+<v Juan Pérez>Se emite el duplicado en formato PDF y se envía por correo al cliente.
+"""
+        z.writestr("subtitulos.vtt", vtt_text)
+        z.writestr("proyecto.json", json.dumps({"project": {"name": "Procedimiento iCertify"}}))
+
+    zip_bytes = zip_bio.getvalue()
+    zip_res = DocumentParser.parse_zip_package(zip_bytes, "Paquete_TEMIS_iCertify.zip")
+    assert len(zip_res["keyframes"]) == 1
+    assert "data:image/jpeg;base64," in zip_res["keyframes"][0]["data_uri"]
+
+    blocks = DocumentParser.extract_blocks(zip_bytes, ".zip", "Paquete_TEMIS_iCertify.zip")
     assert len(blocks) >= 3
 
     # 2. Extract process data with citations
