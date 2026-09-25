@@ -71,6 +71,8 @@ def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    print("[INFO] Starting TEMIS Backend Server...")
-    print("[INFO] UTF-8 encoding configured for Windows")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", "8000"))
+    host = os.environ.get("HOST", "0.0.0.0")
+    print(f"[INFO] Starting TEMIS Backend Server on {host}:{port}...")
+    uvicorn.run("backend.main:app", host=host, port=port, log_level="info")
+
