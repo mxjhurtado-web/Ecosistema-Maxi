@@ -24,8 +24,23 @@ import temis_web.temis_web as temis_app
 app_instance = temis_app.app
 
 # 3. Setup Reflex State and Endpoints
+from reflex_components_core.core.upload import Upload, get_upload_dir
+from reflex._upload import upload, UploadedFilesHeadersMiddleware
+
+Upload.is_used = True
 app_instance._setup_state()
 app_instance._add_default_endpoints()
+app_instance._add_optional_endpoints()
+
+# Guarantee /_upload endpoint is registered explicitly on Starlette app
+upload_dir = get_upload_dir()
+os.makedirs(upload_dir, exist_ok=True)
+has_upload = any(getattr(r, "path", None) == "/_upload" for r in app_instance._api.routes)
+if not has_upload:
+    app_instance._api.add_route("/_upload", upload(app_instance), methods=["POST"])
+    app_instance._api.mount("/_upload", UploadedFilesHeadersMiddleware(StaticFiles(directory=upload_dir)), name="uploaded_files")
+print(f"[TEMIS Production Server] Upload endpoints ready. Registered routes: {[getattr(r, 'path', str(r)) for r in app_instance._api.routes]}")
+
 
 # 4. Locate compiled static client directory
 root_dir = Path(__file__).parent.resolve()
