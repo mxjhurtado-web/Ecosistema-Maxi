@@ -2777,8 +2777,24 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
     saved_projects: List[Dict[str, Any]] = []
     is_syncing_drive_projects: bool = False
 
-    def load_projects_from_drive(self):
-        """Scan real project folders in Google Drive and load their state"""
+    def load_projects_from_drive(self, force_remote: bool = False):
+        """Load projects using instant local cache first, syncing with Drive when requested"""
+        import os, json
+        data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+        cache_file = os.path.join(data_dir, "saved_projects.json")
+
+        # 1. Load from local cache immediately for instant UI response
+        if not force_remote and os.path.exists(cache_file):
+            try:
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    cached = json.load(f)
+                    if isinstance(cached, list) and cached:
+                        self.saved_projects = cached
+                        return
+            except Exception as e:
+                print(f"[FlowState] Error reading local cache: {e}")
+
+        # 2. Remote Drive scan
         self.is_syncing_drive_projects = True
         try:
             from backend.services.drive_service import DriveService
@@ -2787,10 +2803,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             if drive_projs:
                 self.saved_projects = drive_projs
                 try:
-                    import os, json
-                    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
                     os.makedirs(data_dir, exist_ok=True)
-                    cache_file = os.path.join(data_dir, "saved_projects.json")
                     with open(cache_file, "w", encoding="utf-8") as f:
                         json.dump(drive_projs, f, indent=2, ensure_ascii=False)
                 except Exception:
@@ -2801,25 +2814,9 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         finally:
             self.is_syncing_drive_projects = False
 
-        # Local cache fallback
-        try:
-            import os, json
-            data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
-            cache_file = os.path.join(data_dir, "saved_projects.json")
-            if os.path.exists(cache_file):
-                with open(cache_file, "r", encoding="utf-8") as f:
-                    cached = json.load(f)
-                    if isinstance(cached, list):
-                        self.saved_projects = cached
-                        return
-        except Exception as e:
-            print(f"[FlowState] Error loading cached projects: {e}")
-
-        self.saved_projects = []
-
     def sync_projects_from_drive_action(self):
         """Action handler to manually trigger a sync with Google Drive"""
-        self.load_projects_from_drive()
+        self.load_projects_from_drive(force_remote=True)
         count = len(self.saved_projects)
         if count > 0:
             self.trigger_toast(f"Sincronización con Google Drive completada ({count} proyectos activos)", "success")
@@ -2827,13 +2824,13 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             self.trigger_toast("Google Drive no contiene carpetas de proyectos adicionales", "info")
 
     def init_app_data(self):
-        """Global initialization handler on page load"""
+        """Global initialization handler on page load (instant cache first)"""
         try:
             from backend.services.user_service import load_users
             self.users_list = load_users()
         except Exception as e:
             print(f"[FlowState] Error initializing users: {e}")
-        self.load_projects_from_drive()
+        self.load_projects_from_drive(force_remote=False)
 
     # Hub Computed Properties & KPIs
     @rx.var
