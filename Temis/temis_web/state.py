@@ -28,52 +28,7 @@ class FlowState(rx.State):
     hub_active_subview: str = "portfolio"
 
     # User Management & RBAC Directory State
-    users_list: List[Dict[str, Any]] = [
-        {
-            "email": "mxjhurtado@maxillc.com",
-            "name": "Ing. José Antonio Hurtado",
-            "password": "Temis123456*",
-            "role": "super_admin",
-            "role_label": "Super Admin",
-            "department": "Dirección General & Tecnología",
-            "status": "active",
-            "created_at": "2026-01-16",
-            "last_login": "2026-09-18 13:00"
-        },
-        {
-            "email": "ana.martinez@maxillc.com",
-            "name": "Lic. Ana Martínez",
-            "password": "Temis123456*",
-            "role": "project_manager",
-            "role_label": "Dueño de Proyecto (PM)",
-            "department": "Operaciones & Procesos",
-            "status": "active",
-            "created_at": "2026-02-01",
-            "last_login": "2026-09-17 10:30"
-        },
-        {
-            "email": "carlos.lopez@maxillc.com",
-            "name": "Ing. Carlos López",
-            "password": "Temis123456*",
-            "role": "analyst",
-            "role_label": "Analista de Procesos",
-            "department": "Ingeniería de Software",
-            "status": "active",
-            "created_at": "2026-02-15",
-            "last_login": "2026-09-18 09:15"
-        },
-        {
-            "email": "laura.torres@maxillc.com",
-            "name": "Mtra. Laura Torres",
-            "password": "Temis123456*",
-            "role": "qa_auditor",
-            "role_label": "Auditor QA / Six Sigma",
-            "department": "Calidad & Gobernanza",
-            "status": "active",
-            "created_at": "2026-03-01",
-            "last_login": "2026-09-16 16:45"
-        }
-    ]
+    users_list: List[Dict[str, Any]] = []
     show_new_user_modal: bool = False
     new_user_name: str = ""
     new_user_email: str = ""
@@ -2799,390 +2754,69 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         }
     ]
     active_page_index: int = 0
-    # Saved Projects / Flujos Guardados Catalog State
+    # Saved Projects / Flujos Guardados Catalog State (Dynamic Google Drive Sync)
     show_recent_modal: bool = False
     search_saved_query: str = ""
-    saved_projects: List[Dict[str, Any]] = [
-        {
-            "id": "proj-temis",
-            "code": "PRJ-TEMIS",
-            "name": "Suite de Procesos & Gobernanza TEMIS",
-            "purpose": "Plataforma SaaS Cloud de ingeniería de procesos con editor BPMN, matriz SIPOC, auditoría Six Sigma y gobernanza de 7 fases.",
-            "manager": "Ing. José Antonio Hurtado",
-            "manager_initials": "JH",
-            "sponsor": "Dirección General & Tecnología",
-            "start_date": "2026-01-16",
-            "end_date": "2026-12-04",
-            "scope_in": "Migración Desktop hacia Web SaaS, Canvas Bézier SVG, Google Drive sync, AI Gemini 2.5 y auditoría continua.",
-            "scope_out": "Integraciones legacy propietarias no web.",
-            "current_phase": 4,
-            "phase_name": "Fase 4: Ejecución Iterativa",
-            "updated_at": "2026-09-18 12:00",
-            "drive_folder_id": "1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI",
-            "drive_folder_url": "https://drive.google.com/drive/folders/1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI",
-            "sheet_id": "1GxiIwR2rUMkZKHu00JYzlQrs6EsyXO5VqUL6qpl_MBs",
-            "sheet_url": "https://docs.google.com/spreadsheets/d/1GxiIwR2rUMkZKHu00JYzlQrs6EsyXO5VqUL6qpl_MBs/edit",
-            "current_sprint": "Sprint 04",
-            "current_sprint_name": "Integración Google Workspace Shared Drive SA",
-            "progress_percentage": 85.5,
-            "completed_sp": 47,
-            "total_sp": 55,
-            "completed_tasks": 5,
-            "total_tasks": 7,
-            "health_status": "green",
-            "audit_score": 95,
-            "nodes_count": 6,
-            "steps_count": 3,
-            "plan_start_date": "2026-01-16",
-            "plan_end_date": "2026-12-04",
-            "plan_daily_hours": 8,
-            "plan_work_days_mode": "mon_fri",
-            "plan_activities_description": "Desarrollar la suite SaaS TEMIS con editor BPMN Bézier, matriz SIPOC, auditoría Six Sigma y persistencia en Google Drive.",
-            "plan_sprints": [
-                {"sprint_id": "Sprint 01", "period": "2026-01-16 al 2026-01-30", "objective": "Diagnóstico AS-IS y levantamiento de requerimientos", "modules": "Diagnóstico & Arquitectura", "milestone": "Charter y Matriz AS-IS", "status": "Completado", "story_points": 13, "hours_estimated": 50},
-                {"sprint_id": "Sprint 02", "period": "2026-02-02 al 2026-02-16", "objective": "Mapeo SIPOC Six Sigma y roles", "modules": "Diseño BPMN & SIPOC", "milestone": "SIPOC Homologada", "status": "Completado", "story_points": 13, "hours_estimated": 55},
-                {"sprint_id": "Sprint 03", "period": "2026-02-17 al 2026-03-03", "objective": "Lienzo interactivo y herramientas BPMN", "modules": "UI/UX & Espacio", "milestone": "Editor Visual Bézier", "status": "Completado", "story_points": 13, "hours_estimated": 50},
-                {"sprint_id": "Sprint 04", "period": "2026-08-15 al 2026-09-30", "objective": "Integración Google Workspace Shared Drive SA", "modules": "Core & Integraciones", "milestone": "Service Account y Sync", "status": "En Progreso", "story_points": 8, "hours_estimated": 35},
-                {"sprint_id": "Sprint 05", "period": "2026-10-01 al 2026-11-15", "objective": "Motor de Auditoría Six Sigma con Gemini", "modules": "Gobernanza & IA", "milestone": "Auditor IA Activo", "status": "Planificado", "story_points": 8, "hours_estimated": 30}
-            ],
-            "plan_backlog_items": [
-                {"item_id": "1", "module": "Diagnóstico & Arquitectura", "user_story": "Como PM, quiero formalizar el Project Charter.", "sprint": "Sprint 01", "story_points": 5, "hours_estimated": 20, "start_date": "2026-01-16", "end_date": "2026-01-20", "role": "Project Manager", "priority": "Alta", "deliverable": "Project Charter", "status": "Completado"},
-                {"item_id": "2", "module": "Diagnóstico & Arquitectura", "user_story": "Como Analista, quiero estructurar la arquitectura del flujo.", "sprint": "Sprint 01", "story_points": 8, "hours_estimated": 30, "start_date": "2026-01-21", "end_date": "2026-01-26", "role": "Analista de Procesos", "priority": "Alta", "deliverable": "Arquitectura Base", "status": "Completado"},
-                {"item_id": "3", "module": "Diseño BPMN & SIPOC", "user_story": "Como Operador, quiero capturar la matriz SIPOC.", "sprint": "Sprint 02", "story_points": 8, "hours_estimated": 35, "start_date": "2026-02-02", "end_date": "2026-02-08", "role": "Analista Six Sigma", "priority": "Alta", "deliverable": "Matriz SIPOC", "status": "Completado"},
-                {"item_id": "4", "module": "Diseño BPMN & SIPOC", "user_story": "Como Auditor, quiero validar requisitos de calidad.", "sprint": "Sprint 02", "story_points": 5, "hours_estimated": 20, "start_date": "2026-02-09", "end_date": "2026-02-16", "role": "QA Lead", "priority": "Media", "deliverable": "Matriz SLA", "status": "Completado"},
-                {"item_id": "5", "module": "UI/UX & Espacio", "user_story": "Como Usuario, quiero un lienzo vectorial responsivo con Bézier.", "sprint": "Sprint 03", "story_points": 13, "hours_estimated": 50, "start_date": "2026-02-17", "end_date": "2026-02-28", "role": "Frontend Dev", "priority": "Alta", "deliverable": "Lienzo SVG", "status": "Completado"},
-                {"item_id": "6", "module": "Core & Integraciones", "user_story": "Como Sistema, quiero respaldar versiones en Google Drive.", "sprint": "Sprint 04", "story_points": 8, "hours_estimated": 35, "start_date": "2026-08-15", "end_date": "2026-09-20", "role": "Backend Dev", "priority": "Alta", "deliverable": "Drive Service SA", "status": "En Progreso"},
-                {"item_id": "7", "module": "Gobernanza & IA", "user_story": "Como Líder de Calidad, quiero que Gemini audite el flujo 0-100.", "sprint": "Sprint 05", "story_points": 8, "hours_estimated": 30, "start_date": "2026-10-01", "end_date": "2026-10-15", "role": "AI Engineer", "priority": "Alta", "deliverable": "Auditor IA", "status": "Planificado"}
-            ],
-            "sipoc_rows": [
-                {
-                    "id": "1",
-                    "step_num": "1.0",
-                    "provider": "Usuario / Analista",
-                    "input": "Requerimiento de proceso / Diagrama",
-                    "step": "1.0 Captura SIPOC y modelado en Canvas Bézier",
-                    "output": "Diagrama de flujo BPMN estructurado",
-                    "customer": "Auditor IA / Sponsor",
-                    "requirements": "Simbología oficial y swimlanes completas"
-                },
-                {
-                    "id": "2",
-                    "step_num": "2.0",
-                    "provider": "Motor TEMIS",
-                    "input": "Estructura del proceso",
-                    "step": "2.0 Auditoría Six Sigma con Gemini 2.5 Flash",
-                    "output": "Score de calidad (0-100) y hallazgos",
-                    "customer": "Project Manager",
-                    "requirements": "Validación de nodos de inicio, fin y decisiones"
-                },
-                {
-                    "id": "3",
-                    "step_num": "3.0",
-                    "provider": "Service Account TEMIS",
-                    "input": "Proyecto aprobado",
-                    "step": "3.0 Replicación y respaldo en Google Workspace Shared Drive",
-                    "output": "Carpetas de 7 fases + Google Sheet Plan de Trabajo",
-                    "customer": "Organización",
-                    "requirements": "Sync automático a 12:00 AM y reporte semanal"
-                }
-            ],
-            "customer_requirements": "Cero costo recurrente de licencias Lucidchart, disponibilidad SaaS 99.9% y sincronización nativa en Google Drive.",
-            "nodes": [
-                {"id": "node-1", "type": "node_start", "label": "Inicio: Requerimiento", "swimlane": "Input", "x": 40, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": "Web"},
-                {"id": "node-2", "type": "node_activity", "label": "Mapeo SIPOC & Diagrama", "swimlane": "Actor 1 (ej. Usuario)", "x": 260, "y": 140, "activity_number": 1, "attached_system": "TEMIS Web", "attached_channel": ""},
-                {"id": "node-3", "type": "node_decision", "label": "¿Score Auditoría >= 90?", "swimlane": "Actor 2 (ej. Sistema)", "x": 520, "y": 140, "activity_number": None, "attached_system": "Gemini AI", "attached_channel": ""},
-                {"id": "node-4", "type": "node_activity", "label": "Promover a Siguiente Fase", "swimlane": "Actor 2 (ej. Sistema)", "x": 780, "y": 60, "activity_number": 2, "attached_system": "TEMIS Core", "attached_channel": ""},
-                {"id": "node-5", "type": "node_activity", "label": "Ajustar Reglas y Conexiones", "swimlane": "Actor 1 (ej. Usuario)", "x": 780, "y": 220, "activity_number": 3, "attached_system": "TEMIS Web", "attached_channel": ""},
-                {"id": "node-6", "type": "node_end", "label": "Fin: Publicación Oficial", "swimlane": "Output", "x": 1040, "y": 60, "activity_number": None, "attached_system": "Drive", "attached_channel": ""}
-            ],
-            "edges": [
-                {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
-                {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""},
-                {"id": "e3-4", "source": "node-3", "target": "node-4", "label": "Sí"},
-                {"id": "e3-5", "source": "node-3", "target": "node-5", "label": "No"},
-                {"id": "e5-2", "source": "node-5", "target": "node-2", "label": "Iterar"},
-                {"id": "e4-6", "source": "node-4", "target": "node-6", "label": ""}
-            ],
-            "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"],
-            "project_pages": [
-                {
-                    "page_id": "1",
-                    "name": "Página 1: Arquitectura Core",
-                    "nodes": [
-                        {"id": "node-1", "type": "node_start", "label": "Inicio: Requerimiento", "swimlane": "Input", "x": 40, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": "Web"},
-                        {"id": "node-2", "type": "node_activity", "label": "Mapeo SIPOC & Diagrama", "swimlane": "Actor 1 (ej. Usuario)", "x": 260, "y": 140, "activity_number": 1, "attached_system": "TEMIS Web", "attached_channel": ""},
-                        {"id": "node-3", "type": "node_decision", "label": "¿Score Auditoría >= 90?", "swimlane": "Actor 2 (ej. Sistema)", "x": 520, "y": 140, "activity_number": None, "attached_system": "Gemini AI", "attached_channel": ""},
-                        {"id": "node-4", "type": "node_activity", "label": "Promover a Siguiente Fase", "swimlane": "Actor 2 (ej. Sistema)", "x": 780, "y": 60, "activity_number": 2, "attached_system": "TEMIS Core", "attached_channel": ""},
-                        {"id": "node-5", "type": "node_activity", "label": "Ajustar Reglas y Conexiones", "swimlane": "Actor 1 (ej. Usuario)", "x": 780, "y": 220, "activity_number": 3, "attached_system": "TEMIS Web", "attached_channel": ""},
-                        {"id": "node-6", "type": "node_end", "label": "Fin: Publicación Oficial", "swimlane": "Output", "x": 1040, "y": 60, "activity_number": None, "attached_system": "Drive", "attached_channel": ""}
-                    ],
-                    "edges": [
-                        {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
-                        {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""},
-                        {"id": "e3-4", "source": "node-3", "target": "node-4", "label": "Sí"},
-                        {"id": "e3-5", "source": "node-3", "target": "node-5", "label": "No"},
-                        {"id": "e5-2", "source": "node-5", "target": "node-2", "label": "Iterar"},
-                        {"id": "e4-6", "source": "node-4", "target": "node-6", "label": ""}
-                    ],
-                    "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"]
-                }
-            ],
-            "narrative_text": "# Manual de Arquitectura TEMIS Web Flow\n\nTEMIS es la suite integral para el diseño, gobernanza y auditoría automatizada de procesos de negocio..."
-        },
-        {
-            "id": "proj-x",
-            "code": "PRJ-X",
-            "name": "Proyecto X Procesos",
-            "purpose": "Proyecto piloto para verificación y despliegue del framework de 7 fases y sincronización en Google Drive.",
-            "manager": "Ing. José Antonio Hurtado",
-            "manager_initials": "JH",
-            "sponsor": "Área de Procesos & Calidad",
-            "start_date": "2026-09-18",
-            "end_date": "2026-12-18",
-            "scope_in": "Inicialización de carpetas, replicación de Google Sheet y distribución de actas.",
-            "scope_out": "Módulos fuera de prueba.",
-            "current_phase": 1,
-            "phase_name": "Fase 1: Diagnóstico Estratégico",
-            "updated_at": "2026-09-18 12:02",
-            "drive_folder_id": "1V6cfM92nAoCq_MBbu_9hxowbMIofuD8X",
-            "drive_folder_url": "https://drive.google.com/drive/folders/1V6cfM92nAoCq_MBbu_9hxowbMIofuD8X",
-            "sheet_id": "1_haZDSiCPaED3tWS48XJyVfuo5uTKBvmBSC9nqUMR4Y",
-            "sheet_url": "https://docs.google.com/spreadsheets/d/1_haZDSiCPaED3tWS48XJyVfuo5uTKBvmBSC9nqUMR4Y/edit",
-            "current_sprint": "Sprint 01",
-            "current_sprint_name": "Diagnóstico y Mapeo AS-IS",
-            "progress_percentage": 0.0,
-            "completed_sp": 0,
-            "total_sp": 10,
-            "completed_tasks": 0,
-            "total_tasks": 2,
-            "health_status": "unrated",
-            "audit_score": 0,
-            "nodes_count": 2,
-            "steps_count": 1,
-            "plan_start_date": "2026-09-18",
-            "plan_end_date": "2026-12-18",
-            "plan_daily_hours": 8,
-            "plan_work_days_mode": "mon_fri",
-            "plan_activities_description": "Proyecto piloto para verificación y despliegue del framework de 7 fases y sincronización en Google Drive.",
-            "plan_sprints": [
-                {"sprint_id": "Sprint 01", "period": "2026-09-18 al 2026-10-02", "objective": "Levantamiento de información AS-IS", "modules": "Diagnóstico", "milestone": "Entrevistas completadas", "status": "Planned", "story_points": 10, "hours_estimated": 40}
-            ],
-            "plan_backlog_items": [
-                {"item_id": "1", "module": "Diagnóstico", "user_story": "Como analista, quiero entrevistar al líder del proceso.", "sprint": "Sprint 01", "story_points": 5, "hours_estimated": 20, "start_date": "2026-09-18", "end_date": "2026-09-25", "role": "Analista", "priority": "Alta", "deliverable": "Minuta de entrevista", "status": "Planificado"},
-                {"item_id": "2", "module": "Diagnóstico", "user_story": "Como PM, quiero formalizar el alcance del Proyecto X.", "sprint": "Sprint 01", "story_points": 5, "hours_estimated": 20, "start_date": "2026-09-26", "end_date": "2026-10-02", "role": "PM", "priority": "Alta", "deliverable": "Project Charter", "status": "Planificado"}
-            ],
-            "sipoc_rows": [
-                {
-                    "id": "1",
-                    "step_num": "1.0",
-                    "provider": "Líder de Proceso",
-                    "input": "Entrevistas operativas",
-                    "step": "1.0 Diagnóstico AS-IS y levantamiento de cuellos de botella",
-                    "output": "Informe Diagnóstico inicial",
-                    "customer": "Comité de Gobierno",
-                    "requirements": "Identificación clara de fricciones operativas"
-                }
-            ],
-            "customer_requirements": "Estructuración de acuerdo a las 7 fases corporativas.",
-            "nodes": [
-                {"id": "node-1", "type": "node_start", "label": "Inicio: Diagnóstico", "swimlane": "Input", "x": 60, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": ""},
-                {"id": "node-2", "type": "node_activity", "label": "Levantamiento de Información AS-IS", "swimlane": "Actor 1 (ej. Usuario)", "x": 300, "y": 140, "activity_number": 1, "attached_system": "Docs", "attached_channel": ""}
-            ],
-            "edges": [
-                {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""}
-            ],
-            "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Output"],
-            "project_pages": [
-                {
-                    "page_id": "1",
-                    "name": "Página 1: Flujo AS-IS",
-                    "nodes": [
-                        {"id": "node-1", "type": "node_start", "label": "Inicio: Diagnóstico", "swimlane": "Input", "x": 60, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": ""},
-                        {"id": "node-2", "type": "node_activity", "label": "Levantamiento de Información AS-IS", "swimlane": "Actor 1 (ej. Usuario)", "x": 300, "y": 140, "activity_number": 1, "attached_system": "Docs", "attached_channel": ""}
-                    ],
-                    "edges": [
-                        {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""}
-                    ],
-                    "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Output"]
-                }
-            ],
-            "narrative_text": "# Proyecto X Procesos\n\nFase de diagnóstico estratégico y alineación con la metodología TEMIS."
-        },
-        {
-            "id": "proj-wha",
-            "code": "PRJ-WHA",
-            "name": "Atención y Aclaraciones WhatsApp",
-            "purpose": "Estandarizar y automatizar el ciclo integral de atención de aclaraciones y transacciones de clientes vía canales digitales y sistemas centrales.",
-            "manager": "Ing. José Antonio Hurtado",
-            "manager_initials": "JH",
-            "sponsor": "Dirección de Operaciones & CX",
-            "start_date": "2026-01-16",
-            "end_date": "2026-12-04",
-            "scope_in": "Mapeo SIPOC, diagrama BPMN multi-pestaña, manual de procedimientos y auditoría de calidad.",
-            "scope_out": "Desarrollo de integraciones core bancarias propietarias de terceros.",
-            "current_phase": 4,
-            "phase_name": "Fase 4: Ejecución Iterativa",
-            "updated_at": "2026-09-17 14:00",
-            "drive_folder_id": "",
-            "drive_folder_url": "",
-            "sheet_id": "",
-            "sheet_url": "",
-            "current_sprint": "Sprint 01",
-            "current_sprint_name": "Recepción Freshdesk & WhatsApp",
-            "progress_percentage": 71.4,
-            "completed_sp": 20,
-            "total_sp": 28,
-            "completed_tasks": 2,
-            "total_tasks": 3,
-            "health_status": "green",
-            "audit_score": 95,
-            "nodes_count": 4,
-            "steps_count": 2,
-            "plan_start_date": "2026-01-16",
-            "plan_end_date": "2026-12-04",
-            "plan_daily_hours": 8,
-            "plan_work_days_mode": "mon_fri",
-            "plan_activities_description": "Automatizar el ciclo integral de aclaraciones de clientes vía WhatsApp con integración a Freshdesk y Chronos.",
-            "plan_sprints": [
-                {"sprint_id": "Sprint 01", "period": "2026-01-16 al 2026-01-30", "objective": "Recepción de folios y flujo Freshdesk", "modules": "Integración Freshdesk", "milestone": "Webhooks activos", "status": "In Progress", "story_points": 20, "hours_estimated": 70},
-                {"sprint_id": "Sprint 02", "period": "2026-02-02 al 2026-02-16", "objective": "Validación en Chronos y encuestas", "modules": "Integración Chronos", "milestone": "Consultas automáticas", "status": "Planned", "story_points": 8, "hours_estimated": 30}
-            ],
-            "plan_backlog_items": [
-                {"item_id": "1", "module": "Integración Freshdesk", "user_story": "Como cliente, quiero enviar mi aclaración vía WhatsApp.", "sprint": "Sprint 01", "story_points": 8, "hours_estimated": 30, "start_date": "2026-01-16", "end_date": "2026-01-22", "role": "Backend", "priority": "Alta", "deliverable": "Bot WhatsApp", "status": "Completado"},
-                {"item_id": "2", "module": "Integración Freshdesk", "user_story": "Como operador, quiero recibir el ticket categorizado.", "sprint": "Sprint 01", "story_points": 12, "hours_estimated": 40, "start_date": "2026-01-23", "end_date": "2026-01-30", "role": "Analista", "priority": "Alta", "deliverable": "Tickets Freshdesk", "status": "Completado"},
-                {"item_id": "3", "module": "Integración Chronos", "user_story": "Como sistema, quiero consultar el estatus en Chronos.", "sprint": "Sprint 02", "story_points": 8, "hours_estimated": 30, "start_date": "2026-02-02", "end_date": "2026-02-16", "role": "Backend", "priority": "Alta", "deliverable": "API Chronos", "status": "Planificado"}
-            ],
-            "sipoc_rows": [
-                {
-                    "id": "1",
-                    "step_num": "1.0",
-                    "provider": "Usuario / Cliente",
-                    "input": "Solicitud de aclaración vía WhatsApp",
-                    "step": "1.0 Recepción y captura de número de folio",
-                    "output": "Folio y datos validados",
-                    "customer": "Agente Operativo",
-                    "requirements": "Número de folio válido y teléfono registrado"
-                },
-                {
-                    "id": "2",
-                    "step_num": "2.0",
-                    "provider": "Agente Operativo",
-                    "input": "Número de folio validado",
-                    "step": "2.0 Consulta de estatus de transacción en Chronos",
-                    "output": "Estatus de la transacción (MO/Vigente)",
-                    "customer": "Sistema Chronos",
-                    "requirements": "Tiempo de respuesta del sistema < 30 seg"
-                }
-            ],
-            "customer_requirements": "Tiempos de respuesta (SLA) menores a 5 min, trazabilidad de logs en Chronos y encuesta con satisfacción >= 95%.",
-            "nodes": [
-                {"id": "node-1", "type": "node_start", "label": "Inicio Proceso", "swimlane": "Input", "x": 40, "y": 120, "activity_number": None, "attached_system": "", "attached_channel": ""},
-                {"id": "node-2", "type": "node_activity", "label": "Enviar solicitud de soporte", "swimlane": "Actor 1 (ej. Usuario)", "x": 280, "y": 120, "activity_number": 1, "attached_system": "Freshdesk", "attached_channel": "WhatsApp"},
-                {"id": "node-3", "type": "node_decision", "label": "¿Datos completos?", "swimlane": "Actor 2 (ej. Sistema)", "x": 540, "y": 120, "activity_number": None, "attached_system": "Chronos", "attached_channel": ""},
-                {"id": "node-4", "type": "node_end", "label": "Fin", "swimlane": "Output", "x": 800, "y": 120, "activity_number": None, "attached_system": "", "attached_channel": ""}
-            ],
-            "edges": [
-                {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
-                {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""},
-                {"id": "e3-4", "source": "node-3", "target": "node-4", "label": "Sí"}
-            ],
-            "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"],
-            "project_pages": [
-                {
-                    "page_id": "1",
-                    "name": "Página 1: Flujo Principal",
-                    "nodes": [
-                        {"id": "node-1", "type": "node_start", "label": "Inicio Proceso", "swimlane": "Input", "x": 40, "y": 120, "activity_number": None, "attached_system": "", "attached_channel": ""},
-                        {"id": "node-2", "type": "node_activity", "label": "Enviar solicitud de soporte", "swimlane": "Actor 1 (ej. Usuario)", "x": 280, "y": 120, "activity_number": 1, "attached_system": "Freshdesk", "attached_channel": "WhatsApp"},
-                        {"id": "node-3", "type": "node_decision", "label": "¿Datos completos?", "swimlane": "Actor 2 (ej. Sistema)", "x": 540, "y": 120, "activity_number": None, "attached_system": "Chronos", "attached_channel": ""},
-                        {"id": "node-4", "type": "node_end", "label": "Fin", "swimlane": "Output", "x": 800, "y": 120, "activity_number": None, "attached_system": "", "attached_channel": ""}
-                    ],
-                    "edges": [
-                        {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
-                        {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""},
-                        {"id": "e3-4", "source": "node-3", "target": "node-4", "label": "Sí"}
-                    ],
-                    "swimlanes": ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"]
-                }
-            ],
-            "narrative_text": "# Manual de Procedimientos - Aclaraciones WhatsApp\n\nEl proceso inicia cuando el cliente envía su folio vía WhatsApp..."
-        },
-        {
-            "id": "proj-chronos",
-            "code": "PRJ-CHRONOS",
-            "name": "Consulta y Validación de Pólizas Chronos",
-            "purpose": "Validar en tiempo real el estatus y cobertura de pólizas financieras en el core Chronos.",
-            "manager": "Ing. José Antonio Hurtado",
-            "manager_initials": "JH",
-            "sponsor": "Subdirección de Finanzas & Riesgos",
-            "start_date": "2026-02-01",
-            "end_date": "2026-11-15",
-            "scope_in": "Validación de saldo, consulta API Chronos y notificación.",
-            "scope_out": "Modificaciones de póliza fuera de sistema.",
-            "current_phase": 3,
-            "phase_name": "Fase 3: Planificación Híbrida",
-            "updated_at": "2026-09-15 11:30",
-            "drive_folder_id": "",
-            "drive_folder_url": "",
-            "sheet_id": "",
-            "sheet_url": "",
-            "current_sprint": "Sprint 01",
-            "current_sprint_name": "Especificación de API & SLA",
-            "progress_percentage": 44.4,
-            "completed_sp": 8,
-            "total_sp": 18,
-            "completed_tasks": 1,
-            "total_tasks": 2,
-            "health_status": "yellow",
-            "audit_score": 92,
-            "nodes_count": 3,
-            "steps_count": 2,
-            "plan_start_date": "2026-02-01",
-            "plan_end_date": "2026-11-15",
-            "plan_daily_hours": 8,
-            "plan_work_days_mode": "mon_fri",
-            "plan_activities_description": "Validar en tiempo real el estatus y cobertura de pólizas financieras en el core Chronos.",
-            "plan_sprints": [
-                {"sprint_id": "Sprint 01", "period": "2026-02-01 al 2026-02-15", "objective": "Consulta API y respuesta < 2s", "modules": "Core Chronos", "milestone": "Endpoints listos", "status": "In Progress", "story_points": 18, "hours_estimated": 60}
-            ],
-            "plan_backlog_items": [
-                {"item_id": "1", "module": "Core Chronos", "user_story": "Como agente, quiero consultar pólizas en Chronos.", "sprint": "Sprint 01", "story_points": 8, "hours_estimated": 25, "start_date": "2026-02-01", "end_date": "2026-02-08", "role": "Backend", "priority": "Alta", "deliverable": "Servicio de consulta", "status": "Completado"},
-                {"item_id": "2", "module": "Core Chronos", "user_story": "Como sistema, quiero registrar el log de consulta.", "sprint": "Sprint 01", "story_points": 10, "hours_estimated": 35, "start_date": "2026-02-09", "end_date": "2026-02-15", "role": "QA", "priority": "Media", "deliverable": "Bitácora de auditoría", "status": "Planificado"}
-            ],
-            "sipoc_rows": [
-                {"id": "1", "step_num": "1.0", "provider": "Agente", "input": "Número de Póliza", "step": "1.0 Consulta en Chronos", "output": "Datos de Póliza", "customer": "Chronos", "requirements": "Folio numérico"},
-                {"id": "2", "step_num": "2.0", "provider": "Chronos", "input": "Datos de Póliza", "step": "2.0 ¿Póliza Vigente?", "output": "Dictamen", "customer": "Agente", "requirements": "Respuesta < 2s"}
-            ],
-            "customer_requirements": "Validación en < 2 segundos con trazabilidad en log central.",
-            "nodes": [
-                {"id": "node-1", "type": "node_start", "label": "Inicio: Folio Póliza", "swimlane": "Input", "x": 60, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": ""},
-                {"id": "node-2", "type": "node_activity", "label": "Consulta en Chronos", "swimlane": "Agente", "x": 300, "y": 140, "activity_number": 1, "attached_system": "Chronos", "attached_channel": ""},
-                {"id": "node-3", "type": "node_end", "label": "Fin: Emisión", "swimlane": "Output", "x": 560, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": ""}
-            ],
-            "edges": [
-                {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
-                {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""}
-            ],
-            "swimlanes": ["Input", "Agente", "Output"],
-            "project_pages": [
-                {
-                    "page_id": "1",
-                    "name": "Página 1: Flujo Principal",
-                    "nodes": [
-                        {"id": "node-1", "type": "node_start", "label": "Inicio: Folio Póliza", "swimlane": "Input", "x": 60, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": ""},
-                        {"id": "node-2", "type": "node_activity", "label": "Consulta en Chronos", "swimlane": "Agente", "x": 300, "y": 140, "activity_number": 1, "attached_system": "Chronos", "attached_channel": ""},
-                        {"id": "node-3", "type": "node_end", "label": "Fin: Emisión", "swimlane": "Output", "x": 560, "y": 140, "activity_number": None, "attached_system": "", "attached_channel": ""}
-                    ],
-                    "edges": [
-                        {"id": "e1-2", "source": "node-1", "target": "node-2", "label": ""},
-                        {"id": "e2-3", "source": "node-2", "target": "node-3", "label": ""}
-                    ],
-                    "swimlanes": ["Input", "Agente", "Output"]
-                }
-            ],
-            "narrative_text": "# Manual de Validación de Pólizas en Chronos\n\nProcedimiento para verificar la vigencia de pólizas..."
-        }
-    ]
+    saved_projects: List[Dict[str, Any]] = []
+    is_syncing_drive_projects: bool = False
+
+    def load_projects_from_drive(self):
+        """Scan real project folders in Google Drive and load their state"""
+        self.is_syncing_drive_projects = True
+        try:
+            from backend.services.drive_service import DriveService
+            ds = DriveService()
+            drive_projs = ds.scan_projects_from_drive()
+            if drive_projs:
+                self.saved_projects = drive_projs
+                try:
+                    import os, json
+                    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+                    os.makedirs(data_dir, exist_ok=True)
+                    cache_file = os.path.join(data_dir, "saved_projects.json")
+                    with open(cache_file, "w", encoding="utf-8") as f:
+                        json.dump(drive_projs, f, indent=2, ensure_ascii=False)
+                except Exception:
+                    pass
+                return
+        except Exception as e:
+            print(f"[FlowState] Error loading projects from Drive: {e}")
+        finally:
+            self.is_syncing_drive_projects = False
+
+        # Local cache fallback
+        try:
+            import os, json
+            data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+            cache_file = os.path.join(data_dir, "saved_projects.json")
+            if os.path.exists(cache_file):
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    cached = json.load(f)
+                    if isinstance(cached, list):
+                        self.saved_projects = cached
+                        return
+        except Exception as e:
+            print(f"[FlowState] Error loading cached projects: {e}")
+
+        self.saved_projects = []
+
+    def sync_projects_from_drive_action(self):
+        """Action handler to manually trigger a sync with Google Drive"""
+        self.load_projects_from_drive()
+        count = len(self.saved_projects)
+        if count > 0:
+            self.trigger_toast(f"Sincronización con Google Drive completada ({count} proyectos activos)", "success")
+        else:
+            self.trigger_toast("Google Drive no contiene carpetas de proyectos adicionales", "info")
+
+    def init_app_data(self):
+        """Global initialization handler on page load"""
+        try:
+            from backend.services.user_service import load_users
+            self.users_list = load_users()
+        except Exception as e:
+            print(f"[FlowState] Error initializing users: {e}")
+        self.load_projects_from_drive()
 
     # Hub Computed Properties & KPIs
     @rx.var
@@ -3194,7 +2828,10 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         if self.user_role == "project_manager":
             projs = [p for p in projs if "José" in p.get("manager", "") or "Antonio" in p.get("manager", "") or "Hurtado" in p.get("manager", "")]
         elif self.user_role == "collaborator":
-            projs = [p for p in projs if p.get("id") in ["proj-temis", "proj-x", "proj-wha"]]
+            curr_u = next((u for u in self.users_list if u.get("email", "").strip().lower() == self.user_email.strip().lower()), None)
+            assigned = curr_u.get("assigned_projects", []) if curr_u else []
+            if "all" not in assigned and assigned:
+                projs = [p for p in projs if p.get("id") in assigned or p.get("code") in assigned]
 
         # 2. Phase Filter
         if self.filter_hub_phase != "all":
@@ -3773,6 +3410,29 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             new_list.insert(0, current_dict)
 
         self.saved_projects = new_list
+
+        # Update local file cache
+        try:
+            import os, json
+            data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+            os.makedirs(data_dir, exist_ok=True)
+            cache_file = os.path.join(data_dir, "saved_projects.json")
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump(new_list, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+        # Sync project state to Google Drive
+        try:
+            from backend.services.drive_service import DriveService
+            ds = DriveService()
+            ok_drv, drv_msg = ds.save_project_to_drive(current_dict)
+            if ok_drv and current_dict.get("drive_folder_id"):
+                self.drive_folder_id = current_dict["drive_folder_id"]
+                self.drive_folder_url = current_dict.get("drive_folder_url", "")
+        except Exception as e:
+            print(f"[FlowState] Drive save warning: {e}")
+
         try:
             from datetime import datetime
             self.last_saved_time = datetime.now().strftime("%H:%M")
@@ -3882,9 +3542,32 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.status_message = f"Flujo '{self.project_name}' cargado con éxito en todas las vistas"
 
     def delete_saved_project(self, proj_id: str):
-        """Delete a project from saved projects catalog"""
+        """Delete a project from catalog and move its folder to Trash in Google Drive"""
+        target = next((p for p in self.saved_projects if p.get("id") == proj_id), None)
         self.saved_projects = [p for p in self.saved_projects if p.get("id") != proj_id]
-        self.status_message = "Flujo eliminado del catálogo"
+        
+        # Update local cache
+        try:
+            import os, json
+            data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+            cache_file = os.path.join(data_dir, "saved_projects.json")
+            with open(cache_file, "w", encoding="utf-8") as f:
+                json.dump(self.saved_projects, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+        # Trash folder in Google Drive
+        if target and target.get("drive_folder_id"):
+            try:
+                from backend.services.drive_service import DriveService
+                ds = DriveService()
+                ds.delete_project_from_drive(target["drive_folder_id"])
+            except Exception as e:
+                print(f"[FlowState] Error trashing project in Drive: {e}")
+
+        proj_name = target.get("name", proj_id) if target else proj_id
+        self.status_message = f"Proyecto '{proj_name}' eliminado"
+        self.trigger_toast(f"Proyecto '{proj_name}' eliminado del catálogo", "info")
 
     def export_single_saved_package(self, proj_id: str):
         """Download a specific saved project package as .temis.json"""

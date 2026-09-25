@@ -60,45 +60,6 @@ SEED_USERS: List[Dict[str, Any]] = [
         "status": "active",
         "created_at": "2026-01-16",
         "last_login": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    },
-    {
-        "email": "ana.martinez@maxillc.com",
-        "name": "Lic. Ana Martínez",
-        "initials": "AM",
-        "password": DEFAULT_PASSWORD,
-        "role": "project_manager",
-        "role_label": "Dueño de Proyecto (PM)",
-        "department": "Operaciones & Procesos",
-        "assigned_projects": ["PRJ-TEMIS", "PRJ-X"],
-        "status": "active",
-        "created_at": "2026-02-01",
-        "last_login": "2026-09-17 10:30"
-    },
-    {
-        "email": "carlos.lopez@maxillc.com",
-        "name": "Ing. Carlos López",
-        "initials": "CL",
-        "password": DEFAULT_PASSWORD,
-        "role": "analyst",
-        "role_label": "Analista de Procesos",
-        "department": "Ingeniería de Software",
-        "assigned_projects": ["PRJ-TEMIS"],
-        "status": "active",
-        "created_at": "2026-02-15",
-        "last_login": "2026-09-18 09:15"
-    },
-    {
-        "email": "laura.torres@maxillc.com",
-        "name": "Mtra. Laura Torres",
-        "initials": "LT",
-        "password": DEFAULT_PASSWORD,
-        "role": "qa_auditor",
-        "role_label": "Auditor QA / Six Sigma",
-        "department": "Calidad & Gobernanza",
-        "assigned_projects": ["PRJ-TEMIS", "PRJ-X"],
-        "status": "active",
-        "created_at": "2026-03-01",
-        "last_login": "2026-09-16 16:45"
     }
 ]
 
@@ -109,71 +70,106 @@ def _ensure_data_file() -> None:
         if not os.path.exists(USERS_FILE):
             with open(USERS_FILE, "w", encoding="utf-8") as f:
                 json.dump(SEED_USERS, f, indent=2, ensure_ascii=False)
-            logger.info("Initialized users.json with seed accounts.")
+            logger.info("Initialized users.json with super admin account.")
     except Exception as e:
         logger.error(f"Error ensuring users file: {e}")
 
 
 def load_users() -> List[Dict[str, Any]]:
+    """
+    Load users directory from Google Drive (primary cloud storage)
+    or local users.json (offline fallback cache).
+    """
     _ensure_data_file()
-    try:
-        raw_users = list(SEED_USERS)
-        if os.path.exists(USERS_FILE):
-            with open(USERS_FILE, "r", encoding="utf-8") as f:
-                raw_users = json.load(f)
-                
-        # Ensure seed PM Ana Martínez is safely present in directory
-        if not any(u.get("email", "").strip().lower() == "ana.martinez@maxillc.com" for u in raw_users):
-            ana = next((s for s in SEED_USERS if s["email"] == "ana.martinez@maxillc.com"), None)
-            if ana:
-                raw_users.insert(1, dict(ana))
-                save_users(raw_users)
+    raw_users = None
 
-        # Normalize fields: clean old emojis, ensure initials, assigned_projects, is_global_access and assigned_projects_display
-        changed = False
-        for u in raw_users:
-            role = u.get("role", "collaborator")
-            role_info = ROLE_MAP.get(role, ROLE_MAP["collaborator"])
-            if u.get("role_label") != role_info["label"]:
-                u["role_label"] = role_info["label"]
-                changed = True
-            if "assigned_projects" not in u:
-                if role == "super_admin":
-                    u["assigned_projects"] = ["all"]
-                else:
-                    u["assigned_projects"] = ["PRJ-TEMIS"]
-                changed = True
-            if not u.get("initials"):
-                parts = u.get("name", "").split()
-                u["initials"] = "".join([p[0].upper() for p in parts if p])[:2] or "US"
-                changed = True
-            
-            # Precompute UI display properties
-            is_global = (role == "super_admin") or ("all" in u.get("assigned_projects", []))
-            u["is_global_access"] = is_global
-            if is_global:
-                u["assigned_projects_display"] = "Acceso Global"
-            else:
-                projs = [p for p in u.get("assigned_projects", []) if p != "all"]
-                u["assigned_projects_display"] = ", ".join(projs) if projs else "Sin proyectos"
-        
-        if changed:
-            save_users(raw_users)
-        return raw_users
+    # 1. Try loading from Google Drive 00_Configuracion/users_directory.json
+    try:
+        from backend.services.drive_service import DriveService
+        ds = DriveService()
+        drive_users = ds.load_users_from_drive()
+        if drive_users and isinstance(drive_users, list) and len(drive_users) > 0:
+            raw_users = drive_users
+            # Sync to local cache
+            try:
+                with open(USERS_FILE, "w", encoding="utf-8") as f:
+                    json.dump(drive_users, f, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
     except Exception as e:
-        logger.error(f"Error loading users: {e}")
-    return list(SEED_USERS)
+        logger.debug(f"Drive users load unavailable (using local cache): {e}")
+
+    # 2. If not loaded from Drive, read local cache
+    if raw_users is None:
+        try:
+            if os.path.exists(USERS_FILE):
+                with open(USERS_FILE, "r", encoding="utf-8") as f:
+                    raw_users = json.load(f)
+        except Exception as e:
+            logger.error(f"Error reading local users.json: {e}")
+
+    if not raw_users or not isinstance(raw_users, list):
+        raw_users = list(SEED_USERS)
+
+    # 3. Ensure super admin exists
+    if not any(u.get("role") == "super_admin" for u in raw_users):
+        raw_users.insert(0, dict(SEED_USERS[0]))
+
+    # 4. Normalize fields
+    changed = False
+    for u in raw_users:
+        role = u.get("role", "collaborator")
+        role_info = ROLE_MAP.get(role, ROLE_MAP["collaborator"])
+        if u.get("role_label") != role_info["label"]:
+            u["role_label"] = role_info["label"]
+            changed = True
+        if "assigned_projects" not in u:
+            if role == "super_admin":
+                u["assigned_projects"] = ["all"]
+            else:
+                u["assigned_projects"] = []
+            changed = True
+        if not u.get("initials"):
+            parts = u.get("name", "").split()
+            u["initials"] = "".join([p[0].upper() for p in parts if p])[:2] or "US"
+            changed = True
+        
+        # Precompute UI display properties
+        is_global = (role == "super_admin") or ("all" in u.get("assigned_projects", []))
+        u["is_global_access"] = is_global
+        if is_global:
+            u["assigned_projects_display"] = "Acceso Global"
+        else:
+            projs = [p for p in u.get("assigned_projects", []) if p != "all"]
+            u["assigned_projects_display"] = ", ".join(projs) if projs else "Sin proyectos"
+    
+    if changed:
+        save_users(raw_users)
+    return raw_users
 
 
 def save_users(users: List[Dict[str, Any]]) -> bool:
+    """
+    Save users to local file cache and sync immediately to Google Drive.
+    """
     _ensure_data_file()
+    ok_local = False
     try:
         with open(USERS_FILE, "w", encoding="utf-8") as f:
             json.dump(users, f, indent=2, ensure_ascii=False)
-        return True
+        ok_local = True
     except Exception as e:
-        logger.error(f"Error saving users: {e}")
-        return False
+        logger.error(f"Error saving local users: {e}")
+
+    # Sync to Google Drive
+    try:
+        from backend.services.drive_service import DriveService
+        ds = DriveService()
+        ds.save_users_to_drive(users)
+    except Exception as e:
+        logger.debug(f"Could not sync users to Google Drive: {e}")
+
+    return ok_local
 
 
 def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:

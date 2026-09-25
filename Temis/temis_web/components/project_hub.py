@@ -1018,6 +1018,20 @@ def project_hub() -> rx.Component:
                             align="center",
                             spacing="2",
                         ),
+                        # Sync with Google Drive Button
+                        rx.button(
+                            rx.hstack(
+                                rx.icon("refresh-cw", size=14),
+                                rx.text("Sincronizar Drive", size="1"),
+                                align="center",
+                                spacing="1",
+                            ),
+                            on_click=FlowState.sync_projects_from_drive_action,
+                            loading=FlowState.is_syncing_drive_projects,
+                            color_scheme="blue",
+                            variant="soft",
+                            size="1",
+                        ),
                         width="100%",
                         align="center",
                         padding_y="2",
@@ -1038,12 +1052,36 @@ def project_hub() -> rx.Component:
                         ),
                         rx.box(
                             rx.vstack(
-                                rx.icon("folder-open", size=48, color="#8295a9"),
-                                rx.text("No se encontraron proyectos con los filtros seleccionados.", size="3", weight="medium", color="#17283c"),
-                                rx.text("Intenta cambiar el criterio de búsqueda o crea un nuevo proyecto.", size="2", color="#52657a"),
+                                rx.icon("folder-search", size=48, color="#0284c7"),
                                 rx.cond(
-                                    (FlowState.search_hub_query != "") | (FlowState.filter_hub_phase != "all") | (FlowState.filter_hub_status != "all"),
-                                    rx.hstack(
+                                    FlowState.saved_projects.length() == 0,
+                                    rx.vstack(
+                                        rx.heading("No hay proyectos en Google Drive aún", size="4", color="#17283c"),
+                                        rx.text("Crea tu primer proyecto para generar su estructura en Google Drive o sincroniza carpetas existentes.", size="2", color="#52657a", text_align="center"),
+                                        rx.hstack(
+                                            rx.button(
+                                                rx.hstack(rx.icon("plus", size=15), rx.text("Crear Primer Proyecto"), align="center", spacing="1"),
+                                                on_click=FlowState.open_new_project_modal,
+                                                color_scheme="blue",
+                                                size="2",
+                                            ),
+                                            rx.button(
+                                                rx.hstack(rx.icon("refresh-cw", size=15), rx.text("Escanear Google Drive"), align="center", spacing="1"),
+                                                on_click=FlowState.sync_projects_from_drive_action,
+                                                loading=FlowState.is_syncing_drive_projects,
+                                                color_scheme="gray",
+                                                variant="soft",
+                                                size="2",
+                                            ),
+                                            spacing="3",
+                                            align="center",
+                                        ),
+                                        align="center",
+                                        spacing="2",
+                                    ),
+                                    rx.vstack(
+                                        rx.text("No se encontraron proyectos con los filtros seleccionados.", size="3", weight="medium", color="#17283c"),
+                                        rx.text("Intenta cambiar el criterio de búsqueda o limpiar los filtros.", size="2", color="#52657a"),
                                         rx.button(
                                             rx.hstack(rx.icon("rotate-ccw", size=14), rx.text("Limpiar Filtros"), align="center", spacing="1"),
                                             on_click=FlowState.clear_hub_filters,
@@ -1051,21 +1089,8 @@ def project_hub() -> rx.Component:
                                             variant="soft",
                                             size="2",
                                         ),
-                                        rx.button(
-                                            rx.hstack(rx.icon("plus", size=14), rx.text("Crear Nuevo Proyecto"), align="center", spacing="1"),
-                                            on_click=FlowState.open_new_project_modal,
-                                            color_scheme="blue",
-                                            size="2",
-                                        ),
+                                        align="center",
                                         spacing="2",
-                                        margin_top="2",
-                                    ),
-                                    rx.button(
-                                        rx.hstack(rx.icon("plus", size=14), rx.text("Crear Primer Proyecto"), align="center", spacing="1"),
-                                        on_click=FlowState.open_new_project_modal,
-                                        color_scheme="blue",
-                                        size="2",
-                                        margin_top="2",
                                     ),
                                 ),
                                 align="center",

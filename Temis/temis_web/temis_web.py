@@ -128,4 +128,8 @@ app = rx.App(
     stylesheets=["style.css"],
 )
 
-app.add_page(index, title="TEMIS Web Flow - Work OS & Gobernanza de Procesos")
+app.add_page(
+    index,
+    title="TEMIS Web Flow - Work OS & Gobernanza de Procesos",
+    on_load=FlowState.init_app_data
+)

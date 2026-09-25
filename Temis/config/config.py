@@ -7,21 +7,24 @@ import json
 import base64
 
 # Google Drive Configuration
-# Service Account JSON en BASE64 (configurable via env TEMIS_GOOGLE_SA_BASE64)
+# Service Account JSON en BASE64 (configurable via env TEMIS_GOOGLE_SA_BASE64 o GOOGLE_CHATS_SA_BASE64)
 SA_JSON_B64 = os.getenv("TEMIS_GOOGLE_SA_BASE64", "").strip()
+if not SA_JSON_B64:
+    SA_JSON_B64 = os.getenv("GOOGLE_CHATS_SA_BASE64", "").strip()
 
 # Decodificar Service Account JSON
 def get_service_account_info():
     """Decode and return service account info from environment"""
-    if not SA_JSON_B64:
-        raise ValueError("Variable de entorno TEMIS_GOOGLE_SA_BASE64 no configurada o vacía.")
+    b64_val = SA_JSON_B64 or os.getenv("TEMIS_GOOGLE_SA_BASE64", "").strip() or os.getenv("GOOGLE_CHATS_SA_BASE64", "").strip()
+    if not b64_val:
+        raise ValueError("Variable de entorno TEMIS_GOOGLE_SA_BASE64 o GOOGLE_CHATS_SA_BASE64 no configurada o vacía.")
     try:
-        b64_clean = "".join(SA_JSON_B64.split())
+        b64_clean = "".join(b64_val.split())
         b64_clean += "=" * (-len(b64_clean) % 4)
         sa_json_str = base64.b64decode(b64_clean.encode('utf-8')).decode('utf-8')
         return json.loads(sa_json_str)
     except Exception as e:
-        raise ValueError(f"Error decodificando TEMIS_GOOGLE_SA_BASE64: {e}")
+        raise ValueError(f"Error decodificando Service Account Base64: {e}")
 
 # Carpeta destino en Shared Drive
 DRIVE_FOLDER_ID = os.getenv("TEMIS_DRIVE_FOLDER_ID", "1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI")
