@@ -484,13 +484,11 @@ class TemisMediaStudioApp:
             )
             TemisPackageBuilder.export_txt(segments, txt_path, analysis_data.get("project_charter", {}).get("project_name", base_name))
             TemisPackageBuilder.export_vtt(segments, vtt_path)
-            zip_path = TemisPackageBuilder.create_zip_package(export_subfolder, base_name)
 
             self.last_docx_path = docx_path
             self.last_json_path = json_path
-            self.last_zip_path = zip_path
             self.progress_var.set(100.0)
-            self.status_var.set(f"✅ ¡Proceso 100% local completado! Paquete ZIP ({os.path.getsize(zip_path)/1024:.0f} KB) y Word generados.")
+            self.status_var.set(f"✅ ¡Proceso 100% local completado! Bitácora Word y paquete TEMIS generados.")
 
             # Update UI on main thread
             self.root.after(0, self._render_results)
@@ -588,9 +586,9 @@ class TemisMediaStudioApp:
         messagebox.showinfo(
             "✅ Éxito",
             f"Levantamiento 100% Local Completado.\n\n"
-            f"📦 Paquete ZIP TEMIS Web: {os.path.basename(getattr(self, 'last_zip_path', 'Paquete.zip'))}\n"
-            f"📄 Bitácora Word con fotos: {os.path.basename(self.last_docx_path)}\n\n"
-            f"Arrastra el archivo ZIP ligero a TEMIS Web para sincronizar de inmediato."
+            f"📄 Bitácora Word con fotos: {os.path.basename(self.last_docx_path)}\n"
+            f"📦 Paquete TEMIS: {os.path.basename(self.last_json_path)}\n\n"
+            f"Arrastra el archivo .temis.json a TEMIS Web para sincronizar."
         )
 
     def _open_word_file(self):

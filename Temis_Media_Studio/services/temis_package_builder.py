@@ -371,28 +371,3 @@ class TemisPackageBuilder:
         with open(output_txt_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
         return output_txt_path
-
-    @classmethod
-    def create_zip_package(cls, export_subfolder: str, base_name: str) -> str:
-        """
-        Create a compact .zip bundle containing Word bitácora, .temis.json, 
-        transcript .vtt/.txt, and capturas/ folder, explicitly excluding raw audio.wav 
-        or heavy video files so the upload to TEMIS Web is ~1-2 MB.
-        """
-        import zipfile
-        zip_filename = f"Paquete_TEMIS_{base_name}.zip"
-        zip_path = os.path.join(export_subfolder, zip_filename)
-        
-        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-            for root, dirs, files in os.walk(export_subfolder):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(file_path, export_subfolder)
-                    # Exclude raw audio, video or other zip files
-                    if file.lower().endswith((".wav", ".mp4", ".mov", ".mkv", ".webm", ".avi", ".zip")):
-                        continue
-                    z.write(file_path, arcname=rel_path)
-                    
-        logger.info(f"Compact TEMIS ZIP package created at: {zip_path} ({os.path.getsize(zip_path)/1024:.1f} KB)")
-        return zip_path
-
