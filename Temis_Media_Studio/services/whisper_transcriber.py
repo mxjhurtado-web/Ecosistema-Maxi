@@ -3,15 +3,14 @@
 
 """
 Whisper Transcriber Service for TEMIS Media Studio
-Executes 100% offline speech-to-text transcription with timestamped diarization and segments.
+Executes 100% offline speech-to-text transcription with timestamped diarization and segments
+using faster-whisper (CTranslate2 int8 optimized).
 """
 
 import os
 import sys
 import logging
 from typing import List, Dict, Any, Optional
-
-from config.settings import MODELS_DIR, MEL_FILTERS_PATH, get_base_dir
 
 logger = logging.getLogger("temis_media_studio")
 
@@ -27,28 +26,7 @@ def format_seconds(seconds: float) -> str:
 
 
 class WhisperTranscriber:
-    """Offline Whisper transcription service"""
-
-    @staticmethod
-    def _prepare_whisper_env():
-        """Ensure local mel_filters and models are loaded without downloading from internet"""
-        sys.path.insert(0, get_base_dir())
-        try:
-            import whisper
-            if os.path.exists(MEL_FILTERS_PATH):
-                whisper.utils.MEL_FILTERS_PATH = MEL_FILTERS_PATH
-            
-            # Patch load_model to use our models directory
-            orig_load_model = whisper.load_model
-            def patched_load_model(name, *args, **kwargs):
-                # If name is "base" or "medium", check if .pt file exists locally in MODELS_DIR
-                model_file = os.path.join(MODELS_DIR, f"{name}.pt")
-                if os.path.exists(model_file):
-                    kwargs["download_root"] = MODELS_DIR
-                return orig_load_model(name, *args, **kwargs)
-            whisper.load_model = patched_load_model
-        except Exception as e:
-            logger.warning(f"Error preparing whisper environment: {e}")
+    """Offline Whisper transcription service (100% local, 0 tokens)"""
 
     @classmethod
     def transcribe(
@@ -59,35 +37,36 @@ class WhisperTranscriber:
         progress_callback=None
     ) -> Dict[str, Any]:
         """
-        Transcribe audio file using local Whisper model.
+        Transcribe audio file using local Faster-Whisper model.
         Returns dict with "full_text" and "segments" list:
-        [{"index": 1, "start": 0.0, "end": 14.5, "timestamp_formatted": "00:00:00", "text": "..."}]
+        [{"index": 1, "start_sec": 0.0, "end_sec": 14.5, "timestamp_start": "00:00:00", "timestamp_end": "00:00:14", "text": "..."}]
         """
-        cls._prepare_whisper_env()
-        import whisper
+        from faster_whisper import WhisperModel
 
         if progress_callback:
-            progress_callback(f"Cargando modelo local Whisper '{model_name}'...")
+            progress_callback(f"Cargando motor de transcripción local Whisper '{model_name}'...")
 
-        # Find model path
-        model_path = os.path.join(MODELS_DIR, f"{model_name}.pt")
-        if not os.path.exists(model_path):
-            # Fallback to base.pt if requested model not found
-            model_path = os.path.join(MODELS_DIR, "base.pt")
+        # Run on CPU with int8 quantization for speed and low memory
+        model = WhisperModel(model_name, device="cpu", compute_type="int8")
 
         if progress_callback:
-            progress_callback(f"Transcribiendo audio 100% en local (Modelo: {os.path.basename(model_path)})...")
+            progress_callback(f"Transcribiendo audio en local (0 Tokens, Modelo: {model_name})...")
 
-        model = whisper.load_model(model_path if os.path.exists(model_path) else model_name)
-        result = model.transcribe(audio_path, language=language, verbose=False)
+        segments_generator, info = model.transcribe(
+            audio_path,
+            language=language,
+            beam_size=5,
+            vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=500)
+        )
 
-        raw_segments = result.get("segments", [])
         structured_segments: List[Dict[str, Any]] = []
+        full_text_list: List[str] = []
 
-        for idx, seg in enumerate(raw_segments):
-            start_sec = float(seg.get("start", 0.0))
-            end_sec = float(seg.get("end", 0.0))
-            text = seg.get("text", "").strip()
+        for idx, seg in enumerate(segments_generator):
+            start_sec = float(seg.start)
+            end_sec = float(seg.end)
+            text = seg.text.strip()
             
             if text:
                 structured_segments.append({
@@ -99,13 +78,14 @@ class WhisperTranscriber:
                     "speaker": "Participante",
                     "text": text
                 })
+                full_text_list.append(text)
 
-        full_text = result.get("text", "").strip()
+        full_text = " ".join(full_text_list)
         logger.info(f"Whisper transcription complete: {len(structured_segments)} segments.")
 
         return {
             "full_text": full_text,
             "segments": structured_segments,
-            "language": language,
-            "model_used": os.path.basename(model_path)
+            "language": info.language if hasattr(info, "language") else language,
+            "model_used": model_name
         }

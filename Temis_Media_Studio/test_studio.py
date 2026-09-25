@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Smoke and Unit Tests for TEMIS Media Studio
+Smoke and Unit Tests for TEMIS Media Studio (100% Local)
 """
 
 import os
@@ -20,7 +20,7 @@ if BASE_DIR not in sys.path:
 
 from services.media_extractor import MediaExtractor
 from services.whisper_transcriber import WhisperTranscriber
-from services.gemini_process_ai import GeminiProcessAI
+from services.local_process_builder import LocalProcessBuilder
 from services.temis_package_builder import TemisPackageBuilder
 
 
@@ -30,64 +30,35 @@ def test_ffmpeg_detected():
     print(f"✅ FFmpeg detected: {bin_path}")
 
 
-def test_package_builder():
-    sample_analysis = {
-        "project_charter": {
-            "project_name": "Test Proceso Liberación",
-            "project_code": "PRJ-TEST-01",
-            "purpose": "Validar generación de bitácora y SIPOC",
-            "scope": "Desde solicitud hasta aprobación",
-            "target_system": "Chronos",
-            "sponsor": "Operaciones",
-            "executive_summary": "Resumen de prueba técnica."
-        },
-        "process_steps": [
-            {
-                "step_number": 1,
-                "title": "Búsqueda en Chronos",
-                "actor": "Operador",
-                "system": "Chronos",
-                "timestamp": "00:01:15",
-                "description": "Ingresar al módulo de liberación y validar saldo.",
-                "attached_screenshot": "frame_001.jpg",
-                "screenshot_caption": "Pantalla de búsqueda en Chronos"
-            }
-        ],
-        "sipoc": [
-            {
-                "id": "1.0",
-                "supplier": "Agencia",
-                "input": "Solicitud",
-                "process": "Validar estatus",
-                "output": "Dictamen",
-                "customer": "Comité",
-                "requirement": "SLA < 15min"
-            }
-        ],
-        "bpmn_nodes": [
-            {"id": "node-1", "type": "node_start", "label": "Inicio", "swimlane": "Input", "x": 40, "y": 140, "attached_system": "", "attached_channel": ""}
-        ],
-        "bpmn_edges": []
-    }
+def test_local_process_builder_and_package():
     sample_segments = [
-        {"index": 1, "timestamp_start": "00:00:10", "timestamp_end": "00:00:40", "speaker": "Analista", "text": "Iniciando la revisión del proceso de liberación."}
+        {"index": 1, "start_sec": 5.0, "end_sec": 25.0, "timestamp_start": "00:00:05", "timestamp_end": "00:00:25", "speaker": "Operador", "text": "Ingresando a Chronos para validar estatus de la agencia."},
+        {"index": 2, "start_sec": 26.0, "end_sec": 48.0, "timestamp_start": "00:00:26", "timestamp_end": "00:00:48", "speaker": "Operador", "text": "Revisamos que no existan alertas de fraude o adeudos pendientes."}
     ]
     sample_keyframes = [
-        {"index": 1, "filename": "frame_001.jpg", "path": "", "timestamp_formatted": "00:00:15"}
+        {"index": 1, "filename": "frame_001.jpg", "path": "", "timestamp_sec": 10.0, "timestamp_formatted": "00:00:10"},
+        {"index": 2, "filename": "frame_002.jpg", "path": "", "timestamp_sec": 30.0, "timestamp_formatted": "00:00:30"}
     ]
 
-    out_docx = os.path.join(BASE_DIR, "exports", "test_bitacora.docx")
-    out_json = os.path.join(BASE_DIR, "exports", "test_paquete.temis.json")
+    # Test Local Process Builder
+    analysis_data = LocalProcessBuilder.structure_process(sample_segments, sample_keyframes, "liberacion_agencias.mp4")
+    assert "project_charter" in analysis_data
+    assert len(analysis_data["process_steps"]) > 0
+    print(f"✅ LocalProcessBuilder structured {len(analysis_data['process_steps'])} steps successfully (0 IA)!")
 
-    TemisPackageBuilder.build_word_bitacora(sample_analysis, sample_segments, sample_keyframes, out_docx, "video_test.mp4")
-    TemisPackageBuilder.build_temis_json_package(sample_analysis, sample_segments, sample_keyframes, out_json, "video_test.mp4")
+    # Test Package Builder
+    out_docx = os.path.join(BASE_DIR, "exports", "test_bitacora_local.docx")
+    out_json = os.path.join(BASE_DIR, "exports", "test_paquete_local.temis.json")
+
+    TemisPackageBuilder.build_word_bitacora(analysis_data, sample_segments, sample_keyframes, out_docx, "liberacion_agencias.mp4")
+    TemisPackageBuilder.build_temis_json_package(analysis_data, sample_segments, sample_keyframes, out_json, "liberacion_agencias.mp4")
 
     assert os.path.exists(out_docx), "Word bitacora not created"
     assert os.path.exists(out_json), "TEMIS json package not created"
-    print(f"✅ Word and TEMIS packages generated successfully!")
+    print(f"✅ Word Document and TEMIS Web Package (.temis.json) generated successfully!")
 
 
 if __name__ == "__main__":
     test_ffmpeg_detected()
-    test_package_builder()
-    print("\n🎉 All smoke tests PASSED for TEMIS Media Studio!")
+    test_local_process_builder_and_package()
+    print("\n🎉 All 100% local tests PASSED for TEMIS Media Studio!")

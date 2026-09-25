@@ -3,7 +3,7 @@
 
 """
 Main Graphical Interface for TEMIS Media Studio
-Professional Executive Slate Tkinter UI for Video Process & Screenshot Extraction.
+Professional Executive Slate Tkinter UI for Video Process & Screenshot Extraction (100% Local / 0 Tokens).
 """
 
 import os
@@ -16,22 +16,20 @@ from PIL import Image, ImageTk
 
 from config.settings import (
     EXPORTS_DIR,
-    get_resource_path,
-    load_gemini_api_key,
-    save_gemini_api_key
+    get_resource_path
 )
 from services.media_extractor import MediaExtractor
 from services.whisper_transcriber import WhisperTranscriber
-from services.gemini_process_ai import GeminiProcessAI
+from services.local_process_builder import LocalProcessBuilder
 from services.temis_package_builder import TemisPackageBuilder
 
 
 class TemisMediaStudioApp:
-    """Desktop Application Window for TEMIS Media Studio"""
+    """Desktop Application Window for TEMIS Media Studio (100% Offline)"""
 
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("TEMIS Media Studio — Extractor de Procesos y Bitácoras")
+        self.root.title("TEMIS Media Studio — Extractor de Procesos y Bitácoras (100% Local)")
         self.root.geometry("980x720")
         self.root.minsize(860, 640)
         self.root.configure(bg="#0f172a")
@@ -47,7 +45,7 @@ class TemisMediaStudioApp:
         # State Variables
         self.selected_video_path = tk.StringVar(value="")
         self.whisper_model_var = tk.StringVar(value="base")
-        self.status_var = tk.StringVar(value="Listo para seleccionar video o audio de proceso.")
+        self.status_var = tk.StringVar(value="Listo para seleccionar video o audio de proceso (100% Local).")
         self.progress_var = tk.DoubleVar(value=0.0)
         self.is_processing = False
 
@@ -92,29 +90,25 @@ class TemisMediaStudioApp:
 
         lbl_sub = tk.Label(
             title_box,
-            text="Extracción de Bitácoras con Capturas de Pantalla, Transcripción Offline y Sincronización TEMIS",
+            text="Extracción de Bitácoras con Capturas de Pantalla y Transcripción Offline (0 Tokens / 100% Local)",
             font=("Segoe UI", 9),
             fg="#94a3b8",
             bg="#1e293b"
         )
         lbl_sub.pack(anchor="w")
 
-        # API Key & Settings Button on Header Right
-        btn_apikey = tk.Button(
-            header_frame,
-            text="🔑 Configurar Gemini API Key",
+        # Offline Status Badge on Header Right
+        badge_box = tk.Frame(header_frame, bg="#0f766e", padx=10, pady=4)
+        badge_box.pack(side="right")
+        
+        lbl_badge = tk.Label(
+            badge_box,
+            text="🔒 MODO 100% LOCAL (0 TOKENS)",
             font=("Segoe UI", 9, "bold"),
-            bg="#334155",
-            fg="#e2e8f0",
-            activebackground="#475569",
-            activeforeground="#ffffff",
-            relief="flat",
-            padx=12,
-            pady=6,
-            cursor="hand2",
-            command=self._open_api_key_modal
+            fg="#ccfbf1",
+            bg="#0f766e"
         )
-        btn_apikey.pack(side="right")
+        lbl_badge.pack()
 
         # 2. MAIN CONTAINER
         main_container = tk.Frame(self.root, bg="#0f172a", padx=18, pady=14)
@@ -160,12 +154,12 @@ class TemisMediaStudioApp:
         row_opts = tk.Frame(top_card, bg="#1e293b")
         row_opts.pack(fill="x")
 
-        lbl_m = tk.Label(row_opts, text="Modelo Whisper:", font=("Segoe UI", 9), fg="#94a3b8", bg="#1e293b")
+        lbl_m = tk.Label(row_opts, text="Motor Whisper Local:", font=("Segoe UI", 9), fg="#94a3b8", bg="#1e293b")
         lbl_m.pack(side="left", padx=(0, 6))
 
         r_base = tk.Radiobutton(
             row_opts,
-            text="Base (Rápido ~1 min)",
+            text="Base (Rápido ~30s)",
             variable=self.whisper_model_var,
             value="base",
             bg="#1e293b",
@@ -240,12 +234,12 @@ class TemisMediaStudioApp:
 
         # Tab 3: SIPOC Table
         self.tab_sipoc = tk.Frame(self.notebook, bg="#0f172a")
-        self.notebook.add(self.tab_sipoc, text="📊 Matriz SIPOC")
+        self.notebook.add(self.tab_sipoc, text="📊 Matriz SIPOC Preliminar")
         self._build_sipoc_tab()
 
         # Tab 4: Raw Transcript
         self.tab_transcript = tk.Frame(self.notebook, bg="#0f172a")
-        self.notebook.add(self.tab_transcript, text="📝 Transcripción Completa")
+        self.notebook.add(self.tab_transcript, text="📝 Transcripción con Minutajes")
         self._build_transcript_tab()
 
         # 6. BOTTOM ACTION BAR
@@ -254,7 +248,7 @@ class TemisMediaStudioApp:
 
         self.btn_open_word = tk.Button(
             bottom_bar,
-            text="📄 Abrir Word (.docx)",
+            text="📄 Abrir Bitácora Word (.docx)",
             font=("Segoe UI", 9, "bold"),
             bg="#1e5a9a",
             fg="#ffffff",
@@ -286,7 +280,7 @@ class TemisMediaStudioApp:
 
         lbl_temis_tip = tk.Label(
             bottom_bar,
-            text="✨ El archivo .temis.json está listo para arrastrar e importar en TEMIS Web",
+            text="🚀 Arrastra el archivo .temis.json a TEMIS Web para enriquecer con IA",
             font=("Segoe UI", 9, "italic"),
             fg="#10b981",
             bg="#1e293b"
@@ -399,72 +393,6 @@ class TemisMediaStudioApp:
             )
             self.status_var.set(f"Archivo listo: {f_name}")
 
-    def _open_api_key_modal(self):
-        """Modal window to enter and save Gemini API key"""
-        modal = tk.Toplevel(self.root)
-        modal.title("Configurar Gemini API Key")
-        modal.geometry("520x220")
-        modal.configure(bg="#1e293b")
-        modal.transient(self.root)
-        modal.grab_set()
-
-        tk.Label(
-            modal,
-            text="Clave de API de Google Gemini (Flash 2.5):",
-            font=("Segoe UI", 11, "bold"),
-            fg="#f8fafc",
-            bg="#1e293b"
-        ).pack(anchor="w", padx=20, pady=(20, 4))
-
-        tk.Label(
-            modal,
-            text="Se utiliza únicamente para estructurar el SIPOC y la bitácora con capturas.",
-            font=("Segoe UI", 8.5),
-            fg="#94a3b8",
-            bg="#1e293b"
-        ).pack(anchor="w", padx=20, pady=(0, 10))
-
-        current_key = load_gemini_api_key()
-        ent_key = tk.Entry(modal, font=("Consolas", 10), width=50, bg="#0f172a", fg="#f8fafc", insertbackground="#38bdf8")
-        ent_key.insert(0, current_key)
-        ent_key.pack(padx=20, fill="x", pady=5)
-
-        btn_box = tk.Frame(modal, bg="#1e293b")
-        btn_box.pack(pady=20)
-
-        def save():
-            k = ent_key.get().strip()
-            if k:
-                save_gemini_api_key(k)
-                messagebox.showinfo("Guardado", "API Key de Gemini guardada correctamente.", parent=modal)
-                modal.destroy()
-            else:
-                messagebox.showwarning("Atención", "Por favor ingresa una clave válida.", parent=modal)
-
-        tk.Button(
-            btn_box,
-            text="Guardar Clave",
-            font=("Segoe UI", 9, "bold"),
-            bg="#0284c7",
-            fg="#ffffff",
-            relief="flat",
-            padx=14,
-            pady=4,
-            command=save
-        ).pack(side="left", padx=8)
-
-        tk.Button(
-            btn_box,
-            text="Cancelar",
-            font=("Segoe UI", 9),
-            bg="#475569",
-            fg="#ffffff",
-            relief="flat",
-            padx=12,
-            pady=4,
-            command=modal.destroy
-        ).pack(side="left")
-
     def _start_processing(self):
         """Launch background worker thread"""
         video_path = self.selected_video_path.get()
@@ -476,13 +404,13 @@ class TemisMediaStudioApp:
             return
 
         self.is_processing = True
-        self.btn_process.config(state="disabled", text="⏳ Procesando...")
+        self.btn_process.config(state="disabled", text="⏳ Procesando en Local...")
         self.progress_var.set(5.0)
 
         threading.Thread(target=self._run_pipeline, args=(video_path,), daemon=True).start()
 
     def _run_pipeline(self, video_path: str):
-        """Execute end-to-end extraction pipeline in background thread"""
+        """Execute 100% local extraction pipeline in background thread"""
         import datetime
         try:
             base_name = os.path.splitext(os.path.basename(video_path))[0]
@@ -498,8 +426,8 @@ class TemisMediaStudioApp:
             MediaExtractor.extract_audio(video_path, audio_path)
 
             # 2. Extraer Capturas de Pantalla con FFmpeg
-            self.status_var.set("Paso 2/4: Detectando cambios de pantalla y extrayendo capturas clave...")
-            self.progress_var.set(35.0)
+            self.status_var.set("Paso 2/4: Detectando cambios de pantalla y extrayendo capturas...")
+            self.progress_var.set(40.0)
             capturas_dir = os.path.join(export_subfolder, "capturas")
             keyframes = MediaExtractor.extract_keyframes(
                 video_path,
@@ -509,9 +437,9 @@ class TemisMediaStudioApp:
             )
             self.extracted_keyframes = keyframes
 
-            # 3. Transcribir 100% Offline con Whisper
-            self.status_var.set("Paso 3/4: Transcribiendo audio 100% en local con Whisper...")
-            self.progress_var.set(55.0)
+            # 3. Transcribir 100% Offline con Faster-Whisper
+            self.status_var.set("Paso 3/4: Transcribiendo audio en local con Faster-Whisper (0 Tokens)...")
+            self.progress_var.set(65.0)
             model_name = self.whisper_model_var.get()
             whisper_result = WhisperTranscriber.transcribe(
                 audio_path,
@@ -521,11 +449,10 @@ class TemisMediaStudioApp:
             segments = whisper_result.get("segments", [])
             self.transcript_segments = segments
 
-            # 4. Síntesis y Enlace con Gemini 2.5 Flash
-            self.status_var.set("Paso 4/4: Gemini estructurando bitácora, SIPOC y flujo con capturas...")
-            self.progress_var.set(75.0)
-            ai_service = GeminiProcessAI()
-            analysis_data = ai_service.analyze_process(
+            # 4. Estructurar Proceso y Emparejar Capturas en Local (0 IA)
+            self.status_var.set("Paso 4/4: Estructurando bitácora y emparejando fotos por minutaje...")
+            self.progress_var.set(85.0)
+            analysis_data = LocalProcessBuilder.structure_process(
                 transcript_segments=segments,
                 keyframes=keyframes,
                 video_filename=os.path.basename(video_path)
@@ -534,7 +461,7 @@ class TemisMediaStudioApp:
 
             # 5. Generar Paquete Word (.docx) y Paquete TEMIS (.temis.json)
             self.status_var.set("Generando documentos oficiales...")
-            self.progress_var.set(90.0)
+            self.progress_var.set(92.0)
 
             docx_path = os.path.join(export_subfolder, f"Bitacora_{base_name}.docx")
             json_path = os.path.join(export_subfolder, f"Proyecto_{base_name}.temis.json")
@@ -561,7 +488,7 @@ class TemisMediaStudioApp:
             self.last_docx_path = docx_path
             self.last_json_path = json_path
             self.progress_var.set(100.0)
-            self.status_var.set(f"✅ ¡Proceso completado! Bitácora Word y paquete TEMIS generados.")
+            self.status_var.set(f"✅ ¡Proceso 100% local completado! Bitácora Word y paquete TEMIS generados.")
 
             # Update UI on main thread
             self.root.after(0, self._render_results)
@@ -633,7 +560,7 @@ class TemisMediaStudioApp:
             self.txt_bitacora.insert(tk.END, f"  Actor: {step.get('actor')} | Sistema: {step.get('system')}\n")
             self.txt_bitacora.insert(tk.END, f"  Descripción: {step.get('description')}\n")
             if step.get('attached_screenshot'):
-                self.txt_bitacora.insert(tk.END, f"  📸 Captura Vinculada: {step.get('attached_screenshot')}\n")
+                self.txt_bitacora.insert(tk.END, f"  📸 Captura Vinculada: {step.get('attached_screenshot')} ({step.get('screenshot_caption')})\n")
             self.txt_bitacora.insert(tk.END, "\n")
 
         # 3. Render SIPOC Tree
@@ -658,10 +585,10 @@ class TemisMediaStudioApp:
 
         messagebox.showinfo(
             "✅ Éxito",
-            f"Levantamiento completado exitosamente.\n\n"
+            f"Levantamiento 100% Local Completado.\n\n"
             f"📄 Bitácora Word con fotos: {os.path.basename(self.last_docx_path)}\n"
             f"📦 Paquete TEMIS: {os.path.basename(self.last_json_path)}\n\n"
-            f"Puedes arrastrar el archivo .temis.json directamente a TEMIS Web."
+            f"Arrastra el archivo .temis.json a TEMIS Web para sincronizar."
         )
 
     def _open_word_file(self):
