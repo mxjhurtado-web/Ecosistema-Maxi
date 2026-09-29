@@ -215,8 +215,9 @@ class GoogleChatService:
         import re
         from .config import settings
 
-        timestamp_ct = datetime.now(ZoneInfo("America/Chicago")).strftime("%d/%m/%Y %H:%M:%S CT")
-        horario_str = f"{'Fuera del horario laboral' if is_out_of_hours else 'Dentro del horario laboral'} ({timestamp_ct})"
+        tz_name = getattr(settings, "TIMEZONE", "America/Mexico_City")
+        timestamp_cdmx = datetime.now(ZoneInfo(tz_name)).strftime("%d/%m/%Y %H:%M:%S CDMX")
+        horario_str = f"{'Fuera del horario laboral' if is_out_of_hours else 'Dentro del horario laboral'} ({timestamp_cdmx})"
         dept_upper = dept_key.upper().strip()
         
         # Auto-detect template type if not explicitly set

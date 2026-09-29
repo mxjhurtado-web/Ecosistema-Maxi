@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     CACHE_TTL: int = 300
     CACHE_MAX_SIZE: int = 1000
     
+    # Timezone
+    TIMEZONE: str = "America/Mexico_City"
+
     # Circuit Breaker
     CIRCUIT_BREAKER_ENABLED: bool = True
     CIRCUIT_FAILURE_THRESHOLD: int = 5

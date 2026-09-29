@@ -1089,13 +1089,14 @@ async def webhook(
 def get_central_time() -> datetime:
     try:
         from zoneinfo import ZoneInfo
-        return datetime.now(ZoneInfo("America/Chicago"))
+        tz_name = getattr(settings, "TIMEZONE", "America/Mexico_City")
+        return datetime.now(ZoneInfo(tz_name))
     except Exception:
         try:
             from zoneinfo import ZoneInfo
             return datetime.now(ZoneInfo("America/Mexico_City"))
         except Exception:
-            return datetime.now(timezone.utc) - timedelta(hours=5)
+            return datetime.now(timezone.utc) - timedelta(hours=6)
 
 
 def is_within_hours(dt: datetime, start_h: int, start_m: int, end_h: int, end_m: int, days: list = None) -> bool:
@@ -2078,7 +2079,7 @@ async def check_transaction_status_inner(
                     if check_department_hours("CUMPLIMIENTO", ct_now):
                         derivacion = "Cumplimiento"
                         scripts = get_compliance_scripts()
-                        reply_text = scripts.get("SC.011.1", "Su operación está siendo procesada por nuestro departamento de Cumplimiento (BSA/KYC). Lo transferiré con un asesor para validar su documentación.")
+                        reply_text = scripts.get("SC.012", "Su operación está siendo procesada por nuestro departamento de Cumplimiento (BSA/KYC). Lo transferiré con un asesor para validar su documentación.")
                     else:
                         derivacion = "Fuera de Horario Depto"
                         reply_text = "Entiendo su solicitud. Su caso requiere atención del área de Cumplimiento (BSA) y por el momento no se encuentra disponible. Un asesor se comunicará en cuanto reinicien operaciones."
@@ -4039,7 +4040,8 @@ async def agent_interact_inner(
             stored_space = (await redis.get(f"session:fraud_completed_space:{contact_id}") or b"").decode('utf-8') or None
             
             from zoneinfo import ZoneInfo
-            ct_now = datetime.now(ZoneInfo("America/Chicago"))
+            tz_name = getattr(settings, "TIMEZONE", "America/Mexico_City")
+            ct_now = datetime.now(ZoneInfo(tz_name))
             in_dept_hours = check_department_hours(stored_dept, ct_now)
             dept_tag = "BSA" if "BSA" in stored_dept.upper() else "FRAUDES"
             
@@ -4107,7 +4109,8 @@ async def agent_interact_inner(
             
             # RNE.50 / RNE.51: Select SC.030.1 (In Hours) vs SC.030.2 (Out of Hours)
             from zoneinfo import ZoneInfo
-            ct_now = datetime.now(ZoneInfo("America/Chicago"))
+            tz_name = getattr(settings, "TIMEZONE", "America/Mexico_City")
+            ct_now = datetime.now(ZoneInfo(tz_name))
             target_dept = "BSA MONITORING" if is_bsa_report else "PREVENCION DE FRAUDES"
             in_hours = check_department_hours(target_dept, ct_now)
             cs_in_hours = check_department_hours("SERVICIO AL CLIENTE", ct_now)
@@ -4199,7 +4202,8 @@ async def agent_interact_inner(
 
             # Determine department operating hours for Turn 1/2
             from zoneinfo import ZoneInfo
-            ct_now = datetime.now(ZoneInfo("America/Chicago"))
+            tz_name = getattr(settings, "TIMEZONE", "America/Mexico_City")
+            ct_now = datetime.now(ZoneInfo(tz_name))
             target_dept = "BSA MONITORING" if is_bsa_report else "PREVENCION DE FRAUDES"
             in_dept_hours = check_department_hours(target_dept, ct_now)
 
@@ -4329,7 +4333,8 @@ async def agent_interact_inner(
     # ------------------------------------------------------------
     from .google_chat_service import google_chat_service
     from zoneinfo import ZoneInfo
-    ct_now = datetime.now(ZoneInfo("America/Chicago"))
+    tz_name = getattr(settings, "TIMEZONE", "America/Mexico_City")
+    ct_now = datetime.now(ZoneInfo(tz_name))
 
     # Scripts homologados oficiales de canalización departamental
     sc11_default = "Gracias por su información. He canalizado su solicitud con nuestro departamento correspondiente. Un asesor le dará seguimiento a la brevedad."
@@ -4717,7 +4722,31 @@ async def agent_interact_inner(
         return AgentInteractResponse(status="success", reply_text=translated, derivacion="Servicio al Cliente")
 
     if agent_name == "AgenteComunicador":
-        logger.info(f"📢 AgenteComunicador handling agency request for contact {contact_id}: '{user_text[:50]}'")
+        logger.info(f"📢 AgenteComunicador handling request for contact {contact_id}: '{user_text[:50]}'")
+        
+        # Safety guard: If this is a customer remittance tracking inquiry (has CE... or TRK... without agency metadata), redirect to VerificadorEstatus
+        extracted_code = extraer_codigo_router(user_text) or (await redis.get(code_key))
+        if isinstance(extracted_code, bytes):
+            extracted_code = extracted_code.decode('utf-8')
+            
+        is_agency_inquiry = bool(
+            parse_agency_from_text(user_text) or
+            any(k in user_text.lower() for k in [
+                "agencia", "sucursal", "pos", "terminal", "hermes", "balance", 
+                "comision", "comisión", "irs", "capacitacion", "capacitación", "oversight"
+            ])
+        )
+        
+        if extracted_code and not is_agency_inquiry:
+            logger.warning(f"⚠️ AgenteComunicador mistakenly invoked for remittance tracking ({extracted_code}). Suppressing Google Chat alert and redirecting to VerificadorEstatus.")
+            sc11_text = scripts.get("SC.011", "Para continuar, necesito validar algunos datos. ¿Me comparte el nombre completo de quien envió el dinero y el nombre completo de quien lo recibe, por favor?.")
+            translated = await translate_script_if_needed(sc11_text, user_text, contact_id=contact_id)
+            return AgentInteractResponse(
+                status="success",
+                reply_text=translated,
+                derivacion="VerificadorEstatus"
+            )
+
         in_dept_hours = check_department_hours("SOPORTE_TECNICO", ct_now)
         try:
             from .google_chat_service import google_chat_service
