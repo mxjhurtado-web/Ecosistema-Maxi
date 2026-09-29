@@ -4,12 +4,19 @@
 """
 Process Narrative Service for TEMIS
 Generates corporate procedure manuals in formal Markdown and exports
-official Word (.docx) documents strictly matching the 4-table corporate standard
-(Seguimiento de SAR 90 dias.docx - Blue #0047C7, Lime Green #98D801, Mint #E2EFD9).
+official Word (.docx) documents strictly matching the master standard
+(Plantilla_Maestra_Oficial_Work_Instructions_TEMIS.docx / Seguimiento de SAR 90 dias.docx).
+
+Colors:
+- Blue #0047C7 (General Process Overview & Legal Framework headers)
+- Lime Green #98D801 (Activity Description & Validity Control headers)
+- Soft Mint #E2EFD9 (Stakeholders labels and table highlights)
+- Gray #E2E2E2 (General Process Overview field labels)
 """
 
 import os
 import io
+import copy
 import json
 import base64
 import logging
@@ -22,6 +29,12 @@ from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import qn, nsdecls
 
 logger = logging.getLogger(__name__)
+
+TEMPLATE_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "templates",
+    "master_work_instructions_template.docx"
+)
 
 
 def set_cell_background(cell, fill_hex: str):
@@ -171,7 +184,289 @@ def generate_process_narrative_markdown(
     return narrative.strip()
 
 
-def export_narrative_to_docx(
+def populate_docx_from_master_template(
+    template_path: str,
+    project_name: str,
+    overview_data: Dict[str, Any],
+    steps_data: List[Dict[str, Any]],
+    legal_framework: Optional[List[Any]] = None,
+    validity_data: Optional[Dict[str, Any]] = None,
+    clarification_points: Optional[List[Dict[str, Any]]] = None,
+    keyframes: Optional[List[Dict[str, Any]]] = None,
+    mode_label: str = "AS-IS"
+) -> io.BytesIO:
+    """
+    Populates the official master DOCX template with pixel-perfect fidelity.
+    Matches Plantilla_Maestra_Oficial_Work_Instructions_TEMIS.docx.
+    """
+    doc = docx.Document(template_path)
+
+    # ==================== TABLE 0: General Process Overview ====================
+    t0 = doc.tables[0]
+    replacements_t0 = {
+        "{{TARGET}}": overview_data.get("target") or "Definir y estandarizar la secuencia operativa del proceso.",
+        "{{SCOPE}}": overview_data.get("scope") or "Aplica para todo el personal y sistemas involucrados en la operación.",
+        "{{PROCESS_INPUT}}": overview_data.get("process_input") or "Solicitudes de clientes y alertas de operación.",
+        "{{PROCESS_OUTPUT}}": overview_data.get("process_output") or "Trámite concluido, resolución de caso y registro en sistemas.",
+        "{{FREQUENCY}}": overview_data.get("frequency") or "Siempre que la operación lo requiera."
+    }
+
+    for row in t0.rows:
+        for cell in row.cells:
+            for tag, val in replacements_t0.items():
+                if tag in cell.text:
+                    for p in cell.paragraphs:
+                        if tag in p.text:
+                            for r in p.runs:
+                                if tag in r.text:
+                                    r.text = r.text.replace(tag, val)
+                            if tag in p.text:
+                                p.text = p.text.replace(tag, val)
+                                if p.runs:
+                                    p.runs[0].font.name = "Poppins"
+                                    p.runs[0].font.size = Pt(9)
+                                    p.runs[0].font.color.rgb = RGBColor(0x2A, 0x2A, 0x2A)
+
+    # ==================== TABLE 1: Legal Framework ====================
+    t1 = doc.tables[1]
+    raw_regs = legal_framework or ["Bank Secrecy Act (BSA)", "BSA Compliance"]
+    norm_regs = []
+    for r in raw_regs:
+        if isinstance(r, dict):
+            norm_regs.append(r)
+        elif isinstance(r, str) and r.strip():
+            norm_regs.append({"name": r.strip(), "applies": "Aplica"})
+    if not norm_regs:
+        norm_regs = [{"name": "Políticas Operativas Internas", "applies": "Aplica"}]
+
+    # Adjust row count in t1 (keep row 0 header)
+    while len(t1.rows) - 1 < len(norm_regs):
+        new_tr = copy.deepcopy(t1.rows[1]._tr)
+        t1._tbl.append(new_tr)
+    while len(t1.rows) - 1 > max(len(norm_regs), 1):
+        tr = t1.rows[-1]._tr
+        t1._tbl.remove(tr)
+
+    for idx, reg_info in enumerate(norm_regs, start=1):
+        if idx < len(t1.rows):
+            row = t1.rows[idx]
+            row.cells[0].text = reg_info.get("name", "")
+            if row.cells[0].paragraphs[0].runs:
+                r0 = row.cells[0].paragraphs[0].runs[0]
+                r0.font.name = "Poppins"
+                r0.font.size = Pt(9)
+            row.cells[1].text = reg_info.get("applies", "Aplica")
+            if row.cells[1].paragraphs[0].runs:
+                r1 = row.cells[1].paragraphs[0].runs[0]
+                r1.font.name = "Poppins"
+                r1.font.size = Pt(9)
+
+    # ==================== TABLE 2: Activity Description & Record Control ====================
+    t2 = doc.tables[2]
+    num_steps = len(steps_data)
+    template_tr = copy.deepcopy(t2.rows[1]._tr)
+
+    # Dynamically expand/shrink rows
+    while len(t2.rows) - 1 < num_steps:
+        new_tr = copy.deepcopy(template_tr)
+        t2._tbl.append(new_tr)
+    while len(t2.rows) - 1 > max(num_steps, 1):
+        tr = t2.rows[-1]._tr
+        t2._tbl.remove(tr)
+
+    kf_list = keyframes or []
+
+    for s_idx, step in enumerate(steps_data, start=1):
+        if s_idx >= len(t2.rows):
+            break
+        row = t2.rows[s_idx]
+
+        # Col 0: Step Number
+        c0 = row.cells[0]
+        c0.text = str(step.get("step_number") or s_idx)
+        p0 = c0.paragraphs[0]
+        p0.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        if p0.runs:
+            p0.runs[0].font.name = "Poppins"
+            p0.runs[0].font.size = Pt(9)
+            p0.runs[0].font.bold = True
+
+        # Col 1: Activity Description
+        c1 = row.cells[1]
+        c1.text = ""  # Clear
+
+        resp = step.get("responsible") or "Operación"
+        act_name = step.get("activity_name") or "Actividad Operativa"
+        desc = step.get("activity_description") or ""
+        sub_steps = step.get("sub_steps") or []
+
+        # 1. Responsible
+        p_resp_lbl = c1.paragraphs[0]
+        r_resp_lbl = p_resp_lbl.add_run("Responsible:\n")
+        r_resp_lbl.font.bold = True
+        r_resp_lbl.font.name = "Poppins"
+        r_resp_lbl.font.size = Pt(9)
+        r_resp_val = p_resp_lbl.add_run(f"{resp}\n\n")
+        r_resp_val.font.name = "Poppins"
+        r_resp_val.font.size = Pt(9)
+        p_resp_lbl.paragraph_format.space_after = Pt(2)
+
+        # 2. Activity
+        p_act_lbl = c1.add_paragraph()
+        r_act_lbl = p_act_lbl.add_run("Activity:\n")
+        r_act_lbl.font.bold = True
+        r_act_lbl.font.name = "Poppins"
+        r_act_lbl.font.size = Pt(9)
+        r_act_val = p_act_lbl.add_run(f"{act_name}\n\n")
+        r_act_val.font.name = "Poppins"
+        r_act_val.font.size = Pt(9)
+        p_act_lbl.paragraph_format.space_after = Pt(2)
+
+        # 3. Activity Description
+        p_desc_lbl = c1.add_paragraph()
+        r_desc_lbl = p_desc_lbl.add_run("Activity description:\n")
+        r_desc_lbl.font.bold = True
+        r_desc_lbl.font.name = "Poppins"
+        r_desc_lbl.font.size = Pt(9)
+
+        if desc:
+            p_desc_val = c1.add_paragraph()
+            r_desc_val = p_desc_val.add_run(desc)
+            r_desc_val.font.name = "Poppins"
+            r_desc_val.font.size = Pt(9)
+            p_desc_val.paragraph_format.space_after = Pt(4)
+
+        if sub_steps:
+            for st in sub_steps:
+                p_st = c1.add_paragraph()
+                r_st = p_st.add_run(st if st.strip().startswith(("1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "-")) else f"• {st}")
+                r_st.font.name = "Poppins"
+                r_st.font.size = Pt(9)
+                p_st.paragraph_format.space_after = Pt(2)
+
+        if step.get("is_decision") and step.get("decision_branches"):
+            p_dec = c1.add_paragraph()
+            p_dec.paragraph_format.space_before = Pt(4)
+            p_dec.paragraph_format.space_after = Pt(2)
+            q_text = step.get("decision_question") or f"¿El paso '{act_name}' fue exitoso?"
+            r_q = p_dec.add_run(f"{q_text}\n")
+            r_q.font.bold = True
+            r_q.font.name = "Poppins"
+            r_q.font.size = Pt(9)
+
+            for b in step["decision_branches"]:
+                lbl = b.get("condition_label", "Opción")
+                dest = b.get("target_activity_name") or f"Actividad {b.get('target_activity_number', '')}"
+                p_b = c1.add_paragraph()
+                r_b = p_b.add_run(f"{lbl}: Continuar con la actividad: {dest}.")
+                r_b.font.name = "Poppins"
+                r_b.font.size = Pt(9)
+                p_b.paragraph_format.space_after = Pt(2)
+
+        # Col 2: Record Control (Evidence & Images)
+        c2 = row.cells[2]
+        c2.text = ""
+
+        attached_img_name = step.get("attached_screenshot", "") or step.get("record_control", "")
+        img_bytes = None
+        img_filename = ""
+
+        for k in kf_list:
+            k_fn = k.get("filename", "")
+            if (attached_img_name and attached_img_name in k_fn) or (f"frame_{s_idx:03d}" in k_fn) or (len(kf_list) == len(steps_data) and kf_list.index(k) == s_idx - 1):
+                img_filename = k_fn
+                if k.get("data_uri") and "base64," in k["data_uri"]:
+                    try:
+                        b64_data = k["data_uri"].split("base64,")[1]
+                        img_bytes = base64.b64decode(b64_data)
+                    except Exception as e:
+                        logger.warning(f"Error decoding base64 image: {e}")
+                elif k.get("path") and os.path.exists(k["path"]):
+                    try:
+                        with open(k["path"], "rb") as f:
+                            img_bytes = f.read()
+                    except Exception as e:
+                        logger.warning(f"Error reading image path: {e}")
+                break
+
+        if img_bytes:
+            try:
+                p_img = c2.paragraphs[0]
+                p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                r_img = p_img.add_run()
+                r_img.add_picture(io.BytesIO(img_bytes), width=Inches(4.2))
+
+                p_cap = c2.add_paragraph()
+                p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                r_cap = p_cap.add_run(f"Figura {s_idx}: {step.get('record_control') or img_filename or 'Evidencia del proceso'}")
+                r_cap.font.name = "Poppins"
+                r_cap.font.size = Pt(8)
+                r_cap.font.italic = True
+                r_cap.font.color.rgb = RGBColor(0x64, 0x74, 0x8B)
+            except Exception as e:
+                p_rec = c2.paragraphs[0]
+                r_rec = p_rec.add_run(step.get("record_control") or "1. Registro / Evidencia")
+                r_rec.font.name = "Poppins"
+                r_rec.font.size = Pt(9)
+        else:
+            p_rec = c2.paragraphs[0]
+            rec_text = step.get("record_control") or "1."
+            r_rec = p_rec.add_run(rec_text)
+            r_rec.font.name = "Poppins"
+            r_rec.font.size = Pt(9)
+
+    # ==================== TABLE 3: Validity Control & Stakeholders ====================
+    t3 = doc.tables[3]
+    val = validity_data or {}
+
+    replacements_t3 = {
+        "{{CODE}}": val.get("code") or "PRJ-01",
+        "{{VERSION}}": val.get("version") or "00",
+        "{{ELABORATION_DATE}}": val.get("elaboration_date") or "",
+        "{{APPROVAL_DATE}}": val.get("approval_date") or "",
+        "{{DEVELOPED_BY}}": val.get("developed_by") or "Área de Procesos",
+        "{{RESPONSIBLE_AREA}}": val.get("responsible_area") or "Operaciones",
+        "{{REVIEWED_BY}}": val.get("reviewed_by") or "Líder de Calidad",
+        "{{RESPONSIBLE_DEPARTMENT}}": val.get("responsible_department") or "Cumplimiento",
+        "{{INFORMED_AREAS}}": val.get("informed_areas") or "Quality Assurance, Internal Audit, Compliance"
+    }
+
+    for row in t3.rows:
+        for cell in row.cells:
+            for tag, val_str in replacements_t3.items():
+                if tag in cell.text:
+                    for p in cell.paragraphs:
+                        if tag in p.text:
+                            for r in p.runs:
+                                if tag in r.text:
+                                    r.text = r.text.replace(tag, val_str)
+                            if tag in p.text:
+                                p.text = p.text.replace(tag, val_str)
+                                if p.runs:
+                                    p.runs[0].font.name = "Poppins"
+                                    p.runs[0].font.size = Pt(9)
+
+    # Row 8: Signatures
+    if len(t3.rows) > 8:
+        row8 = t3.rows[8]
+        app1 = val.get("approved_by") or "Director de Operaciones & Tecnología"
+        app2 = val.get("approved_by_secondary") or "Director de Cumplimiento / BSA"
+        row8.cells[0].text = app1
+        if row8.cells[0].paragraphs[0].runs:
+            row8.cells[0].paragraphs[0].runs[0].font.name = "Poppins"
+            row8.cells[0].paragraphs[0].runs[0].font.size = Pt(9)
+        row8.cells[2].text = app2
+        if row8.cells[2].paragraphs[0].runs:
+            row8.cells[2].paragraphs[0].runs[0].font.name = "Poppins"
+            row8.cells[2].paragraphs[0].runs[0].font.size = Pt(9)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf
+
+
+def _build_docx_programmatic(
     project_name: str,
     overview_data: Dict[str, Any],
     steps_data: List[Dict[str, Any]],
@@ -181,22 +476,14 @@ def export_narrative_to_docx(
     keyframes: Optional[List[Dict[str, Any]]] = None,
     mode_label: str = "AS-IS"
 ) -> io.BytesIO:
-    """
-    Generate an official corporate DOCX document matching Seguimiento de SAR 90 dias.docx exactly:
-    - Table 1: General process overview (Header #0047C7, Labels #E2E2E2)
-    - Table 2: Legal Framework (Header #0047C7)
-    - Table 3: Description of Activities (Header #98D801, Activity Description with Responsible/Activity/Steps, Record Control with embedded keyframes)
-    - Table 4: Validity Control & Stakeholders (Header #98D801, Mint Labels #E2EFD9)
-    """
+    """Programmatic fallback builder for 4-table Word document"""
     doc = docx.Document()
     
-    # Palette Colors
-    COLOR_BLUE_HDR = "0047C7"    # Electric Blue (Tables 1 & 2)
-    COLOR_GRAY_LBL = "E2E2E2"    # Light Gray (Table 1 labels)
-    COLOR_LIME_HDR = "98D801"    # Lime Green (Tables 3 & 4)
-    COLOR_MINT_LBL = "E2EFD9"    # Soft Mint Green (Table 4 stakeholders/labels)
+    COLOR_BLUE_HDR = "0047C7"    # Electric Blue
+    COLOR_GRAY_LBL = "E2E2E2"    # Light Gray
+    COLOR_LIME_HDR = "98D801"    # Lime Green
+    COLOR_MINT_LBL = "E2EFD9"    # Soft Mint Green
 
-    # Page Margins (0.8 inch)
     for section in doc.sections:
         section.top_margin = Inches(0.8)
         section.bottom_margin = Inches(0.8)
@@ -205,7 +492,7 @@ def export_narrative_to_docx(
 
     title_text = project_name or "Procedimiento Operativo"
     
-    # 1. Main Title
+    # Title
     title_p = doc.add_paragraph()
     run_title = title_p.add_run(f"PROCEDIMIENTO: {title_text.upper()}")
     run_title.font.name = "Calibri"
@@ -223,24 +510,19 @@ def export_narrative_to_docx(
     sub_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     sub_p.paragraph_format.space_after = Pt(8)
 
-    # ==================== TABLE 1: General Process Overview ====================
+    # Table 1: General Process Overview
     t1 = doc.add_table(rows=5, cols=4)
     t1.alignment = WD_TABLE_ALIGNMENT.CENTER
     t1.autofit = False
 
-    # Row 0: General process overview Header
     cell_hdr = t1.cell(0, 0)
     for c_idx in range(1, 4):
         cell_hdr.merge(t1.cell(0, c_idx))
     cell_hdr.text = "General process overview"
     set_cell_background(cell_hdr, COLOR_BLUE_HDR)
-    p_hdr = cell_hdr.paragraphs[0]
-    p_hdr.runs[0].font.bold = True
-    p_hdr.runs[0].font.color.rgb = RGBColor(255, 255, 255)
-    p_hdr.runs[0].font.name = "Calibri"
-    p_hdr.runs[0].font.size = Pt(10)
+    cell_hdr.paragraphs[0].runs[0].font.bold = True
+    cell_hdr.paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
 
-    # Row 1: Target
     t1.cell(1, 0).text = "Target"
     set_cell_background(t1.cell(1, 0), COLOR_GRAY_LBL)
     t1.cell(1, 0).paragraphs[0].runs[0].font.bold = True
@@ -249,7 +531,6 @@ def export_narrative_to_docx(
         cell_tgt.merge(t1.cell(1, c_idx))
     cell_tgt.text = overview_data.get("target") or "Definir y estandarizar la secuencia operativa del proceso."
 
-    # Row 2: Scope
     t1.cell(2, 0).text = "Scope"
     set_cell_background(t1.cell(2, 0), COLOR_GRAY_LBL)
     t1.cell(2, 0).paragraphs[0].runs[0].font.bold = True
@@ -258,7 +539,6 @@ def export_narrative_to_docx(
         cell_scp.merge(t1.cell(2, c_idx))
     cell_scp.text = overview_data.get("scope") or "Aplica para todo el personal y sistemas involucrados en la operación."
 
-    # Row 3: Process Input & Output
     t1.cell(3, 0).text = "Process input"
     set_cell_background(t1.cell(3, 0), COLOR_GRAY_LBL)
     t1.cell(3, 0).paragraphs[0].runs[0].font.bold = True
@@ -269,7 +549,6 @@ def export_narrative_to_docx(
     t1.cell(3, 2).paragraphs[0].runs[0].font.bold = True
     t1.cell(3, 3).text = overview_data.get("process_output") or "Trámite concluido, resolución de caso y registro en sistemas."
 
-    # Row 4: Frequency
     t1.cell(4, 0).text = "Frequency"
     set_cell_background(t1.cell(4, 0), COLOR_GRAY_LBL)
     t1.cell(4, 0).paragraphs[0].runs[0].font.bold = True
@@ -278,10 +557,8 @@ def export_narrative_to_docx(
         cell_frq.merge(t1.cell(4, c_idx))
     cell_frq.text = overview_data.get("frequency") or "Siempre que la operación lo requiera."
 
-    # Styling Table 1 cells & widths
-    t1_widths = [Inches(1.5), Inches(2.1), Inches(1.5), Inches(2.1)]
     for row in t1.rows:
-        for c_idx, cell in enumerate(row.cells):
+        for cell in row.cells:
             set_cell_margins(cell, 70, 70, 100, 100)
             if cell.paragraphs[0].runs:
                 cell.paragraphs[0].runs[0].font.name = "Calibri"
@@ -289,25 +566,23 @@ def export_narrative_to_docx(
 
     doc.add_paragraph().paragraph_format.space_after = Pt(6)
 
-    # ==================== TABLE 2: Legal Framework ====================
-    regs = legal_framework or ["Bank Secrecy Act (BSA)", "BSA Compliance", "Políticas Operativas Internas"]
+    # Table 2: Legal Framework
+    regs = legal_framework or ["Bank Secrecy Act (BSA)", "BSA Compliance"]
     t2 = doc.add_table(rows=len(regs) + 1, cols=2)
     t2.alignment = WD_TABLE_ALIGNMENT.CENTER
     t2.autofit = False
     
-    # Header
     c2_hdr = t2.cell(0, 0)
     c2_hdr.merge(t2.cell(0, 1))
     c2_hdr.text = "Legal Framework"
     set_cell_background(c2_hdr, COLOR_BLUE_HDR)
     c2_hdr.paragraphs[0].runs[0].font.bold = True
     c2_hdr.paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
-    c2_hdr.paragraphs[0].runs[0].font.name = "Calibri"
-    c2_hdr.paragraphs[0].runs[0].font.size = Pt(10)
 
     for r_idx, reg in enumerate(regs, start=1):
-        t2.cell(r_idx, 0).text = reg
-        t2.cell(r_idx, 1).text = ""
+        reg_name = reg if isinstance(reg, str) else reg.get("name", "")
+        t2.cell(r_idx, 0).text = reg_name
+        t2.cell(r_idx, 1).text = "Aplica"
 
     for row in t2.rows:
         row.cells[0].width = Inches(4.5)
@@ -320,12 +595,11 @@ def export_narrative_to_docx(
 
     doc.add_paragraph().paragraph_format.space_after = Pt(6)
 
-    # ==================== TABLE 3: Description of Activities & Record Control ====================
+    # Table 3: Description of Activities & Record Control
     t3 = doc.add_table(rows=len(steps_data) + 1, cols=3)
     t3.alignment = WD_TABLE_ALIGNMENT.CENTER
     t3.autofit = False
 
-    # Headers
     headers_t3 = ["N°", "Activity Description", "Record Control"]
     for c_idx, h_text in enumerate(headers_t3):
         c = t3.cell(0, c_idx)
@@ -333,149 +607,62 @@ def export_narrative_to_docx(
         set_cell_background(c, COLOR_LIME_HDR)
         c.paragraphs[0].runs[0].font.bold = True
         c.paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
-        c.paragraphs[0].runs[0].font.name = "Calibri"
-        c.paragraphs[0].runs[0].font.size = Pt(10)
 
-    # Keyframes indexing helper
     kf_list = keyframes or []
-    
     for s_idx, s in enumerate(steps_data, start=1):
         row = t3.rows[s_idx]
         num_str = str(s.get("step_number") or s_idx)
         
-        # Col 0: N°
         c0 = row.cells[0]
         c0.text = num_str
         c0.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
         c0.paragraphs[0].runs[0].font.bold = True
-        c0.paragraphs[0].runs[0].font.name = "Calibri"
 
-        # Col 1: Structured Activity Description matching SAR 90 dias
         c1 = row.cells[1]
-        c1.text = ""  # Clear default empty paragraph
-        
-        resp = s.get("responsible") or "Analista Operativo"
-        act_name = s.get("activity_name") or "Actividad Operativa"
+        c1.text = ""
+        resp = s.get("responsible") or "Operación"
+        act_name = s.get("activity_name") or "Actividad"
         desc = s.get("activity_description") or ""
         sub_steps = s.get("sub_steps") or []
 
-        # 1. Responsible:
         p_resp = c1.paragraphs[0]
         r_resp_lbl = p_resp.add_run("Responsible:\n")
         r_resp_lbl.font.bold = True
-        r_resp_lbl.font.name = "Calibri"
-        r_resp_lbl.font.size = Pt(9.5)
-        r_resp_val = p_resp.add_run(f"{resp}\n\n")
-        r_resp_val.font.name = "Calibri"
-        r_resp_val.font.size = Pt(9.5)
+        p_resp.add_run(f"{resp}\n\n")
 
-        # 2. Activity:
         p_act = c1.add_paragraph()
         r_act_lbl = p_act.add_run("Activity:\n")
         r_act_lbl.font.bold = True
-        r_act_lbl.font.name = "Calibri"
-        r_act_lbl.font.size = Pt(9.5)
-        r_act_val = p_act.add_run(f"{act_name}\n\n")
-        r_act_val.font.name = "Calibri"
-        r_act_val.font.size = Pt(9.5)
+        p_act.add_run(f"{act_name}\n\n")
 
-        # 3. Activity description:
         p_desc = c1.add_paragraph()
         r_desc_lbl = p_desc.add_run("Activity description:\n")
         r_desc_lbl.font.bold = True
-        r_desc_lbl.font.name = "Calibri"
-        r_desc_lbl.font.size = Pt(9.5)
-
         if desc:
             p_desc_txt = c1.add_paragraph()
-            r_desc_txt = p_desc_txt.add_run(desc)
-            r_desc_txt.font.name = "Calibri"
-            r_desc_txt.font.size = Pt(9)
-            p_desc_txt.paragraph_format.space_after = Pt(4)
+            p_desc_txt.add_run(desc)
 
-        # Sub-steps (numbered 1., 2., 3.)
         if sub_steps:
             for st in sub_steps:
                 p_st = c1.add_paragraph()
-                r_st = p_st.add_run(st if st.strip().startswith(("1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "-")) else f"• {st}")
-                r_st.font.name = "Calibri"
-                r_st.font.size = Pt(9)
-                p_st.paragraph_format.space_after = Pt(2)
+                p_st.add_run(st if st.strip().startswith(("1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "-")) else f"• {st}")
 
-        # Decision rule (Sí / No)
         if s.get("is_decision") and s.get("decision_branches"):
             p_dec = c1.add_paragraph()
-            p_dec.paragraph_format.space_before = Pt(4)
-            p_dec.paragraph_format.space_after = Pt(2)
             q_text = s.get("decision_question") or f"¿El paso '{act_name}' fue exitoso?"
             r_q = p_dec.add_run(f"{q_text}\n")
             r_q.font.bold = True
-            r_q.font.name = "Calibri"
-            r_q.font.size = Pt(9)
-            
             for b in s["decision_branches"]:
                 lbl = b.get("condition_label", "Opción")
                 dest = b.get("target_activity_name") or f"Actividad {b.get('target_activity_number', '')}"
                 p_b = c1.add_paragraph()
-                r_b = p_b.add_run(f"{lbl}: Continuar con la actividad: {dest}.")
-                r_b.font.name = "Calibri"
-                r_b.font.size = Pt(9)
-                p_b.paragraph_format.space_after = Pt(2)
+                p_b.add_run(f"{lbl}: Continuar con la actividad: {dest}.")
 
-        # Col 2: Record Control (Evidence & Embedded Keyframes)
         c2 = row.cells[2]
         c2.text = ""
-        
-        # Check for keyframe image to embed
-        attached_img_name = s.get("attached_screenshot", "") or s.get("record_control", "")
-        img_bytes = None
-        img_filename = ""
+        p_rec = c2.paragraphs[0]
+        p_rec.add_run(s.get("record_control") or "1. Registro / Log")
 
-        # Try finding in keyframes list
-        for k in kf_list:
-            k_fn = k.get("filename", "")
-            if (attached_img_name and attached_img_name in k_fn) or (f"frame_{s_idx:03d}" in k_fn) or (len(kf_list) == len(steps_data) and kf_list.index(k) == s_idx - 1):
-                img_filename = k_fn
-                if k.get("data_uri") and "base64," in k["data_uri"]:
-                    try:
-                        b64_data = k["data_uri"].split("base64,")[1]
-                        img_bytes = base64.b64decode(b64_data)
-                    except Exception as e:
-                        logger.warning(f"Error decoding base64 image {k_fn}: {e}")
-                elif k.get("path") and os.path.exists(k["path"]):
-                    try:
-                        with open(k["path"], "rb") as f:
-                            img_bytes = f.read()
-                    except Exception as e:
-                        logger.warning(f"Error reading image path {k['path']}: {e}")
-                break
-
-        # If image found, embed in cell
-        if img_bytes:
-            try:
-                p_img = c2.paragraphs[0]
-                p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                r_img = p_img.add_run()
-                r_img.add_picture(io.BytesIO(img_bytes), width=Inches(2.4))
-                
-                p_cap = c2.add_paragraph()
-                p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                r_cap = p_cap.add_run(f"Figura {s_idx}: {s.get('record_control') or img_filename or 'Evidencia del proceso'}")
-                r_cap.font.size = Pt(8)
-                r_cap.font.italic = True
-                r_cap.font.color.rgb = RGBColor(0x64, 0x74, 0x8B)
-            except Exception as pic_err:
-                logger.warning(f"Could not embed picture in DOCX: {pic_err}")
-                p_rec = c2.paragraphs[0]
-                p_rec.add_run(s.get("record_control") or "1. Registro / Log")
-        else:
-            p_rec = c2.paragraphs[0]
-            rec_text = s.get("record_control") or "1."
-            p_rec.add_run(rec_text)
-            p_rec.runs[0].font.name = "Calibri"
-            p_rec.runs[0].font.size = Pt(9)
-
-    # Set Column Widths for Table 3
     for row in t3.rows:
         row.cells[0].width = Inches(0.4)
         row.cells[1].width = Inches(4.3)
@@ -485,25 +672,20 @@ def export_narrative_to_docx(
 
     doc.add_paragraph().paragraph_format.space_after = Pt(6)
 
-    # ==================== TABLE 4: Validity Control & Stakeholders ====================
+    # Table 4: Validity Control & Stakeholders
     val = validity_data or {}
     t4 = doc.add_table(rows=9, cols=4)
     t4.alignment = WD_TABLE_ALIGNMENT.CENTER
     t4.autofit = False
 
-    # Row 0: Validity Control Header
     c4_hdr1 = t4.cell(0, 0)
     for c_idx in range(1, 4):
         c4_hdr1.merge(t4.cell(0, c_idx))
     c4_hdr1.text = "Validity Control"
     set_cell_background(c4_hdr1, COLOR_LIME_HDR)
-    p_vhdr = c4_hdr1.paragraphs[0]
-    p_vhdr.runs[0].font.bold = True
-    p_vhdr.runs[0].font.color.rgb = RGBColor(255, 255, 255)
-    p_vhdr.runs[0].font.name = "Calibri"
-    p_vhdr.runs[0].font.size = Pt(10)
+    c4_hdr1.paragraphs[0].runs[0].font.bold = True
+    c4_hdr1.paragraphs[0].runs[0].font.color.rgb = RGBColor(255, 255, 255)
 
-    # Row 1: Code & Version
     t4.cell(1, 0).text = "Code"
     set_cell_background(t4.cell(1, 0), COLOR_MINT_LBL)
     t4.cell(1, 0).paragraphs[0].runs[0].font.bold = True
@@ -513,7 +695,6 @@ def export_narrative_to_docx(
     t4.cell(1, 2).paragraphs[0].runs[0].font.bold = True
     t4.cell(1, 3).text = val.get("version") or "00"
 
-    # Row 2: Dates
     t4.cell(2, 0).text = "Elaboration date"
     set_cell_background(t4.cell(2, 0), COLOR_MINT_LBL)
     t4.cell(2, 0).paragraphs[0].runs[0].font.bold = True
@@ -523,17 +704,13 @@ def export_narrative_to_docx(
     t4.cell(2, 2).paragraphs[0].runs[0].font.bold = True
     t4.cell(2, 3).text = val.get("approval_date") or ""
 
-    # Row 3: Stakeholders Header
     c4_hdr2 = t4.cell(3, 0)
     for c_idx in range(1, 4):
         c4_hdr2.merge(t4.cell(3, c_idx))
     c4_hdr2.text = "Stakeholders"
     set_cell_background(c4_hdr2, COLOR_MINT_LBL)
     c4_hdr2.paragraphs[0].runs[0].font.bold = True
-    c4_hdr2.paragraphs[0].runs[0].font.color.rgb = RGBColor(0x17, 0x28, 0x3C)
-    c4_hdr2.paragraphs[0].runs[0].font.name = "Calibri"
 
-    # Row 4: Developed by & Area
     t4.cell(4, 0).text = "Developed by"
     set_cell_background(t4.cell(4, 0), COLOR_MINT_LBL)
     t4.cell(4, 0).paragraphs[0].runs[0].font.bold = True
@@ -543,7 +720,6 @@ def export_narrative_to_docx(
     t4.cell(4, 2).paragraphs[0].runs[0].font.bold = True
     t4.cell(4, 3).text = val.get("responsible_area") or "Operaciones"
 
-    # Row 5: Reviewed by & Dept
     t4.cell(5, 0).text = "Reviewed by"
     set_cell_background(t4.cell(5, 0), COLOR_MINT_LBL)
     t4.cell(5, 0).paragraphs[0].runs[0].font.bold = True
@@ -553,7 +729,6 @@ def export_narrative_to_docx(
     t4.cell(5, 2).paragraphs[0].runs[0].font.bold = True
     t4.cell(5, 3).text = val.get("responsible_department") or "Cumplimiento"
 
-    # Row 6: Informed areas
     t4.cell(6, 0).text = "Informed areas"
     set_cell_background(t4.cell(6, 0), COLOR_MINT_LBL)
     t4.cell(6, 0).paragraphs[0].runs[0].font.bold = True
@@ -562,16 +737,13 @@ def export_narrative_to_docx(
         c4_inf.merge(t4.cell(6, c_idx))
     c4_inf.text = val.get("informed_areas") or "Quality Assurance, Internal Audit, Compliance"
 
-    # Row 7: Approved by Header
     c4_hdr3 = t4.cell(7, 0)
     for c_idx in range(1, 4):
         c4_hdr3.merge(t4.cell(7, c_idx))
     c4_hdr3.text = "Approved by"
     set_cell_background(c4_hdr3, COLOR_MINT_LBL)
     c4_hdr3.paragraphs[0].runs[0].font.bold = True
-    c4_hdr3.paragraphs[0].runs[0].font.color.rgb = RGBColor(0x17, 0x28, 0x3C)
 
-    # Row 8: Approver Signature Slots
     c4_app1 = t4.cell(8, 0)
     c4_app1.merge(t4.cell(8, 1))
     c4_app1.text = val.get("approved_by") or "Director de Operaciones & Tecnología"
@@ -579,17 +751,57 @@ def export_narrative_to_docx(
     c4_app2.merge(t4.cell(8, 3))
     c4_app2.text = val.get("approved_by_secondary") or "Director de Cumplimiento / BSA"
 
-    # Widths for Table 4
-    t4_widths = [Inches(1.5), Inches(2.1), Inches(1.5), Inches(2.1)]
     for row in t4.rows:
-        for c_idx, cell in enumerate(row.cells):
+        for cell in row.cells:
             set_cell_margins(cell, 60, 60, 90, 90)
             if cell.paragraphs[0].runs:
                 cell.paragraphs[0].runs[0].font.name = "Calibri"
                 cell.paragraphs[0].runs[0].font.size = Pt(9)
 
-    # Save to BytesIO buffer
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)
     return buffer
+
+
+def export_narrative_to_docx(
+    project_name: str,
+    overview_data: Dict[str, Any],
+    steps_data: List[Dict[str, Any]],
+    legal_framework: Optional[List[Any]] = None,
+    validity_data: Optional[Dict[str, Any]] = None,
+    clarification_points: Optional[List[Dict[str, Any]]] = None,
+    keyframes: Optional[List[Dict[str, Any]]] = None,
+    mode_label: str = "AS-IS"
+) -> io.BytesIO:
+    """
+    Exports official Word document matching Plantilla_Maestra_Oficial_Work_Instructions_TEMIS.docx.
+    Uses master template if present on disk, otherwise falls back to programmatic generation.
+    """
+    if os.path.exists(TEMPLATE_PATH):
+        try:
+            logger.info(f"Populating DOCX from master template: {TEMPLATE_PATH}")
+            return populate_docx_from_master_template(
+                template_path=TEMPLATE_PATH,
+                project_name=project_name,
+                overview_data=overview_data,
+                steps_data=steps_data,
+                legal_framework=legal_framework,
+                validity_data=validity_data,
+                clarification_points=clarification_points,
+                keyframes=keyframes,
+                mode_label=mode_label
+            )
+        except Exception as e:
+            logger.error(f"Error populating master template docx ({e}), falling back to programmatic build.", exc_info=True)
+
+    return _build_docx_programmatic(
+        project_name=project_name,
+        overview_data=overview_data,
+        steps_data=steps_data,
+        legal_framework=legal_framework,
+        validity_data=validity_data,
+        clarification_points=clarification_points,
+        keyframes=keyframes,
+        mode_label=mode_label
+    )
