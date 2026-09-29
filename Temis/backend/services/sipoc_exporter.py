@@ -3,8 +3,8 @@
 
 """
 SIPOC Excel Exporter for TEMIS
-Generates styled professional Microsoft Excel (.xlsx) workbooks 
-matching the official Six Sigma SIPOC template.
+Generates Microsoft Excel (.xlsx) workbooks strictly matching 
+the official TEMIS Six Sigma SIPOC template (Century Gothic, 11-column paired layout).
 """
 
 import io
@@ -20,175 +20,201 @@ def export_sipoc_to_excel(
     sipoc_rows: List[Dict[str, Any]],
     customer_requirements: str = ""
 ) -> io.BytesIO:
-    """Generate professional styled Six Sigma SIPOC Excel workbook in memory"""
+    """Generate official Six Sigma SIPOC Excel workbook matching Plantilla Matriz Sipoc.xlsx exactly"""
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Matriz SIPOC"
+    ws.title = "Plantilla de diagrama SIPOC"
     ws.views.sheetView[0].showGridLines = True
 
-    # Palette
-    COLOR_PRIMARY = "1E3A8A"      # Dark Blue
-    COLOR_SUPPLIER = "1E40AF"     # Royal Blue
-    COLOR_INPUT = "0284C7"        # Sky Blue
-    COLOR_PROCESS = "0F766E"      # Teal
-    COLOR_OUTPUT = "C2410C"       # Orange
-    COLOR_CUSTOMER = "6D28D9"     # Purple
-    COLOR_REQ = "B45309"          # Amber
-    COLOR_ZEBRA = "F8FAFC"        # Light Slate
+    # Color Palette from Official Plantilla Matriz Sipoc.xlsx
+    COLOR_S_BADGE = "FF595959"   # Dark Gray (B)
+    COLOR_S_HEADER = "FF7F7F7F"  # Mid Gray (C)
+    COLOR_I_BADGE = "FF44546A"   # Dark Steel (D)
+    COLOR_I_HEADER = "FFADB9CA"  # Light Steel (E)
+    COLOR_P_BADGE = "FF595959"   # Dark Gray (F)
+    COLOR_P_HEADER = "FF7F7F7F"  # Mid Gray (G)
+    COLOR_O_BADGE = "FF333F4F"   # Charcoal (H)
+    COLOR_O_HEADER = "FF8496B0"  # Blue Gray (I)
+    COLOR_C_BADGE = "FFA5A5A5"   # Silver (J)
+    COLOR_C_HEADER = "FFBFBFBF"  # Light Silver (K)
+    COLOR_WHITE_TEXT = "FFF2F2F2"
+    COLOR_REQ_BG = "FFD6DCE4"    # Light Gray/Blue for Customer Requirements
+    COLOR_ZEBRA = "FFF8FAFC"
 
     # Borders
-    thin_border = Border(
-        left=Side(style="thin", color="CBD5E1"),
-        right=Side(style="thin", color="CBD5E1"),
-        top=Side(style="thin", color="CBD5E1"),
-        bottom=Side(style="thin", color="CBD5E1")
-    )
-    header_border = Border(
-        left=Side(style="medium", color="FFFFFF"),
-        right=Side(style="medium", color="FFFFFF"),
-        top=Side(style="medium", color="1E3A8A"),
-        bottom=Side(style="medium", color="1E3A8A")
-    )
+    thin_side = Side(style="thin", color="CBD5E1")
+    thin_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+    bottom_thick = Border(bottom=Side(style="medium", color="475569"))
 
-    # 1. Main Title Banner (Row 2)
-    ws.merge_cells("B2:G2")
-    cell_title = ws["B2"]
-    cell_title.value = f"PLANTILLA DE MATRIZ SIPOC — {project_name.upper()}"
-    cell_title.font = Font(name="Calibri", size=14, bold=True, color="FFFFFF")
-    cell_title.fill = PatternFill(start_color=COLOR_PRIMARY, end_color=COLOR_PRIMARY, fill_type="solid")
-    cell_title.alignment = Alignment(horizontal="center", vertical="center")
-    ws.row_dimensions[2].height = 32
+    # Column Widths matching Plantilla Matriz Sipoc.xlsx exactly
+    col_widths = {
+        "A": 3.22,
+        "B": 11.22,  # S badge
+        "C": 20.78,  # S name
+        "D": 10.78,  # I badge
+        "E": 20.78,  # I name
+        "F": 10.78,  # P badge (1.0, 2.0...)
+        "G": 20.78,  # P name
+        "H": 10.78,  # O badge
+        "I": 20.78,  # O name
+        "J": 10.78,  # C badge
+        "K": 20.78,  # C name
+    }
+    for col_l, w in col_widths.items():
+        ws.column_dimensions[col_l].width = w
 
-    # 2. Purpose Subtitle (Row 3)
-    ws.merge_cells("B3:G3")
-    cell_sub = ws["B3"]
-    cell_sub.value = f"Propósito: {project_purpose}" if project_purpose else "Herramienta Six Sigma para mapeo de alto nivel de procesos de inicio a fin."
-    cell_sub.font = Font(name="Calibri", size=10, italic=True, color="475569")
-    cell_sub.alignment = Alignment(horizontal="center", vertical="center")
-    ws.row_dimensions[3].height = 20
+    # 1. Row 1: Title
+    ws.row_dimensions[1].height = 49.5
+    c_title = ws["B1"]
+    c_title.value = f"PLANTILLA DE MATRIZ SIPOC — {project_name.upper()}" if project_name else "PLANTILLA DE MATRIZ SIPOC"
+    c_title.font = Font(name="Century Gothic", size=20.0, bold=True, color="17283C")
+    c_title.alignment = Alignment(horizontal="left", vertical="center")
 
-    # 3. SIPOC Initial Letters (Row 5)
-    sipoc_headers = [
-        ("B", "S", "S U P P L I E R S", COLOR_SUPPLIER),
-        ("C", "I", "I N P U T", COLOR_INPUT),
-        ("D", "P", "P R O C E S S", COLOR_PROCESS),
-        ("E", "O", "O U T P U T", COLOR_OUTPUT),
-        ("F", "C", "C U S T O M E R", COLOR_CUSTOMER),
-        ("G", "R", "R E Q U I R E M E N T S", COLOR_REQ)
+    # 2. Row 2: Letters & Titles
+    ws.row_dimensions[2].height = 75.0
+    headers_r2 = [
+        ("B", "S", COLOR_S_BADGE, 60.0),
+        ("C", "S U P P L I E R S", COLOR_S_HEADER, 11.0),
+        ("D", "I", COLOR_I_BADGE, 60.0),
+        ("E", "I N P U T", COLOR_I_HEADER, 11.0),
+        ("F", "P", COLOR_P_BADGE, 60.0),
+        ("G", "P R O C E S S", COLOR_P_HEADER, 11.0),
+        ("H", "O", COLOR_O_BADGE, 60.0),
+        ("I", "O U T P U T", COLOR_O_HEADER, 11.0),
+        ("J", "C", COLOR_C_BADGE, 60.0),
+        ("K", "C U S T O M E R", COLOR_C_HEADER, 11.0),
     ]
+    for col_l, text, fill_hex, fsize in headers_r2:
+        cell = ws[f"{col_l}2"]
+        cell.value = text
+        cell.font = Font(name="Century Gothic", size=fsize, bold=True, color=COLOR_WHITE_TEXT)
+        cell.fill = PatternFill(start_color=fill_hex, end_color=fill_hex, fill_type="solid")
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    ws.row_dimensions[5].height = 24
-    for col_letter, letter, title, color in sipoc_headers:
-        c = ws[f"{col_letter}5"]
-        c.value = f"{letter} - {title}"
-        c.font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
-        c.fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
-        c.alignment = Alignment(horizontal="center", vertical="center")
-        c.border = header_border
-
-    # 4. SIPOC Column Explanations (Row 6)
-    explanations = [
-        ("B", "Quién suministra lo que se requiere para ejecutar el proceso (Entrada)."),
-        ("C", "Recurso / insumo proporcionado por el proveedor para el proceso."),
-        ("D", "Actividades secuenciales realizadas para convertir entradas en salidas."),
-        ("E", "Recurso o entregable resultante de la actividad realizada."),
-        ("F", "Receptor o beneficiario de la salida creada."),
-        ("G", "Criterios de calidad, tiempo o especificaciones requeridas.")
+    # 3. Row 3: Theoretical Descriptions
+    ws.row_dimensions[3].height = 55.5
+    headers_r3 = [
+        ("B", None, COLOR_S_BADGE),
+        ("C", "Quién suministra lo que se requiere para ejecutar el proceso (Entrada).", COLOR_S_HEADER),
+        ("D", None, COLOR_I_BADGE),
+        ("E", "Recurso / insumo proporcionado por el proveedor para la incorporación al proceso.", COLOR_I_HEADER),
+        ("F", None, COLOR_P_BADGE),
+        ("G", "Actividades realizadas para convertir\nde entrada a salida.", COLOR_P_HEADER),
+        ("H", None, COLOR_O_BADGE),
+        ("I", "Recurso resultante\nde la actividad.", COLOR_O_HEADER),
+        ("J", None, COLOR_C_BADGE),
+        ("K", "Receptor de\nsalida creada", COLOR_C_HEADER),
     ]
-    ws.row_dimensions[6].height = 36
-    for col_letter, exp in explanations:
-        c = ws[f"{col_letter}6"]
-        c.value = exp
-        c.font = Font(name="Calibri", size=8.5, italic=True, color="64748B")
-        c.fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        c.border = thin_border
+    for col_l, text, fill_hex in headers_r3:
+        cell = ws[f"{col_l}3"]
+        cell.value = text
+        cell.font = Font(name="Century Gothic", size=9.0, bold=True, color=COLOR_WHITE_TEXT)
+        cell.fill = PatternFill(start_color=fill_hex, end_color=fill_hex, fill_type="solid")
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    # 5. Column Headers (Row 7)
-    labels = [
-        ("B", "PROVEEDORES"),
-        ("C", "ENTRADA"),
-        ("D", "PROCESO (Paso 1.0..N)"),
-        ("E", "SALIDA"),
-        ("F", "CLIENTE"),
-        ("G", "REQUISITOS")
+    # 4. Row 4: Process Subtitle
+    ws.row_dimensions[4].height = 18.0
+    c_sub = ws["B4"]
+    c_sub.value = f"Proceso: {project_name}" if project_name else "Proceso"
+    c_sub.font = Font(name="Century Gothic", size=10.0, bold=False, color="475569")
+    c_sub.alignment = Alignment(horizontal="left", vertical="center")
+
+    # 5. Row 5: Column Headers
+    ws.row_dimensions[5].height = 24.75
+    headers_r5 = [
+        ("B", "PROVEEDORES", COLOR_S_BADGE),
+        ("C", None, COLOR_S_HEADER),
+        ("D", "ENTRADA", COLOR_I_BADGE),
+        ("E", None, COLOR_I_HEADER),
+        ("F", "PROCESO", COLOR_P_BADGE),
+        ("G", None, COLOR_P_HEADER),
+        ("H", "SALIDA", COLOR_O_BADGE),
+        ("I", None, COLOR_O_HEADER),
+        ("J", "CLIENTE", COLOR_C_BADGE),
+        ("K", None, COLOR_C_HEADER),
     ]
-    ws.row_dimensions[7].height = 22
-    for col_letter, lbl in labels:
-        c = ws[f"{col_letter}7"]
-        c.value = lbl
-        c.font = Font(name="Calibri", size=9.5, bold=True, color="334155")
-        c.fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
-        c.alignment = Alignment(horizontal="center", vertical="center")
-        c.border = thin_border
+    for col_l, text, fill_hex in headers_r5:
+        cell = ws[f"{col_l}5"]
+        cell.value = text
+        cell.font = Font(name="Century Gothic", size=10.0, bold=True, color=COLOR_WHITE_TEXT)
+        cell.fill = PatternFill(start_color=fill_hex, end_color=fill_hex, fill_type="solid")
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    # 6. Data Rows
-    current_row = 8
-    
-    # Ensure minimum 10 rows
-    rows_to_render = list(sipoc_rows)
+    # 6. Rows 6+: Data Rows (Paso 1.0, 2.0...)
+    rows_to_render = list(sipoc_rows) if sipoc_rows else []
     if len(rows_to_render) < 10:
-        for i in range(len(rows_to_render) + 1, 11):
+        for i in range(len(rows_to_render) + 1, 13):
             rows_to_render.append({
                 "id": str(i),
                 "step_num": f"{i}.0",
                 "provider": "",
                 "input": "",
-                "step": f"Paso {i}.0",
+                "step": "",
                 "output": "",
                 "customer": "",
-                "requirements": ""
             })
 
-    for idx, r in enumerate(rows_to_render):
-        ws.row_dimensions[current_row].height = 24
-        fill_color = "FFFFFF" if idx % 2 == 0 else COLOR_ZEBRA
+    current_r = 6
+    for idx, row_data in enumerate(rows_to_render):
+        ws.row_dimensions[current_r].height = 48.0
+        step_num_val = row_data.get("step_num") or f"{idx+1}.0"
         
-        step_val = r.get("step") or r.get("process") or f"{idx+1}.0"
-        if not step_val.startswith(f"{idx+1}.0") and not any(step_val.startswith(f"{n}.") for n in range(1, 20)):
-            step_val = f"{idx+1}.0 {step_val}"
+        # Clean process text (remove 1.0 prefix if already in text)
+        step_text = row_data.get("step") or row_data.get("process") or ""
+        if step_text.startswith(step_num_val):
+            step_text = step_text[len(step_num_val):].strip()
 
-        row_data = [
-            ("B", r.get("provider", "") or r.get("supplier", "")),
-            ("C", r.get("input", "")),
-            ("D", step_val),
-            ("E", r.get("output", "")),
-            ("F", r.get("customer", "")),
-            ("G", r.get("requirements", "") or customer_requirements)
+        vals = [
+            ("B", None, COLOR_S_BADGE, "center", True),
+            ("C", row_data.get("provider", "") or row_data.get("supplier", ""), "FFFFFF", "left", False),
+            ("D", None, COLOR_I_BADGE, "center", False),
+            ("E", row_data.get("input", ""), "FFFFFF", "left", False),
+            ("F", step_num_val, COLOR_P_BADGE, "center", True),
+            ("G", step_text, "FFFFFF", "left", False),
+            ("H", None, COLOR_O_BADGE, "center", False),
+            ("I", row_data.get("output", ""), "FFFFFF", "left", False),
+            ("J", None, COLOR_C_BADGE, "center", False),
+            ("K", row_data.get("customer", ""), "FFFFFF", "left", False),
         ]
 
-        for col_letter, val in row_data:
-            c = ws[f"{col_letter}{current_row}"]
-            c.value = val
-            c.font = Font(name="Calibri", size=9.5, color="1E293B", bold=(col_letter == "D"))
-            c.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
-            c.alignment = Alignment(horizontal="left" if col_letter in ["B", "C", "D", "E", "F", "G"] else "center", vertical="center")
-            c.border = thin_border
+        for col_l, val, fill_hex, align_h, is_bold in vals:
+            cell = ws[f"{col_l}{current_r}"]
+            cell.value = val
+            cell.font = Font(
+                name="Century Gothic",
+                size=10.0,
+                bold=is_bold,
+                color=COLOR_WHITE_TEXT if fill_hex != "FFFFFF" else "17283C"
+            )
+            if fill_hex != "FFFFFF":
+                cell.fill = PatternFill(start_color=fill_hex, end_color=fill_hex, fill_type="solid")
+            else:
+                cell.fill = PatternFill(start_color="FFFFFF" if idx % 2 == 0 else COLOR_ZEBRA, end_color="FFFFFF" if idx % 2 == 0 else COLOR_ZEBRA, fill_type="solid")
+            cell.alignment = Alignment(horizontal=align_h, vertical="center", wrap_text=True)
+            cell.border = thin_border
 
-        current_row += 1
+        current_r += 1
 
-    # 7. Bottom Customer Requirements Summary
-    current_row += 1
-    ws.merge_cells(f"B{current_row}:G{current_row}")
-    cell_req = ws[f"B{current_row}"]
-    cell_req.value = f"REQUISITOS DEL CLIENTE / NOTAS DE CALIDAD: {customer_requirements}" if customer_requirements else "REQUISITOS DEL CLIENTE: Cumplimiento de tiempos de respuesta (SLA), integridad de datos en Chronos y confirmación de satisfacción."
-    cell_req.font = Font(name="Calibri", size=9.5, bold=True, color="FFFFFF")
-    cell_req.fill = PatternFill(start_color=COLOR_REQ, end_color=COLOR_REQ, fill_type="solid")
-    cell_req.alignment = Alignment(horizontal="center", vertical="center")
-    ws.row_dimensions[current_row].height = 28
+    # 7. Customer Requirements Section (Row 18+ in template)
+    ws.row_dimensions[current_r].height = 24.0
+    req_cols = ["B", "D", "F", "H", "J"]
+    for col_l in req_cols:
+        cell = ws[f"{col_l}{current_r}"]
+        cell.value = "REQUISITOS DEL CLIENTE"
+        cell.font = Font(name="Century Gothic", size=10.0, bold=True, color="17283C")
+        cell.fill = PatternFill(start_color=COLOR_REQ_BG, end_color=COLOR_REQ_BG, fill_type="solid")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
 
-    # Column Widths
-    col_widths = {
-        "A": 3,
-        "B": 24,  # Suppliers
-        "C": 26,  # Input
-        "D": 34,  # Process
-        "E": 26,  # Output
-        "F": 24,  # Customer
-        "G": 28   # Requirements
-    }
-    for col_letter, width in col_widths.items():
-        ws.column_dimensions[col_letter].width = width
+    current_r += 1
+    ws.row_dimensions[current_r].height = 36.0
+    ws.merge_cells(f"B{current_r}:K{current_r}")
+    c_req_val = ws[f"B{current_r}"]
+    c_req_val.value = customer_requirements if customer_requirements else "Requisitos del Cliente: Cumplimiento de tiempos de respuesta (SLA), integridad de datos en Chronos y confirmación de satisfacción de servicio."
+    c_req_val.font = Font(name="Century Gothic", size=9.5, italic=True, color="334155")
+    c_req_val.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    c_req_val.fill = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+    c_req_val.border = thin_border
 
     output = io.BytesIO()
     wb.save(output)

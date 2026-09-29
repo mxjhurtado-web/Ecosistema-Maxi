@@ -1798,6 +1798,7 @@ class FlowState(rx.State):
                 legal_framework=self.narrative_legal_framework,
                 validity_data=self.narrative_validity_control,
                 clarification_points=self.clarification_points,
+                keyframes=self.narrative_keyframes_gallery,
                 mode_label="AS-IS"
             )
             safe_name = self.project_name.replace(" ", "_")
