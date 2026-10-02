@@ -130,6 +130,6 @@ app = rx.App(
 
 app.add_page(
     index,
-    title="TEMIS Web Flow - Work OS & Gobernanza de Procesos",
+    title="TEMIS Web Flow - Motor de Automatización Documental de Procesos",
     on_load=FlowState.init_app_data
 )

@@ -444,10 +444,11 @@ class FlowState(rx.State):
     is_creating_project_drive: bool = False
     creation_progress_status: str = ""
 
-    # Project & Framework State (Workspace Level 2)
+    # Process & Technical Workspace State (Decoupled from Governance)
     project_id: str = "proj-temis"
     project_code: str = "PRJ-TEMIS"
-    project_name: str = "Suite de Procesos & Gobernanza TEMIS"
+    project_name: str = "Automatización de Documentación de Procesos"
+    external_governance_id: str = ""  # Reference ID for AppSheet Initiative
     drive_folder_id: str = "1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI"
     drive_folder_url: str = "https://drive.google.com/drive/folders/1NA32b-o473ZxcpuLxHPf2xDOt5XHn2CI"
     sheet_id: str = "1GxiIwR2rUMkZKHu00JYzlQrs6EsyXO5VqUL6qpl_MBs"
@@ -455,27 +456,30 @@ class FlowState(rx.State):
     current_phase: int = 4
     phase_name: str = PHASE_NAMES[4]
 
+    def set_external_governance_id(self, val: str):
+        self.external_governance_id = val
+
     # Flowchart Diagram Data (Official Symbology)
     diagram_id: Optional[str] = None
     diagram_title: str = "Flujo de Proceso Operativo"
     swimlanes: List[str] = ["Input", "Actor 1 (ej. Usuario)", "Actor 2 (ej. Sistema)", "Output"]
 
-    # Active View Navigation (4 Core Modules)
-    active_view: str = "flow"  # "charter", "plan", "flow", "sipoc", "governance"
+    # Active View Navigation (4 Core Specialized Modules)
+    active_view: str = "flow"  # "charter", "sipoc", "flow", "narrative"
 
     def set_active_view(self, view_name: Union[str, List[str]]):
-        """Switch active view tab: 'charter', 'plan', 'flow', 'sipoc', 'governance'"""
+        """Switch active view tab: 'charter', 'sipoc', 'flow', 'narrative'"""
         if isinstance(view_name, list):
             val = view_name[0] if view_name else "flow"
         else:
             val = str(view_name)
         self.active_view = val
         view_labels = {
-            "charter": "Ficha del Proyecto & Narrativa",
-            "plan": "Plan de Trabajo & Sprints IA",
-            "flow": "Diagrama de Flujo (Lienzo)",
-            "sipoc": "Matriz SIPOC Six Sigma",
-            "governance": "Gobernanza & 7 Fases"
+            "charter": "Ficha Técnica del Proceso",
+            "sipoc": "Matriz SIPOC Tabular",
+            "flow": "Diagrama de Flujo (BPMN)",
+            "narrative": "Work Instructions (.docx)",
+            "hub": "Biblioteca de Procesos"
         }
         self.status_message = f"Vista activa: {view_labels.get(val, val)}"
 
@@ -3353,6 +3357,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             "manager": self.project_manager,
             "manager_initials": existing.get("manager_initials", "JH"),
             "sponsor": self.project_sponsor,
+            "external_governance_id": getattr(self, "external_governance_id", ""),
             "start_date": self.start_date,
             "end_date": self.end_date,
             "scope_in": self.scope_in,
@@ -3478,6 +3483,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         self.project_purpose = selected.get("purpose", "")
         self.project_manager = selected.get("manager", "")
         self.project_sponsor = selected.get("sponsor", "")
+        self.external_governance_id = selected.get("external_governance_id", "")
         self.start_date = selected.get("start_date", "2026-01-16")
         self.end_date = selected.get("end_date", "2026-12-04")
         self.scope_in = selected.get("scope_in", "")
@@ -3794,7 +3800,7 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
                 findings.append({
                     "severity": "Media",
                     "color": "#f59e0b",
-                    "category": "Gobierno Operativo",
+                    "category": "Detalle Técnico",
                     "title": f"Actividad '{an.get('label')}' sin Sistema o Canal",
                     "description": "La actividad no especifica qué sistema (Chronos/Freshdesk) o canal (WhatsApp/Bria) soporta la operación.",
                     "recommendation": "Asigna el sistema o canal correspondiente en las propiedades del nodo."
@@ -3814,14 +3820,27 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
             })
             deductions += 10
 
+        # Check 5: SIPOC vs BPMN Consistency
+        if self.sipoc_rows and activity_nodes:
+            if abs(len(self.sipoc_rows) - len(activity_nodes)) > 3:
+                findings.append({
+                    "severity": "Baja",
+                    "color": "#3b82f6",
+                    "category": "Consistencia SIPOC vs BPMN",
+                    "title": "Diferencia de pasos entre SIPOC y Diagrama",
+                    "description": f"La matriz SIPOC contiene {len(self.sipoc_rows)} pasos mientras que el diagrama tiene {len(activity_nodes)} actividades.",
+                    "recommendation": "Verifica que todas las actividades del SIPOC estén representadas en el diagrama de flujo."
+                })
+                deductions += 5
+
         if not findings:
             findings.append({
                 "severity": "Baja",
                 "color": "#22c55e",
                 "category": "Excelente Calidad",
-                "title": "¡Proceso Cumple 100% las Reglas de Gobierno TEMIS!",
-                "description": "El diagrama tiene nodos de inicio/fin, validaciones completas y asignación adecuada de sistemas.",
-                "recommendation": "El flujo está listo para ser promovido a la siguiente Fase de Gobierno."
+                "title": "¡Expediente Cumple 100% de Calidad Técnica Documental!",
+                "description": "El diagrama, matriz SIPOC y narrativa tienen estructura completa, trazabilidad y asignación adecuada de sistemas y evidencias.",
+                "recommendation": "El expediente técnico está listo para exportación oficial en Excel y Word (.docx)."
             })
 
         from datetime import datetime

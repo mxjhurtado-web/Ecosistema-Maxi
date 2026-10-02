@@ -23,8 +23,8 @@ def audit_modal() -> rx.Component:
                     border_radius="8px",
                 ),
                 rx.vstack(
-                    rx.dialog.title("Auditoría de Calidad & Gobierno de Procesos (IA TEMIS)", size="4", weight="bold", color="#17283c"),
-                    rx.dialog.description("Análisis de reglas Six Sigma, completitud BPMN y asignación de sistemas/canales.", size="2", color="#52657a"),
+                    rx.dialog.title("Auditoría de Calidad Técnica Documental (IA TEMIS)", size="4", weight="bold", color="#17283c"),
+                    rx.dialog.description("Evaluación de consistencia SIPOC ➔ BPMN ➔ Work Instructions, completitud operativa y evidencias.", size="2", color="#52657a"),
                     spacing="0",
                 ),
                 align="center",

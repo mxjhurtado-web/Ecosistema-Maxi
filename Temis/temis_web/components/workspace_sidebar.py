@@ -130,11 +130,11 @@ def workspace_sidebar() -> rx.Component:
 
             # 3. Navigation Groups
             rx.vstack(
-                # Group 1: Definición & Planificación
+                # Group 1: Expediente Técnico
                 rx.vstack(
-                    rx.text("DEFINICIÓN & PLAN", size="1", weight="bold", color="#8295a9", letter_spacing="0.05em"),
-                    nav_item("Ficha del Proyecto", "file-text", "charter"),
-                    nav_item("Plan & Backlog Scrum", "calendar-range", "plan"),
+                    rx.text("EXPEDIENTE TÉCNICO", size="1", weight="bold", color="#8295a9", letter_spacing="0.05em"),
+                    nav_item("Ficha Técnica", "file-text", "charter"),
+                    nav_item("Work Instructions", "file-text", "narrative", badge_text="DOCX"),
                     spacing="1",
                     width="100%",
                 ),
@@ -142,23 +142,21 @@ def workspace_sidebar() -> rx.Component:
                 # Group 2: Modelado de Procesos
                 rx.vstack(
                     rx.text("MODELADO DE PROCESOS", size="1", weight="bold", color="#8295a9", letter_spacing="0.05em"),
-                    nav_item("Narrativa & Multimedia", "file-video", "narrative", badge_text="AUDIO/IA"),
+                    nav_item("Matriz SIPOC Tabular", "table-2", "sipoc", badge_text="EXCEL"),
                     nav_item("Diagrama de Flujo (BPMN)", "network", "flow"),
-                    nav_item("Matriz SIPOC Tabular", "table-2", "sipoc"),
                     spacing="1",
                     width="100%",
                 ),
 
-                # Group 3: Gobernanza & Calidad
+                # Group 3: Calidad Documental
                 rx.vstack(
-                    rx.text("GOBERNANZA & CALIDAD", size="1", weight="bold", color="#8295a9", letter_spacing="0.05em"),
-                    nav_item("Metodología 7 Fases", "layers", "governance"),
+                    rx.text("CALIDAD DOCUMENTAL", size="1", weight="bold", color="#8295a9", letter_spacing="0.05em"),
                     rx.box(
                         rx.hstack(
                             rx.icon("shield-check", size=16, color="#7c3aed"),
-                            rx.text("Auditoría IA (0-100)", size="2", weight="medium", color="#6d28d9"),
+                            rx.text("Auditoría Técnica IA", size="2", weight="medium", color="#6d28d9"),
                             rx.spacer(),
-                            rx.badge("Six Sigma", color_scheme="purple", variant="soft", size="1"),
+                            rx.badge("0-100", color_scheme="purple", variant="soft", size="1"),
                             align="center",
                             spacing="2",
                             width="100%",

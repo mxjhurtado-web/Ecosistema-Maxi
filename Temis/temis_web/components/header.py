@@ -38,12 +38,10 @@ def header() -> rx.Component:
                 rx.select.root(
                     rx.select.trigger(placeholder="Vista", size="1"),
                     rx.select.content(
-                        rx.select.item("Ficha Proyecto", value="charter"),
-                        rx.select.item("Narrativa & Multimedia", value="narrative"),
-                        rx.select.item("Plan & Backlog", value="plan"),
-                        rx.select.item("Diagrama BPMN", value="flow"),
+                        rx.select.item("Ficha Técnica", value="charter"),
                         rx.select.item("Matriz SIPOC", value="sipoc"),
-                        rx.select.item("Gobernanza 7 Fases", value="governance"),
+                        rx.select.item("Diagrama BPMN", value="flow"),
+                        rx.select.item("Work Instructions", value="narrative"),
                     ),
                     value=FlowState.active_view,
                     on_change=FlowState.set_active_view,

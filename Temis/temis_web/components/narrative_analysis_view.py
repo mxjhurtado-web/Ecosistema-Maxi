@@ -873,8 +873,8 @@ def narrative_analysis_view() -> rx.Component:
                             variant="soft",
                         ),
                         rx.button(
-                            rx.hstack(rx.icon("layers", size=16), rx.text("Ver Gobernanza & Gates"), align="center", spacing="1"),
-                            on_click=lambda: FlowState.set_active_view("governance"),
+                            rx.hstack(rx.icon("file-text", size=16), rx.text("Ver Ficha Técnica"), align="center", spacing="1"),
+                            on_click=lambda: FlowState.set_active_view("charter"),
                             color_scheme="gray",
                             variant="soft",
                         ),
