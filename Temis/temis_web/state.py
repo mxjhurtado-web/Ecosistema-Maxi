@@ -3208,6 +3208,10 @@ Se completa la etapa final: *"Fin: Confirmación y encuesta"*. El proceso conclu
         """Set project title"""
         self.project_name = name
 
+    def set_project_code(self, code: str):
+        """Set project code identifier"""
+        self.project_code = code
+
     def create_new_project(self):
         """Reset canvas and initialize a new empty project"""
         count = len(self.saved_projects) + 1
