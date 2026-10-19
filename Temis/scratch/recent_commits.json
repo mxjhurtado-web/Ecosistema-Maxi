@@ -1,0 +1,302 @@
+[
+  {
+    "hash": "1fcd3fde",
+    "date": "2026-09-29 16:44:13 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(narrative): integrate official master DOCX template engine matching Plantilla_Maestra_Oficial_Work_Instructions_TEMIS"
+  },
+  {
+    "hash": "fc7c0eff",
+    "date": "2026-09-29 14:45:49 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(export): standardize official Word 4-table document to match SAR 90 dias and Excel SIPOC template"
+  },
+  {
+    "hash": "6a9f6bdc",
+    "date": "2026-09-28 19:13:02 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(cascade): blindar VerificadorEstatus y agregar safety guard en AgenteComunicador contra desvios a GChat"
+  },
+  {
+    "hash": "d785d2c8",
+    "date": "2026-09-25 07:55:43 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(state): map charter scope to scope_in and declare private cached narrative state variables"
+  },
+  {
+    "hash": "237f7f7c",
+    "date": "2026-09-25 07:36:53 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(deploy): use python -m backend.main to bind PORT in Render for temis-backend"
+  },
+  {
+    "hash": "aa4e6bbb",
+    "date": "2026-09-24 21:52:23 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(prod_server): register reflex /_upload endpoints and set Upload.is_used for production server"
+  },
+  {
+    "hash": "3590e8d9",
+    "date": "2026-09-24 21:36:55 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "perf(core): add cache-first loading strategy to eliminate event loop lag on Drive calls"
+  },
+  {
+    "hash": "012ff586",
+    "date": "2026-09-24 21:25:33 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(upload): remove strict MIME accept filter to allow seamless Windows ZIP drag-and-drop"
+  },
+  {
+    "hash": "88b86dd8",
+    "date": "2026-09-24 21:20:44 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(upload): add MIME type fallbacks and handler diagnostics for ZIP uploads"
+  },
+  {
+    "hash": "b348d651",
+    "date": "2026-09-24 21:04:18 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "revert(studio): keep Temis Media Studio untouched per user instruction"
+  },
+  {
+    "hash": "da66633c",
+    "date": "2026-09-24 20:58:55 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(narrative): optimize ZIP package handling, add progress spinners and compact auto-zip"
+  },
+  {
+    "hash": "21fb4dc1",
+    "date": "2026-09-24 20:46:08 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(persistence): enable dynamic Google Drive project scanning & cloud user directory persistence"
+  },
+  {
+    "hash": "5061bb4a",
+    "date": "2026-09-24 20:35:14 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(zip-ingest): add TEMIS Media Studio ZIP package ingestion, Base64 screenshot gallery, and unified pipeline in web"
+  },
+  {
+    "hash": "9b64dc3a",
+    "date": "2026-09-24 18:08:03 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(studio): switch TEMIS Media Studio to 100% local faster-whisper engine and zero-token local process builder"
+  },
+  {
+    "hash": "2e80a295",
+    "date": "2026-09-24 17:32:50 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(studio): add TEMIS Media Studio desktop suite for offline whisper transcription, smart screenshot capture and TEMIS package export"
+  },
+  {
+    "hash": "6d2dc26b",
+    "date": "2026-09-24 16:04:46 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(upload): remove on_drop overwrite to let reflex default upload_file populate rx.selected_files"
+  },
+  {
+    "hash": "92be41e7",
+    "date": "2026-09-24 15:12:52 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(media): integrate Gemini File API for large audio/video files up to 2GB"
+  },
+  {
+    "hash": "2d85d5ec",
+    "date": "2026-09-24 15:06:46 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(media): add upload spinner loading state and size tip note"
+  },
+  {
+    "hash": "c7175a5e",
+    "date": "2026-09-24 14:51:27 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(upload): connect rx.upload_files to on_drop and add selected file process button"
+  },
+  {
+    "hash": "5b3d027f",
+    "date": "2026-09-24 14:41:38 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(build): extract document_library_item to top-level typed component to resolve foreach UntypedVarError in Render"
+  },
+  {
+    "hash": "957bfeba",
+    "date": "2026-09-24 14:30:28 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(media): implement universal audio/video ingestion with mutagen metadata and audit transcript export in docx/txt"
+  },
+  {
+    "hash": "3d0d6ded",
+    "date": "2026-09-23 17:34:48 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(narrative): implement multi-document incremental ingestion and enrichment pipeline"
+  },
+  {
+    "hash": "7229b48e",
+    "date": "2026-09-23 15:58:38 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(narrative): implement client narrative analysis, citations, dual SIPOC, 4-table Word manuals and dual BPMN generation"
+  },
+  {
+    "hash": "74e28a73",
+    "date": "2026-09-23 15:16:40 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(deploy): initialize Reflex state and Starlette lifespan in prod_server for event processor"
+  },
+  {
+    "hash": "158f0ff4",
+    "date": "2026-09-23 14:51:23 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(deploy): add lightweight ASGI prod_server.py to avoid runtime compile OOM in Render"
+  },
+  {
+    "hash": "5af5f0a0",
+    "date": "2026-09-23 13:07:44 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(deploy): use --single-port with --backend-host 0.0.0.0 --backend-port \\ in render.yaml"
+  },
+  {
+    "hash": "ff604053",
+    "date": "2026-09-23 12:44:30 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(temis): resolve Radix HStack integer spacing and padding type constraints"
+  },
+  {
+    "hash": "fa12f8df",
+    "date": "2026-09-23 12:34:14 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(temis): implement verification improvements H01 to H06"
+  },
+  {
+    "hash": "1d3f1819",
+    "date": "2026-09-23 11:52:59 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(temis): implement formal verification audit findings (F01-F06) for phase gates, selection isolation, AI audit, and backlog modal"
+  },
+  {
+    "hash": "603d7945",
+    "date": "2026-09-23 10:52:17 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(render): pre-compile frontend during build phase with reflex export --no-zip to prevent port scan timeout on startup"
+  },
+  {
+    "hash": "7a70433a",
+    "date": "2026-09-23 10:08:17 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(temis): resolve BPMN multi-page selection desync P0, non-destructive SIPOC flow generation P0, accessible 44px nudge controls P1, AI proposal review modal P1, and Excel MIME export P2"
+  },
+  {
+    "hash": "23a039ac",
+    "date": "2026-09-23 09:50:35 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(temis): resolve audit findings - P0 user recovery, canonical SP consistency, Executive Light Slate theme (WCAG 2.2 AA), and BPMN/SIPOC usability"
+  },
+  {
+    "hash": "2dd8d83a",
+    "date": "2026-09-22 22:42:55 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(auth): fix login card z-index stacking and pointer-events layering issue"
+  },
+  {
+    "hash": "9e917f18",
+    "date": "2026-09-22 22:29:27 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(ui): complete executive dark mode overhaul across all views and canvas"
+  },
+  {
+    "hash": "3b91534d",
+    "date": "2026-09-22 21:58:44 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(deploy): resolve FlowState export attribute error and normalize Lucide icon tags"
+  },
+  {
+    "hash": "94572889",
+    "date": "2026-09-22 21:48:22 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(ui): complete executive visual redesign with slate contrast, 0% emojis, elevated cards and high-contrast typography"
+  },
+  {
+    "hash": "a90ae9cf",
+    "date": "2026-09-22 21:30:33 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(temis): add auto-save heartbeat, executive charter print/PDF export, floating toast alerts, and audit score delta"
+  },
+  {
+    "hash": "a1a70ae0",
+    "date": "2026-09-22 21:17:22 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(temis): add responsive table containers and toolbar wrapping to SIPOC and Work Plan views"
+  },
+  {
+    "hash": "c4b05b5c",
+    "date": "2026-09-22 21:13:41 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(temis): implement full UX/UI audit recommendations - responsive reflow, clean semantics, sprint sync, and zero emojis"
+  },
+  {
+    "hash": "5e1cc184",
+    "date": "2026-09-22 20:38:56 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(temis): resolve Reflex Var type in user table and standardize Lucide circle-check icon"
+  },
+  {
+    "hash": "1f29dea3",
+    "date": "2026-09-22 19:21:19 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(temis): add project deletion with confirmation modal and project access assignment per user in user management"
+  },
+  {
+    "hash": "a5e507a4",
+    "date": "2026-09-22 18:57:27 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "style(temis): complete 100% emoji-free UI and standard typographic strings across all views"
+  },
+  {
+    "hash": "35787df4",
+    "date": "2026-09-22 18:52:10 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(temis): add executive attention banner in hub and 4-step onboarding roadmap in project charter"
+  },
+  {
+    "hash": "119cb5a5",
+    "date": "2026-09-22 18:46:47 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(temis): implement enterprise visual design system, 3-step project wizard, workspace lateral sidebar, and remove all emojis in favor of Lucide vector icons"
+  },
+  {
+    "hash": "14d7dac8",
+    "date": "2026-09-22 18:31:41 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(temis): complete T15 and T16 audit tickets (onboarding tab routing, save states, and operational governance gates)"
+  },
+  {
+    "hash": "35b6a849",
+    "date": "2026-09-22 18:26:30 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(temis): resolve QA audit findings T01-T14 (security, data isolation, dates, idempotency, UX improvements)"
+  },
+  {
+    "hash": "19f3e4e6",
+    "date": "2026-09-22 13:38:38 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "feat(backend): robustecer schemas con aliases, unificar reply_text en CSAT y homologar cierre de AgenteComunicador"
+  },
+  {
+    "hash": "8b2a6e55",
+    "date": "2026-09-22 13:26:06 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "docs(cascada): homologar prompts de los 15 agentes, estandarizar payloads HTTP y orden de cierre"
+  },
+  {
+    "hash": "23ba5a70",
+    "date": "2026-09-22 13:13:46 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(bsa-fraudes): implementar persistencia de estado post-cierre y emision de SC.037"
+  },
+  {
+    "hash": "8a76d8ef",
+    "date": "2026-09-22 12:44:54 -0600",
+    "author": "Jose Antonio Hurtado Palestina",
+    "message": "fix(db): ignore deleted postgres host and fallback safely to SQLite for Google Drive persistence"
+  }
+]
