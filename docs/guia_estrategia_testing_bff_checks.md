@@ -1,8 +1,5 @@
 # 🛡️ Guía Maestra: Estrategia de Testing para BFF Checks (Hermes 2)
 **Proyecto:** Hermes 2 - Microservicio BFF Checks (Backend For Frontend)  
-**Autor:** Anty / Pette para Toño (José Antonio Hurtado)  
-**Rol:** QA Automation Jr. / Líder Técnico de Calidad  
-**Departamento:** Sistemas / Desarrollo — Maxi LLC (Maxi Remesas)  
 **Fecha:** Noviembre 2026  
 
 ---

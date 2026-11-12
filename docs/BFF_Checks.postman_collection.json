@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "d39a78ff-ed03-4d2d-bade-f2187874883a",
     "name": "BFF Checks - Hermes 2 (QA Automation Maxi LLC)",
-    "description": "Colección completa de pruebas de API para el microservicio BFF Checks de Hermes 2 (Maxi Remesas).\n\n- Total Endpoints: 31 (29 de negocio + 2 monitoreo/salud)\n- Happy Path Status 200/201\n- Validación de Contratos JSON (Envelope Pattern: status, message, data)\n- Compatible con Newman CLI y reporter htmlextra\n- Elaborado para Toño (José Antonio Hurtado) por Anty / Pette.",
+    "description": "Colección completa de pruebas de API para el microservicio BFF Checks de Hermes 2 (Maxi Remesas).\n\n- Total Endpoints: 31 (29 de negocio + 2 monitoreo/salud)\n- Happy Path Status 200/201\n- Validación de Contratos JSON (Envelope Pattern: status, message, data)\n- Compatible con Newman CLI y reporter htmlextra",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
