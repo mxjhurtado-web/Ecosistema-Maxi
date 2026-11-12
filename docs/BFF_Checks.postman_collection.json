@@ -1,0 +1,2671 @@
+{
+  "info": {
+    "_postman_id": "cee4f2f8-a709-41c8-9d78-3ab65764c940",
+    "name": "BFF Checks - Hermes 2 (QA Automation Maxi LLC)",
+    "description": "Colección completa de pruebas de API para el microservicio BFF Checks de Hermes 2 (Maxi Remesas).\n\n- Total Endpoints: 31 (29 de negocio + 2 monitoreo/salud)\n- Happy Path Status 200/201\n- Validación de Contratos JSON (Envelope Pattern: status, message, data)\n- Compatible con Newman CLI y reporter htmlextra\n- Elaborado para Toño (José Antonio Hurtado) por Anty / Pette.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00. Sistema & Health (Monitoreo)",
+      "description": "Endpoints de verificación de estado y versión del microservicio BFF Checks.",
+      "item": [
+        {
+          "name": "[GET] Get Healthcheck",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/healthcheck",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/healthcheck",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "healthcheck"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `GET /api/checks/healthcheck`\n\n**Descripción:** Check if the service is running.\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[GET] Get Version",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/version",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/version",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "version"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `GET /api/checks/version`\n\n**Descripción:** Get the running version of the service.\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01. Catálogos & Check Cashing (GET)",
+      "description": "Catálogos base para operaciones de cambio de cheques (tipos de cheque, fuentes, relaciones con librador).",
+      "item": [
+        {
+          "name": "[GET] Get Check Cashing Sources",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/check-cashing/check-sources",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/check-cashing/check-sources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "check-cashing",
+                "check-sources"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/check-cashing/check-sources`\n\n**Descripción:** Get all available check cashing sources\n    \n---\n\n🗂️ **Note: This endpoint is cached for 240 seconds.**\n\nResponses may be served from a cache to improve performance and reduce load.\nIf the underlying data changes, it may take up to **240 seconds** for updates to appear.\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[GET] Get Check Cashing Issuer Relationships",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/check-cashing/issuer-relationships",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/check-cashing/issuer-relationships",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "check-cashing",
+                "issuer-relationships"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/check-cashing/issuer-relationships`\n\n**Descripción:** Get all available check cashing issuer relationships\n    \n---\n\n🗂️ **Note: This endpoint is cached for 240 seconds.**\n\nResponses may be served from a cache to improve performance and reduce load.\nIf the underlying data changes, it may take up to **240 seconds** for updates to appear.\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[GET] Get Check Cashing Types",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/check-cashing/types",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/check-cashing/types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "check-cashing",
+                "types"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/check-cashing/types`\n\n**Descripción:** Get all available check cashing types\n    \n---\n\n🗂️ **Note: This endpoint is cached for 240 seconds.**\n\nResponses may be served from a cache to improve performance and reduce load.\nIf the underlying data changes, it may take up to **240 seconds** for updates to appear.\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02. Agente & Configuración de Tarifas",
+      "description": "Límites transaccionales del agente y CRUD de comisiones/tarifas (AgCustFees).",
+      "item": [
+        {
+          "name": "[GET] Get Check Limit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/agents/{id_agent}/check_limit",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/agents/:id_agent/check_limit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "agents",
+                ":id_agent",
+                "check_limit"
+              ],
+              "variable": [
+                {
+                  "key": "id_agent",
+                  "value": "{{id_agent}}",
+                  "description": "Variable de ruta id_agent"
+                }
+              ],
+              "query": []
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/agents/{id_agent}/check_limit`\n\n**Descripción:** Get check limit for an agent\n    \n---\n\n🗂️ **Note: This endpoint is cached for 240 seconds.**\n\nResponses may be served from a cache to improve performance and reduce load.\nIf the underlying data changes, it may take up to **240 seconds** for updates to appear.\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[GET] Get Transaction Limit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/agents/{id_agent}/transaction_limits",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/agents/:id_agent/transaction_limits",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "agents",
+                ":id_agent",
+                "transaction_limits"
+              ],
+              "variable": [
+                {
+                  "key": "id_agent",
+                  "value": "{{id_agent}}",
+                  "description": "Variable de ruta id_agent"
+                }
+              ],
+              "query": []
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/agents/{id_agent}/transaction_limits`\n\n**Descripción:** Get transaction limit for an agent\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[POST] Create Fee Configuration",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: POST /api/checks/checks/configuration/fees/agent",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/configuration/fees/agent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "configuration",
+                "fees",
+                "agent"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `POST /api/checks/checks/configuration/fees/agent`\n\n**Descripción:** Endpoint to create check's fee configuration\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"IdAgCustFee\": 1,\n  \"ACF_CheckAmountFrom\": 10.5,\n  \"ACF_CheckAmountTo\": 10.5,\n  \"ACF_FeeFixed\": 10.5,\n  \"ACF_FeePerc\": 10.5,\n  \"ACF_DateCreated\": \"string\",\n  \"ACF_IdUserCreated\": 1,\n  \"IdAgent\": 1,\n  \"IdCheckType\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[PUT] Update Fee Configuration",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: PUT /api/checks/checks/configuration/fees/agent",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/configuration/fees/agent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "configuration",
+                "fees",
+                "agent"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `PUT /api/checks/checks/configuration/fees/agent`\n\n**Descripción:** Endpoint to update check's fee configuration\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"IdAgCustFee\": 1,\n  \"ACF_CheckAmountFrom\": 10.5,\n  \"ACF_CheckAmountTo\": 10.5,\n  \"ACF_FeeFixed\": 10.5,\n  \"ACF_FeePerc\": 10.5,\n  \"ACF_DateCreated\": \"string\",\n  \"ACF_IdUserCreated\": 1,\n  \"IdAgent\": 1,\n  \"IdCheckType\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[DELETE] Delete Fee Configuration",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: DELETE /api/checks/checks/configuration/fees/agent",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/configuration/fees/agent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "configuration",
+                "fees",
+                "agent"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `DELETE /api/checks/checks/configuration/fees/agent`\n\n**Descripción:** Endpoint to delete check's fee configuration\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"IdAgCustFee\": 1,\n  \"ACF_CheckAmountFrom\": 10.5,\n  \"ACF_CheckAmountTo\": 10.5,\n  \"ACF_FeeFixed\": 10.5,\n  \"ACF_FeePerc\": 10.5,\n  \"ACF_DateCreated\": \"string\",\n  \"ACF_IdUserCreated\": 1,\n  \"IdAgent\": 1,\n  \"IdCheckType\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[GET] Get Configuration Fees Agent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/configuration/fees/agent/{id_agent}",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/configuration/fees/agent/:id_agent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "configuration",
+                "fees",
+                "agent",
+                ":id_agent"
+              ],
+              "variable": [
+                {
+                  "key": "id_agent",
+                  "value": "{{id_agent}}",
+                  "description": "Variable de ruta id_agent"
+                }
+              ],
+              "query": []
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/configuration/fees/agent/{id_agent}`\n\n**Descripción:** Get configuration fees agent\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[GET] Get Fee Checks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/fees/agent/{id_agent}",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/fees/agent/:id_agent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "fees",
+                "agent",
+                ":id_agent"
+              ],
+              "variable": [
+                {
+                  "key": "id_agent",
+                  "value": "{{id_agent}}",
+                  "description": "Variable de ruta id_agent"
+                }
+              ],
+              "query": []
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/fees/agent/{id_agent}`\n\n**Descripción:** Get fee checks for an agent\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03. Consultas, Lotes e Historial (GET)",
+      "description": "Búsqueda de cheques individuales, progreso de lotes DynamoDB, recibos e historial de cliente/librador.",
+      "item": [
+        {
+          "name": "[GET] Get Batch By Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/batch",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/batch?batch_id={{batch_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "batch"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "batch_id",
+                  "value": "{{batch_id}}",
+                  "disabled": false,
+                  "description": ""
+                }
+              ]
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/batch`\n\n**Descripción:** Get a batch checks with provided batch_id\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[GET] Get Customer History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/customer/{id_customer}/history",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/customer/:id_customer/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "customer",
+                ":id_customer",
+                "history"
+              ],
+              "variable": [
+                {
+                  "key": "id_customer",
+                  "value": "{{id_customer}}",
+                  "description": "Variable de ruta id_customer"
+                }
+              ],
+              "query": []
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/customer/{id_customer}/history`\n\n**Descripción:** Get checks history for a customer\n    \n---\n\n🗂️ **Note: This endpoint is cached for 240 seconds.**\n\nResponses may be served from a cache to improve performance and reduce load.\nIf the underlying data changes, it may take up to **240 seconds** for updates to appear.\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[GET] Get Issuer History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/issuer/{id_issuer}/history",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/issuer/:id_issuer/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "issuer",
+                ":id_issuer",
+                "history"
+              ],
+              "variable": [
+                {
+                  "key": "id_issuer",
+                  "value": "{{id_issuer}}",
+                  "description": "Variable de ruta id_issuer"
+                }
+              ],
+              "query": [
+                {
+                  "key": "paged",
+                  "value": "{{paged}}",
+                  "disabled": true,
+                  "description": "Enable pagination"
+                },
+                {
+                  "key": "offset",
+                  "value": "{{offset}}",
+                  "disabled": true,
+                  "description": "Pagination offset"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}",
+                  "disabled": true,
+                  "description": "Number of checks to return"
+                },
+                {
+                  "key": "startDate",
+                  "value": "{{startDate}}",
+                  "disabled": true,
+                  "description": "Start date for the history filter"
+                },
+                {
+                  "key": "endDate",
+                  "value": "{{endDate}}",
+                  "disabled": true,
+                  "description": "End date for the history filter"
+                },
+                {
+                  "key": "sortField",
+                  "value": "{{sortField}}",
+                  "disabled": true,
+                  "description": "Field to sort the results by"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "{{sortOrder}}",
+                  "disabled": true,
+                  "description": "Order to sort the results"
+                }
+              ]
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/issuer/{id_issuer}/history`\n\n**Descripción:** Get checks history for an issuer\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[GET] Get Process Ird",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/process_ird",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/process_ird?idCheck={{idCheck}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "process_ird"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "idCheck",
+                  "value": "{{idCheck}}",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "docType",
+                  "value": "{{docType}}",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "idAgent",
+                  "value": "{{idAgent}}",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "amount",
+                  "value": "{{amount}}",
+                  "disabled": true,
+                  "description": ""
+                }
+              ]
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/process_ird`\n\n**Descripción:** Get Process Ird\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[GET] Get Checks Progress",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/progress",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/progress",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "progress"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}",
+                  "disabled": true,
+                  "description": "Attribute to get info by batch id"
+                },
+                {
+                  "key": "batchId",
+                  "value": "{{batchId}}",
+                  "disabled": true,
+                  "description": "Attribute to get info by user id"
+                }
+              ]
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/progress`\n\n**Descripción:** Get checks progress for a batch id or user id\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[GET] Get Receipt By Id Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/receipt/{id_check}",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/receipt/:id_check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "receipt",
+                ":id_check"
+              ],
+              "variable": [
+                {
+                  "key": "id_check",
+                  "value": "{{id_check}}",
+                  "description": "Variable de ruta id_check"
+                }
+              ],
+              "query": []
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/receipt/{id_check}`\n\n**Descripción:** Get receipt check\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[GET] Get Check By Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: GET /api/checks/checks/{id_check}",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/:id_check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                ":id_check"
+              ],
+              "variable": [
+                {
+                  "key": "id_check",
+                  "value": "{{id_check}}",
+                  "description": "Variable de ruta id_check"
+                }
+              ],
+              "query": []
+            },
+            "description": "**Endpoint:** `GET /api/checks/checks/{id_check}`\n\n**Descripción:** Get check details by ID\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04. Validaciones, Cálculos & Ciclo de Vida (POST/PUT/PATCH/DELETE)",
+      "description": "Motor de validaciones simples, OFAC/DenyList, Giact, subida de imágenes a S3, cálculo de totales y procesamiento.",
+      "item": [
+        {
+          "name": "[POST] Process Batch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: POST /api/checks/checks/batch",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/batch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "batch"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `POST /api/checks/checks/batch`\n\n**Descripción:** Process a batch of checks\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"batchId\": \"string\",\n  \"agentId\": 0,\n  \"checkIds\": [\n    \"string\"\n  ],\n  \"globalSettingsChecks\": {\n    \"percentDoubleVerification\": 0.0,\n    \"percentOfacMatchBit\": 0.0,\n    \"minPercentOfacMatch\": 0.0\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[DELETE] Delete Batch By Id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: DELETE /api/checks/checks/batch/{id_batch}",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/batch/:id_batch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "batch",
+                ":id_batch"
+              ],
+              "variable": [
+                {
+                  "key": "id_batch",
+                  "value": "{{id_batch}}",
+                  "description": "Variable de ruta id_batch"
+                }
+              ],
+              "query": []
+            },
+            "description": "**Endpoint:** `DELETE /api/checks/checks/batch/{id_batch}`\n\n**Descripción:** Delete a batch of checks\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[POST] Get Check Cashing Totals",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: POST /api/checks/checks/check-cashing/totals",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/check-cashing/totals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "check-cashing",
+                "totals"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `POST /api/checks/checks/check-cashing/totals`\n\n**Descripción:** Calculates the check cashing totals\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idAgentPaymentSchema\": 1,\n  \"idCheckType\": 1,\n  \"stateCode\": \"string\",\n  \"amount\": 10.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[POST] Post Checks Giact",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: POST /api/checks/checks/giact",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/giact",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "giact"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `POST /api/checks/checks/giact`\n\n**Descripción:** Post a check for validation using Giact Service\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uniqueId\": \"string\",\n  \"gVerifyEnabled\": true,\n  \"fundsConfirmationEnabled\": true,\n  \"check\": {\n    \"routingNumber\": \"string\",\n    \"accountNumber\": \"string\",\n    \"checkNumber\": \"string\",\n    \"accountType\": \"string\"\n  },\n  \"idAgent\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[POST] Checks Single Process",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: POST /api/checks/checks/single/process",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/single/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "single",
+                "process"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `POST /api/checks/checks/single/process`\n\n**Descripción:** Endpoint to process checks in single way\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkDto\": {\n    \"idCheckService\": 1,\n    \"account\": \"string\",\n    \"amount\": 10.5,\n    \"checkNumber\": \"string\",\n    \"checksPaid\": 1,\n    \"checksRejected\": 1,\n    \"customerAddress\": \"string\",\n    \"customerCelullarNumber\": \"string\",\n    \"customerCity\": \"string\",\n    \"customerFirstLastName\": \"string\",\n    \"customerIdCarrier\": 1,\n    \"customerIdOccupation\": 1,\n    \"customerIdSubcategoryOccupation\": 1,\n    \"customerIdentificationIdCountry\": 1,\n    \"customerIdentificationIdState\": 1,\n    \"customerName\": \"string\",\n    \"customerPhoneNumber\": \"string\",\n    \"customerSecondLastName\": \"string\",\n    \"customerSsNumber\": \"string\",\n    \"customerState\": \"string\",\n    \"customerSubcategoryOccupationOther\": \"string\",\n    \"customerZipcode\": \"string\",\n    \"dateOfBirth\": \"2026-11-12T12:00:00Z\",\n    \"dateOfIssue\": \"2026-11-12T12:00:00Z\",\n    \"dateOfMovement\": \"2026-11-12T12:00:00Z\",\n    \"dateOfStatusChange\": \"2026-11-12T12:00:00Z\",\n    \"fee\": 10.5,\n    \"hasInsert\": true,\n    \"idAgent\": 1,\n    \"idCheck\": 1,\n    \"idCheckGuid\": \"string\",\n    \"idCountryOfBirth\": 1,\n    \"idCustomer\": 1,\n    \"idEnteredByIdUser\": 1,\n    \"idIdentificationType\": 1,\n    \"idIssuer\": 1,\n    \"idStatus\": 1,\n    \"identificationDateOfExpiration\": \"2026-11-12T12:00:00Z\",\n    \"identificationNumber\": \"string\",\n    \"identificationType\": \"string\",\n    \"isDateOfIssueBySystem\": true,\n    \"isDuplicate\": 1,\n    \"isEndorsed\": true,\n    \"isIRD\": true,\n    \"isSaveCustomer\": true,\n    \"issuerName\": \"string\",\n    \"issuerPhone\": \"string\",\n    \"manualMicrHold\": true,\n    \"ofacInfo\": {\n      \"customerFirstLastName\": \"string\",\n      \"customerMatch\": \"string\",\n      \"customerName\": \"string\",\n      \"customerOfacPercent\": 10.5,\n      \"customerSecondLastName\": \"string\",\n      \"idCheck\": \"string\",\n      \"isCustomerFullMatch\": true,\n      \"isCustomerOldProccess\": true,\n      \"isIssuerFullMatch\": true,\n      \"isIssuerOldProccess\": true,\n      \"isOFACDoubleVerification\": true,\n      \"issuerMatch\": \"string\",\n      \"issuerName\": \"string\",\n      \"issuerOfacPercent\": 10.5,\n      \"minPercentOfacMatch\": 10.5,\n      \"percentDoubleVerification\": 10.5,\n      \"percentOfacMatchBit\": 10.5,\n      \"tempGuid\": \"string\"\n    },\n    \"micr\": \"string\",\n    \"micrAmount\": \"string\",\n    \"micrAuxOnUs\": \"string\",\n    \"micrEPC\": \"string\",\n    \"micrManual\": \"string\",\n    \"micrOnUs\": \"string\",\n    \"micrRoutingTransitNumber\": \"string\",\n    \"ocupation\": \"string\",\n    \"oriAccount\": \"string\",\n    \"oriAccountScore\": 1,\n    \"oriAmount\": 10.5,\n    \"oriAmountScore\": 1,\n    \"oriCheckNum\": \"string\",\n    \"oriCheckNumScore\": 1,\n    \"oriDateOfIssue\": \"string\",\n    \"oriDateOfIssueScore\": 1,\n    \"oriRouting\": \"string\",\n    \"oriRoutingScore\": 1,\n    \"routingNumber\": \"string\",\n    \"state\": \"string\",\n    \"taxTypeID\": 1,\n    \"transactionFee\": 10.5,\n    \"validationFee\": 10.5,\n    \"isCellphoneValidated\": true,\n    \"agentCommission\": 10.5,\n    \"corporateCommission\": 10.5,\n    \"totalAmountToCorporate\": 10.5,\n    \"idCheckType\": 1,\n    \"validCheckTypeCode\": 1,\n    \"agentCode\": \"string\",\n    \"idDialingCodePhoneNumber\": 1,\n    \"oriCheckTypeId\": 1,\n    \"idSourceOfChecks\": 1,\n    \"idIssuerRelationship\": 1\n  },\n  \"idLenguage\": 1,\n  \"idCheck\": 1,\n  \"idCustomer\": 1,\n  \"idIssuer\": 1,\n  \"checkImages\": {},\n  \"idCustomerCompliance\": \"string\",\n  \"customerImage\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[POST] Post Checks Single Validation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: POST /api/checks/checks/single/validation",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/single/validation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "single",
+                "validation"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `POST /api/checks/checks/single/validation`\n\n**Descripción:** Perform single check validation including lending zero, caution notes, issuer action,\naccount summary, and optional OFAC validation\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"routingNumber\": \"string\",\n  \"accountNumber\": \"string\",\n  \"checkNumber\": \"string\",\n  \"drawer\": 1,\n  \"amount\": 10.5,\n  \"customer\": {\n    \"name\": \"string\",\n    \"firstLastName\": \"string\",\n    \"secondLastName\": \"string\",\n    \"countryOfBirth\": \"string\",\n    \"birthDate\": \"string\"\n  },\n  \"denyListSearch\": {\n    \"idCheckService\": 1,\n    \"customerName\": \"string\",\n    \"customerFirstLastName\": \"string\",\n    \"customerSecondLastName\": \"string\",\n    \"issuerName\": \"string\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[PATCH] Get Change Check Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: PATCH /api/checks/checks/status",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/status?IdCheck={{IdCheck}}&IdUser={{IdUser}}&IdStatus={{IdStatus}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "status"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "IdCheck",
+                  "value": "{{IdCheck}}",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "IdUser",
+                  "value": "{{IdUser}}",
+                  "disabled": false,
+                  "description": ""
+                },
+                {
+                  "key": "IdStatus",
+                  "value": "{{IdStatus}}",
+                  "disabled": false,
+                  "description": "New status for the check"
+                }
+              ]
+            },
+            "description": "**Endpoint:** `PATCH /api/checks/checks/status`\n\n**Descripción:** This endpoint will change the status of a check\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[POST] Calculate Totals",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: POST /api/checks/checks/totals/calculate",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/totals/calculate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "totals",
+                "calculate"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `POST /api/checks/checks/totals/calculate`\n\n**Descripción:** Calculate check totals including agent fees and net credit\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"checkAmount\": 10.5,\n  \"idAgent\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[POST] Upload Check Image",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: POST /api/checks/checks/upload_image",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/upload_image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "upload_image"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `POST /api/checks/checks/upload_image`\n\n**Descripción:** Upload check images for validation and processing\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageNameFront\": \"string\",\n  \"imageFileFront\": \"string\",\n  \"imageNameBack\": \"string\",\n  \"imageFileBack\": \"string\",\n  \"typeScan\": \"Single\",\n  \"idCheckImagePending\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[POST] Post Checks Verification Pending",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: POST /api/checks/checks/verification/pending",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/verification/pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                "verification",
+                "pending"
+              ],
+              "variable": [],
+              "query": []
+            },
+            "description": "**Endpoint:** `POST /api/checks/checks/verification/pending`\n\n**Descripción:** Post checks verification pending\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pc_identifier\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[DELETE] Delete Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: DELETE /api/checks/checks/{id_check}",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/:id_check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                ":id_check"
+              ],
+              "variable": [
+                {
+                  "key": "id_check",
+                  "value": "{{id_check}}",
+                  "description": "Variable de ruta id_check"
+                }
+              ],
+              "query": []
+            },
+            "description": "**Endpoint:** `DELETE /api/checks/checks/{id_check}`\n\n**Descripción:** This endpoint deletes a check by Id\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`"
+          },
+          "response": []
+        },
+        {
+          "name": "[PUT] Update Batch Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================",
+                  "// Test de Happy Path & Contrato: PUT /api/checks/checks/{id_check}",
+                  "// ==========================================",
+                  "",
+                  "// 1. Verificación de Código de Estado HTTP (Happy Path)",
+                  "pm.test(\"Status code es 200 OK (o 201 Created)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "// 2. Verificación del Tiempo de Respuesta (SLA < 3000 ms)",
+                  "pm.test(\"Tiempo de respuesta dentro de SLA (< 3000ms)\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// 3. Verificación de Headers",
+                  "pm.test(\"Content-Type es application/json\", function () {",
+                  "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});",
+                  "",
+                  "// 4. Verificación de Contrato Base BFF (Envelope Pattern)",
+                  "pm.test(\"Contrato Base BFF: Cumple envoltorio estándar {{ status, message, data }}\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"object\");",
+                  "    pm.expect(jsonData).to.have.property(\"status\");",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "    pm.expect(jsonData).to.have.property(\"data\");",
+                  "    pm.expect(jsonData.status).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "authorizer",
+                "value": "{{authorizer_token}}",
+                "description": "Token de autenticación / Header de autorización BFF",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checks/checks/:id_check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checks",
+                "checks",
+                ":id_check"
+              ],
+              "variable": [
+                {
+                  "key": "id_check",
+                  "value": "{{id_check}}",
+                  "description": "Variable de ruta id_check"
+                }
+              ],
+              "query": []
+            },
+            "description": "**Endpoint:** `PUT /api/checks/checks/{id_check}`\n\n**Descripción:** Update a batch check record\n\n**Swagger:** `https://hermes2-api-dev.mylabs.mx/api/checks/documentation/swagger`",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"process_status\": \"pending\",\n  \"check_status\": \"string\",\n  \"errorDetails\": {\n    \"error\": \"string\",\n    \"phase\": \"string\",\n    \"timestamp\": \"2026-11-12T12:00:00Z\"\n  },\n  \"processedData\": {\n    \"IdImage\": \"string\",\n    \"Customer\": {\n      \"CustAddress\": null,\n      \"IdCustomer\": null,\n      \"CustName\": null,\n      \"CustState\": null,\n      \"CustLastName2\": null,\n      \"CustCity\": null,\n      \"CustLastName\": null,\n      \"CustTel\": null,\n      \"CustZip\": null\n    },\n    \"CheckCanBeProcessed\": \"string\",\n    \"IsCompanyCheck\": true,\n    \"CheckNum\": \"string\",\n    \"MicrOnUs\": null,\n    \"Maker\": {\n      \"MakerState\": null,\n      \"MakerTel\": null,\n      \"MakerName\": null,\n      \"MakerZip\": null,\n      \"MakerCity\": null,\n      \"MakerAddress\": null,\n      \"IdMaker\": null,\n      \"LastIdCheckType\": null\n    },\n    \"Micr\": \"string\",\n    \"CheckDateScore\": 1,\n    \"AccCautionNotes\": {\n      \"Status\": null,\n      \"Notes\": null\n    },\n    \"ItemDocType\": null,\n    \"AccSummary\": {\n      \"LastRejectionReason\": null,\n      \"LastRejectionDate\": null,\n      \"TotalProcessed\": null,\n      \"TotalRejected\": null\n    },\n    \"AccountNum\": \"string\",\n    \"ItemName\": null,\n    \"RoutingNum\": \"string\",\n    \"CheckDate\": \"2026-11-12T12:00:00Z\",\n    \"CheckAmountScore\": 1,\n    \"IsSigned\": true,\n    \"isDuplicate\": true,\n    \"CheckAmount\": 10.5,\n    \"Ocr\": {\n      \"MicrAmount\": null,\n      \"RoutingScore\": null,\n      \"OnUsCheck\": null,\n      \"MicrScore\": null,\n      \"MicrAmountScore\": null,\n      \"Routing\": null,\n      \"DocName\": null,\n      \"PayerName\": null,\n      \"Micr\": null,\n      \"PayerScore\": null,\n      \"OnUsAccountScore\": null,\n      \"Score\": null,\n      \"OnUsCheckScore\": null,\n      \"ErrorCode\": null,\n      \"OnUsAccount\": null,\n      \"DocType\": null,\n      \"DocTypeCode\": null\n    },\n    \"CustomerOfacMaxScore\": 10.5,\n    \"CustomerOfacResult\": {}\n  },\n  \"imagePaths\": [\n    \"string\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
